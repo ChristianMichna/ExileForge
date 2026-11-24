@@ -1,29 +1,51 @@
+/*
+ * Readouts: each stat is an engraved cell on the instrument. Mono numerals,
+ * hairline frame, a short verdigris tick marks a live measurement.
+ */
 .ef-stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: var(--ef-space-3);
+  gap: 0;
   margin: 0;
+  border-top: var(--ef-hairline) solid var(--ef-color-line);
+  border-left: var(--ef-hairline) solid var(--ef-color-line);
 }
 
-/* A stamped hallmark sunk into the plate */
 .ef-stat {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--ef-space-1);
+  gap: var(--ef-space-2);
   min-width: 0;
-  padding: var(--ef-space-3) var(--ef-space-4);
-  border: 1px solid var(--ef-color-line);
+  padding: var(--ef-space-3) var(--ef-space-4) var(--ef-space-4);
+  border-right: var(--ef-hairline) solid var(--ef-color-line);
+  border-bottom: var(--ef-hairline) solid var(--ef-color-line);
   background: var(--ef-color-inset);
-  box-shadow: var(--ef-shadow-stamp);
+}
+
+.ef-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--ef-space-3);
+  width: 2px;
+  height: var(--ef-space-3);
+  background: var(--ef-color-verdigris-dim);
 }
 
 .ef-stat--emphasis {
   grid-column: span 2;
+  background: var(--ef-glass-sheen), var(--ef-color-inset);
+}
+
+.ef-stat--emphasis::before {
+  background: var(--ef-color-verdigris);
+  box-shadow: var(--ef-glow-verdigris);
 }
 
 .ef-stat__label {
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
-  font-weight: 700;
   letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
   color: var(--ef-color-text-muted);
@@ -32,14 +54,15 @@
 .ef-stat__value {
   display: flex;
   flex-direction: column;
-  gap: var(--ef-space-1);
+  gap: var(--ef-space-2);
   margin: 0;
   min-width: 0;
 }
 
 .ef-stat__number {
-  font-size: var(--ef-text-3xl);
-  font-weight: 800;
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-2xl);
+  font-weight: 500;
   line-height: var(--ef-leading-tight);
   color: var(--ef-color-text-strong);
 }
@@ -47,12 +70,9 @@
 .ef-stat--emphasis .ef-stat__number {
   font-family: var(--ef-font-display);
   font-size: var(--ef-text-4xl);
-  font-weight: 700;
-  background: var(--ef-gradient-molten);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(var(--ef-glow-gold));
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--ef-color-text-strong);
 }
 
 .ef-stat__meta {
@@ -64,59 +84,80 @@
 }
 
 .ef-stat__meta--status {
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
   color: var(--ef-color-text-faint);
 }
 
 .ef-stat__meta--error {
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
   color: var(--ef-color-danger-bright);
 }
 
 .ef-stat__status-text {
-  font-size: var(--ef-text-xl);
-  font-weight: 800;
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-lg);
+  font-weight: 500;
   line-height: var(--ef-leading-tight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--ef-color-text-muted);
 }
 
 .ef-stat--error {
-  border-color: var(--ef-color-danger);
   background: var(--ef-color-danger-ground);
+}
+
+.ef-stat--error::before {
+  background: var(--ef-color-danger);
+  box-shadow: var(--ef-glow-danger);
 }
 
 .ef-stat--error .ef-stat__status-text {
   color: var(--ef-color-danger-bright);
 }
 
-.ef-stat--uncalibrated {
-  border-style: dashed;
+.ef-stat--uncalibrated::before {
+  background: var(--ef-color-prov-uncalibrated);
 }
 
-/* Loading: metal still heating up */
+.ef-stat--uncalibrated .ef-stat__status-text {
+  color: var(--ef-color-text-faint);
+}
+
+/* Loading: a scanning line across an empty readout */
 .ef-stat__placeholder {
+  position: relative;
   display: block;
   width: 70%;
-  height: 1.6em;
+  height: 1.4em;
   margin: 2px 0;
-  background: linear-gradient(
-    90deg,
-    var(--ef-color-surface-1),
-    var(--ef-color-coal),
-    var(--ef-color-surface-1)
-  );
-  background-size: 200% 100%;
-  animation: ef-heat 1.8s linear infinite;
+  overflow: hidden;
+  border-bottom: var(--ef-hairline) dashed var(--ef-color-line-strong);
 }
 
-@keyframes ef-heat {
+.ef-stat__placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, var(--ef-color-verdigris-deep), transparent);
+  animation: ef-scan 1.6s var(--ef-ease) infinite;
+}
+
+@keyframes ef-scan {
+  from {
+    transform: translateX(-100%);
+  }
+
   to {
-    background-position: -200% 0;
+    transform: translateX(340%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ef-stat__placeholder {
+  .ef-stat__placeholder::after {
     animation: none;
   }
 }

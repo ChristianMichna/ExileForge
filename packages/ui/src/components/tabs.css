@@ -8,7 +8,7 @@
 }
 
 .ef-tabs--underline .ef-tabs__list {
-  border-bottom: 1px solid var(--ef-color-line-strong);
+  border-bottom: var(--ef-hairline) solid var(--ef-color-line);
 }
 
 .ef-tabs__tab {
@@ -30,16 +30,17 @@
 
 .ef-tabs__label {
   font-family: var(--ef-font-display);
-  font-size: var(--ef-text-lg);
-  font-weight: 500;
-  line-height: 1.1;
+  font-size: var(--ef-text-md);
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .ef-tabs__hint {
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
-  letter-spacing: 0.06em;
   color: var(--ef-color-text-faint);
-  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .ef-tabs__tab:hover:not(:disabled) {
@@ -47,8 +48,7 @@
 }
 
 .ef-tabs__tab[aria-selected="true"] {
-  color: var(--ef-color-heat-bright);
-  text-shadow: var(--ef-glow-heat);
+  color: var(--ef-color-verdigris);
 }
 
 .ef-tabs--underline .ef-tabs__tab[aria-selected="true"]::after {
@@ -57,9 +57,9 @@
   left: var(--ef-space-2);
   right: var(--ef-space-2);
   bottom: -1px;
-  height: 2px;
-  background: var(--ef-gradient-seam);
-  box-shadow: var(--ef-glow-heat);
+  height: 1px;
+  background: var(--ef-color-verdigris);
+  box-shadow: var(--ef-glow-verdigris);
 }
 
 .ef-tabs__tab:disabled {
@@ -68,101 +68,185 @@
 }
 
 .ef-tabs__tab:focus-visible {
-  outline: 2px solid var(--ef-color-focus);
-  outline-offset: -2px;
+  outline: 1px solid var(--ef-color-focus);
+  outline-offset: -1px;
 }
 
 .ef-tabs__panel {
   padding-top: var(--ef-space-5);
+  min-width: 0;
 }
 
 .ef-tabs__panel:focus-visible {
   outline-offset: 4px;
 }
 
-/* Forge timeline: ingots on a heat seam */
-.ef-tabs--timeline .ef-tabs__list {
+/* Astrolabe dial */
+.ef-tabs--dial {
   display: grid;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-  gap: 0;
-  padding: var(--ef-space-1) 0;
+  grid-template-columns: calc(var(--ef-dial-size) + 2 * var(--ef-dial-label-room)) minmax(0, 1fr);
+  gap: var(--ef-space-6);
+  align-items: start;
+}
+
+.ef-tabs__dial {
+  position: relative;
+  width: var(--ef-dial-size);
+  margin-inline: var(--ef-dial-label-room);
+  aspect-ratio: 1;
+}
+
+.ef-tabs__rings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 
-.ef-tabs--timeline .ef-tabs__list::before,
-.ef-tabs--timeline .ef-tabs__list::after {
-  content: "";
+.ef-tabs__ring {
+  fill: none;
+  stroke: var(--ef-color-line);
+  stroke-width: 0.25;
+}
+
+.ef-tabs__ring--outer {
+  stroke: var(--ef-color-engraving);
+}
+
+.ef-tabs__ring--ticks {
+  stroke: var(--ef-color-line);
+  stroke-dasharray: 0.3 1.6;
+  stroke-width: 1.2;
+}
+
+.ef-tabs__ring--track {
+  stroke: var(--ef-color-surface-3);
+  stroke-width: 1.6;
+}
+
+.ef-tabs__ring--progress {
+  stroke: var(--ef-color-verdigris);
+  stroke-width: 1;
+  filter: drop-shadow(var(--ef-glow-verdigris));
+}
+
+.ef-tabs__ring--sigil {
+  stroke: var(--ef-color-engraving);
+}
+
+.ef-tabs__dial-center {
   position: absolute;
-  top: 32px;
-  left: 10%;
-  height: 4px;
-  pointer-events: none;
-}
-
-.ef-tabs--timeline .ef-tabs__list::before {
-  right: 10%;
-  background: linear-gradient(90deg, var(--ef-color-surface-3), var(--ef-color-surface-2));
-}
-
-.ef-tabs--timeline .ef-tabs__list::after {
-  width: calc(var(--ef-progress) * 0.8);
-  background: linear-gradient(90deg, var(--ef-color-heat-bright), var(--ef-color-heat));
-  box-shadow: var(--ef-glow-heat);
-}
-
-.ef-tabs--timeline .ef-tabs__tab {
-  z-index: 1;
+  inset: 30%;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--ef-space-1);
-  padding: 0 var(--ef-space-2) var(--ef-space-2);
+  justify-content: center;
   text-align: center;
 }
 
-.ef-tabs__ingot {
-  position: relative;
+.ef-tabs--dial .ef-tabs__list {
+  position: static;
   display: block;
-  width: 64px;
-  height: 64px;
-  margin-bottom: var(--ef-space-2);
-  clip-path: var(--ef-shape-ingot);
-  background: var(--ef-color-line-strong);
-  transition: filter var(--ef-duration-base) var(--ef-ease);
+  overflow: visible;
 }
 
-.ef-tabs__ingot::after {
-  content: "";
+.ef-tabs--dial .ef-tabs__tab {
   position: absolute;
-  inset: 3px;
-  clip-path: var(--ef-shape-ingot);
-  background: var(--ef-gradient-cold);
+  align-items: center;
+  padding: var(--ef-space-1) var(--ef-space-2);
+  text-align: center;
+  transform: translate(-50%, -14px);
 }
 
-.ef-tabs__tab--done .ef-tabs__ingot {
-  background: var(--ef-color-ember);
+/* Side marks: label beside the mark, pointing outwards */
+.ef-tabs--dial .ef-tabs__tab--end,
+.ef-tabs--dial .ef-tabs__tab--start {
+  display: grid;
+  column-gap: var(--ef-space-2);
+  align-items: center;
+  padding: var(--ef-space-1) var(--ef-space-2);
 }
 
-.ef-tabs__tab--done .ef-tabs__ingot::after {
-  background: var(--ef-gradient-cooled);
+.ef-tabs--dial .ef-tabs__tab--end {
+  grid-template-areas:
+    "mark label"
+    ". hint";
+  justify-items: start;
+  text-align: left;
+  transform: translate(-13px, -15px);
 }
 
-.ef-tabs__tab--current .ef-tabs__ingot {
-  background: var(--ef-color-white-hot);
-  filter: drop-shadow(var(--ef-glow-heat));
+.ef-tabs--dial .ef-tabs__tab--start {
+  grid-template-areas:
+    "label mark"
+    "hint .";
+  justify-items: end;
+  text-align: right;
+  transform: translate(calc(-100% + 13px), -15px);
 }
 
-.ef-tabs__tab--current .ef-tabs__ingot::after {
-  background: var(--ef-gradient-ingot);
+.ef-tabs__tab--end .ef-tabs__mark,
+.ef-tabs__tab--start .ef-tabs__mark {
+  grid-area: mark;
+  margin: 0;
 }
 
-.ef-tabs--timeline .ef-tabs__tab:hover:not(:disabled) .ef-tabs__ingot {
-  filter: brightness(1.3) drop-shadow(var(--ef-glow-heat));
+.ef-tabs__tab--end .ef-tabs__label,
+.ef-tabs__tab--start .ef-tabs__label {
+  grid-area: label;
 }
 
-.ef-tabs--timeline .ef-tabs__label {
-  font-size: var(--ef-text-xl);
+.ef-tabs__tab--end .ef-tabs__hint,
+.ef-tabs__tab--start .ef-tabs__hint {
+  grid-area: hint;
 }
 
-.ef-tabs--timeline .ef-tabs__tab--done {
+.ef-tabs__mark {
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin-bottom: var(--ef-space-1);
+  border: var(--ef-hairline) solid var(--ef-color-line-strong);
+  background: var(--ef-color-ground);
+  transform: rotate(45deg);
+}
+
+.ef-tabs__tab--done .ef-tabs__mark {
+  border-color: var(--ef-color-verdigris-dim);
+  background: var(--ef-color-verdigris-deep);
+}
+
+.ef-tabs__tab--current .ef-tabs__mark {
+  border-color: var(--ef-color-verdigris-bright);
+  background: var(--ef-color-verdigris);
+  box-shadow: var(--ef-glow-verdigris);
+}
+
+.ef-tabs__numeral {
+  color: var(--ef-color-text-faint);
+}
+
+.ef-tabs__tab--current .ef-tabs__numeral {
+  color: var(--ef-color-verdigris-dim);
+}
+
+.ef-tabs--dial .ef-tabs__tab--done {
   color: var(--ef-color-text);
+}
+
+.ef-tabs--dial .ef-tabs__panel {
+  padding-top: 0;
+}
+
+/* Narrow windows: dial above its panel */
+@media (max-width: 1180px) {
+  .ef-tabs--dial {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .ef-tabs--dial .ef-tabs__panel {
+    justify-self: stretch;
+  }
 }

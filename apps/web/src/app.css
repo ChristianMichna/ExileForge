@@ -7,63 +7,28 @@
   min-height: 100vh;
 }
 
-/* Decorative ember specks rising from the forge light */
-.embers {
+/* Engraved instrument rings behind the content, purely decorative */
+.engraving {
   position: fixed;
-  inset: 0;
+  top: 50%;
+  right: -18vmin;
+  width: 110vmin;
+  height: 110vmin;
+  transform: translateY(-50%);
   pointer-events: none;
+  overflow: visible;
 }
 
-.ember {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--ef-color-heat-bright);
-  box-shadow: var(--ef-glow-heat);
+.engraving circle,
+.engraving path {
+  fill: none;
+  stroke: var(--ef-color-engraving);
+  stroke-width: 0.12;
 }
 
-.ember--1 {
-  left: 21%;
-  bottom: 6%;
-}
-
-.ember--2 {
-  left: 47%;
-  bottom: 13%;
-  width: 3px;
-  height: 3px;
-  opacity: 0.7;
-}
-
-.ember--3 {
-  left: 68%;
-  bottom: 4%;
-  width: 5px;
-  height: 5px;
-}
-
-.ember--4 {
-  left: 82%;
-  bottom: 22%;
-  width: 2px;
-  height: 2px;
-  opacity: 0.6;
-}
-
-.ember--5 {
-  left: 36%;
-  bottom: 2%;
-  width: 3px;
-  height: 3px;
-}
-
-.ember--6 {
-  left: 91%;
-  bottom: 9%;
-  width: 3px;
-  height: 3px;
-  opacity: 0.8;
+.engraving .engraving__ticks {
+  stroke-width: 1.2;
+  stroke-dasharray: 0.12 1.4;
 }
 
 /* Top bar */
@@ -71,6 +36,7 @@
   position: relative;
   z-index: 1;
   display: flex;
+  border-bottom: var(--ef-hairline) solid var(--ef-color-line);
   align-items: center;
   gap: var(--ef-space-7);
   padding: 0 var(--ef-space-7);
@@ -85,9 +51,15 @@
 
 .brand__name {
   font-family: var(--ef-font-display);
-  font-size: var(--ef-text-3xl);
-  font-weight: 700;
+  font-size: var(--ef-text-xl);
+  font-weight: 400;
+  letter-spacing: var(--ef-tracking-caps);
   line-height: 1;
+  color: var(--ef-color-text-strong);
+}
+
+.brand__accent {
+  color: var(--ef-color-verdigris);
 }
 
 .nav__list {
@@ -104,8 +76,8 @@
   align-items: baseline;
   gap: var(--ef-space-2);
   padding: var(--ef-space-2) 0;
-  font-size: var(--ef-text-sm);
-  font-weight: 700;
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
   letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
   white-space: nowrap;
@@ -119,8 +91,7 @@ a.nav__link:hover {
 }
 
 .nav__link[aria-current="page"] {
-  color: var(--ef-color-heat-bright);
-  text-shadow: var(--ef-glow-heat);
+  color: var(--ef-color-verdigris);
 }
 
 .nav__link[aria-current="page"]::after {
@@ -129,9 +100,9 @@ a.nav__link:hover {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 2px;
-  background: var(--ef-gradient-seam);
-  box-shadow: var(--ef-glow-heat);
+  height: 1px;
+  background: var(--ef-color-verdigris);
+  box-shadow: var(--ef-glow-verdigris);
 }
 
 .nav__link--upcoming {
@@ -164,6 +135,8 @@ a.nav__link:hover {
   position: relative;
   z-index: 1;
   padding: var(--ef-space-4) var(--ef-space-7);
+  border-top: var(--ef-hairline) solid var(--ef-color-line);
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
   color: var(--ef-color-text-faint);
 }
@@ -183,20 +156,20 @@ a.nav__link:hover {
 }
 
 .page-header__kicker {
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.3em;
+  letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
-  color: var(--ef-color-text-faint);
+  color: var(--ef-color-verdigris-dim);
 }
 
 .page-header__title {
   margin-top: var(--ef-space-1);
   font-size: var(--ef-text-hero);
-  font-weight: 700;
+  font-weight: 400;
+  letter-spacing: var(--ef-tracking-display);
   line-height: 0.95;
   color: var(--ef-color-text-strong);
-  text-shadow: var(--ef-glow-heat-soft);
 }
 
 .page-header__subtitle {
@@ -208,7 +181,7 @@ a.nav__link:hover {
 code {
   font-family: var(--ef-font-mono);
   font-size: var(--ef-text-sm);
-  color: var(--ef-color-heat-bright);
+  color: var(--ef-color-verdigris-bright);
 }
 
 /* Build overview */
@@ -218,11 +191,34 @@ code {
   gap: var(--ef-space-5);
 }
 
-.stage__top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
-  gap: var(--ef-space-5);
-  align-items: stretch;
+/* Key figure in the centre of the dial */
+.dial-readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ef-space-1);
+}
+
+.dial-readout__label {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-muted);
+}
+
+.dial-readout__value {
+  font-family: var(--ef-font-display);
+  font-size: var(--ef-text-3xl);
+  line-height: 1;
+  color: var(--ef-color-text-strong);
+}
+
+.dial-readout__status {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-sm);
+  text-transform: uppercase;
+  color: var(--ef-color-text-faint);
 }
 
 .item-row {
@@ -245,9 +241,8 @@ code {
 
 .gallery__label {
   margin-bottom: var(--ef-space-2);
-  font-family: var(--ef-font-body);
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
-  font-weight: 700;
   letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
   color: var(--ef-color-text-faint);
@@ -299,7 +294,8 @@ code {
 .type-sample--display {
   font-family: var(--ef-font-display);
   font-size: var(--ef-text-4xl);
-  font-weight: 700;
+  font-weight: 400;
+  letter-spacing: var(--ef-tracking-display);
   line-height: 1;
 }
 
@@ -321,8 +317,8 @@ code {
 }
 
 .type-sample--numbers {
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xl);
-  font-weight: 800;
   color: var(--ef-color-property-value);
 }
 
@@ -333,10 +329,11 @@ code {
   color: var(--ef-color-flavour);
 }
 
-.type-sample--codex {
-  font-family: var(--ef-font-codex);
-  font-size: var(--ef-text-xl);
-  color: var(--ef-color-rubric);
+.type-sample--mono {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-sm);
+  letter-spacing: var(--ef-tracking-caps);
+  color: var(--ef-color-verdigris);
 }
 
 .space-scale {
@@ -355,9 +352,9 @@ code {
 }
 
 .space-scale__bar {
-  height: 10px;
-  background: var(--ef-color-ember);
-  border-right: 2px solid var(--ef-color-heat-bright);
+  height: 8px;
+  background: var(--ef-color-verdigris-deep);
+  border-right: 1px solid var(--ef-color-verdigris);
 }
 
 .ornament-row {
@@ -431,7 +428,6 @@ code {
     font-size: var(--ef-text-4xl);
   }
 
-  .stage__top,
   .gallery {
     grid-template-columns: minmax(0, 1fr);
   }

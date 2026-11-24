@@ -1,60 +1,47 @@
 /*
- * ExileForge design tokens – "Emberforge" style.
- * The app is a forge: soot-black iron, riveted plates, molten heat for
- * focus and progress. The guide reader borrows from a dark codex
- * (rubric red, ledger rules, drop caps). The only place where raw colour
- * values, font stacks and spacing values live; components use var(--ef-*).
+ * ExileForge design tokens – "Obsidian Instrument" style.
+ * The app is an occult measuring instrument: obsidian glass, thin engraved
+ * hairlines in verdigris, readouts in a mono face, stages on an astrolabe.
+ * Vermilion is reserved for faults. The only place where raw colour values,
+ * font stacks and spacing values live; components use var(--ef-*).
  * Rarity colours follow the convention players read at a glance.
  */
 :root {
   color-scheme: dark;
 
-  /* Iron and soot */
-  --ef-color-ground: #0a0807;
-  --ef-color-surface-1: #15110e;
-  --ef-color-surface-2: #1d1814;
-  --ef-color-surface-3: #2a221b;
-  --ef-color-inset: #0d0a08;
-  --ef-color-line: #2f261e;
-  --ef-color-line-strong: #4a3a2c;
-  --ef-color-rivet-hi: #8a7563;
-  --ef-color-rivet-lo: #2a211a;
+  /* Obsidian */
+  --ef-color-ground: #07090a;
+  --ef-color-surface-1: #0b0f10;
+  --ef-color-surface-2: #10161a;
+  --ef-color-surface-3: #16201f;
+  --ef-color-inset: #050707;
+  --ef-color-line: #1a2e2c;
+  --ef-color-line-strong: #2a4f4b;
+  --ef-color-engraving: #11201f;
 
-  /* Heat: from coal to white-hot */
-  --ef-color-coal: #7a2a0c;
-  --ef-color-ember: #c2410c;
-  --ef-color-heat: #ff7a1a;
-  --ef-color-heat-bright: #ffb347;
-  --ef-color-white-hot: #ffe2a8;
+  /* Verdigris (accent, focus, progress) */
+  --ef-color-verdigris-deep: #16463f;
+  --ef-color-verdigris-dim: #2a8f7d;
+  --ef-color-verdigris: #4fd1b5;
+  --ef-color-verdigris-bright: #9af0dc;
 
-  /* Old metal accents (kept for borders and quiet highlights) */
-  --ef-color-bronze-dark: #4a3626;
-  --ef-color-bronze: #8a6a4a;
-  --ef-color-gold: #d9a35c;
-  --ef-color-gold-bright: #f0c88a;
-
-  /* Text */
-  --ef-color-text: #ecdfcc;
-  --ef-color-text-strong: #f8ead2;
-  --ef-color-text-muted: #a8957d;
-  --ef-color-text-faint: #8a7965;
-  --ef-color-text-on-accent: #1a0d05;
-
-  /* Codex (guide reader) */
-  --ef-color-rubric: #d0503a;
-  --ef-color-vellum: #1b1712;
-  --ef-color-ink-rule: #4a3e2e;
+  /* Text: bone on obsidian */
+  --ef-color-text: #d9d3c2;
+  --ef-color-text-strong: #f1ecdf;
+  --ef-color-text-muted: #94a19d;
+  --ef-color-text-faint: #75827e;
+  --ef-color-text-on-accent: #04110e;
 
   /* Feedback. Always paired with icon or text. */
-  --ef-color-danger: #b8432f;
-  --ef-color-danger-bright: #ff8a6a;
-  --ef-color-danger-ground: #1c0b08;
-  --ef-color-warning: #e0952e;
-  --ef-color-warning-ground: #23170a;
-  --ef-color-success: #8fb36a;
-  --ef-color-success-ground: #131b0e;
-  --ef-color-info: #c9b79a;
-  --ef-color-info-ground: #17120e;
+  --ef-color-danger: #ff5a36;
+  --ef-color-danger-bright: #ff8a6e;
+  --ef-color-danger-ground: #1a0b07;
+  --ef-color-warning: #e8b04a;
+  --ef-color-warning-ground: #1a1408;
+  --ef-color-success: #4fd1b5;
+  --ef-color-success-ground: #0a1a16;
+  --ef-color-info: #a9bcc9;
+  --ef-color-info-ground: #0c1216;
 
   /* Item rarity (convention colours) */
   --ef-color-rarity-normal: #dcd7cd;
@@ -65,58 +52,53 @@
   --ef-color-currency: #c8bb98;
 
   /* Item text roles */
-  --ef-color-mod: #a3b4ff;
+  --ef-color-mod: #a9b8ff;
   --ef-color-mod-implicit: #c6cbe8;
   --ef-color-mod-enchant: #b7d4f0;
   --ef-color-mod-rune: #d2c7a4;
   --ef-color-mod-desecrated: #c98fae;
-  --ef-color-property-value: #f6ecdc;
-  --ef-color-flavour: #d08345;
+  --ef-color-property-value: #f1ecdf;
+  --ef-color-flavour: #c8783a;
 
   /* Provenance of numbers (subtle; marker shape is the second signal) */
-  --ef-color-prov-pob: #8fc0d8;
-  --ef-color-prov-market: #9cc47f;
-  --ef-color-prov-derived: #cfa8dd;
-  --ef-color-prov-gamedata: #d9bd82;
-  --ef-color-prov-sample: #b07a4c;
-  --ef-color-prov-uncalibrated: #8a8378;
+  --ef-color-prov-pob: #4fd1b5;
+  --ef-color-prov-market: #a6cf7e;
+  --ef-color-prov-derived: #c7a8e0;
+  --ef-color-prov-gamedata: #d9c58c;
+  --ef-color-prov-sample: #5fa898;
+  --ef-color-prov-uncalibrated: #7d8a86;
 
-  --ef-color-focus: #ffc266;
+  --ef-color-focus: #9af0dc;
 
-  /* Heat gradients and glows */
-  --ef-gradient-molten: linear-gradient(180deg, #ffe2a8, #ff8a2a 55%, #c2410c);
-  --ef-gradient-ingot: radial-gradient(circle at 50% 40%, #ffcf7a, #ff6a10 55%, #8a2a08);
-  --ef-gradient-cooled: radial-gradient(circle, #6a2a10, #2a120a);
-  --ef-gradient-cold: linear-gradient(180deg, #2a221b, #120e0b);
-  --ef-gradient-plate: linear-gradient(170deg, #241d17, #15110d 60%);
-  --ef-gradient-seam: linear-gradient(90deg, transparent, #ff8a2a, transparent);
-  --ef-glow-heat: 0 0 14px rgb(255 120 30 / 55%);
-  --ef-glow-heat-soft: 0 0 40px rgb(255 120 30 / 22%);
-  --ef-glow-gold: 0 0 12px rgb(255 140 40 / 40%);
-  --ef-forge-light:
-    radial-gradient(ellipse 70% 42% at 50% 112%, rgb(255 110 20 / 30%), transparent 70%),
-    radial-gradient(ellipse 45% 30% at 88% -8%, rgb(255 140 40 / 7%), transparent 70%);
+  /* Light and glass */
+  --ef-glow-verdigris: 0 0 10px rgb(79 209 181 / 55%);
+  --ef-glow-danger: 0 0 8px rgb(255 90 54 / 70%);
+  --ef-glass-sheen: linear-gradient(160deg, rgb(255 255 255 / 5%), transparent 40%);
+  --ef-ambient:
+    radial-gradient(circle at 72% 38%, rgb(79 209 181 / 7%), transparent 45%),
+    radial-gradient(circle at 8% 100%, rgb(255 90 54 / 5%), transparent 40%);
+  --ef-gradient-hairline: linear-gradient(90deg, var(--ef-color-line-strong), transparent);
 
   /* Typography (bundled OFL fonts) */
-  --ef-font-display: "Grenze Gotisch", "Palatino Linotype", Georgia, serif;
+  --ef-font-display: "Marcellus SC", "Palatino Linotype", Georgia, serif;
   --ef-font-body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
-  --ef-font-codex: "IM Fell English", "Palatino Linotype", Georgia, serif;
-  --ef-font-flavour: "IM Fell English", "Palatino Linotype", Georgia, serif;
-  --ef-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --ef-font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --ef-font-flavour: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
 
   --ef-text-xs: 0.75rem;
   --ef-text-sm: 0.875rem;
   --ef-text-md: 1rem;
-  --ef-text-lg: 1.1875rem;
+  --ef-text-lg: 1.125rem;
   --ef-text-xl: 1.5rem;
-  --ef-text-2xl: 1.875rem;
+  --ef-text-2xl: 1.75rem;
   --ef-text-3xl: 2.25rem;
   --ef-text-4xl: 3.5rem;
-  --ef-text-hero: 5rem;
+  --ef-text-hero: 4.25rem;
 
-  --ef-leading-tight: 1.05;
+  --ef-leading-tight: 1.1;
   --ef-leading-body: 1.5;
-  --ef-tracking-caps: 0.2em;
+  --ef-tracking-caps: 0.18em;
+  --ef-tracking-display: 0.08em;
 
   /* Spacing scale 4/8/12/16/24/32/48 */
   --ef-space-1: 4px;
@@ -127,34 +109,24 @@
   --ef-space-6: 32px;
   --ef-space-7: 48px;
 
-  /* Shape: hard edges, chamfers, hexagonal ingots */
-  --ef-chamfer-sm: 5px;
-  --ef-chamfer-md: 9px;
-  --ef-rivet-size: 9px;
-  --ef-shape-ingot: polygon(20% 0, 80% 0, 100% 50%, 80% 100%, 20% 100%, 0 50%);
+  /* Shape: hairlines and corner brackets, no rounding */
+  --ef-chamfer-sm: 4px;
+  --ef-chamfer-md: 8px;
+  --ef-bracket: 14px;
+  --ef-hairline: 1px;
 
-  /* Depth */
-  --ef-shadow-plate:
-    inset 0 1px 0 rgb(255 220 180 / 7%), inset 0 -2px 0 rgb(0 0 0 / 60%),
-    0 18px 40px rgb(0 0 0 / 60%);
-  --ef-shadow-stamp: inset 0 2px 8px rgb(0 0 0 / 80%);
-  --ef-shadow-tooltip: 0 0 0 4px #120e0b, 0 0 0 5px #3a2e24, 0 30px 60px rgb(0 0 0 / 80%);
-
-  /* Brushed iron grain */
-  --ef-texture-iron: repeating-linear-gradient(
-    115deg,
-    rgb(255 255 255 / 1.2%) 0 2px,
-    transparent 2px 7px
-  );
+  --ef-shadow-tooltip: 0 24px 60px rgb(0 0 0 / 75%);
 
   --ef-duration-fast: 120ms;
-  --ef-duration-base: 220ms;
+  --ef-duration-base: 240ms;
   --ef-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 
   /* Layout */
   --ef-page-max-width: 1400px;
-  --ef-topbar-height: 76px;
-  --ef-tooltip-width: 352px;
+  --ef-topbar-height: 72px;
+  --ef-tooltip-width: 340px;
+  --ef-dial-size: 360px;
+  --ef-dial-label-room: 120px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,5 +1,11 @@
+.ef-orn-stroke {
+  fill: none;
+  stroke: var(--ef-color-verdigris-dim);
+  stroke-width: 1;
+}
+
 .ef-orn-fill {
-  fill: var(--ef-color-heat);
+  fill: var(--ef-color-verdigris);
 }
 
 .ef-diamond {
@@ -15,45 +21,49 @@
 
 .ef-divider__line {
   flex: 1;
-  height: 2px;
-  box-shadow: var(--ef-glow-heat);
+  height: var(--ef-hairline);
 }
 
 .ef-divider__line--start {
-  background: linear-gradient(to right, transparent, var(--ef-color-heat));
+  background: linear-gradient(to right, transparent, var(--ef-color-line-strong));
 }
 
 .ef-divider__line--end {
-  background: linear-gradient(to left, transparent, var(--ef-color-heat));
-}
-
-.ef-divider__ingot {
-  width: 18px;
-  height: 12px;
-  clip-path: var(--ef-shape-ingot);
-  background: var(--ef-gradient-ingot);
-  filter: drop-shadow(var(--ef-glow-heat));
+  background: linear-gradient(to left, transparent, var(--ef-color-line-strong));
 }
 
 .ef-sigil {
   flex: none;
-  filter: drop-shadow(var(--ef-glow-heat));
 }
 
-.ef-sigil__stop-top {
-  stop-color: var(--ef-color-white-hot);
+.ef-sigil__ring {
+  fill: none;
+  stroke: var(--ef-color-verdigris-dim);
+  stroke-width: 1;
 }
 
-.ef-sigil__stop-bottom {
-  stop-color: var(--ef-color-ember);
+.ef-sigil__ring--inner {
+  stroke: var(--ef-color-line-strong);
 }
 
-.ef-sigil__anvil {
-  fill: var(--ef-color-surface-3);
-  stroke: var(--ef-color-bronze);
+.ef-sigil__ticks {
+  stroke: var(--ef-color-verdigris-dim);
+  stroke-width: 1;
+}
+
+.ef-sigil__sight {
+  fill: none;
+  stroke: var(--ef-color-verdigris);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.ef-sigil__sight--dim {
+  stroke: var(--ef-color-verdigris-dim);
   stroke-width: 1;
 }
 
 .ef-sigil__core {
-  fill: var(--ef-color-white-hot);
+  fill: var(--ef-color-verdigris-bright);
+  filter: drop-shadow(var(--ef-glow-verdigris));
 }

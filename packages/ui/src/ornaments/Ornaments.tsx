@@ -1,5 +1,4 @@
 // Own SVG ornaments (no game art). Colours come from ornaments.css (tokens only).
-import { useId } from "react";
 import "./ornaments.css";
 
 export function Diamond({ className }: { className?: string }) {
@@ -12,25 +11,25 @@ export function Diamond({ className }: { className?: string }) {
       aria-hidden="true"
       focusable="false"
     >
-      <path className="ef-orn-fill" d="M6 0.8 L11.2 6 L6 11.2 L0.8 6 Z" />
+      <path className="ef-orn-stroke" d="M6 1 L11 6 L6 11 L1 6 Z" />
+      <path className="ef-orn-fill" d="M6 4 L8 6 L6 8 L4 6 Z" />
     </svg>
   );
 }
 
-/** Glowing weld seam with a small ingot in the middle. Decorative. */
+/** Engraved hairline with a small diamond in the middle. Decorative. */
 export function OrnamentDivider({ className }: { className?: string }) {
   return (
     <div className={className ? `ef-divider ${className}` : "ef-divider"} aria-hidden="true">
       <span className="ef-divider__line ef-divider__line--start" />
-      <span className="ef-divider__ingot" />
+      <Diamond />
       <span className="ef-divider__line ef-divider__line--end" />
     </div>
   );
 }
 
-/** ExileForge mark: a flame rising from an anvil. Own design. */
+/** ExileForge mark: an astrolabe ring with a crossed triangle sight. Own design. */
 export function Sigil({ size = 40, title }: { size?: number; title?: string }) {
-  const gradientId = useId();
   const labelled = title !== undefined;
   return (
     <svg
@@ -43,18 +42,12 @@ export function Sigil({ size = 40, title }: { size?: number; title?: string }) {
       focusable="false"
     >
       {labelled ? <title>{title}</title> : null}
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" className="ef-sigil__stop-top" />
-          <stop offset="1" className="ef-sigil__stop-bottom" />
-        </linearGradient>
-      </defs>
-      <path className="ef-sigil__anvil" d="M5 30 H43 L37 36 H29 V42 H19 V36 H11 Z" />
-      <path
-        d="M24 3 C31.5 11 34.5 15.5 32.5 22.5 C31.3 26.6 28.5 28.6 24 29.5 C19.5 28.6 16.7 26.6 15.5 22.5 C13.5 15.5 16.5 11 24 3 Z"
-        fill={`url(#${gradientId})`}
-      />
-      <path className="ef-sigil__core" d="M24 13.5 L27.5 20 L24 25 L20.5 20 Z" />
+      <circle className="ef-sigil__ring" cx="24" cy="24" r="21" />
+      <circle className="ef-sigil__ring ef-sigil__ring--inner" cx="24" cy="24" r="15" />
+      <path className="ef-sigil__ticks" d="M24 1 V6 M24 42 V47 M1 24 H6 M42 24 H47" />
+      <path className="ef-sigil__sight" d="M24 9 L37 31.5 L11 31.5 Z" />
+      <path className="ef-sigil__sight ef-sigil__sight--dim" d="M24 39 L11 16.5 L37 16.5 Z" />
+      <circle className="ef-sigil__core" cx="24" cy="24" r="2.5" />
     </svg>
   );
 }

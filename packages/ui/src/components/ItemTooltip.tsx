@@ -80,7 +80,7 @@ const MOD_KIND_LABEL: Readonly<Record<ModKind, string>> = {
   desecrated: "Desecrated",
 };
 
-/** Item card in the style players know: rarity header, sections, mod lines. Own artwork. */
+/** Item slate: rarity kicker, name, sections, mod lines. Own artwork, no game art. */
 export function ItemTooltip({ item, showTiers = false, className }: ItemTooltipProps) {
   const twoLine = item.rarity === "rare" || item.rarity === "unique";
   const title = twoLine && item.name ? item.name : item.baseType;
@@ -97,7 +97,6 @@ export function ItemTooltip({ item, showTiers = false, className }: ItemTooltipP
   if (item.properties.length > 0) {
     sections.push(
       <dl key="props" className="ef-item__section ef-item__props">
-        <div className="ef-item__class">{item.itemClass}</div>
         {item.properties.map((p) => (
           <div key={p.label} className="ef-item__prop">
             <dt>{p.label}:</dt>
@@ -156,18 +155,19 @@ export function ItemTooltip({ item, showTiers = false, className }: ItemTooltipP
 
   return (
     <article className={classes} aria-label={`${RARITY_LABELS[item.rarity]}: ${title}`}>
-      <header className={twoLine ? "ef-item__header ef-item__header--double" : "ef-item__header"}>
-        <HeaderCap side="start" />
-        <div className="ef-item__names">
-          {twoLine && item.name ? <h3 className="ef-item__name">{item.name}</h3> : null}
-          {twoLine && item.name ? (
-            <p className="ef-item__base">{item.baseType}</p>
-          ) : (
-            <h3 className="ef-item__name">{item.baseType}</h3>
-          )}
-        </div>
-        <HeaderCap side="end" />
-        <span className="ef-visually-hidden">Rarity: {RARITY_LABELS[item.rarity]}</span>
+      <header className="ef-item__header">
+        <p className="ef-item__kicker">
+          <span className="ef-item__rarity">{RARITY_LABELS[item.rarity]}</span>
+          <span aria-hidden="true"> · </span>
+          <span>{item.itemClass}</span>
+          <span className="ef-visually-hidden">, </span>
+        </p>
+        {twoLine && item.name ? <h3 className="ef-item__name">{item.name}</h3> : null}
+        {twoLine && item.name ? (
+          <p className="ef-item__base">{item.baseType}</p>
+        ) : (
+          <h3 className="ef-item__name">{item.baseType}</h3>
+        )}
       </header>
       <div className="ef-item__body">
         {sections.map((section, i) => (
@@ -231,30 +231,5 @@ function ModList({
 }
 
 function ItemSeparator() {
-  return (
-    <div className="ef-item__separator" aria-hidden="true">
-      <span />
-      <svg viewBox="0 0 10 6" width="10" height="6" focusable="false">
-        <path d="M0 3 L5 0 L10 3 L5 6 Z" />
-      </svg>
-      <span />
-    </div>
-  );
-}
-
-function HeaderCap({ side }: { side: "start" | "end" }) {
-  return (
-    <svg
-      className={`ef-item__cap ef-item__cap--${side}`}
-      viewBox="0 0 18 40"
-      width="18"
-      height="40"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path className="ef-item__cap-shape" d="M18 2 L4 2 L0 20 L4 38 L18 38" />
-      <path className="ef-item__cap-gem" d="M9 15 L13 20 L9 25 L5 20 Z" />
-    </svg>
-  );
+  return <div className="ef-item__separator" aria-hidden="true" />;
 }

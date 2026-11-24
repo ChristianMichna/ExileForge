@@ -1,12 +1,6 @@
-/* Riveted iron plate. Rivets are drawn as four radial gradients. */
+/* Instrument housing: hairline frame with engraved corner brackets. */
 .ef-panel {
-  --ef-rivet: radial-gradient(
-    circle at 35% 35%,
-    var(--ef-color-rivet-hi),
-    var(--ef-color-rivet-lo) 62%,
-    transparent 70%
-  );
-  --ef-rivet-inset: 9px;
+  --ef-bracket-color: var(--ef-color-verdigris-dim);
 
   position: relative;
   display: flex;
@@ -15,32 +9,45 @@
 }
 
 .ef-panel--plate {
-  border: 1px solid var(--ef-color-line-strong);
+  margin: 6px;
+  border: var(--ef-hairline) solid var(--ef-color-line);
+  background: var(--ef-glass-sheen), var(--ef-color-surface-1);
+}
+
+.ef-panel--plate::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
   background:
-    var(--ef-rivet) left var(--ef-rivet-inset) top var(--ef-rivet-inset) / var(--ef-rivet-size)
-      var(--ef-rivet-size) no-repeat,
-    var(--ef-rivet) right var(--ef-rivet-inset) top var(--ef-rivet-inset) / var(--ef-rivet-size)
-      var(--ef-rivet-size) no-repeat,
-    var(--ef-rivet) left var(--ef-rivet-inset) bottom var(--ef-rivet-inset) / var(--ef-rivet-size)
-      var(--ef-rivet-size) no-repeat,
-    var(--ef-rivet) right var(--ef-rivet-inset) bottom var(--ef-rivet-inset) / var(--ef-rivet-size)
-      var(--ef-rivet-size) no-repeat,
-    var(--ef-texture-iron),
-    var(--ef-gradient-plate);
-  box-shadow: var(--ef-shadow-plate);
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) top left / var(--ef-bracket)
+      1px no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) top left / 1px
+      var(--ef-bracket) no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) top right / var(--ef-bracket)
+      1px no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) top right / 1px
+      var(--ef-bracket) no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) bottom left /
+      var(--ef-bracket) 1px no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) bottom left / 1px
+      var(--ef-bracket) no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) bottom right /
+      var(--ef-bracket) 1px no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) bottom right / 1px
+      var(--ef-bracket) no-repeat;
 }
 
 .ef-panel--recessed {
-  border: 1px solid var(--ef-color-line);
+  border: var(--ef-hairline) solid var(--ef-color-line);
   background: var(--ef-color-inset);
-  box-shadow: var(--ef-shadow-stamp);
 }
 
 .ef-panel__header {
   display: flex;
   align-items: flex-end;
   gap: var(--ef-space-4);
-  padding: var(--ef-space-5) var(--ef-space-6) var(--ef-space-3);
+  padding: var(--ef-space-4) var(--ef-space-5) var(--ef-space-3);
 }
 
 .ef-panel--recessed .ef-panel__header {
@@ -54,27 +61,27 @@
 
 .ef-panel__kicker {
   margin-bottom: var(--ef-space-1);
+  font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
-  font-weight: 700;
   letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
-  color: var(--ef-color-text-faint);
+  color: var(--ef-color-verdigris-dim);
 }
 
 .ef-panel__title {
-  font-size: var(--ef-text-2xl);
+  font-size: var(--ef-text-xl);
   color: var(--ef-color-text-strong);
 }
 
 .ef-panel--recessed .ef-panel__title {
-  font-size: var(--ef-text-xl);
+  font-size: var(--ef-text-lg);
 }
 
 .ef-panel__rule {
   flex: 1;
   height: 1px;
-  margin-bottom: 0.55em;
-  background: linear-gradient(90deg, var(--ef-color-line-strong), transparent);
+  margin-bottom: 0.5em;
+  background: var(--ef-gradient-hairline);
 }
 
 .ef-panel__actions {
@@ -84,7 +91,7 @@
 }
 
 .ef-panel__body {
-  padding: var(--ef-space-2) var(--ef-space-6) var(--ef-space-6);
+  padding: var(--ef-space-2) var(--ef-space-5) var(--ef-space-5);
 }
 
 .ef-panel--recessed .ef-panel__body {

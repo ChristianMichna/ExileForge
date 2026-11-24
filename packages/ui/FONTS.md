@@ -7,8 +7,8 @@ mitliefert, ist ein Folgeticket für `apps/desktop`.
 
 | Schrift | Paket | Verwendung |
 |---|---|---|
-| Grenze Gotisch | `@fontsource/grenze-gotisch` 5.2.5 | Überschriften, Item-Namen, Wortmarke, große Zahlen |
-| Alegreya Sans | `@fontsource/alegreya-sans` 5.2.5 | Oberfläche, Werte (tabellarische Ziffern) |
-| IM Fell English | `@fontsource/im-fell-english` 5.2.5 | Kodex-Elemente der Guide-Ansicht, Flavour-Text |
+| Marcellus SC | `@fontsource/marcellus-sc` 5.2.5 | Überschriften, Item-Namen, Wortmarke, Leitzahl |
+| Alegreya Sans | `@fontsource/alegreya-sans` 5.2.5 | Fließtext, Oberfläche, Flavour-Text |
+| IBM Plex Mono | `@fontsource/ibm-plex-mono` 5.2.5 | Messwerte, Kicker, Beschriftungen, Herkunft |
 
 Lizenz: https://openfontlicense.org/open-font-license-official-text/

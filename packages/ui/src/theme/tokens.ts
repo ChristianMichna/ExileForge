@@ -16,11 +16,14 @@ export const COLOR_TOKEN_GROUPS: ReadonlyArray<{
   readonly tokens: readonly string[];
 }> = [
   {
-    title: "Ground",
+    title: "Obsidian",
     tokens: ["ground", "surface-1", "surface-2", "surface-3", "inset", "line", "line-strong"],
   },
-  { title: "Accent", tokens: ["bronze-dark", "bronze", "gold", "gold-bright"] },
-  { title: "Text", tokens: ["text", "text-muted", "text-faint"] },
+  {
+    title: "Verdigris",
+    tokens: ["verdigris-deep", "verdigris-dim", "verdigris", "verdigris-bright"],
+  },
+  { title: "Bone", tokens: ["text-strong", "text", "text-muted", "text-faint"] },
   { title: "Feedback", tokens: ["danger", "warning", "success", "info"] },
   {
     title: "Rarity",

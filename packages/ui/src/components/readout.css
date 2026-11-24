@@ -1,0 +1,85 @@
+/* Readout table and numbered guide notes for the guide reader. */
+.ef-ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ef-text-md);
+}
+
+.ef-ledger__caption {
+  margin-bottom: var(--ef-space-2);
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-verdigris-dim);
+  text-align: left;
+}
+
+.ef-ledger__row th,
+.ef-ledger__row td {
+  padding: var(--ef-space-2) 0;
+  border-bottom: var(--ef-hairline) solid var(--ef-color-line);
+  vertical-align: baseline;
+}
+
+.ef-ledger__label {
+  font-weight: 400;
+  text-align: left;
+  color: var(--ef-color-text);
+}
+
+.ef-ledger__source {
+  display: block;
+  margin-top: 2px;
+}
+
+.ef-ledger__value {
+  padding-left: var(--ef-space-4);
+  font-family: var(--ef-font-mono);
+  text-align: right;
+  white-space: nowrap;
+  color: var(--ef-color-text-strong);
+}
+
+.ef-ledger__row--emphasis .ef-ledger__value {
+  font-size: var(--ef-text-xl);
+  color: var(--ef-color-verdigris-bright);
+}
+
+.ef-ledger__row--loading .ef-ledger__value,
+.ef-ledger__row--uncalibrated .ef-ledger__value {
+  font-size: var(--ef-text-sm);
+  color: var(--ef-color-text-faint);
+}
+
+.ef-ledger__row--error .ef-ledger__value {
+  font-size: var(--ef-text-sm);
+  white-space: normal;
+  color: var(--ef-color-danger-bright);
+}
+
+.ef-notes {
+  counter-reset: ef-note;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-3);
+  font-size: var(--ef-text-md);
+  line-height: var(--ef-leading-body);
+  color: var(--ef-color-text);
+}
+
+.ef-notes > p {
+  counter-increment: ef-note;
+  display: grid;
+  grid-template-columns: 2.5em 1fr;
+  gap: var(--ef-space-2);
+  margin: 0;
+}
+
+.ef-notes > p::before {
+  content: counter(ef-note, decimal-leading-zero);
+  padding-top: 0.15em;
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-sm);
+  color: var(--ef-color-verdigris-dim);
+}

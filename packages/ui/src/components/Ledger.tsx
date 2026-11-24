@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { ProvenanceBadge } from "./Provenance";
 import type { NumberFormat, ValueState } from "./provenance-model";
 import { formatNumber } from "./provenance-model";
-import "./codex.css";
+import "./readout.css";
 
 export interface LedgerRow {
   readonly id: string;
@@ -13,7 +13,7 @@ export interface LedgerRow {
 }
 
 /**
- * Codex-style ledger for the guide reader: label, dotted leader, value.
+ * Readout table for the guide reader: label, hairline leader, mono value.
  * Same state rules as StatValue: no fallback values, provenance on every number.
  */
 export function Ledger({ rows, caption }: { rows: readonly LedgerRow[]; caption?: string }) {
@@ -56,18 +56,18 @@ function LedgerValue({ state, format }: { state: ValueState; format: NumberForma
       return Number.isFinite(state.value) ? (
         <span className="ef-numeric">{formatNumber(state.value, format)}</span>
       ) : (
-        <span>invalid value</span>
+        <span>Invalid value</span>
       );
     case "loading":
-      return <span>calculating …</span>;
+      return <span>Calculating …</span>;
     case "error":
-      return <span>unavailable: {state.message}</span>;
+      return <span>Unavailable: {state.message}</span>;
     case "uncalibrated":
-      return <span>uncalibrated: {state.reason}</span>;
+      return <span>Uncalibrated: {state.reason}</span>;
   }
 }
 
-/** Guide prose in codex style with a rubricated drop cap. */
-export function CodexProse({ children }: { children: ReactNode }) {
-  return <div className="ef-codex-prose">{children}</div>;
+/** Guide notes: each paragraph becomes a numbered entry (01, 02, …) on the instrument. */
+export function GuideNotes({ children }: { children: ReactNode }) {
+  return <div className="ef-notes">{children}</div>;
 }

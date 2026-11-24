@@ -116,10 +116,10 @@ importers:
       '@fontsource/alegreya-sans':
         specifier: 5.2.5
         version: 5.2.5
-      '@fontsource/grenze-gotisch':
+      '@fontsource/ibm-plex-mono':
         specifier: 5.2.5
         version: 5.2.5
-      '@fontsource/im-fell-english':
+      '@fontsource/marcellus-sc':
         specifier: 5.2.5
         version: 5.2.5
     devDependencies:
@@ -335,11 +335,11 @@ packages:
   '@fontsource/alegreya-sans@5.2.5':
     resolution: {integrity: sha512-gYr8J2ExytMwkYWjfN4M+HcPb2g0vDY4MEbHLRHLjmdaDnbJpo4RmTq0NjKpLIirshvE9DrpWjw6PcVx6Q5hlw==}
 
-  '@fontsource/grenze-gotisch@5.2.5':
-    resolution: {integrity: sha512-0i71Tf9eso5IGcaAhKimvwzaNvclB2Kwuv7r8tQ6CkpNL2b3xHtr5XVzQanC4yvOLPKeskpmTRAFwxQCBdLNGQ==}
+  '@fontsource/ibm-plex-mono@5.2.5':
+    resolution: {integrity: sha512-G09N3GfuT9qj3Ax2FDZvKqZttzM3v+cco2l8uXamhKyXLdmlaUDH5o88/C3vtTHj2oT7yRKsvxz9F+BXbWKMYA==}
 
-  '@fontsource/im-fell-english@5.2.5':
-    resolution: {integrity: sha512-8hkpOcUegSENA4hfz4SuC+/CIhEjCk0RdVY4SRR2c60eClrZkpQC0B4fL1bLKyOIhda3l7t4at+Bn4hUrlZsDw==}
+  '@fontsource/marcellus-sc@5.2.5':
+    resolution: {integrity: sha512-J0HRHhzD0nB1KztA7GI5tECAItRxYgHA6+fGp3VmCh4n+FYj1dhK+LWt+ARbXUtW2rYn3/kfMgTx1BcOa7wsmA==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1681,9 +1681,9 @@ snapshots:
 
   '@fontsource/alegreya-sans@5.2.5': {}
 
-  '@fontsource/grenze-gotisch@5.2.5': {}
+  '@fontsource/ibm-plex-mono@5.2.5': {}
 
-  '@fontsource/im-fell-english@5.2.5': {}
+  '@fontsource/marcellus-sc@5.2.5': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

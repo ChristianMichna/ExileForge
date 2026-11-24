@@ -13,7 +13,7 @@ body {
 
 body {
   background-color: var(--ef-color-ground);
-  background-image: var(--ef-forge-light), var(--ef-texture-iron);
+  background-image: var(--ef-ambient);
   background-attachment: fixed;
   color: var(--ef-color-text);
   font-family: var(--ef-font-body);
@@ -28,8 +28,9 @@ h3,
 h4 {
   margin: 0;
   font-family: var(--ef-font-display);
-  font-weight: 500;
+  font-weight: 400;
   line-height: var(--ef-leading-tight);
+  letter-spacing: var(--ef-tracking-display);
   color: var(--ef-color-text-strong);
 }
 
@@ -38,16 +39,17 @@ p {
 }
 
 a {
-  color: var(--ef-color-heat-bright);
+  color: var(--ef-color-verdigris);
 }
 
 :focus-visible {
-  outline: 2px solid var(--ef-color-focus);
-  outline-offset: 2px;
+  outline: 1px solid var(--ef-color-focus);
+  outline-offset: 3px;
+  box-shadow: var(--ef-glow-verdigris);
 }
 
 ::selection {
-  background: var(--ef-color-ember);
+  background: var(--ef-color-verdigris-deep);
   color: var(--ef-color-text-strong);
 }
 
@@ -67,11 +69,6 @@ a {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* Molten text for hero numbers and the word mark */
-.ef-molten {
-  background: var(--ef-gradient-molten);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(var(--ef-glow-gold));
+.ef-mono {
+  font-family: var(--ef-font-mono);
 }

@@ -2,20 +2,24 @@ import { useState } from "react";
 import {
   Button,
   Callout,
-  CodexProse,
+  GuideNotes,
   ItemTooltip,
   Panel,
+  ProvenanceBadge,
   StatGrid,
   StatValue,
   Tabs,
+  formatNumber,
 } from "@exileforge/ui";
-import type { SampleStage } from "../fixtures/sample-build";
+import type { SampleStage, SampleStat } from "../fixtures/sample-build";
 import { SAMPLE_BUILD, SAMPLE_ITEMS, SAMPLE_STAGES } from "../fixtures/sample-build";
 import { PageHeader } from "../shell/PageHeader";
 
 export function BuildOverview() {
-  // Opens on the second stage so the timeline shows cooled, glowing and cold ingots.
+  // Opens on the second stage so the dial shows done, current and upcoming marks.
   const [stage, setStage] = useState(SAMPLE_STAGES[1]?.id ?? "");
+  const current = SAMPLE_STAGES.find((s) => s.id === stage);
+  const keyStat = current?.stats.find((s) => s.emphasis);
   return (
     <div className="page">
       <PageHeader
@@ -34,9 +38,10 @@ export function BuildOverview() {
       </Callout>
       <Tabs
         label="Guide stages"
-        variant="timeline"
+        variant="dial"
         value={stage}
         onChange={setStage}
+        dialCenter={keyStat ? <DialReadout stat={keyStat} /> : null}
         items={SAMPLE_STAGES.map((s) => ({
           id: s.id,
           label: s.label,
@@ -48,29 +53,57 @@ export function BuildOverview() {
   );
 }
 
+/** Key figure in the centre of the dial. Shows the state, never a fallback number. */
+function DialReadout({ stat }: { stat: SampleStat }) {
+  const { state } = stat;
+  return (
+    <div className="dial-readout">
+      <span className="dial-readout__label">{stat.label}</span>
+      {state.status === "ready" && Number.isFinite(state.value) ? (
+        <>
+          <span className="dial-readout__value ef-numeric">
+            {formatNumber(state.value, stat.format)}
+          </span>
+          <ProvenanceBadge provenance={state.provenance} />
+        </>
+      ) : (
+        <span className="dial-readout__status">
+          {state.status === "loading"
+            ? "Calculating …"
+            : state.status === "error"
+              ? "Unavailable"
+              : state.status === "uncalibrated"
+                ? "Uncalibrated"
+                : "Invalid value"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function StageView({ stage }: { stage: SampleStage }) {
   return (
     <div className="stage">
-      <div className="stage__top">
-        <Panel title={`Forged Stats · ${stage.label}`} kicker={stage.levels}>
-          <StatGrid>
-            {stage.stats.map((s) => (
-              <StatValue
-                key={s.id}
-                label={s.label}
-                state={s.state}
-                format={s.format}
-                emphasis={s.emphasis ?? false}
-              />
-            ))}
-          </StatGrid>
-        </Panel>
-        <Panel title="From the Codex" variant="recessed">
-          <CodexProse>
-            <p>{stage.notes.join(" ")}</p>
-          </CodexProse>
-        </Panel>
-      </div>
+      <Panel title={stage.label} kicker={`Readouts · ${stage.levels}`}>
+        <StatGrid>
+          {stage.stats.map((s) => (
+            <StatValue
+              key={s.id}
+              label={s.label}
+              state={s.state}
+              format={s.format}
+              emphasis={s.emphasis ?? false}
+            />
+          ))}
+        </StatGrid>
+      </Panel>
+      <Panel title="Notes" kicker="Guide" variant="recessed">
+        <GuideNotes>
+          {stage.notes.map((note) => (
+            <p key={note}>{note}</p>
+          ))}
+        </GuideNotes>
+      </Panel>
       <Panel title="Equipment" kicker="Modifier priority from top to bottom">
         <div className="item-row">
           {SAMPLE_ITEMS.map((item) => (

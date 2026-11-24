@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@fontsource/alegreya-sans": "5.2.5",
-    "@fontsource/grenze-gotisch": "5.2.5",
-    "@fontsource/im-fell-english": "5.2.5"
+    "@fontsource/ibm-plex-mono": "5.2.5",
+    "@fontsource/marcellus-sc": "5.2.5"
   },
   "peerDependencies": {
     "react": "19.3.1"

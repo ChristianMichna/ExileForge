@@ -3,21 +3,21 @@ import { Badge, Sigil } from "@exileforge/ui";
 import type { RouteId } from "./route";
 import { NAV } from "./route";
 
-// Static ember specks; purely decorative, positioned in app.css.
-const EMBERS = [1, 2, 3, 4, 5, 6] as const;
-
 export function AppShell({ route, children }: { route: RouteId; children: ReactNode }) {
   return (
     <div className="shell">
-      <div className="embers" aria-hidden="true">
-        {EMBERS.map((n) => (
-          <span key={n} className={`ember ember--${n}`} />
-        ))}
-      </div>
+      <svg className="engraving" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+        <circle cx="50" cy="50" r="49" />
+        <circle cx="50" cy="50" r="38" />
+        <circle className="engraving__ticks" cx="50" cy="50" r="44" />
+        <path d="M50 1 V99 M1 50 H99" />
+      </svg>
       <header className="topbar">
         <a className="brand" href="#/" aria-label="ExileForge, go to build overview">
-          <Sigil size={44} />
-          <span className="brand__name ef-molten">ExileForge</span>
+          <Sigil size={36} />
+          <span className="brand__name">
+            Exile<span className="brand__accent">Forge</span>
+          </span>
         </a>
         <nav className="nav" aria-label="Main navigation">
           <ul className="nav__list">
@@ -45,8 +45,8 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
           </ul>
         </nav>
         <div className="topbar__status">
-          <Badge tone="gold">Sample data</Badge>
-          <Badge>PoB offline</Badge>
+          <Badge tone="accent">Sample data</Badge>
+          <Badge tone="warning">PoB offline</Badge>
         </div>
       </header>
       <main className="content">{children}</main>

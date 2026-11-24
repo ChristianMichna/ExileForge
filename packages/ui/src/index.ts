@@ -18,7 +18,7 @@ export { ProvenanceBadge } from "./components/Provenance";
 export type { ProvenanceBadgeProps } from "./components/Provenance";
 export { StatValue, StatGrid } from "./components/StatValue";
 export type { StatValueProps } from "./components/StatValue";
-export { Ledger, CodexProse } from "./components/Ledger";
+export { Ledger, GuideNotes } from "./components/Ledger";
 export type { LedgerRow } from "./components/Ledger";
 export { ItemTooltip } from "./components/ItemTooltip";
 export type {

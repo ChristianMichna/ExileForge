@@ -5,7 +5,7 @@ import {
   Button,
   COLOR_TOKEN_GROUPS,
   Callout,
-  CodexProse,
+  GuideNotes,
   ItemTooltip,
   Ledger,
   OrnamentDivider,
@@ -62,9 +62,9 @@ export function DesignSystem() {
           </div>
         </Panel>
 
-        <Panel title="Typography" kicker="Grenze Gotisch · Alegreya Sans · IM Fell English">
+        <Panel title="Typography" kicker="Marcellus SC · Alegreya Sans · IBM Plex Mono">
           <div className="type-samples">
-            <p className="type-sample type-sample--display ef-molten">The Forge of the Exiled</p>
+            <p className="type-sample type-sample--display">The Forge of the Exiled</p>
             <p className="type-sample type-sample--h2">Heading Level 2</p>
             <p className="type-sample type-sample--h3">Heading Level 3</p>
             <p className="type-sample">
@@ -74,7 +74,7 @@ export function DesignSystem() {
             <p className="type-sample type-sample--small">Small text for metadata and provenance</p>
             <p className="type-sample type-sample--numbers ef-numeric">1,234,567 · 89.5% · ×2.40</p>
             <p className="type-sample type-sample--flavour">Forged from ash, tempered in embers.</p>
-            <p className="type-sample type-sample--codex">Codex text for the guide reader</p>
+            <p className="type-sample type-sample--mono">READOUT · MONO · 0123456789</p>
           </div>
         </Panel>
 
@@ -112,17 +112,33 @@ export function DesignSystem() {
           </div>
         </Panel>
 
-        <Panel title="Tabs">
+        <Panel title="Tabs" kicker="Astrolabe dial · underline" className="gallery__wide">
           <Tabs
-            label="Example timeline"
-            variant="timeline"
+            label="Example dial"
+            variant="dial"
             value={stage}
             onChange={setStage}
+            dialCenter={<span className="dial-readout__label">Stage</span>}
             items={[
-              { id: "s1", label: "Start", hint: "Level 1–12", content: null },
-              { id: "s2", label: "Build-up", hint: "Level 13–28", content: null },
-              { id: "s3", label: "Transition", hint: "Level 29–52", content: null },
-              { id: "s4", label: "Endgame", hint: "Level 53+", content: null },
+              { id: "s1", label: "Start", hint: "Level 1–12", content: <DialDemo stage="Start" /> },
+              {
+                id: "s2",
+                label: "Build-up",
+                hint: "Level 13–28",
+                content: <DialDemo stage="Build-up" />,
+              },
+              {
+                id: "s3",
+                label: "Transition",
+                hint: "Level 29–52",
+                content: <DialDemo stage="Transition" />,
+              },
+              {
+                id: "s4",
+                label: "Endgame",
+                hint: "Level 53+",
+                content: <DialDemo stage="Endgame" />,
+              },
             ]}
           />
           <Tabs
@@ -140,7 +156,7 @@ export function DesignSystem() {
         <Panel title="Badges and Provenance" kicker="Every number names its source">
           <div className="row">
             <Badge>Neutral</Badge>
-            <Badge tone="gold">Recommended</Badge>
+            <Badge tone="accent">Recommended</Badge>
             <Badge tone="success">Verified</Badge>
             <Badge tone="info">Info</Badge>
             <Badge tone="warning">Outdated</Badge>
@@ -199,9 +215,9 @@ export function DesignSystem() {
           </StatGrid>
         </Panel>
 
-        <Panel title="Codex" kicker="Guide reader: ledger and prose">
+        <Panel title="Readout Table" kicker="Guide reader">
           <Ledger
-            caption="The Reckoning"
+            caption="Stage summary"
             rows={[
               {
                 id: "dps",
@@ -223,14 +239,14 @@ export function DesignSystem() {
           />
         </Panel>
 
-        <Panel title="Codex Prose">
-          <CodexProse>
+        <Panel title="Guide Notes" kicker="Numbered entries">
+          <GuideNotes>
             <p>
               Pick up a second ember source before the transition, then swap both rings for ones
               with resistance.
             </p>
             <p>Keep the starting staff until the twentieth level.</p>
-          </CodexProse>
+          </GuideNotes>
         </Panel>
 
         <Panel title="Messages" className="gallery__wide">
@@ -268,6 +284,18 @@ export function DesignSystem() {
           </div>
         </Panel>
       </div>
+    </div>
+  );
+}
+
+function DialDemo({ stage }: { stage: string }) {
+  return (
+    <div className="stack">
+      <p className="gallery__label">Selected: {stage}</p>
+      <p>
+        Stages sit as marks on the ring. The arc lights up to the current stage; done stages keep a
+        dim mark. Arrow keys, Home and End move between stages.
+      </p>
     </div>
   );
 }
