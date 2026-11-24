@@ -1,0 +1,35 @@
+{
+  "name": "@exileforge/server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local ExileForge server on 127.0.0.1: forge task loop (MCP endpoint for Claude), REST API and live events for the frontend.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "exileforge-server": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@exileforge/contracts": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "fastify": "5.12.8",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}
