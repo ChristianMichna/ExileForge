@@ -29,12 +29,16 @@ const name = z.string().min(1).describe("Display name in the release's default l
 const nonNegInt = z.int().nonnegative();
 
 /** Path of a file (asset, shard, diff) inside the data release. */
-export const AssetPath = z
+export const ReleasePath = z
   .string()
   .min(1)
   .regex(/^(?!\/)(?!.*\.\.)[\w./-]+$/, "relative path inside the release, no ..")
-  .describe("Asset path relative to the data release root");
-export type AssetPath = z.infer<typeof AssetPath>;
+  .describe("Path relative to the data release root");
+export type ReleasePath = z.infer<typeof ReleasePath>;
+
+/** Icon or sprite path inside the data release. */
+export const AssetPath = ReleasePath;
+export type AssetPath = ReleasePath;
 
 /** A stat with its roll range. min === max for fixed values. */
 export const StatRange = z

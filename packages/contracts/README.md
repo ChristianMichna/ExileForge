@@ -5,16 +5,40 @@ Einzige maßgebliche Quelle für die Datenformen von ExileForge (Leitprinzip
 TS-Typen (`z.infer`) und generierte JSON-Schema-Dateien unter `schemas/`.
 Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
 
-## Inhalt (v0.1)
+## Inhalt (v0.2)
 
 | Export | Inhalt | Konsumenten |
 | --- | --- | --- |
 | `@exileforge/contracts/common` | Katalog-IDs (gebrandet je Art), `DataReleaseId`, `PobVersion`, `CalcProfileId`, `CalcId`, Herkunft `Source`, `sourced()`, `measured()`, `CalcRef` | alle |
 | `@exileforge/contracts/catalog` | `BaseItem`, `Mod`, `UniqueItem`, `Gem`, `PassiveNode`, `CharacterClass`, `Ascendancy`, `CraftingAction`, `StatTranslation`, `DataRelease`, `CatalogManifest`, `CatalogShard`, `CatalogDiff` | data-pipeline, catalog-sdk, ui |
 | `@exileforge/contracts/calc` | `CalcResult`, `PatchOp`, `CalcMethods` (JSON-RPC: `meta.version`, `build.*`, `calc.*`), `parseCalcParams`, `parseCalcResult` | calc, calc-client, optimizer |
+| `@exileforge/contracts/build` | `BuildRequest` (S0), `BuildState`, `ItemSpec`, `RichText`, Stufen-Ergebnisse `SkillProfile` (S1), `ArchetypeCandidate`/`ArchetypeEvaluation` (S2/S3), `TargetBuild` (S5), `ProgressionPlan` (S6), `GearPlan` (S7), `CraftingPlan` (S8), `Finding` (mit `returnTo` für den gezielten Rücksprung), `ValidationReport` (S10) | agents, optimizer, crafting-sim, ui |
+| `@exileforge/contracts/guide` | `GuideDocument` mit den 11 Pflichtbausteinen des Plans, `PublishedGuide` (S11, nur mit bestandenem Prüfbericht) | agents, exporters, ui |
+| `@exileforge/contracts/forge` | MCP-Werkzeuge `forge.attach/next/submit/ask_user/status`, `ForgeTask`, `ForgeStep`, `UserIntervention` | server, mcp-bridge, llm-gateway |
+| `@exileforge/contracts/events` | `RunEvent` (Live-Status per SSE, `seq` je Lauf) | server, web |
 
-Noch nicht enthalten (nächster Vertrags-PR): `BuildRequest`, Stufen-Ergebnisse
-S1–S8, `GuideDocument`, `forge.*`-MCP-Tools, Live-Events.
+Bekannte Lücken: Der Katalog kennt noch keine Bosse und keine
+Atlas-Passives; `bossMechanics` und die Atlas-Strategie sind deshalb vorerst
+`RichText` mit optionalem `EntityRef`. Kommen diese Entitäten ins Daten-Release,
+wird `EntityKind` per Vertrags-PR erweitert. Der Zahlen-Linter muss neben
+`text`-Segmenten auch Titel, Stufen-Labels und `forge.ask_user`-Fragen
+prüfen.
+
+Noch offen: IPC Electron-Main ⇄ Renderer, Teilen-Datei `.exileforge.json`,
+`.build`-Export (eigene Vertrags-PRs, sobald die Konsumenten feststehen).
+
+## Zahlen in KI-Ausgaben
+
+Alles, was die KI schreibt, ist `RichText`: Segmente `text`, `calc`
+(Verweis auf eine Zahl eines PoB-Ergebnisses) und `entity` (Katalog-ID). Es
+gibt kein Zahlen-Segment. Kosten, Chancen und Preise sind `measured()`;
+Die erlaubte Herkunft ist je Größe eingeschränkt
+(`measuredFrom`): Preise nur `market`/`derived`, Chancen und Versuche nur
+`gamedata`/`derived`, Verhältnisse wie „Gewinn pro Kosten" nur `derived`.
+Rechenergebnisse von Zuständen sind `CalcOutcome` (`ok` mit `calcId` oder
+`failed`). Ob in `text`-Segmenten freie Zahlen stehen, prüft der Zahlen-Linter
+in den Gates. Mindestanzahlen (Stufen, Varianten) kommen aus `config/`, das
+Schema verlangt nur „nicht leer".
 
 ## Regeln im Schema
 
