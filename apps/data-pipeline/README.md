@@ -42,6 +42,7 @@ per „Run workflow" mit Spielversion und optionalem Vergleich gegen einen
 | `essences` | `Data/Essence.lua` | Metadata-ID |
 | `gems` | `Data/Gems.lua` | Metadata-ID |
 | `skills` | `Data/Skills/*.lua` (ohne `SkillAssets.lua`) | Granted-Effect-ID |
+| `statDescriptions` | `Data/StatDescriptions/*.lua` (Auswahl in der Konfig) | `<scope>:<index>`, mit `tradeHash` (PoBs `HashStats`) |
 | `uniques` | `main.uniqueDB` (von PoBs Item-Parser gelesen) | `Titel, Basis` |
 | `passiveTree` | `TreeData/<version>/tree.lua` | Knoten-ID; `group:<id>`, `class:<name>`, `constants` |
 
@@ -61,6 +62,24 @@ Regeln des Extraktors:
 - `SkillType`-Werte werden als Namen ausgegeben, nicht als PoB-interne Zahlen.
 - Eine leere Art, ein Glob ohne Treffer oder ein Snapshot mit falschem Hash ist
   ein Fehler, nie ein leeres Ergebnis.
+
+## Stat-IDs für Mods
+
+PoB führt Mods nur als Anzeigetext. `src/normalize/stat-matcher.ts` bildet
+den Text auf Stat-IDs und Rohwerte zurück, ausschließlich mit PoB-Daten:
+
+1. Jeder Mod nennt in `tradeHashes` PoBs Hash über die Stat-IDs einer
+   Beschreibung. Darüber ist die Beschreibung eindeutig, auch wenn zwei
+   Beschreibungen gleichen Text haben (z. B. lokal und global).
+2. Der Text wird gegen die Vorlagen dieser Beschreibung geprüft; Handler wie
+   `negate` oder `milliseconds_to_seconds` werden umgekehrt, Limits geprüft.
+3. Zeilen ohne Hash laufen über einen Text-Index. Mehrdeutige oder nicht
+   passende Zeilen bleiben je Mod in `unresolved` sichtbar, nichts wird geraten.
+
+`exileforge-data stat-coverage <snapshot> [--out unresolved.json]` meldet die
+Abdeckung. Stand PoB 0.23.1: 95,4 % der Zeilengruppen, 95,2 % der Mods voll
+aufgelöst. Offen sind vor allem Radius-Jewel-Mods (Hash mit Zusatz-Stat) und
+Beschreibungen, die PoB nicht mitliefert.
 
 ## Rechtliches
 
