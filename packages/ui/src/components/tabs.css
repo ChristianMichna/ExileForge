@@ -1,0 +1,252 @@
+/* Underline tabs */
+.ef-tabs__list {
+  position: relative;
+  display: flex;
+  gap: var(--ef-space-1);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.ef-tabs--underline .ef-tabs__list {
+  border-bottom: var(--ef-hairline) solid var(--ef-color-line);
+}
+
+.ef-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: none;
+  padding: var(--ef-space-2) var(--ef-space-4);
+  border: 0;
+  background: transparent;
+  color: var(--ef-color-text-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--ef-duration-fast) var(--ef-ease);
+}
+
+.ef-tabs__label {
+  font-family: var(--ef-font-display);
+  font-size: var(--ef-text-md);
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ef-tabs__hint {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  color: var(--ef-color-text-faint);
+  white-space: nowrap;
+}
+
+.ef-tabs__tab:hover:not(:disabled) {
+  color: var(--ef-color-text-strong);
+}
+
+.ef-tabs__tab[aria-selected="true"] {
+  color: var(--ef-color-verdigris);
+}
+
+.ef-tabs--underline .ef-tabs__tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: var(--ef-space-2);
+  right: var(--ef-space-2);
+  bottom: -1px;
+  height: 1px;
+  background: var(--ef-color-verdigris);
+  box-shadow: var(--ef-glow-verdigris);
+}
+
+.ef-tabs__tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.ef-tabs__tab:focus-visible {
+  outline: 1px solid var(--ef-color-focus);
+  outline-offset: -1px;
+}
+
+.ef-tabs__panel {
+  padding-top: var(--ef-space-5);
+  min-width: 0;
+}
+
+.ef-tabs__panel:focus-visible {
+  outline-offset: 4px;
+}
+
+/* Astrolabe dial */
+.ef-tabs--dial {
+  display: grid;
+  grid-template-columns: calc(var(--ef-dial-size) + 2 * var(--ef-dial-label-room)) minmax(0, 1fr);
+  gap: var(--ef-space-6);
+  align-items: start;
+}
+
+.ef-tabs__dial {
+  position: relative;
+  width: var(--ef-dial-size);
+  margin-inline: var(--ef-dial-label-room);
+  aspect-ratio: 1;
+}
+
+.ef-tabs__rings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ef-tabs__ring {
+  fill: none;
+  stroke: var(--ef-color-line);
+  stroke-width: 0.25;
+}
+
+.ef-tabs__ring--outer {
+  stroke: var(--ef-color-engraving);
+}
+
+.ef-tabs__ring--ticks {
+  stroke: var(--ef-color-line);
+  stroke-dasharray: 0.3 1.6;
+  stroke-width: 1.2;
+}
+
+.ef-tabs__ring--track {
+  stroke: var(--ef-color-surface-3);
+  stroke-width: 1.6;
+}
+
+.ef-tabs__ring--progress {
+  stroke: var(--ef-color-verdigris);
+  stroke-width: 1;
+  filter: drop-shadow(var(--ef-glow-verdigris));
+}
+
+.ef-tabs__ring--sigil {
+  stroke: var(--ef-color-engraving);
+}
+
+.ef-tabs__dial-center {
+  position: absolute;
+  inset: 30%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.ef-tabs--dial .ef-tabs__list {
+  position: static;
+  display: block;
+  overflow: visible;
+}
+
+.ef-tabs--dial .ef-tabs__tab {
+  position: absolute;
+  align-items: center;
+  padding: var(--ef-space-1) var(--ef-space-2);
+  text-align: center;
+  transform: translate(-50%, -14px);
+}
+
+/* Side marks: label beside the mark, pointing outwards */
+.ef-tabs--dial .ef-tabs__tab--end,
+.ef-tabs--dial .ef-tabs__tab--start {
+  display: grid;
+  column-gap: var(--ef-space-2);
+  align-items: center;
+  padding: var(--ef-space-1) var(--ef-space-2);
+}
+
+.ef-tabs--dial .ef-tabs__tab--end {
+  grid-template-areas:
+    "mark label"
+    ". hint";
+  justify-items: start;
+  text-align: left;
+  transform: translate(-13px, -15px);
+}
+
+.ef-tabs--dial .ef-tabs__tab--start {
+  grid-template-areas:
+    "label mark"
+    "hint .";
+  justify-items: end;
+  text-align: right;
+  transform: translate(calc(-100% + 13px), -15px);
+}
+
+.ef-tabs__tab--end .ef-tabs__mark,
+.ef-tabs__tab--start .ef-tabs__mark {
+  grid-area: mark;
+  margin: 0;
+}
+
+.ef-tabs__tab--end .ef-tabs__label,
+.ef-tabs__tab--start .ef-tabs__label {
+  grid-area: label;
+}
+
+.ef-tabs__tab--end .ef-tabs__hint,
+.ef-tabs__tab--start .ef-tabs__hint {
+  grid-area: hint;
+}
+
+.ef-tabs__mark {
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin-bottom: var(--ef-space-1);
+  border: var(--ef-hairline) solid var(--ef-color-line-strong);
+  background: var(--ef-color-ground);
+  transform: rotate(45deg);
+}
+
+.ef-tabs__tab--done .ef-tabs__mark {
+  border-color: var(--ef-color-verdigris-dim);
+  background: var(--ef-color-verdigris-deep);
+}
+
+.ef-tabs__tab--current .ef-tabs__mark {
+  border-color: var(--ef-color-verdigris-bright);
+  background: var(--ef-color-verdigris);
+  box-shadow: var(--ef-glow-verdigris);
+}
+
+.ef-tabs__numeral {
+  color: var(--ef-color-text-faint);
+}
+
+.ef-tabs__tab--current .ef-tabs__numeral {
+  color: var(--ef-color-verdigris-dim);
+}
+
+.ef-tabs--dial .ef-tabs__tab--done {
+  color: var(--ef-color-text);
+}
+
+.ef-tabs--dial .ef-tabs__panel {
+  padding-top: 0;
+}
+
+/* Narrow windows: dial above its panel */
+@media (max-width: 1180px) {
+  .ef-tabs--dial {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .ef-tabs--dial .ef-tabs__panel {
+    justify-self: stretch;
+  }
+}

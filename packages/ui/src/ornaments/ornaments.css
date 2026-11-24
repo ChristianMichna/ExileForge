@@ -1,0 +1,69 @@
+.ef-orn-stroke {
+  fill: none;
+  stroke: var(--ef-color-verdigris-dim);
+  stroke-width: 1;
+}
+
+.ef-orn-fill {
+  fill: var(--ef-color-verdigris);
+}
+
+.ef-diamond {
+  flex: none;
+}
+
+.ef-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  width: 100%;
+}
+
+.ef-divider__line {
+  flex: 1;
+  height: var(--ef-hairline);
+}
+
+.ef-divider__line--start {
+  background: linear-gradient(to right, transparent, var(--ef-color-line-strong));
+}
+
+.ef-divider__line--end {
+  background: linear-gradient(to left, transparent, var(--ef-color-line-strong));
+}
+
+.ef-sigil {
+  flex: none;
+}
+
+.ef-sigil__ring {
+  fill: none;
+  stroke: var(--ef-color-verdigris-dim);
+  stroke-width: 1;
+}
+
+.ef-sigil__ring--inner {
+  stroke: var(--ef-color-line-strong);
+}
+
+.ef-sigil__ticks {
+  stroke: var(--ef-color-verdigris-dim);
+  stroke-width: 1;
+}
+
+.ef-sigil__sight {
+  fill: none;
+  stroke: var(--ef-color-verdigris);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.ef-sigil__sight--dim {
+  stroke: var(--ef-color-verdigris-dim);
+  stroke-width: 1;
+}
+
+.ef-sigil__core {
+  fill: var(--ef-color-verdigris-bright);
+  filter: drop-shadow(var(--ef-glow-verdigris));
+}

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "ExileForge frontend (React + Vite). Currently only a scaffold so CI, unit tests and screenshot tests have a target.",
+  "description": "ExileForge frontend (React + Vite): app shell, build overview and design-system gallery on sample data.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,6 +13,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@exileforge/ui": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

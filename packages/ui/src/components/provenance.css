@@ -1,0 +1,44 @@
+.ef-prov {
+  --ef-prov-color: var(--ef-color-prov-sample);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ef-space-1);
+  max-width: 100%;
+  color: var(--ef-prov-color);
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.ef-prov__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ef-prov__marker {
+  flex: none;
+  fill: currentColor;
+  fill-rule: evenodd;
+}
+
+.ef-prov--pob {
+  --ef-prov-color: var(--ef-color-prov-pob);
+}
+
+.ef-prov--market {
+  --ef-prov-color: var(--ef-color-prov-market);
+}
+
+.ef-prov--derived {
+  --ef-prov-color: var(--ef-color-prov-derived);
+}
+
+.ef-prov--gamedata {
+  --ef-prov-color: var(--ef-color-prov-gamedata);
+}
+
+.ef-prov--sample {
+  --ef-prov-color: var(--ef-color-prov-sample);
+}

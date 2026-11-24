@@ -1,0 +1,257 @@
+/*
+ * Item slate: a pane of obsidian glass with corner brackets in the rarity
+ * colour. Left-aligned like an instrument label: mono kicker, name, sections
+ * divided by hairlines. Section order follows what players read fastest.
+ */
+.ef-item {
+  --ef-item-color: var(--ef-color-rarity-normal);
+  --ef-item-edge: color-mix(in srgb, var(--ef-item-color) 55%, transparent);
+  --ef-item-faint: color-mix(in srgb, var(--ef-item-color) 18%, transparent);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: var(--ef-tooltip-width);
+  max-width: calc(100% - 12px);
+  margin: 6px;
+  border: var(--ef-hairline) solid var(--ef-color-line);
+  background: var(--ef-glass-sheen), var(--ef-color-inset);
+  box-shadow: var(--ef-shadow-tooltip);
+}
+
+.ef-item::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--ef-item-color), var(--ef-item-color)) top left / var(--ef-bracket) 1px
+      no-repeat,
+    linear-gradient(var(--ef-item-color), var(--ef-item-color)) top left / 1px var(--ef-bracket)
+      no-repeat,
+    linear-gradient(var(--ef-item-color), var(--ef-item-color)) top right / var(--ef-bracket) 1px
+      no-repeat,
+    linear-gradient(var(--ef-item-color), var(--ef-item-color)) top right / 1px var(--ef-bracket)
+      no-repeat,
+    linear-gradient(var(--ef-item-edge), var(--ef-item-edge)) bottom left / var(--ef-bracket) 1px
+      no-repeat,
+    linear-gradient(var(--ef-item-edge), var(--ef-item-edge)) bottom left / 1px var(--ef-bracket)
+      no-repeat,
+    linear-gradient(var(--ef-item-edge), var(--ef-item-edge)) bottom right / var(--ef-bracket) 1px
+      no-repeat,
+    linear-gradient(var(--ef-item-edge), var(--ef-item-edge)) bottom right / 1px var(--ef-bracket)
+      no-repeat;
+}
+
+.ef-item--magic {
+  --ef-item-color: var(--ef-color-rarity-magic);
+}
+
+.ef-item--rare {
+  --ef-item-color: var(--ef-color-rarity-rare);
+}
+
+.ef-item--unique {
+  --ef-item-color: var(--ef-color-rarity-unique);
+}
+
+.ef-item__header {
+  padding: var(--ef-space-4) var(--ef-space-5) var(--ef-space-3);
+  border-bottom: var(--ef-hairline) solid var(--ef-item-edge);
+  background: linear-gradient(to bottom, var(--ef-item-faint), transparent);
+}
+
+.ef-item__kicker {
+  margin: 0 0 var(--ef-space-2);
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-faint);
+}
+
+.ef-item__rarity {
+  color: var(--ef-item-color);
+}
+
+.ef-item__name {
+  margin: 0;
+  font-family: var(--ef-font-display);
+  font-size: var(--ef-text-xl);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: var(--ef-leading-tight);
+  color: var(--ef-item-color);
+}
+
+.ef-item__base {
+  margin: var(--ef-space-1) 0 0;
+  font-size: var(--ef-text-md);
+  line-height: var(--ef-leading-tight);
+  color: color-mix(in srgb, var(--ef-item-color) 65%, var(--ef-color-text));
+}
+
+.ef-item__body {
+  padding: var(--ef-space-3) var(--ef-space-5) var(--ef-space-4);
+  font-size: var(--ef-text-md);
+  line-height: 1.45;
+}
+
+.ef-item__section {
+  margin: 0;
+  padding: 0;
+}
+
+.ef-item__separator {
+  height: var(--ef-hairline);
+  margin: var(--ef-space-3) 0;
+  background: var(--ef-gradient-hairline);
+}
+
+.ef-item__prop {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ef-space-3);
+}
+
+.ef-item__prop dt {
+  color: var(--ef-color-text-muted);
+}
+
+.ef-item__prop dd {
+  margin: 0;
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.ef-item__prop-value {
+  color: var(--ef-color-property-value);
+}
+
+.ef-item__prop-value--augmented {
+  color: var(--ef-color-mod);
+}
+
+.ef-item__reqs {
+  font-size: var(--ef-text-sm);
+  color: var(--ef-color-text-muted);
+}
+
+.ef-item__req {
+  color: var(--ef-color-property-value);
+}
+
+.ef-item__req--unmet {
+  color: var(--ef-color-danger-bright);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.ef-item__mods {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ef-item__mod {
+  position: relative;
+  padding-left: var(--ef-space-3);
+  color: var(--ef-color-mod);
+}
+
+.ef-item__mod::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 4px;
+  height: var(--ef-hairline);
+  background: currentcolor;
+  opacity: 0.6;
+}
+
+.ef-item__mod--implicit {
+  color: var(--ef-color-mod-implicit);
+}
+
+.ef-item__mod--enchant {
+  color: var(--ef-color-mod-enchant);
+  font-style: italic;
+}
+
+.ef-item__mod--rune {
+  color: var(--ef-color-mod-rune);
+}
+
+.ef-item__mod--desecrated {
+  color: var(--ef-color-mod-desecrated);
+}
+
+.ef-item__mod--priority::before {
+  top: 0.4em;
+  width: 2px;
+  height: 0.6em;
+  background: var(--ef-color-verdigris);
+  box-shadow: var(--ef-glow-verdigris);
+  opacity: 1;
+}
+
+.ef-item--tiers .ef-item__mod {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ef-space-3);
+}
+
+.ef-item__mod-meta {
+  display: inline-flex;
+  flex: none;
+  gap: var(--ef-space-1);
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  color: var(--ef-color-text-faint);
+}
+
+.ef-item__mod-range {
+  color: var(--ef-color-text-muted);
+}
+
+.ef-item__corrupted {
+  margin: var(--ef-space-2) 0 0;
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-sm);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-danger-bright);
+}
+
+.ef-item__flavour {
+  font-family: var(--ef-font-flavour);
+  font-style: italic;
+  font-size: var(--ef-text-md);
+  line-height: 1.4;
+  color: var(--ef-color-flavour);
+}
+
+.ef-item__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-2) var(--ef-space-5);
+  border-top: var(--ef-hairline) solid var(--ef-color-line);
+  font-size: var(--ef-text-xs);
+  color: var(--ef-color-text-muted);
+}
+
+.ef-item__footer-label {
+  font-family: var(--ef-font-mono);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-faint);
+}

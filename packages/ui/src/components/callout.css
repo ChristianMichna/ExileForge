@@ -1,0 +1,69 @@
+.ef-callout {
+  --ef-callout-color: var(--ef-color-info);
+  --ef-callout-ground: var(--ef-color-info-ground);
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ef-space-3);
+  padding: var(--ef-space-3) var(--ef-space-4);
+  border: var(--ef-hairline) solid var(--ef-color-line);
+  border-left: 2px solid var(--ef-callout-color);
+  background: var(--ef-callout-ground);
+}
+
+.ef-callout--warning {
+  --ef-callout-color: var(--ef-color-warning);
+  --ef-callout-ground: var(--ef-color-warning-ground);
+}
+
+.ef-callout--danger {
+  --ef-callout-color: var(--ef-color-danger);
+  --ef-callout-ground: var(--ef-color-danger-ground);
+}
+
+.ef-callout--success {
+  --ef-callout-color: var(--ef-color-success);
+  --ef-callout-ground: var(--ef-color-success-ground);
+}
+
+.ef-callout__icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.ef-callout__icon-frame {
+  fill: none;
+  stroke: var(--ef-callout-color);
+  stroke-width: 1.2;
+}
+
+.ef-callout__icon-mark {
+  fill: var(--ef-callout-color);
+}
+
+.ef-callout__icon-check {
+  fill: none;
+  stroke: var(--ef-callout-color);
+  stroke-width: 2;
+}
+
+.ef-callout__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ef-callout__title {
+  font-weight: 700;
+  color: var(--ef-color-text);
+}
+
+.ef-callout__body {
+  margin-top: var(--ef-space-1);
+  font-size: var(--ef-text-sm);
+  color: var(--ef-color-text-muted);
+}
+
+.ef-callout__actions {
+  flex: none;
+  align-self: center;
+}

@@ -1,0 +1,99 @@
+/* Instrument housing: hairline frame with engraved corner brackets. */
+.ef-panel {
+  --ef-bracket-color: var(--ef-color-verdigris-dim);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ef-panel--plate {
+  margin: 6px;
+  border: var(--ef-hairline) solid var(--ef-color-line);
+  background: var(--ef-glass-sheen), var(--ef-color-surface-1);
+}
+
+.ef-panel--plate::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) top left / var(--ef-bracket)
+      1px no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) top left / 1px
+      var(--ef-bracket) no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) top right / var(--ef-bracket)
+      1px no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) top right / 1px
+      var(--ef-bracket) no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) bottom left /
+      var(--ef-bracket) 1px no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) bottom left / 1px
+      var(--ef-bracket) no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) bottom right /
+      var(--ef-bracket) 1px no-repeat,
+    linear-gradient(var(--ef-bracket-color), var(--ef-bracket-color)) bottom right / 1px
+      var(--ef-bracket) no-repeat;
+}
+
+.ef-panel--recessed {
+  border: var(--ef-hairline) solid var(--ef-color-line);
+  background: var(--ef-color-inset);
+}
+
+.ef-panel__header {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ef-space-4);
+  padding: var(--ef-space-4) var(--ef-space-5) var(--ef-space-3);
+}
+
+.ef-panel--recessed .ef-panel__header {
+  padding: var(--ef-space-3) var(--ef-space-4) var(--ef-space-2);
+}
+
+.ef-panel__heading {
+  min-width: 0;
+  flex: none;
+}
+
+.ef-panel__kicker {
+  margin-bottom: var(--ef-space-1);
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-verdigris-dim);
+}
+
+.ef-panel__title {
+  font-size: var(--ef-text-xl);
+  color: var(--ef-color-text-strong);
+}
+
+.ef-panel--recessed .ef-panel__title {
+  font-size: var(--ef-text-lg);
+}
+
+.ef-panel__rule {
+  flex: 1;
+  height: 1px;
+  margin-bottom: 0.5em;
+  background: var(--ef-gradient-hairline);
+}
+
+.ef-panel__actions {
+  display: flex;
+  gap: var(--ef-space-2);
+  flex: none;
+}
+
+.ef-panel__body {
+  padding: var(--ef-space-2) var(--ef-space-5) var(--ef-space-5);
+}
+
+.ef-panel--recessed .ef-panel__body {
+  padding: var(--ef-space-2) var(--ef-space-4) var(--ef-space-4);
+}

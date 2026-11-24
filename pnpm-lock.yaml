@@ -57,6 +57,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@exileforge/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -104,6 +107,43 @@ importers:
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.1.1
+        version: 5.1.1(@types/node@22.20.5)(jsdom@27.4.0)(vite@8.3.8(@types/node@22.20.5))
+
+  packages/ui:
+    dependencies:
+      '@fontsource/alegreya-sans':
+        specifier: 5.2.5
+        version: 5.2.5
+      '@fontsource/ibm-plex-mono':
+        specifier: 5.2.5
+        version: 5.2.5
+      '@fontsource/marcellus-sc':
+        specifier: 5.2.5
+        version: 5.2.5
+    devDependencies:
+      '@testing-library/react':
+        specifier: 16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.1))(@types/react@19.3.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@types/react':
+        specifier: 19.3.1
+        version: 19.3.1
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.1)
+      jsdom:
+        specifier: 27.4.0
+        version: 27.4.0
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -294,6 +334,15 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fontsource/alegreya-sans@5.2.5':
+    resolution: {integrity: sha512-gYr8J2ExytMwkYWjfN4M+HcPb2g0vDY4MEbHLRHLjmdaDnbJpo4RmTq0NjKpLIirshvE9DrpWjw6PcVx6Q5hlw==}
+
+  '@fontsource/ibm-plex-mono@5.2.5':
+    resolution: {integrity: sha512-G09N3GfuT9qj3Ax2FDZvKqZttzM3v+cco2l8uXamhKyXLdmlaUDH5o88/C3vtTHj2oT7yRKsvxz9F+BXbWKMYA==}
+
+  '@fontsource/marcellus-sc@5.2.5':
+    resolution: {integrity: sha512-J0HRHhzD0nB1KztA7GI5tECAItRxYgHA6+fGp3VmCh4n+FYj1dhK+LWt+ARbXUtW2rYn3/kfMgTx1BcOa7wsmA==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1632,6 +1681,12 @@ snapshots:
       levn: 0.4.1
 
   '@exodus/bytes@1.16.0': {}
+
+  '@fontsource/alegreya-sans@5.2.5': {}
+
+  '@fontsource/ibm-plex-mono@5.2.5': {}
+
+  '@fontsource/marcellus-sc@5.2.5': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

@@ -1,0 +1,137 @@
+/* Instrument switch: hairline outline, chamfered corners, mono caps. */
+.ef-button {
+  --ef-btn-cut: var(--ef-chamfer-md);
+  --ef-btn-border: var(--ef-color-line-strong);
+  --ef-btn-face: var(--ef-color-surface-1);
+  --ef-btn-text: var(--ef-color-text);
+  --ef-btn-shape: polygon(
+    var(--ef-btn-cut) 0,
+    100% 0,
+    100% calc(100% - var(--ef-btn-cut)),
+    calc(100% - var(--ef-btn-cut)) 100%,
+    0 100%,
+    0 var(--ef-btn-cut)
+  );
+
+  position: relative;
+  display: inline-flex;
+  padding: 1px;
+  border: 0;
+  background: var(--ef-btn-border);
+  clip-path: var(--ef-btn-shape);
+  color: var(--ef-btn-text);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    filter var(--ef-duration-fast) var(--ef-ease),
+    background-color var(--ef-duration-fast) var(--ef-ease);
+}
+
+.ef-button__face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ef-space-2);
+  width: 100%;
+  background: var(--ef-btn-face);
+  clip-path: var(--ef-btn-shape);
+  font-family: var(--ef-font-mono);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ef-button--md .ef-button__face {
+  min-height: 38px;
+  padding: 0 var(--ef-space-5);
+  font-size: var(--ef-text-xs);
+}
+
+.ef-button--sm {
+  --ef-btn-cut: var(--ef-chamfer-sm);
+}
+
+.ef-button--sm .ef-button__face {
+  min-height: 28px;
+  padding: 0 var(--ef-space-3);
+  font-size: var(--ef-text-xs);
+}
+
+.ef-button--primary {
+  --ef-btn-border: var(--ef-color-verdigris-bright);
+  --ef-btn-face: var(--ef-color-verdigris);
+  --ef-btn-text: var(--ef-color-text-on-accent);
+
+  filter: drop-shadow(var(--ef-glow-verdigris));
+}
+
+.ef-button--secondary {
+  --ef-btn-border: var(--ef-color-verdigris-dim);
+  --ef-btn-text: var(--ef-color-verdigris);
+}
+
+.ef-button--ghost {
+  --ef-btn-border: var(--ef-color-line);
+  --ef-btn-face: var(--ef-color-ground);
+  --ef-btn-text: var(--ef-color-text-muted);
+}
+
+.ef-button--danger {
+  --ef-btn-border: var(--ef-color-danger);
+  --ef-btn-face: var(--ef-color-danger-ground);
+  --ef-btn-text: var(--ef-color-danger-bright);
+}
+
+.ef-button:hover:not(:disabled) {
+  filter: brightness(1.25);
+}
+
+.ef-button--primary:hover:not(:disabled) {
+  filter: brightness(1.1) drop-shadow(var(--ef-glow-verdigris));
+}
+
+.ef-button:active:not(:disabled) .ef-button__face {
+  transform: translateY(1px);
+}
+
+/* clip-path would cut an outline, so focus is drawn inside the face. */
+.ef-button:focus-visible {
+  outline: none;
+  box-shadow: none;
+  --ef-btn-border: var(--ef-color-focus);
+}
+
+.ef-button:focus-visible .ef-button__face {
+  box-shadow: inset 0 0 0 2px var(--ef-color-focus);
+}
+
+.ef-button:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.2) brightness(0.65);
+}
+
+.ef-button[aria-busy="true"] {
+  cursor: progress;
+}
+
+.ef-button__spinner {
+  width: 12px;
+  height: 12px;
+  border: 1px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ef-spin 900ms linear infinite;
+}
+
+@keyframes ef-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-button__spinner {
+    animation: none;
+  }
+}

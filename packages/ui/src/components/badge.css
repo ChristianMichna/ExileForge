@@ -1,0 +1,36 @@
+.ef-badge {
+  --ef-badge-color: var(--ef-color-text-muted);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ef-space-1);
+  padding: 1px var(--ef-space-2);
+  border: var(--ef-hairline) solid currentColor;
+  color: var(--ef-badge-color);
+  background: var(--ef-color-ground);
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.ef-badge--accent {
+  --ef-badge-color: var(--ef-color-verdigris);
+}
+
+.ef-badge--danger {
+  --ef-badge-color: var(--ef-color-danger-bright);
+}
+
+.ef-badge--warning {
+  --ef-badge-color: var(--ef-color-warning);
+}
+
+.ef-badge--success {
+  --ef-badge-color: var(--ef-color-success);
+}
+
+.ef-badge--info {
+  --ef-badge-color: var(--ef-color-info);
+}
