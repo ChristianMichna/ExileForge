@@ -1,0 +1,81 @@
+# Data pipeline (F-01): extracts the game data of the pinned headless PoB into
+# a raw snapshot (apps/data-pipeline) and runs the pipeline tests against the
+# real PoB. On pull requests this is a smoke run; via workflow_dispatch it
+# builds a named snapshot, optionally diffed against a previous PoB tag.
+# The snapshot is uploaded as artifact; publishing releases comes later.
+name: Data snapshot
+
+on:
+  pull_request:
+    paths:
+      - "apps/data-pipeline/**"
+      - "config/data-pipeline/**"
+      - "tools/setup_pob.sh"
+      - ".github/workflows/data-snapshot.yml"
+  workflow_dispatch:
+    inputs:
+      game-version:
+        description: "Game version of this snapshot, e.g. 0.5 or 1.0.0.3"
+        required: true
+      revision:
+        description: "Pipeline revision for this game version (release id poe2-<game>+r<n>)"
+        required: true
+        default: "1"
+      compare-pob-ref:
+        description: "Optional older PoB-PoE2 tag to diff against (e.g. the previous release)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GAME_VERSION: ${{ inputs.game-version || '0.0' }}
+      REVISION: ${{ inputs.revision || '0' }}
+      COMPARE_REF: ${{ inputs.compare-pob-ref }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Set up headless PoB
+        run: tools/setup_pob.sh
+
+      - name: Pipeline tests against the real PoB
+        run: pnpm --filter @exileforge/data-pipeline test
+
+      - name: Build snapshot
+        run: |
+          pnpm --filter @exileforge/data-pipeline build
+          node apps/data-pipeline/dist/cli.js snapshot \
+            --game-version "$GAME_VERSION" --revision "$REVISION" --out data-snapshots/current
+
+      - name: Diff against an older PoB release
+        if: env.COMPARE_REF != ''
+        run: |
+          POB_REF="$COMPARE_REF" bash -c '
+            set -euo pipefail
+            mkdir -p .pob-old
+            git init --quiet .pob-old/PathOfBuilding-PoE2
+            git -C .pob-old/PathOfBuilding-PoE2 remote add origin https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2.git
+            git -C .pob-old/PathOfBuilding-PoE2 fetch --quiet --depth 1 origin "refs/tags/$POB_REF"
+            git -C .pob-old/PathOfBuilding-PoE2 checkout --quiet --force FETCH_HEAD
+            cp .pob/luajit .pob-old/ && cp -r .pob/lib .pob-old/
+          '
+          node apps/data-pipeline/dist/cli.js snapshot \
+            --game-version "$GAME_VERSION" --revision 0 --pob-home .pob-old --out data-snapshots/previous
+          node apps/data-pipeline/dist/cli.js diff data-snapshots/previous data-snapshots/current
+          cat data-snapshots/current/diff.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: data-snapshot
+          path: data-snapshots/current/
+          retention-days: 30
