@@ -1,0 +1,6 @@
+{
+  "$comment": "Calc profile: overrides of Path of Building's Config tab, keyed by PoB's own option names (Modules/ConfigOptions.lua). See apps/calc/README.md.",
+  "id": "as-saved",
+  "description": "Exactly the configuration saved in the build (PoB Config tab), no overrides. Used for imported builds and golden builds.",
+  "config": []
+}

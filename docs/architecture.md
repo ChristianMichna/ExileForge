@@ -71,8 +71,11 @@ was lokal anders läuft, steht in [ADR-0004](adr/0004-lokal-first.md).
     den Installer gepackt.
   - Erste RPC-Methoden: `meta.version`, `build.load`, `calc.stats`; danach
     `build.applyPatch`, `calc.evalBatch`, `calc.nodePower`, `calc.validate`.
-- **⚠ Annahme:** Kaltstart und Speicher je Worker sind noch nicht gemessen; sie
-  bestimmen die Pool-Größe auf einem normalen Spiele-PC (Phase 0).
+- Umgesetzt in `apps/calc` (meta.version, build.load/export/release,
+  calc.stats mit Calc-Profilen). Gemessen (Linux, 24.11.2026): Kaltstart eines
+  Workers ca. 1,4 s, Build laden 450–650 ms, `calc.stats` auf geladenem Build
+  unter 10 ms, Speicher ca. 400–460 MB je Worker. Details und Folgerungen in
+  [apps/calc/README.md](../apps/calc/README.md).
 
 ### 3.2 Einrichtung und Weitergabe
 

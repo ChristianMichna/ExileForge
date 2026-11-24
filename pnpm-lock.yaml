@@ -36,6 +36,25 @@ importers:
         specifier: 8.74.0
         version: 8.74.0(eslint@10.15.0)(typescript@5.9.3)
 
+  apps/calc:
+    dependencies:
+      '@exileforge/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.5
+        version: 22.20.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.1.1
+        version: 5.1.1(@types/node@22.20.5)(jsdom@27.4.0)(vite@8.3.8(@types/node@22.20.5))
+
   apps/data-pipeline:
     dependencies:
       '@exileforge/contracts':

@@ -1,0 +1,16 @@
+{
+  "$comment": "Calc pool settings (apps/calc, F-04). size 'auto' = min(maxWorkers, CPU cores - 1, free memory / 2 / workerMemoryMb), at least 1. workerMemoryMb, luaGc and the timeouts come from the measurements in apps/calc/README.md.",
+  "size": "auto",
+  "maxWorkers": 4,
+  "workerMemoryMb": 500,
+  "startTimeoutMs": 120000,
+  "requestTimeoutMs": 60000,
+  "recycleAfterRequests": 2000,
+  "maxStartFailures": 3,
+  "restartBackoffMs": 1000,
+  "stopGraceMs": 5000,
+  "luaGc": {
+    "pause": 150,
+    "stepmul": 200
+  }
+}
