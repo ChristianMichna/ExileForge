@@ -52,10 +52,9 @@ Markdown ausgenommen, weil deutsche Tabellen von Hand umbrochen sind).
 Jedes Paket bringt die Skripte `typecheck`, `test` und `build` mit, dann
 greifen `pnpm typecheck|test|build` und die CI automatisch.
 
-`apps/web` ist vorerst nur ein **Platzhalter** (React + Vite, eine Seite), damit
-Typcheck, Vitest, Build und Screenshots ein echtes Ziel haben. Das eigentliche
-Frontend kommt mit eigenem Ticket über den Skill `poe-ui-design` und ersetzt
-Seite und Screenshot-Baseline.
+`apps/web` ist das Frontend (React + Vite) mit App-Gerüst, Build-Übersicht
+und Design-System-Galerie (`#/design`), vorerst auf Beispieldaten.
+Bausteine, Tokens und Schriften liegen in `packages/ui` (siehe dessen README).
 
 ## CI (GitHub Actions)
 

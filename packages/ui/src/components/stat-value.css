@@ -1,0 +1,114 @@
+.ef-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--ef-space-2);
+  margin: 0;
+}
+
+.ef-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+  min-width: 0;
+  padding: var(--ef-space-3);
+  border: 1px solid var(--ef-color-line);
+  background: var(--ef-color-inset);
+}
+
+.ef-stat--emphasis {
+  grid-column: span 2;
+  border-color: var(--ef-color-bronze-dark);
+}
+
+.ef-stat__label {
+  font-size: var(--ef-text-xs);
+  font-weight: 600;
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-faint);
+}
+
+.ef-stat__value {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+  margin: 0;
+  min-width: 0;
+}
+
+.ef-stat__number {
+  font-size: var(--ef-text-xl);
+  font-weight: 600;
+  line-height: var(--ef-leading-tight);
+  color: var(--ef-color-property-value);
+}
+
+.ef-stat--emphasis .ef-stat__number {
+  font-family: var(--ef-font-display);
+  font-size: var(--ef-text-3xl);
+  color: var(--ef-color-gold-bright);
+}
+
+.ef-stat__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ef-space-2);
+  min-width: 0;
+}
+
+.ef-stat__meta--status {
+  font-size: var(--ef-text-xs);
+  color: var(--ef-color-text-faint);
+}
+
+.ef-stat__meta--error {
+  font-size: var(--ef-text-xs);
+  color: var(--ef-color-danger-bright);
+}
+
+.ef-stat__status-text {
+  font-size: var(--ef-text-lg);
+  font-weight: 600;
+  line-height: var(--ef-leading-tight);
+  color: var(--ef-color-text-muted);
+}
+
+.ef-stat--error {
+  border-color: var(--ef-color-danger);
+  background: var(--ef-color-danger-ground);
+}
+
+.ef-stat--error .ef-stat__status-text {
+  color: var(--ef-color-danger-bright);
+}
+
+.ef-stat--uncalibrated {
+  border-style: dashed;
+}
+
+.ef-stat__placeholder {
+  display: block;
+  width: 60%;
+  height: 1.4em;
+  background: linear-gradient(
+    90deg,
+    var(--ef-color-surface-2),
+    var(--ef-color-surface-3),
+    var(--ef-color-surface-2)
+  );
+  background-size: 200% 100%;
+  animation: ef-shimmer 1.6s linear infinite;
+}
+
+@keyframes ef-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-stat__placeholder {
+    animation: none;
+  }
+}

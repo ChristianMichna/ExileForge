@@ -1,0 +1,45 @@
+.ef-badge {
+  --ef-badge-cut: 4px;
+  --ef-badge-color: var(--ef-color-text-muted);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ef-space-1);
+  padding: 1px var(--ef-space-2);
+  border: 1px solid currentColor;
+  clip-path: polygon(
+    var(--ef-badge-cut) 0,
+    100% 0,
+    100% calc(100% - var(--ef-badge-cut)),
+    calc(100% - var(--ef-badge-cut)) 100%,
+    0 100%,
+    0 var(--ef-badge-cut)
+  );
+  color: var(--ef-badge-color);
+  background: var(--ef-color-inset);
+  font-size: var(--ef-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.ef-badge--gold {
+  --ef-badge-color: var(--ef-color-gold);
+}
+
+.ef-badge--danger {
+  --ef-badge-color: var(--ef-color-danger-bright);
+}
+
+.ef-badge--warning {
+  --ef-badge-color: var(--ef-color-warning);
+}
+
+.ef-badge--success {
+  --ef-badge-color: var(--ef-color-success);
+}
+
+.ef-badge--info {
+  --ef-badge-color: var(--ef-color-info);
+}

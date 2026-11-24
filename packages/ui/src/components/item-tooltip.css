@@ -1,0 +1,246 @@
+/*
+ * Item card. Layout follows what players read fastest (rarity header,
+ * properties, requirements, implicits, explicits, flavour), drawn with our
+ * own caps, separators and colours.
+ */
+.ef-item {
+  --ef-item-color: var(--ef-color-rarity-normal);
+  --ef-item-edge: color-mix(in srgb, var(--ef-item-color) 55%, transparent);
+  --ef-item-edge-soft: color-mix(in srgb, var(--ef-item-color) 22%, transparent);
+
+  display: flex;
+  flex-direction: column;
+  width: var(--ef-tooltip-width);
+  max-width: 100%;
+  border: 1px solid var(--ef-item-edge);
+  background: color-mix(in srgb, var(--ef-color-inset) 94%, transparent);
+  box-shadow: var(--ef-shadow-tooltip);
+  text-align: center;
+}
+
+.ef-item--magic {
+  --ef-item-color: var(--ef-color-rarity-magic);
+}
+
+.ef-item--rare {
+  --ef-item-color: var(--ef-color-rarity-rare);
+}
+
+.ef-item--unique {
+  --ef-item-color: var(--ef-color-rarity-unique);
+}
+
+/* Header band */
+.ef-item__header {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-height: 40px;
+  border-bottom: 1px solid var(--ef-item-edge);
+  background:
+    radial-gradient(ellipse at 50% 0%, var(--ef-item-edge-soft), transparent 70%),
+    linear-gradient(to bottom, var(--ef-color-surface-3), var(--ef-color-surface-1));
+}
+
+.ef-item__header--double {
+  min-height: 56px;
+}
+
+.ef-item__cap {
+  flex: none;
+  width: 18px;
+  height: auto;
+}
+
+.ef-item__cap--end {
+  transform: scaleX(-1);
+}
+
+.ef-item__cap-shape {
+  fill: none;
+  stroke: var(--ef-item-edge);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.ef-item__cap-gem {
+  fill: var(--ef-item-color);
+}
+
+.ef-item__names {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: var(--ef-space-1) var(--ef-space-2);
+}
+
+.ef-item__name,
+.ef-item__base {
+  margin: 0;
+  font-family: var(--ef-font-display);
+  font-size: var(--ef-text-lg);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.03em;
+  color: var(--ef-item-color);
+}
+
+/* Body */
+.ef-item__body {
+  padding: var(--ef-space-2) var(--ef-space-4) var(--ef-space-3);
+  font-size: var(--ef-text-sm);
+  line-height: 1.45;
+}
+
+.ef-item__section {
+  margin: 0;
+  padding: 0;
+}
+
+.ef-item__separator {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-1);
+  margin: var(--ef-space-2) var(--ef-space-3);
+}
+
+.ef-item__separator span {
+  flex: 1;
+  height: 1px;
+}
+
+.ef-item__separator span:first-child {
+  background: linear-gradient(to right, transparent, var(--ef-item-edge));
+}
+
+.ef-item__separator span:last-child {
+  background: linear-gradient(to left, transparent, var(--ef-item-edge));
+}
+
+.ef-item__separator svg {
+  fill: var(--ef-item-edge);
+}
+
+.ef-item__class {
+  color: var(--ef-color-text-muted);
+}
+
+.ef-item__prop {
+  display: flex;
+  justify-content: center;
+  gap: 0.35em;
+}
+
+.ef-item__prop dt {
+  color: var(--ef-color-text-muted);
+}
+
+.ef-item__prop dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.ef-item__prop-value {
+  color: var(--ef-color-property-value);
+}
+
+.ef-item__prop-value--augmented {
+  color: var(--ef-color-mod);
+}
+
+.ef-item__reqs {
+  color: var(--ef-color-text-muted);
+}
+
+.ef-item__req {
+  color: var(--ef-color-property-value);
+}
+
+.ef-item__req--unmet {
+  color: var(--ef-color-danger-bright);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.ef-item__mods {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ef-item__mod {
+  color: var(--ef-color-mod);
+}
+
+.ef-item__mod--implicit {
+  color: var(--ef-color-mod-implicit);
+}
+
+.ef-item__mod--crafted {
+  color: var(--ef-color-mod-crafted);
+}
+
+.ef-item__mod--enchant {
+  color: var(--ef-color-mod-crafted);
+  font-style: italic;
+}
+
+.ef-item__mod--priority .ef-item__mod-text {
+  text-shadow: 0 0 10px color-mix(in srgb, var(--ef-color-mod) 45%, transparent);
+}
+
+/* Planner view: mods left aligned with tier/range at the right edge. */
+.ef-item--tiers .ef-item__mods {
+  text-align: left;
+}
+
+.ef-item--tiers .ef-item__mod {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ef-space-3);
+}
+
+.ef-item__mod-meta {
+  display: inline-flex;
+  flex: none;
+  gap: var(--ef-space-1);
+  font-size: var(--ef-text-xs);
+  color: var(--ef-color-text-faint);
+}
+
+.ef-item__mod-range {
+  color: var(--ef-color-text-muted);
+}
+
+.ef-item__corrupted {
+  margin-top: var(--ef-space-1);
+  color: var(--ef-color-danger-bright);
+  font-weight: 600;
+}
+
+.ef-item__flavour {
+  font-family: var(--ef-font-flavour);
+  font-style: italic;
+  font-size: var(--ef-text-md);
+  line-height: 1.35;
+  color: var(--ef-color-flavour);
+}
+
+.ef-item__footer {
+  padding: var(--ef-space-2) var(--ef-space-4);
+  border-top: 1px solid var(--ef-color-line);
+  background: var(--ef-color-surface-1);
+  font-size: var(--ef-text-xs);
+  color: var(--ef-color-text-muted);
+  text-align: left;
+}
+
+.ef-item__footer-label {
+  font-weight: 600;
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-faint);
+}

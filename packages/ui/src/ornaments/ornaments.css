@@ -1,0 +1,99 @@
+.ef-orn-stroke {
+  fill: none;
+  stroke: var(--ef-color-gold);
+  stroke-width: 1.4;
+}
+
+.ef-orn-stroke-soft {
+  fill: none;
+  stroke: var(--ef-color-bronze);
+  stroke-width: 1;
+}
+
+.ef-orn-fill {
+  fill: var(--ef-color-gold);
+}
+
+.ef-orn-inner {
+  fill: var(--ef-color-surface-1);
+}
+
+.ef-corner {
+  position: absolute;
+  pointer-events: none;
+}
+
+.ef-corner--top-left {
+  top: -3px;
+  left: -3px;
+}
+
+.ef-corner--top-right {
+  top: -3px;
+  right: -3px;
+  transform: scaleX(-1);
+}
+
+.ef-corner--bottom-left {
+  bottom: -3px;
+  left: -3px;
+  transform: scaleY(-1);
+}
+
+.ef-corner--bottom-right {
+  right: -3px;
+  bottom: -3px;
+  transform: scale(-1, -1);
+}
+
+.ef-diamond {
+  flex: none;
+}
+
+.ef-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  width: 100%;
+}
+
+.ef-divider__line {
+  flex: 1;
+  height: 1px;
+}
+
+.ef-divider__line--start {
+  background: linear-gradient(to right, transparent, var(--ef-color-bronze));
+}
+
+.ef-divider__line--end {
+  background: linear-gradient(to left, transparent, var(--ef-color-bronze));
+}
+
+.ef-sigil {
+  flex: none;
+}
+
+.ef-sigil__frame {
+  fill: var(--ef-color-surface-2);
+  stroke: var(--ef-color-gold);
+  stroke-width: 1.5;
+}
+
+.ef-sigil__frame-inner {
+  fill: none;
+  stroke: var(--ef-color-bronze);
+  stroke-width: 1;
+}
+
+.ef-sigil__flame {
+  fill: var(--ef-color-warning);
+}
+
+.ef-sigil__core {
+  fill: var(--ef-color-gold-bright);
+}
+
+.ef-sigil__anvil {
+  fill: var(--ef-color-gold);
+}
