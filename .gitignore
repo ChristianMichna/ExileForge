@@ -22,3 +22,6 @@ evals/golden/out/
 **/__screenshots__/**/*-win32.png
 **/__screenshots__/**/*-darwin.png
 .playwright-mcp/
+
+# Data pipeline: local snapshot output
+data-snapshots/
