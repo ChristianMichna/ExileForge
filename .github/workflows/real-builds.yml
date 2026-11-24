@@ -20,4 +20,6 @@ jobs:
       - name: Set up headless PoB
         run: tools/setup_pob.sh
       - name: Check real builds
+        env:
+          DUMP_CODES: "1"   # temporary: print build codes so the results can be reproduced locally
         run: python tools/check_real_builds.py

@@ -55,6 +55,9 @@ def main() -> int:
         name = entry.rsplit("/", 1)[-1][:16]
         try:
             xml = resolve_build_input(entry)
+            if os.environ.get("DUMP_CODES"):  # debugging aid: lets us reproduce CI-only downloads locally
+                from pob_bridge.pob import encode_build_code
+                print(f"BUILDCODE {name} {encode_build_code(xml)}", file=sys.stderr)
             stored = stored_stats(xml)
             t0 = time.time()
             result = pob.evaluate_xml(xml)
