@@ -7,6 +7,7 @@ import type { PobSources } from "../config.ts";
 export type JobSource =
   | { loader: "return" | "fill" | "skills"; file: string; tag?: Record<string, string> }
   | { loader: "uniqueDB" }
+  | { loader: "gemLevels" }
   | { loader: "statDescriptions"; file: string }
   | { loader: "tree"; treeVersion: string };
 
@@ -72,6 +73,8 @@ export async function buildExtractJob(
         );
       } else if (s.loader === "statDescriptions") {
         resolved.push({ loader: s.loader, file: s.file });
+      } else if (s.loader === "gemLevels") {
+        resolved.push({ loader: s.loader });
       } else if (s.loader === "uniqueDB") {
         resolved.push({ loader: s.loader });
       } else if (s.loader === "tree") {

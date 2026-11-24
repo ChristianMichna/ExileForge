@@ -26,6 +26,8 @@ export interface ModStatSummary {
   modsFullyResolved: number;
   lineGroups: number;
   lineGroupsResolved: number;
+  /** trade-hash groups whose description renders no text */
+  emptyGroups: number;
 }
 
 /** Numbered display lines of a raw mod ("1", "2", …) in order. */
@@ -51,6 +53,7 @@ export function resolveModStats(
     modsFullyResolved: 0,
     lineGroups: 0,
     lineGroupsResolved: 0,
+    emptyGroups: 0,
   };
   for (const modId of Object.keys(mods).sort()) {
     const raw = mods[modId];
@@ -79,6 +82,12 @@ export function resolveModStats(
         throw new Error(`mod ${modId}: trade hash ${hash} lists no lines`);
       }
       const lines = value;
+      // PoB lists stats whose description renders no text with a single "";
+      // there is nothing shown to resolve, so the group is skipped (counted)
+      if (lines.every((l) => l === "")) {
+        summary.emptyGroups++;
+        continue;
+      }
       lines.forEach((l) => covered.add(l));
       record(matcher.matchByHash(Number(hash), lines, scope), lines);
     }

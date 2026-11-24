@@ -383,7 +383,16 @@ export class StatMatcher {
    * following lines (up to maxJoin).
    */
   matchLines(lines: readonly string[], scope: string, maxJoin = 3): MatchResult[] {
-    const results: MatchResult[] = [];
+    return this.matchLineGroups(lines, scope, maxJoin).map((g) => g.result);
+  }
+
+  /** Like matchLines, but also returns which input lines each result covers. */
+  matchLineGroups(
+    lines: readonly string[],
+    scope: string,
+    maxJoin = 3,
+  ): { result: MatchResult; lines: string[] }[] {
+    const groups: { result: MatchResult; lines: string[] }[] = [];
     let i = 0;
     while (i < lines.length) {
       let res = this.match(lines[i] as string, scope);
@@ -398,10 +407,10 @@ export class StatMatcher {
           }
         }
       }
-      results.push(res);
+      groups.push({ result: res, lines: lines.slice(i, i + used) });
       i += used;
     }
-    return results;
+    return groups;
   }
 
   /**

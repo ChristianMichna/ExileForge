@@ -61,6 +61,7 @@ describe("resolveModStats", () => {
       modsFullyResolved: 2,
       lineGroups: 4,
       lineGroupsResolved: 2,
+      emptyGroups: 0,
     });
   });
 

@@ -1,0 +1,120 @@
+import {
+  Ascendancy,
+  BaseItem,
+  CharacterClass,
+  Gem,
+  Mod,
+  PassiveNode,
+  StatTranslation,
+  UniqueItem,
+} from "@exileforge/contracts/catalog";
+import type { z } from "zod";
+import type { CatalogEntities, Finding } from "./catalog.ts";
+
+const SCHEMAS: Record<keyof CatalogEntities, z.ZodType> = {
+  baseItem: BaseItem,
+  mod: Mod,
+  uniqueItem: UniqueItem,
+  gem: Gem,
+  passiveNode: PassiveNode,
+  characterClass: CharacterClass,
+  ascendancy: Ascendancy,
+  statTranslation: StatTranslation,
+};
+
+export interface ValidationResult {
+  /** entities as parsed by the contract (unknown fields stripped) */
+  entities: Record<keyof CatalogEntities, unknown[]>;
+  /** block the release: contract violations, duplicate ids, broken references */
+  errors: Finding[];
+}
+
+function idOf(e: unknown): string {
+  return typeof e === "object" && e !== null && "id" in e && typeof e.id === "string"
+    ? e.id
+    : "<no id>";
+}
+
+/**
+ * Gate before a release: every entity must satisfy its contract schema, ids
+ * are unique per kind, and every reference resolves inside the release
+ * (Leitprinzip "Keine Entität ohne Katalog-ID", gate G1 for the catalog itself).
+ */
+export function validateCatalog(input: CatalogEntities): ValidationResult {
+  const errors: Finding[] = [];
+  const entities = {} as Record<keyof CatalogEntities, unknown[]>;
+  const ids = {} as Record<keyof CatalogEntities, Set<string>>;
+
+  for (const kind of Object.keys(SCHEMAS) as (keyof CatalogEntities)[]) {
+    const schema = SCHEMAS[kind];
+    const parsed: unknown[] = [];
+    const seen = new Set<string>();
+    for (const e of input[kind]) {
+      const id = idOf(e);
+      if (seen.has(id)) errors.push({ kind, id, message: "duplicate id" });
+      seen.add(id);
+      const res = schema.safeParse(e);
+      if (!res.success) {
+        const issues = res.error.issues
+          .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+          .join("; ");
+        errors.push({ kind, id, message: `contract: ${issues}` });
+        continue;
+      }
+      parsed.push(res.data);
+    }
+    entities[kind] = parsed;
+    ids[kind] = seen;
+  }
+
+  const ref = (
+    kind: keyof CatalogEntities,
+    id: string,
+    field: string,
+    target: keyof CatalogEntities,
+    value: string,
+  ) => {
+    if (!ids[target].has(value))
+      errors.push({ kind, id, message: `${field} → unknown ${target} "${value}"` });
+  };
+
+  for (const b of input.baseItem as { id: string; implicitModIds?: string[] }[]) {
+    for (const m of b.implicitModIds ?? []) ref("baseItem", b.id, "implicitModIds", "mod", m);
+  }
+  for (const u of input.uniqueItem as { id: string; baseItemId?: string }[]) {
+    ref("uniqueItem", u.id, "baseItemId", "baseItem", u.baseItemId ?? "");
+  }
+  for (const n of input.passiveNode as {
+    id: string;
+    connections?: string[];
+    ascendancyId?: string;
+    classStartFor?: string[];
+  }[]) {
+    for (const c of n.connections ?? []) ref("passiveNode", n.id, "connections", "passiveNode", c);
+    if (n.ascendancyId !== undefined)
+      ref("passiveNode", n.id, "ascendancyId", "ascendancy", n.ascendancyId);
+    for (const c of n.classStartFor ?? [])
+      ref("passiveNode", n.id, "classStartFor", "characterClass", c);
+  }
+  for (const c of input.characterClass as {
+    id: string;
+    startNodeId?: string;
+    ascendancyIds?: string[];
+  }[]) {
+    ref("characterClass", c.id, "startNodeId", "passiveNode", c.startNodeId ?? "");
+    for (const a of c.ascendancyIds ?? [])
+      ref("characterClass", c.id, "ascendancyIds", "ascendancy", a);
+  }
+  for (const a of input.ascendancy as {
+    id: string;
+    classId?: string;
+    startNodeId?: string;
+    nodeIds?: string[];
+  }[]) {
+    ref("ascendancy", a.id, "classId", "characterClass", a.classId ?? "");
+    if (a.startNodeId !== undefined)
+      ref("ascendancy", a.id, "startNodeId", "passiveNode", a.startNodeId);
+    for (const n of a.nodeIds ?? []) ref("ascendancy", a.id, "nodeIds", "passiveNode", n);
+  }
+  return { entities, errors };
+}

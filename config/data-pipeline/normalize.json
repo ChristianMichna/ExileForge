@@ -1,0 +1,25 @@
+{
+  "$comment": "Mapping rules from the raw PoB snapshot to the catalog contract (apps/data-pipeline/src/normalize). ExileForge vocabulary on the right side, PoB field names on the left; no game values.",
+  "lang": "en",
+  "statScopes": {
+    "mod": "stat_descriptions",
+    "passiveNode": "passive_skill_stat_descriptions"
+  },
+  "passiveNodeKinds": {
+    "flags": [
+      ["isKeystone", "keystone"],
+      ["isJewelSocket", "jewelSocket"],
+      ["isAscendancyStart", "ascendancyStart"],
+      ["isNotable", "notable"],
+      ["isAttribute", "attribute"]
+    ],
+    "default": "small"
+  },
+  "modTiers": {
+    "$comment": "Tier 1 = highest required level within group + generation type + domains. Only these generation types are tiered.",
+    "generationTypes": ["Prefix", "Suffix"]
+  },
+  "modGenerationTypeFallback": "unspecified",
+  "baseItemPropertyGroups": ["weapon", "armour", "flask", "charm"],
+  "classAttributePrefix": "base_"
+}

@@ -1,10 +1,10 @@
 # @exileforge/data-pipeline
 
-Daten-Pipeline für den Spieldaten-Katalog (F-01, WS1). Dieser erste Teil baut
-aus dem gepinnten Path of Building (PoE2) einen **Roh-Snapshot** und vergleicht
-zwei Snapshots miteinander. Die Abbildung auf die Katalog-Verträge
-(`@exileforge/contracts/catalog`), die Validierung und das Veröffentlichen als
-Daten-Release folgen in eigenen PRs.
+Daten-Pipeline für den Spieldaten-Katalog (F-01, WS1). Sie baut aus dem
+gepinnten Path of Building (PoE2) einen **Roh-Snapshot**, vergleicht zwei
+Snapshots und bildet einen Snapshot auf die Katalog-Verträge
+(`@exileforge/contracts/catalog`) ab, geprüft gegen die Schemas. Das
+Veröffentlichen als Daten-Release folgt in einem eigenen PR.
 
 ## Ablauf
 
@@ -86,6 +86,39 @@ aufgelöst. Offen: 741 `hidden` (Text ohne Zahl, z. B. reine Effekt-Zeilen; der
 Stat-Wert ist darin nicht sichtbar, die Stat-IDs stehen dabei), 435 ohne
 passende Beschreibung (vor allem Radius-Jewel-Mods, deren Hash einen
 Zusatz-Stat enthält), 138 verlustbehaftet gerundet, 14 mehrdeutig.
+
+## Katalog aus dem Snapshot
+
+```bash
+node apps/data-pipeline/dist/cli.js catalog data-snapshots/poe2-0.5+r1 --out data-snapshots/catalog
+```
+
+`catalog` normalisiert den Roh-Snapshot (`src/normalize/catalog.ts`), prüft
+jede Entität gegen ihr Vertragsschema, eindeutige IDs und alle Referenzen
+(`src/normalize/validate.ts`) und schreibt je Art eine `CatalogShard`-Datei
+plus `manifest.json` (`CatalogManifest`). Steuerung über
+`config/data-pipeline/normalize.json` (Anzeigesprache, Stat-Scopes, Knotenarten,
+Mod-Stufen, Eigenschaftsgruppen); nichts davon ist im Code an eine Spielversion
+gebunden.
+
+IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
+
+| Art | ID |
+|---|---|
+| Mod | PoB-Mod-ID |
+| Basis | Name der Basis |
+| Unique | `Titel, Basis` |
+| Gem | Spiel-ID des Gems |
+| Passive | numerische Knoten-ID (als Text) |
+| Klasse / Aufstieg | Name bzw. PoB-interne Aufstiegs-ID |
+| Stat-Text | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
+
+`findings.json` trennt `errors` (Vertragsverstoß, doppelte ID, kaputte
+Referenz: der Lauf bricht ab, es wird kein Katalog geschrieben) von `warnings`.
+Warnungen sind Daten, die PoB nicht eindeutig hergibt, und bleiben sichtbar
+statt geraten: Basis-Implicits ohne passenden Mod (z. B. „Grants Skill"-Zeilen),
+Baum-Verbindungen zu fehlenden Knoten, Startknoten unbekannter Klassen, nicht
+aufgelöste Stat-Zeilen. Stand PoB 0.23.1: 0 Fehler, 450 Warnungen, rund 2 s.
 
 ## Rechtliches
 
