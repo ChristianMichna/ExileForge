@@ -100,8 +100,8 @@ python3 -m unittest discover tests
 4. **Ca. 2,5–3 s pro Aufruf**, fast alles davon PoB-Start (Baum + Item-Datenbank laden). Für viele
    Varianten hintereinander (Leveling-Stufen, Item-Vergleiche) sollte später ein dauerhaft laufender
    PoB-Prozess mehrere Builds nacheinander rechnen. Vermutung: dann deutlich unter 0,5 s pro Build.
-5. **Windows nicht getestet.** Das Setup-Skript braucht git, make und einen C-Compiler (Linux/macOS, unter
-   Windows über WSL). Für eine Desktop-App unter Windows müsste man LuaJIT mitliefern; ungeprüft.
+5. **Windows nativ: sehr wahrscheinlich machbar, aber noch nicht ausgeführt.** Details im Abschnitt
+   „Windows ohne WSL“ unten.
 6. **„missing node …“-Meldungen** beim Start kommen von PoB selbst (Baumdaten), sie beeinflussen die
    Rechnung nach bisherigem Stand nicht. Ungeprüft im Detail.
 7. **Keine Sandbox um PoB.** Der Lua-Prozess hat normale Dateirechte. Für eine Web-App mit fremden
@@ -109,6 +109,39 @@ python3 -m unittest discover tests
    ist schon eingebaut).
 8. **PoB-Version fest gepinnt** (`POB_REF` in `tools/setup_pob.sh`). Für ein Update: neuen Commit eintragen,
    LuaJIT-Commit mit PoBs SimpleGraphic abgleichen, Setup neu laufen lassen, Tests prüfen.
+
+## Windows ohne WSL (Stand 2026-11-24)
+
+Ziel: Freunde sollen die App unter Windows einfach installieren können, ohne WSL, Python, git oder Compiler.
+
+**Was geprüft ist:**
+
+- PoBs Windows-Runtime liegt im PoB-Repo (`runtime/`) und enthält bereits genau das, was headless gebraucht
+  wird: `lua51.dll` ist LuaJIT **2.1.1784580905**, also derselbe Commit vom 2026-07-20, den `setup_pob.sh`
+  unter Linux baut (versteht `+=` und `?.`). `lua-utf8.dll` ist dabei und linkt gegen genau diese `lua51.dll`.
+  Die nötigen VC-Runtime-DLLs liegen auch dort.
+- Es fehlt nur das kleine Kommandozeilen-Programm `luajit.exe`. Das lässt sich aus LuaJITs `luajit.c`
+  gegen PoBs `lua51.dll` bauen: `tools/build_windows_luajit.sh` erzeugt es per Cross-Compiler (136 KB,
+  importiert nur `KERNEL32`, `msvcrt` und `lua51.dll`).
+- Der Lua-Runner (`pob_bridge/lua/runner.lua`) nutzt nichts Linux-Spezifisches.
+
+**Was nicht geprüft ist:** Ausgeführt habe ich das unter Windows noch nicht. Wine stürzt in der
+Cloud-Umgebung schon beim Start ab, ein echtes Windows hatte ich nicht. Nächster Schritt ist ein Lauf auf
+einem Windows-Rechner oder in einem GitHub-Actions-Windows-Runner.
+
+**Bekannte Risiken (Vermutungen):**
+
+- Meine `luajit.exe` nutzt die alte `msvcrt`, PoBs DLLs die neuere UCRT. Solange keine `FILE*` zwischen
+  beiden wandern, sollte das gehen; sauberer ist ein Build mit MSVC oder einer UCRT-MinGW-Toolchain.
+- Pfade mit Umlauten/Leerzeichen (z. B. `C:\Users\Jörg\…`) sind unter Windows bei Lua oft heikel. PoB hat
+  dafür einen eigenen Patch (`pob-wide-crt.patch`) in seinem LuaJIT-Build, der in `lua51.dll` schon drin
+  sein sollte.
+
+**Was das für die App heißt:** Die App kann PoB-Quellcode + `runtime/` + `luajit.exe` einfach mitliefern
+(ca. 200–300 MB, Vermutung). Auf dem Rechner der Freunde muss dann nichts kompiliert oder installiert
+werden. Der Python-Wrapper sollte dafür nach Node/TypeScript portiert werden (er macht nur Code dekodieren,
+XML prüfen, Prozess starten), damit auch kein Python nötig ist. PoB-Updates nach einem Patch bedeuten dann:
+neue PoB-Version mit der App ausliefern oder beim Start herunterladen.
 
 ## Fundstück für später: .build-Export
 
