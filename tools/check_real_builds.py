@@ -51,11 +51,12 @@ def main() -> int:
     pob = PathOfBuilding()
 
     rows, failures, matches, pob_version = [], 0, 0, ""
+    diag_lines = []
     for entry in entries:
         name = entry.rsplit("/", 1)[-1][:16]
         try:
             xml = resolve_build_input(entry)
-            if os.environ.get("DUMP_CODES"):  # debugging aid: lets us reproduce CI-only downloads locally
+            if name in os.environ.get("DUMP_CODES", "").split(","):  # debugging aid for CI-only downloads
                 from pob_bridge.pob import encode_build_code
                 print(f"BUILDCODE {name} {encode_build_code(xml)}", file=sys.stderr)
             stored = stored_stats(xml)
@@ -68,6 +69,13 @@ def main() -> int:
             continue
         b, s = result["build"], result["stats"]
         pob_version = result["pobVersion"]
+        root = ElementTree.fromstring(xml.encode("utf-8"))
+        bx = root.find("Build")
+        items_xml = len(root.findall("./Items/Item"))
+        specs = root.findall("./Tree/Spec")
+        diag_lines.append(f"{name}: xml items={items_xml} specs={len(specs)} treeVersions={[sp.get('treeVersion') for sp in specs]} "
+                          f"activeSpec={root.find('Tree').get('activeSpec') if root.find('Tree') is not None else None} "
+                          f"mainSocketGroup={bx.get('mainSocketGroup')} | loaded={result.get('loaded')}")
         diffs = [k for k in COMPARE if k in stored and not same(s.get(k), stored[k])]
         if not diffs:
             matches += 1
@@ -88,6 +96,7 @@ def main() -> int:
         *rows,
     ])
     print(report)
+    print("\n".join(["", "Diagnose:"] + diag_lines))
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as f:

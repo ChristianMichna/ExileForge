@@ -73,8 +73,28 @@ local function collect()
 		mainSkill = group.displayLabel or group.label
 	end
 
+	-- Diagnostics: what PoB actually loaded (helps explain differing numbers)
+	local equipped = 0
+	for _, slot in pairs(build.itemsTab.slots or {}) do
+		if slot.selItemId and slot.selItemId ~= 0 and not slot.nodeId then
+			equipped = equipped + 1
+		end
+	end
+	local itemCount = 0
+	for _ in pairs(build.itemsTab.items or {}) do itemCount = itemCount + 1 end
+	local allocated = 0
+	for _ in pairs(build.spec and build.spec.allocNodes or {}) do allocated = allocated + 1 end
+
 	return {
 		pobVersion = launch.versionNumber,
+		loaded = {
+			items = itemCount,
+			equippedSlots = equipped,
+			socketGroups = #build.skillsTab.socketGroupList,
+			mainSocketGroup = build.mainSocketGroup,
+			allocatedNodes = allocated,
+			treeVersion = build.spec and build.spec.treeVersion,
+		},
 		build = {
 			className = build.spec and build.spec.curClassName,
 			ascendancy = build.spec and build.spec.curAscendClassName,
