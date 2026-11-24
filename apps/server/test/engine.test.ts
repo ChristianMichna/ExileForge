@@ -6,6 +6,7 @@ import { RunEvent } from "@exileforge/contracts/events";
 import type { ForgeStep } from "@exileforge/contracts/forge";
 import { ForgeTools } from "@exileforge/contracts/forge";
 import { CalcFake } from "../src/calc/calc-fake.js";
+import { PersistedCalc } from "../src/calc/persisted-calc.js";
 import type { ForgeConfig } from "../src/config/forge-config.js";
 import { ESCALATION_ABORT, ESCALATION_RETRY, ForgeEngine } from "../src/engine/forge-engine.js";
 import { createPocPipeline } from "../src/pipelines/poc-pipeline.js";
@@ -17,13 +18,14 @@ function setup(
 ) {
   const config = options.config ?? CONFIG;
   const store = new RunStore(options.dbPath ?? ":memory:");
-  const calc = options.calc ?? new CalcFake({ dataReleaseId: RELEASE });
+  const calc = new PersistedCalc(options.calc ?? new CalcFake({ dataReleaseId: RELEASE }), store);
   const engine = new ForgeEngine({
     store,
     catalog: fixtureCatalog(),
     calc,
     config,
     pipelines: [createPocPipeline(config.pipelines.poc)],
+    calcProfiles: config.pipelines.poc.calcProfiles,
     ...(options.now === undefined ? {} : { now: options.now }),
   });
   return { engine, store, calc };
@@ -271,6 +273,70 @@ describe("forge loop", () => {
     });
     const fresh = await engine.issueSessionCode(runId);
     expect((await engine.attach(fresh.sessionCode)).runId).toBe(runId);
+  });
+
+  it("checks rationale subjects (G1), digits in titles and excluded supports", async () => {
+    const { engine } = setup();
+    const request = { ...REQUEST, exclusions: [{ kind: "gem" as const, id: "FixGemSupport" }] };
+    const { runId, sessionCode } = await engine.createRun(request, "poc");
+    let t = task((await engine.attach(sessionCode)).next);
+    const titled = candidate("a", "FixClassA", "FixAscA1");
+    titled["title"] = "Build 2";
+    let out = await engine.submit({ runId, taskId: t.taskId, attempt: 1, payload: titled });
+    if (out.result !== "rejected") throw new Error("expected rejection");
+    expect(out.findings[0]).toMatchObject({ code: "free_number", path: "/title" });
+    t = task(out.next);
+    out = await engine.submit({
+      runId,
+      taskId: t.taskId,
+      attempt: 2,
+      payload: candidate("a", "FixClassA", "FixAscA1"),
+    });
+    t = task(out.next);
+    await engine.submit({
+      runId,
+      taskId: t.taskId,
+      attempt: 1,
+      payload: candidate("b", "FixClassB", "FixAscB1"),
+    });
+    await engine.intervene(runId, { kind: "chooseVariant", candidateKey: "a" });
+    t = task(await engine.next(runId));
+
+    const withSubject = gemSetup();
+    withSubject["rationale"] = [
+      { subject: { kind: "gem", id: "InventedGem" }, reason: [{ type: "text", text: "why" }] },
+    ];
+    out = await engine.submit({ runId, taskId: t.taskId, attempt: 1, payload: withSubject });
+    if (out.result !== "rejected") throw new Error("expected rejection");
+    expect(out.findings[0]).toMatchObject({ code: "unknown_entity", path: "/rationale/0/subject" });
+    t = task(out.next);
+    out = await engine.submit({ runId, taskId: t.taskId, attempt: 2, payload: gemSetup() });
+    if (out.result !== "rejected") throw new Error("expected rejection");
+    expect(out.findings[0]).toMatchObject({
+      code: "excluded_entity",
+      path: "/skills/0/supports/0/gemId",
+    });
+  });
+
+  it("refuses a build request with unknown catalog ids", async () => {
+    const { engine } = setup();
+    await expect(
+      engine.createRun({ ...REQUEST, mainSkillId: "InventedGem" as never }, "poc"),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+  });
+
+  it("refuses attach after too many wrong codes (guessing guard)", async () => {
+    let now = new Date("2026-11-24T12:00:00Z");
+    const { engine } = setup({ now: () => now });
+    const { sessionCode } = await engine.createRun(REQUEST, "poc");
+    for (let i = 0; i < CONFIG.attachFailuresPerMinute; i += 1) {
+      await expect(engine.attach("ZZZZ-ZZ")).rejects.toMatchObject({
+        code: "unknown_session_code",
+      });
+    }
+    await expect(engine.attach(sessionCode)).rejects.toMatchObject({ code: "too_many_attempts" });
+    now = new Date(now.getTime() + 61_000);
+    await expect(engine.attach(sessionCode)).resolves.toBeTruthy();
   });
 
   it("reports a failed calculation as a G2 finding, never as a value", async () => {

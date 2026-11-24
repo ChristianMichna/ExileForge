@@ -49,3 +49,30 @@ describe("number checks", () => {
     expect(toPointer([])).toBe("/");
   });
 });
+
+describe("persisted calc results", () => {
+  it("survive a new engine instance on the same store, scoped to release and profile", async () => {
+    const { RunStore } = await import("../src/store/run-store.js");
+    const { PersistedCalc } = await import("../src/calc/persisted-calc.js");
+    const store = new RunStore(":memory:");
+    const state = {
+      classId: CharacterClassId.parse("FixClassA"),
+      level: 1,
+      tree: { allocated: [], ascendancy: [] },
+      skills: [],
+      items: [],
+      config: {},
+    };
+    const first = new PersistedCalc(new CalcFake({ dataReleaseId: RELEASE }), store);
+    const outcome = (await first.calculate({ state, profiles: ["default"] }))["default"];
+    if (outcome?.status !== "ok") throw new Error("fake calc failed");
+    const afterRestart = new PersistedCalc(new CalcFake({ dataReleaseId: RELEASE }), store);
+    const text = [{ type: "calc" as const, ref: { calcId: outcome.calcId, stat: "fake.alpha" } }];
+    const scope = { dataReleaseId: RELEASE, calcProfiles: ["default"] };
+    expect(await richTextFindings(afterRestart, [{ path: "/t", text }], scope)).toEqual([]);
+    const otherProfile = { dataReleaseId: RELEASE, calcProfiles: ["other"] };
+    expect(
+      (await richTextFindings(afterRestart, [{ path: "/t", text }], otherProfile))[0]?.code,
+    ).toBe("unknown_calc_ref");
+  });
+});

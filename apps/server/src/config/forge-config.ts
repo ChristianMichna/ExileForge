@@ -2,6 +2,12 @@ import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { CalcProfileId } from "@exileforge/contracts/common";
 
+/**
+ * Claude Desktop cancels MCP calls after about 60 s; a long-poll must end well
+ * before that (see apps/server/README.md, "Lange Schleifen").
+ */
+export const MAX_LONG_POLL_SECONDS = 45;
+
 /** Settings of the proof-of-concept pipeline (config/forge/forge.json → pipelines.poc). */
 export const PocPipelineConfig = z.object({
   candidateCount: z.int().positive(),
@@ -18,8 +24,10 @@ export const ForgeConfig = z.object({
   sessionCodeTtlMinutes: z.int().positive(),
   maxAttemptsPerTask: z.int().positive(),
   /** How long forge.next blocks while the run waits for the user. */
-  waitLongPollSeconds: z.int().nonnegative(),
+  waitLongPollSeconds: z.int().nonnegative().max(MAX_LONG_POLL_SECONDS),
   waitRetryAfterSeconds: z.int().positive(),
+  /** Failed forge.attach calls allowed per minute before attach is refused (guessing guard). */
+  attachFailuresPerMinute: z.int().positive(),
   pipelines: z.object({ poc: PocPipelineConfig }),
 });
 export type ForgeConfig = z.infer<typeof ForgeConfig>;

@@ -28,6 +28,8 @@ type EventInput = DistributiveOmit<RunEvent, "runId" | "seq" | "at">;
 type SubmitOutput = z.infer<(typeof ForgeTools)["forge.submit"]["output"]>;
 type AttachOutput = z.infer<(typeof ForgeTools)["forge.attach"]["output"]>;
 
+const ATTACH_WINDOW_MS = 60_000;
+
 /** Options answering an escalation after a task failed too often. */
 export const ESCALATION_RETRY = "Retry the task";
 export const ESCALATION_ABORT = "Abort the run";
@@ -38,6 +40,8 @@ export interface ForgeEngineOptions {
   calc: CalcPort;
   config: ForgeConfig;
   pipelines: readonly Pipeline[];
+  /** Calc profiles whose results may be referenced in text. */
+  calcProfiles: readonly CalcProfileId[];
   now?: () => Date;
 }
 
@@ -82,6 +86,8 @@ export class ForgeEngine {
   private readonly listeners = new Map<string, Set<(event: RunEvent) => void>>();
   private readonly wakers = new Map<string, Set<() => void>>();
   private readonly now: () => Date;
+  /** Times of failed attach calls inside the current window. */
+  private attachFailures: number[] = [];
 
   constructor(private readonly options: ForgeEngineOptions) {
     this.pipelines = new Map(options.pipelines.map((p) => [p.id, p]));
@@ -100,12 +106,24 @@ export class ForgeEngine {
     pipelineId: string,
   ): Promise<{ runId: RunId; sessionCode: SessionCode; expiresAt: string }> {
     if (!this.pipelines.has(pipelineId)) {
-      throw new ForgeError("invalid_intervention", `Unknown pipeline ${pipelineId}`);
+      throw new ForgeError("invalid_request", `Unknown pipeline ${pipelineId}`);
     }
     if (request.dataReleaseId !== this.options.catalog.dataReleaseId) {
       throw new ForgeError(
-        "invalid_intervention",
+        "invalid_request",
         `Request targets data release ${request.dataReleaseId}, the loaded catalog is ${this.options.catalog.dataReleaseId}`,
+      );
+    }
+    const unknown = entityFindings(this.options.catalog, [
+      ...(request.mainSkillId === undefined
+        ? []
+        : [{ path: "/mainSkillId", ref: { kind: "gem" as const, id: request.mainSkillId } }]),
+      ...request.exclusions.map((ref, i) => ({ path: `/exclusions/${i}`, ref })),
+    ]);
+    if (unknown.length > 0) {
+      throw new ForgeError(
+        "invalid_request",
+        unknown.map((f) => `${f.path ?? ""}: ${f.message}`).join("\n"),
       );
     }
     const runId = RunId.parse(randomUUID());
@@ -173,7 +191,15 @@ export class ForgeEngine {
           r.results = Object.fromEntries(
             Object.entries(r.results).filter(([, result]) => !matches(result.type)),
           );
-          if (r.current !== null && matches(r.current.type)) r.current = null;
+          if (r.current !== null && matches(r.current.type)) {
+            // Questions of the dropped task are moot; close them so the loop does not block.
+            for (const ask of r.asks) {
+              if (ask.answer === undefined && ask.taskId === r.current.taskId) {
+                ask.answer = "(withdrawn: stage redone)";
+              }
+            }
+            r.current = null;
+          }
           break;
         }
         default:
@@ -208,8 +234,17 @@ export class ForgeEngine {
   // ------------------------------------------------------------ forge tools
 
   async attach(code: string): Promise<AttachOutput> {
+    const nowMs = this.now().getTime();
+    this.attachFailures = this.attachFailures.filter((t) => nowMs - t < ATTACH_WINDOW_MS);
+    if (this.attachFailures.length >= this.options.config.attachFailuresPerMinute) {
+      throw new ForgeError(
+        "too_many_attempts",
+        "Too many wrong session codes. Wait a minute and use the code shown in the ExileForge app.",
+      );
+    }
     const record = this.options.store.findBySessionCode(code);
     if (record?.sessionCode == null) {
+      this.attachFailures.push(nowMs);
       throw new ForgeError(
         "unknown_session_code",
         "Unknown session code. Copy the current code from the ExileForge app.",
@@ -457,7 +492,10 @@ export class ForgeEngine {
     const data = parsed.data;
     const g1 = entityFindings(ctx.catalog, spec.entities?.(data) ?? []);
     if (g1.length > 0) return { findings: g1, value: null };
-    const numbers = await richTextFindings(ctx.calc, spec.richText?.(data) ?? []);
+    const numbers = await richTextFindings(ctx.calc, spec.richText?.(data) ?? [], {
+      dataReleaseId: ctx.catalog.dataReleaseId,
+      calcProfiles: this.options.calcProfiles,
+    });
     if (numbers.length > 0) return { findings: numbers, value: null };
     const own = (await spec.check?.(data, ctx)) ?? [];
     return { findings: own, value: toJson(data) };
@@ -608,6 +646,10 @@ export class ForgeEngine {
 
   private waitForWake(runId: string, ms: number, signal?: AbortSignal): Promise<void> {
     return new Promise((resolve) => {
+      if (signal?.aborted === true) {
+        resolve();
+        return;
+      }
       const set = this.wakers.get(runId) ?? new Set<() => void>();
       this.wakers.set(runId, set);
       const done = () => {

@@ -4,7 +4,6 @@ Lokaler ExileForge-Server (ADR-0004): läuft in der App, lauscht **nur auf
 `127.0.0.1`** und bietet
 
 - den **MCP-Endpunkt** `/mcp` (Streamable HTTP, zustandslos) für Claude Code
-  (`claude mcp add --transport http exileforge http://127.0.0.1:47615/mcp`)
   und für die `.mcpb`-Brücke von Claude Desktop,
 - die **REST-API** und **Live-Events (SSE)** für das Frontend,
 - die **forge-Schleife** (ADR-0003) als Zustandsmaschine mit SQLite.
@@ -55,9 +54,20 @@ weiterzuführen.
 | `POST` | `/api/runs/:runId/interventions` | `UserIntervention` (Variante wählen, sperren, ablehnen, Pause, Antwort, Stufe neu) |
 | `GET` | `/api/runs/:runId/events` | SSE, `id` = `seq` des Laufs; `Last-Event-ID` spielt Verpasstes nach |
 
-Schutz: Anfragen mit fremdem `Host` (DNS-Rebinding) oder fremdem `Origin`
-(Webseiten im Browser) werden mit 403 abgewiesen; erlaubte Origins setzt die
-App (`allowedOrigins`).
+Schutz:
+
+- Anfragen mit fremdem `Host` (DNS-Rebinding) oder fremdem `Origin`
+  (Webseiten im Browser) werden mit 403 abgewiesen; erlaubte Origins setzt die
+  App (`allowedOrigins`, nur exakte Origins).
+- **Zugriffstoken je Installation**: Alles außer `/api/health` verlangt
+  `Authorization: Bearer <token>`. Der Server legt das Token beim ersten Start
+  an (`%APPDATA%\ExileForge\access-token`, sonst
+  `~/.config/exileforge/access-token`, nur für den Besitzer lesbar). Die
+  `.mcpb`-Brücke liest es dort; Claude Code bekommt es per
+  `claude mcp add --transport http exileforge http://127.0.0.1:47615/mcp --header "Authorization: Bearer <token>"`
+  (die App zeigt den Befehl an).
+- Falsche Sitzungscodes: höchstens `attachFailuresPerMinute` je Minute.
+- Höchstens 16 offene Event-Streams, 1 MB je Anfrage.
 
 ## Pipelines
 
@@ -86,13 +96,15 @@ werden (`--calc fake`), `GET /api/health` und `calc_evaluate` melden
 pnpm --filter @exileforge/server build
 node apps/server/dist/main.js --catalog <daten-release-ordner> --calc fake \
   [--port 47615] [--db exileforge.sqlite] [--origin http://127.0.0.1:5173]
-claude mcp add --transport http exileforge http://127.0.0.1:47615/mcp
+claude mcp add --transport http exileforge http://127.0.0.1:47615/mcp --header "Authorization: Bearer $(cat ~/.config/exileforge/access-token)"
 ```
 
 Zum Ausprobieren ohne Abo-Verbrauch: `npx @modelcontextprotocol/inspector`.
 
 Speicher: `node:sqlite` (in Node/Electron enthalten, kein natives Modul für
-Windows zu bauen; Node meldet es noch als experimentell).
+Windows zu bauen; ohne Flag ab Node 22.13, daher `engines` ≥ 22.13; Node meldet
+es noch als experimentell). Rechenergebnisse werden mitgespeichert
+(`PersistedCalc`), damit calc-Verweise einen Neustart überstehen.
 
 ## Lange Schleifen in Claude
 
@@ -128,6 +140,11 @@ Quellen: [startdebugging.net](https://startdebugging.net/2026/05/fix-claude-reac
 
 - Adapter `CalcPort` → `@exileforge/calc` (sobald BuildState → PoB existiert)
 - echte Stufen-Aufgaben und Prompts aus `packages/agents`, Gates G3–G8
-- Pipeline-Ergebnis als `GuideDocument` (die PoC-Pipeline meldet `done` mit
-  einer `guideId`, deren Inhalt die gesammelten Stufenergebnisse sind)
+- Pipeline-Ergebnis als `GuideDocument`: Die PoC-Pipeline meldet `done` und
+  `guide.ready` mit einer `guideId`, zu der es noch **kein** Guide-Dokument
+  gibt; das Ergebnis sind die Stufenergebnisse unter `GET /api/runs/:runId`.
+- calc-Verweise sind an Daten-Release und Calc-Profile des Laufs gebunden,
+  noch nicht an den Lauf selbst (Herkunft je Lauf speichern).
+- Ereignis-Nachlieferung per SSE seitenweise statt auf einmal; Grenzen für
+  Anzahl und Größe gespeicherter Läufe; Log-Schwärzung (Pfade, später Keys).
 - Einbindung in `apps/desktop` (Port, Pfade im App-Datenordner, Origin des Fensters)

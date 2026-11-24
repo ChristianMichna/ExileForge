@@ -37,6 +37,8 @@ describe("local HTTP server", () => {
   let base: string;
   let client: Client;
   const ALLOWED_ORIGIN = "http://127.0.0.1:5173";
+  const TOKEN = "a".repeat(64);
+  const auth = { authorization: `Bearer ${TOKEN}` };
 
   beforeAll(async () => {
     const port = await freePort();
@@ -48,21 +50,26 @@ describe("local HTTP server", () => {
       calc,
       config: CONFIG,
       pipelines: [createPocPipeline(CONFIG.pipelines.poc)],
+      calcProfiles: ["default"],
     });
     app = createApp({
       engine,
       catalog,
       calc,
       calcProfiles: ["default"],
+      waitLongPollSeconds: 0,
       logger: createMemoryLogger(),
       port,
       allowedOrigins: [ALLOWED_ORIGIN],
       defaultPipelineId: "poc",
+      accessToken: TOKEN,
     });
     await app.listen({ host: LOOPBACK_HOST, port });
     base = `http://${LOOPBACK_HOST}:${port}`;
     client = new Client({ name: "test", version: "0" });
-    await client.connect(new StreamableHTTPClientTransport(new URL(`${base}/mcp`)));
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: auth } }),
+    );
   });
 
   afterAll(async () => {
@@ -92,7 +99,7 @@ describe("local HTTP server", () => {
   it("drives a run: REST create → MCP attach/submit → REST events", async () => {
     const created = await fetch(`${base}/api/runs`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...auth },
       body: JSON.stringify({ request: REQUEST }),
     });
     expect(created.status).toBe(201);
@@ -162,7 +169,10 @@ describe("local HTTP server", () => {
 
     // SSE replay of everything so far.
     const controller = new AbortController();
-    const res = await fetch(`${base}/api/runs/${runId}/events`, { signal: controller.signal });
+    const res = await fetch(`${base}/api/runs/${runId}/events`, {
+      signal: controller.signal,
+      headers: auth,
+    });
     expect(res.headers.get("content-type")).toContain("text/event-stream");
     const reader = res.body?.getReader();
     let text = "";
@@ -179,7 +189,7 @@ describe("local HTTP server", () => {
     expect(events[0]).toMatchObject({ seq: 0, type: "run.phase" });
     expect(events.map((e) => e.type)).toContain("task.rejected");
 
-    const view = await fetch(`${base}/api/runs/${runId}`);
+    const view = await fetch(`${base}/api/runs/${runId}`, { headers: auth });
     expect(((await view.json()) as { results: object }).results).toHaveProperty(["S2.candidate-1"]);
   });
 
@@ -205,14 +215,32 @@ describe("local HTTP server", () => {
     expect(ok.json()).toMatchObject({ ok: true, calcEngine: "fake" });
   });
 
+  it("requires the access token everywhere except /api/health", async () => {
+    const noToken = await fetch(`${base}/api/runs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ request: REQUEST }),
+    });
+    expect(noToken.status).toBe(401);
+    const wrong = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer nope" },
+      body: "{}",
+    });
+    expect(wrong.status).toBe(401);
+    expect((await fetch(`${base}/api/health`)).status).toBe(200);
+  });
+
   it("answers bad input with 400/404, not 500", async () => {
     const bad = await fetch(`${base}/api/runs`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...auth },
       body: JSON.stringify({ request: { skillIdea: "x" } }),
     });
     expect(bad.status).toBe(400);
-    const missing = await fetch(`${base}/api/runs/00000000-0000-4000-8000-000000000000`);
+    const missing = await fetch(`${base}/api/runs/00000000-0000-4000-8000-000000000000`, {
+      headers: auth,
+    });
     expect(missing.status).toBe(404);
   });
 });

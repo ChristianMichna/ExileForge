@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
@@ -15,6 +16,12 @@ export const LOOPBACK_HOST = "127.0.0.1";
 /** Max body size; submissions are small structured payloads. */
 const BODY_LIMIT_BYTES = 1_000_000;
 const SSE_KEEPALIVE_MS = 15_000;
+/** Open live-event streams over all runs; the app window needs one or two. */
+const MAX_SSE_STREAMS = 16;
+/** Validation messages returned to callers are cut to this length. */
+const MAX_ERROR_MESSAGE_CHARS = 2000;
+/** Routes that answer without the access token (no run data). */
+const PUBLIC_ROUTES = new Set(["/api/health"]);
 
 export interface AppOptions extends ForgeMcpDeps {
   engine: ForgeEngine;
@@ -25,6 +32,13 @@ export interface AppOptions extends ForgeMcpDeps {
   allowedOrigins: readonly string[];
   /** Default pipeline for new runs. */
   defaultPipelineId: string;
+  /**
+   * Per-installation secret. Every request except /api/health must send
+   * `Authorization: Bearer <token>`, so other local processes and web pages
+   * cannot drive the server. The app window and the .mcpb bridge read it
+   * from the token file; Claude Code gets it via `claude mcp add --header`.
+   */
+  accessToken: string;
 }
 
 const CreateRunBody = z.object({
@@ -37,6 +51,11 @@ const RunParams = z.object({ runId: z.string().min(1) });
 export function createApp(options: AppOptions): FastifyInstance {
   const app = Fastify({ logger: false, bodyLimit: BODY_LIMIT_BYTES });
   const { engine, logger } = options;
+  const expectedToken = digest(options.accessToken);
+  const tokenMatches = (header: string | undefined) =>
+    header?.startsWith("Bearer ") === true &&
+    timingSafeEqual(digest(header.slice("Bearer ".length)), expectedToken);
+  let openStreams = 0;
   const allowedHosts = new Set([`${LOOPBACK_HOST}:${options.port}`, `localhost:${options.port}`]);
 
   // DNS-rebinding and cross-site guard: a web page may not drive the local server.
@@ -51,18 +70,31 @@ export function createApp(options: AppOptions): FastifyInstance {
         .code(403)
         .send({ error: { code: "forbidden_origin", message: "Forbidden origin" } });
     }
+    if (!PUBLIC_ROUTES.has(request.url) && !tokenMatches(request.headers.authorization)) {
+      return reply.code(401).send({
+        error: {
+          code: "unauthorized",
+          message:
+            "Missing or wrong ExileForge access token. Reconnect Claude from the ExileForge app.",
+        },
+      });
+    }
     return undefined;
   });
 
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ForgeError) {
-      const status = error.code === "unknown_run" ? 404 : 409;
+      const status =
+        error.code === "unknown_run" ? 404 : error.code === "invalid_request" ? 400 : 409;
       return reply.code(status).send({ error: { code: error.code, message: error.message } });
     }
     if (error instanceof z.ZodError) {
-      return reply
-        .code(400)
-        .send({ error: { code: "invalid_request", message: z.prettifyError(error) } });
+      return reply.code(400).send({
+        error: {
+          code: "invalid_request",
+          message: z.prettifyError(error).slice(0, MAX_ERROR_MESSAGE_CHARS),
+        },
+      });
     }
     const status = (error as { statusCode?: number }).statusCode;
     if (status !== undefined && status >= 400 && status < 500) {
@@ -112,7 +144,13 @@ export function createApp(options: AppOptions): FastifyInstance {
         .code(400)
         .send({ error: { code: "invalid_request", message: "Bad Last-Event-ID" } });
     }
-    streamEvents(reply, engine, runId, after);
+    if (openStreams >= MAX_SSE_STREAMS) {
+      return reply
+        .code(429)
+        .send({ error: { code: "too_many_streams", message: "Too many event streams" } });
+    }
+    openStreams += 1;
+    streamEvents(reply, engine, runId, after, () => (openStreams -= 1));
     return reply;
   });
 
@@ -167,6 +205,7 @@ function streamEvents(
   engine: ForgeEngine,
   runId: string,
   after: number,
+  onClose: () => void,
 ): void {
   reply.hijack();
   const res = reply.raw;
@@ -177,7 +216,7 @@ function streamEvents(
   });
   let lastSeq = after;
   const send = (event: RunEvent) => {
-    if (event.seq <= lastSeq) return;
+    if (event.seq <= lastSeq || res.destroyed) return;
     lastSeq = event.seq;
     res.write(`id: ${event.seq}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
   };
@@ -190,9 +229,19 @@ function streamEvents(
   for (const event of engine.eventsAfter(runId, after)) send(event);
   replaying = false;
   for (const event of buffered) send(event);
-  const keepAlive = setInterval(() => res.write(": keep-alive\n\n"), SSE_KEEPALIVE_MS);
+  const keepAlive = setInterval(() => {
+    if (!res.destroyed) res.write(": keep-alive\n\n");
+  }, SSE_KEEPALIVE_MS);
+  // "close" also follows a socket error; the error itself needs a listener so it is not thrown.
+  res.on("error", () => res.destroy());
   res.on("close", () => {
     clearInterval(keepAlive);
     unsubscribe();
+    onClose();
   });
+}
+
+/** Fixed-length digest so timingSafeEqual never sees different lengths. */
+function digest(value: string): Buffer {
+  return createHash("sha256").update(value).digest();
 }

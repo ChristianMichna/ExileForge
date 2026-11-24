@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
+import { CalcResult } from "@exileforge/contracts/calc";
 import { RunEvent } from "@exileforge/contracts/events";
 import { RunRecord } from "../engine/run-record.js";
 
@@ -21,6 +22,10 @@ export class RunStore {
         updated_at TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS runs_session_code ON runs(session_code);
+      CREATE TABLE IF NOT EXISTS calc_results (
+        calc_id TEXT PRIMARY KEY,
+        result TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS events (
         run_id TEXT NOT NULL,
         seq INTEGER NOT NULL,
@@ -61,8 +66,13 @@ export class RunStore {
       }
       this.db.exec("COMMIT");
     } catch (error) {
-      this.db.exec("ROLLBACK");
-      throw new Error(`Saving run ${record.runId} failed`, { cause: error });
+      let rollbackNote = "";
+      try {
+        this.db.exec("ROLLBACK");
+      } catch (rollbackError) {
+        rollbackNote = `; rollback failed too: ${String(rollbackError)}`;
+      }
+      throw new Error(`Saving run ${record.runId} failed${rollbackNote}`, { cause: error });
     }
   }
 
@@ -74,6 +84,17 @@ export class RunStore {
       .map((row) => parseRow(RunEvent, row["event"], `event of run ${runId}`));
   }
 
+  saveCalcResult(result: CalcResult): void {
+    this.db
+      .prepare("INSERT OR REPLACE INTO calc_results (calc_id, result) VALUES (?, ?)")
+      .run(result.calcId, JSON.stringify(result));
+  }
+
+  loadCalcResult(calcId: string): CalcResult | undefined {
+    const row = this.db.prepare("SELECT result FROM calc_results WHERE calc_id = ?").get(calcId);
+    return row === undefined ? undefined : parseRow(CalcResult, row["result"], `calc ${calcId}`);
+  }
+
   close(): void {
     this.db.close();
   }
@@ -81,7 +102,13 @@ export class RunStore {
 
 function parseRow<T extends z.ZodType>(schema: T, value: unknown, what: string): z.infer<T> {
   if (typeof value !== "string") throw new Error(`Stored ${what} is not text`);
-  const parsed = schema.safeParse(JSON.parse(value));
+  let raw: unknown;
+  try {
+    raw = JSON.parse(value);
+  } catch (error) {
+    throw new Error(`Stored ${what} is not valid JSON`, { cause: error });
+  }
+  const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(`Stored ${what} is damaged: ${z.prettifyError(parsed.error)}`);
   }

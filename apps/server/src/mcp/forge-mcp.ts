@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BuildState } from "@exileforge/contracts/build";
-import { EntityKind, EntityRef } from "@exileforge/contracts/common";
+import { type CalcProfileId, EntityKind, EntityRef } from "@exileforge/contracts/common";
 import { ForgeTools, SessionCode } from "@exileforge/contracts/forge";
 import { entityFindings, stateEntities } from "../engine/checks.js";
 import { ForgeError } from "../engine/errors.js";
@@ -37,7 +37,9 @@ export interface ForgeMcpDeps {
   engine: ForgeEngine;
   catalog: CatalogPort;
   calc: CalcPort;
-  calcProfiles: readonly string[];
+  calcProfiles: readonly CalcProfileId[];
+  /** Long-poll time of forge_next, named in its description. */
+  waitLongPollSeconds: number;
   logger: Logger;
 }
 
@@ -62,7 +64,7 @@ export function createForgeMcpServer(deps: ForgeMcpDeps): McpServer {
   server.registerTool(
     mcpToolName("forge.next"),
     {
-      description: `${t["forge.next"].description} May wait up to about 20 seconds while the user acts in the app.`,
+      description: `${t["forge.next"].description} May wait up to ${deps.waitLongPollSeconds} seconds while the user acts in the app.`,
       inputSchema: t["forge.next"].input,
       annotations: { readOnlyHint: false, openWorldHint: false },
     },

@@ -5,6 +5,7 @@
   "maxAttemptsPerTask": 3,
   "waitLongPollSeconds": 20,
   "waitRetryAfterSeconds": 5,
+  "attachFailuresPerMinute": 10,
   "pipelines": {
     "poc": {
       "$comment": "Proof-of-concept pipeline (S2 → S3 → S4 → S5.gems) to prove the loop end to end; replaced by packages/agents.",

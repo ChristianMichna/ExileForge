@@ -105,6 +105,7 @@ export const CONFIG: ForgeConfig = {
   maxAttemptsPerTask: 3,
   waitLongPollSeconds: 0,
   waitRetryAfterSeconds: 5,
+  attachFailuresPerMinute: 3,
   pipelines: {
     poc: {
       candidateCount: 2,

@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { BuildState, Finding, RichText } from "@exileforge/contracts/build";
-import type { EntityRef } from "@exileforge/contracts/common";
+import type { CalcProfileId, DataReleaseId, EntityRef } from "@exileforge/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 
@@ -42,6 +42,7 @@ const DIGIT = /\p{Nd}/u;
 export async function richTextFindings(
   calc: CalcPort,
   texts: readonly { path: string; text: RichText }[],
+  scope?: { dataReleaseId: DataReleaseId; calcProfiles: readonly CalcProfileId[] },
 ): Promise<Finding[]> {
   const findings: Finding[] = [];
   for (const { path, text } of texts) {
@@ -59,12 +60,17 @@ export async function richTextFindings(
       }
       if (segment.type === "calc") {
         const result = await calc.getResult(segment.ref.calcId);
-        if (result === undefined || !(segment.ref.stat in result.stats)) {
+        const inScope =
+          result !== undefined &&
+          (scope === undefined ||
+            (result.dataReleaseId === scope.dataReleaseId &&
+              scope.calcProfiles.includes(result.calcProfile)));
+        if (result === undefined || !inScope || !(segment.ref.stat in result.stats)) {
           findings.push({
             gate: "G2",
             severity: "error",
             code: "unknown_calc_ref",
-            message: `Calc reference ${segment.ref.calcId}/${segment.ref.stat} does not exist. Only reference calcIds and stats returned by the engine.`,
+            message: `Calc reference ${segment.ref.calcId}/${segment.ref.stat} does not exist for this run's data release and calc profiles. Only reference calcIds and stats returned by the engine for this run.`,
             path: segPath,
             calcId: segment.ref.calcId,
           });

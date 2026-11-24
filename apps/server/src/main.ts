@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
+import { defaultTokenFile } from "./access-token.js";
 import { createStderrLogger } from "./logger.js";
 import { DEFAULT_PORT, startServer } from "./start.js";
 
@@ -15,6 +16,7 @@ const { values } = parseArgs({
     config: { type: "string", default: "config/forge/forge.json" },
     calc: { type: "string" },
     origin: { type: "string", multiple: true, default: [] },
+    "token-file": { type: "string", default: defaultTokenFile() },
   },
 });
 
@@ -33,6 +35,14 @@ if (values.calc !== "fake") {
   process.exit(2);
 }
 
+const badOrigin = values.origin.find((o) => !isExactOrigin(o));
+if (badOrigin !== undefined) {
+  logger.error("--origin must be an exact origin like http://127.0.0.1:5173", {
+    origin: badOrigin,
+  });
+  process.exit(2);
+}
+
 startServer({
   port,
   databasePath: values.db,
@@ -40,8 +50,17 @@ startServer({
   configPath: values.config,
   calc: "fake",
   allowedOrigins: values.origin,
+  tokenFile: values["token-file"],
   logger,
 }).catch((error: unknown) => {
   logger.error("server failed to start", { error });
   process.exit(1);
 });
+
+function isExactOrigin(value: string): boolean {
+  try {
+    return new URL(value).origin === value;
+  } catch {
+    return false;
+  }
+}

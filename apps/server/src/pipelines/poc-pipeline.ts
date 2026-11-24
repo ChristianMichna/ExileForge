@@ -35,6 +35,14 @@ export type GemSetupSubmission = z.infer<typeof GemSetupSubmission>;
 
 const candidateKey = (i: number) => `S2.candidate-${i}`;
 
+/** Catalog references in rationale subjects (G1 must see them too). */
+const subjects = (rationale: readonly Rationale[], base: string) =>
+  rationale.flatMap((r, i) =>
+    r.subject === undefined ? [] : [{ path: `${base}/${i}/subject`, ref: r.subject }],
+  );
+
+const DIGIT = /\p{Nd}/u;
+
 export function createPocPipeline(config: PocPipelineConfig): Pipeline {
   const candidatesOf = (ctx: PipelineContext): ArchetypeCandidate[] => {
     const list: ArchetypeCandidate[] = [];
@@ -145,6 +153,15 @@ export function createPocPipeline(config: PocPipelineConfig): Pipeline {
       ],
       check: async (c, checkCtx) => {
         const findings: Finding[] = [];
+        if (DIGIT.test(c.title)) {
+          findings.push({
+            gate: "G8",
+            severity: "error",
+            code: "free_number",
+            message: "The title contains a number. Titles are words only.",
+            path: "/title",
+          });
+        }
         if (previous.some((p) => p.key === c.key)) {
           findings.push({
             gate: "schema",
@@ -191,14 +208,16 @@ export function createPocPipeline(config: PocPipelineConfig): Pipeline {
       context: { request: requestContext(ctx), chosen, skeletonEvaluation: evaluation },
       schema: GemSetupSubmission,
       allowedTools: CALC_TOOLS,
-      entities: (s) =>
-        s.skills.flatMap((setup, i) => [
+      entities: (s) => [
+        ...s.skills.flatMap((setup, i) => [
           { path: `/skills/${i}/gem/gemId`, ref: { kind: "gem" as const, id: setup.gem.gemId } },
           ...setup.supports.map((g, j) => ({
             path: `/skills/${i}/supports/${j}/gemId`,
             ref: { kind: "gem" as const, id: g.gemId },
           })),
         ]),
+        ...subjects(s.rationale, "/rationale"),
+      ],
       richText: (s) =>
         s.rationale.map((r, i) => ({ path: `/rationale/${i}/reason`, text: r.reason })),
       check: async (s, checkCtx) => {
@@ -227,10 +246,13 @@ export function createPocPipeline(config: PocPipelineConfig): Pipeline {
         findings.push(
           ...rejectedFindings(
             checkCtx,
-            s.skills.map((x, i) => ({
-              path: `/skills/${i}/gem/gemId`,
-              ref: { kind: "gem", id: x.gem.gemId },
-            })),
+            s.skills.flatMap((x, i) => [
+              { path: `/skills/${i}/gem/gemId`, ref: { kind: "gem" as const, id: x.gem.gemId } },
+              ...x.supports.map((g, j) => ({
+                path: `/skills/${i}/supports/${j}/gemId`,
+                ref: { kind: "gem" as const, id: g.gemId },
+              })),
+            ]),
           ),
         );
         if (findings.length > 0) return findings;
