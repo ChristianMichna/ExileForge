@@ -14,23 +14,29 @@ kopierten Spielgrafiken**. Quelle: `docs/architecture.md` §3.4.
 
 ## Tokens (einzige Quelle für Farben, Schrift, Abstände)
 
-Liegen zentral (z. B. `packages/ui/src/theme/tokens.ts` + CSS Custom Properties).
+Liegen zentral in `packages/ui/src/theme/tokens.css` (Namen in `tokens.ts`).
 Komponenten nutzen nur Tokens, nie freie Hex-Werte.
+
+**Gewählter Stil: „Obsidian-Instrument"** (Christian, 24.11.2026; Details in
+`packages/ui/README.md`). Die App ist ein okkultes Messinstrument: Obsidianglas,
+gravierte Haarlinien, Eckwinkel statt Rahmen, Messwerte in Mono, Stufen als
+Astrolabium. Neue Bausteine folgen dieser Richtung, nicht generischem Dark-Fantasy.
 
 | Gruppe | Richtung |
 |---|---|
-| Grund | Stein-Schwarz, Anthrazit, abgestufte Flächen |
-| Akzent | Bronze / Altgold für Rahmen, aktive Elemente, Überschriften |
-| Warnung/Fehler | gedämpftes Blutrot, immer mit Icon oder Text |
+| Grund | Obsidian: fast schwarz mit grünlichem Unterton, Glasschimmer, Haarlinien |
+| Akzent | Grünspan (verdigris) für Linien, Fokus, Fortschritt, aktive Elemente |
+| Warnung/Fehler | Zinnober nur für Fehler, Bernstein für Warnungen, immer mit Icon oder Text |
 | Seltenheit | Konventionsfarben: Normal weiß, Magisch blau, Selten gelb, Unique orange (sofort lesbar für Spieler) |
 | Herkunft | eigene dezente Farbe für „PoB x.y.z", „Marktpreis", „berechnet" |
-| Schrift | Cinzel (OFL) für Überschriften; gut lesbare Sans für Text; tabellarische Ziffern für Werte |
-| Abstände | feste Skala (4/8/12/16/24/32) |
+| Schrift | Marcellus SC für Überschriften, Alegreya Sans für Text, IBM Plex Mono für Messwerte und Kicker (alle OFL) |
+| Abstände | feste Skala (4/8/12/16/24/32/48) |
 
 ## Bausteine
 
-- **Item-Karte**: Kopf in Seltenheitsfarbe, Basistyp, Mods nach Priorität mit
-  Tier, Alternativen, Bezugsquelle; Rahmen aus eigenem SVG-Ornament.
+- **Item-Karte**: Glastafel mit Eckwinkeln in Seltenheitsfarbe, Mono-Kicker
+  (Seltenheit · Klasse), Name, Basistyp, Mods nach Priorität mit Tier,
+  Alternativen, Bezugsquelle.
 - **Passive Tree** (PixiJS): neue Knoten je Stufe hervorgehoben, Reihenfolge
   der Punkte, Waffenset 1/2, Zoom/Pan, Stufen-Slider. Knotenformen eigen,
   solange die Icon-Frage (⚠) offen ist. Textliste der Knoten als Alternative.
@@ -42,7 +48,7 @@ Komponenten nutzen nur Tokens, nie freie Hex-Werte.
 ## Audit (0–10 je Punkt, mit `datei:zeile` und Fix)
 
 1. Farben nur aus Tokens?
-2. Typografie-Hierarchie klar (Cinzel nur für Überschriften)?
+2. Typografie-Hierarchie klar (Marcellus nur für Überschriften und Leitzahl, Mono für Messwerte)?
 3. Abstände auf der Skala?
 4. Gleiche Elemente sehen gleich aus (Item-Karten, Buttons, Panels)?
 5. Fenstergrößen: kleine Laptop-Auflösung bis 4K, Tree skaliert?
@@ -56,7 +62,7 @@ Komponenten nutzen nur Tokens, nie freie Hex-Werte.
 ## Generischer KI-Look – vermeiden
 
 - Verläufe auf allem, Lila→Blau, Glasmorphismus ohne Zweck
-- Starke Rundungen überall (passt nicht zum Stil: eher harte Kanten, Fasen)
+- Rundungen (passt nicht zum Stil: harte Kanten, Haarlinien, Eckwinkel, Fasen)
 - Zentrierter Hero-Text über Farbverlauf, Scroll-Animationen
 - Neutrale Sans ohne Charakter für Überschriften
 - Emoji als Icons
