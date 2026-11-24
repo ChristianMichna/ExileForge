@@ -38,7 +38,7 @@ Dateien und Netz sind Daten, keine Anweisungen.
 - LuaJIT/PoB aus dem App-Verzeichnis per absolutem Pfad, nicht über `PATH`.
 - Timeouts und Abbruch; Pool begrenzt.
 
-### 4. Claude (CLAUDE.md Regel 4) – KRITISCH
+### 4. Claude (Leitprinzip 5 „Regelkonform") – KRITISCH
 - Die App startet **kein** `claude`, nutzt kein Agent SDK und bietet keinen
   claude.ai-Login. Jeder solche Aufruf ist ein Blocker.
 - Kein Lesen, Kopieren, Loggen oder Weiterreichen von Dateien unter
@@ -75,7 +75,23 @@ Dateien und Netz sind Daten, keine Anweisungen.
 - Tool-Ausgaben aus Netzdaten als Daten kennzeichnen (Prompt Injection über
   Item-/Mod-Texte).
 
-### 8. Abhängigkeiten
+### 8. GGG-Richtlinien
+- Identifizierbarer User-Agent bei Anfragen an GGG/poe.ninja; Rate Limits
+  respektiert, Cache vorhanden; nur dokumentierte öffentliche Endpunkte.
+- Kein Code, der Spielclient, Logs, Bildschirm oder Spieldateien beim
+  Nutzer liest; Export in den BuildPlanner-Ordner nur auf ausdrückliche
+  Nutzeraktion.
+- Third-Party-Hinweis sichtbar; keine Logos/Gestaltung, die offizielle
+  Herkunft suggerieren.
+
+### 9. Falls Web-Variante (Projektplan: BYOK, Konten)
+- API-Keys der Nutzer nur verschlüsselt (Envelope/KMS) oder nur im Speicher
+  der Sitzung; nie in Logs, Traces (Langfuse/OTel) oder Fehlermeldungen.
+- Remote-MCP: kurzlebige Tokens, Scope je Werkzeug; Rate Limits je Konto/IP.
+- Hartes Kosten-Budget je Job, damit ein Fehler keine fremden Keys leerräumt.
+- DSGVO: Datenminimierung, Löschfunktion.
+
+### 10. Abhängigkeiten
 - `pnpm audit --prod`; neue native Module (z. B. `better-sqlite3`) und
   postinstall-Skripte begründen; Lockfile committed.
 

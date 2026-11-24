@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // PreToolUse hook: blocks edits to the pinned Path of Building PoE2 submodule.
-// CLAUDE.md rule 5: PoB is never patched; changes belong in bridge.lua.
+// CLAUDE.md: PoB is never patched; changes belong in our bootstrap/bridge layer.
 // Exit code 2 blocks the tool call and shows stderr to Claude.
 
 import path from "node:path";
 
-const PROTECTED = ["services/pob-worker/PathOfBuilding/"];
+// Both locations are listed until an ADR fixes the repo layout
+// (architecture draft: services/pob-worker/…, project plan: vendor/…).
+const PROTECTED = ["services/pob-worker/PathOfBuilding/", "vendor/PathOfBuilding-PoE2/"];
 
 let raw = "";
 process.stdin.setEncoding("utf8");
@@ -27,8 +29,8 @@ process.stdin.on("end", () => {
   if (hit) {
     process.stderr.write(
       `Blockiert: ${rel} liegt im gepinnten PoB-PoE2-Submodul (${hit}). ` +
-        "PoB wird nicht gepatcht (CLAUDE.md Regel 5). " +
-        "Änderung stattdessen in services/pob-worker/bridge.lua umsetzen.\n",
+        "PoB wird nicht gepatcht (CLAUDE.md). " +
+        "Änderung stattdessen in der eigenen Bootstrap-/Bridge-Schicht umsetzen; Rechenfehler upstream melden.\n",
     );
     process.exit(2);
   }

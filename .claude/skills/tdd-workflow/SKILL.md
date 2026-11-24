@@ -1,59 +1,66 @@
 ---
 name: tdd-workflow
-description: Testgetriebene Entwicklung in ExileForge mit Vitest – erst fehlschlagender Test, dann minimale Umsetzung, dann Aufräumen; inklusive Golden-Tests gegen Path of Building mit aufgezeichneten Ergebnissen. Verwenden bei neuer Kernlogik (Prüfregeln, Build ⇄ PoB-XML, PoB-Code, .build-Export, Crafting-Erwartungswerte, Patch-Vergleich) und bei jedem Bugfix.
+description: Testgetriebene Entwicklung in ExileForge mit Vitest – erst fehlschlagender Test, dann minimale Umsetzung, dann Aufräumen; mit den Testebenen des Projektplans (Unit, Vertrag, Calc-Golden, Daten, Simulator-Property-Tests, Exporte, Halluzinations-Tests) und den Fakes calc-fake und llm-replay. Verwenden bei neuer Kernlogik und bei jedem Bugfix.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/tdd-workflow),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md.
-     Stark gekürzt; Web-/Jest-/Playwright-Teile entfernt, PoB-Golden-Tests ergänzt. -->
+     Stark gekürzt; an die Testebenen aus docs/projektplan.md angepasst. -->
 
 # TDD in ExileForge
 
 ## Zyklus
 
-1. **Rot**: Test schreiben, der das gewünschte Verhalten beschreibt. Laufen
-   lassen und sehen, dass er **aus dem richtigen Grund** fehlschlägt.
+1. **Rot**: Test schreiben, der das gewünschte Verhalten (ein
+   Akzeptanzkriterium des Tickets) beschreibt. Laufen lassen und sehen, dass
+   er **aus dem richtigen Grund** fehlschlägt.
 2. **Grün**: kleinste Änderung, die den Test bestehen lässt.
 3. **Aufräumen**: Struktur verbessern, Tests bleiben grün.
 4. Bei Bugfix: zuerst ein Test, der den Bug nachstellt.
 
-Nur betroffene Tests erneut laufen lassen:
-`pnpm --filter <paket> test -- <datei>`; die ganze Suite erst vor dem PR
+Nur betroffene Tests erneut laufen lassen
+(`pnpm --filter <paket> test -- <datei>`); die ganze Suite erst vor dem PR
 (Skill `verification-loop`).
 
-## Was getestet wird, und wie
+## Woher Testdaten kommen
 
-| Bereich | Testart |
+**Kein Spielwissen aus dem Modellgedächtnis.** Erlaubt sind nur:
+
+| Quelle | Wofür |
 |---|---|
-| Prüfregeln je Stufe (Resistenzen, Spirit, Attribute, Level/Akt) | Unit, tabellengetrieben (`it.each`) |
-| Build ⇄ PoB-XML, PoB-Code (zlib + Base64) | Round-Trip: `decode(encode(x))` = `x`; echte PoB-Codes als Fixture |
-| `.build`-Export | Snapshot gegen Schema + feste Erwartung für `examples/build.example.json`; ID-Zuordnungen mit bekannten Knoten/Gems |
-| Crafting-Erwartungswerte | Unit mit kleinen, von Hand nachrechenbaren Gewichten; `derived.formula` geprüft |
-| Patch-Vergleich | Zwei aufgezeichnete `CalcResult`s, Schwellen ±x % |
-| MCP-Tools | Handler direkt + Protokolltest (Skill `mcp-server-patterns`) |
-| Speichernde MCP-Tools | Fixture-Eingabe → PoB-Nachrechnung → DB-Inhalt; Ergebnisfelder aus der Eingabe werden ignoriert |
-| Planungs-Skill/Prompts | Statisch prüfen (Tools existieren, keine Zahlen im Text); **nie** echte Claude-Aufrufe in der Testsuite |
+| Fixtures, **aus einem Daten-Release erzeugt** (Release-ID im Pfad/Kopf) | Katalog-Entitäten, IDs, Mods, Gems |
+| Aufgezeichnete PoB-Ergebnisse (`evals/golden`, PoB-Version im Namen) | Erwartete Zahlen |
+| `calc-fake` | Logiktests ohne PoB; deterministische, erkennbar fiktive Werte |
+| `llm-replay` | Aufgezeichnete LLM-Antworten für Pipeline-Tests |
+
+Keine echten LLM-Aufrufe und kein Netz in der Testsuite.
+
+## Testebenen
+
+| Ebene | Was | Werkzeug |
+|---|---|---|
+| Unit | Normalisierer, Optimierer-Bausteine, Exporter, Gates, Zahlen-Linter | Vitest, `it.each` |
+| Vertrag | Schnittstellen gegen das Vertragspaket; generierte Clients kompilieren | Zod/JSON Schema, `tsc`, Schema-Snapshots |
+| Calc-Golden | Referenz-Builds je PoB-Version mit Toleranz je Metrik | Runner in `evals/golden` |
+| Daten | Referenzielle Integrität, Plausibilität, Diff je Daten-Release | Pipeline-Checks |
+| Simulator | Invarianten (Prefix/Suffix-Grenzen, Familien-Ausschluss, kein Mod außerhalb des Pools); analytisch rechenbare Einfachfälle; fester Seed | fast-check |
+| Exporte | `.build` gegen Format-Schema; PoB-Code-Roundtrip `decode(encode(x)) = x` | Vitest |
+| Halluzination | PoE1-Begriffe, entfernte oder erfundene Items als Eingabe → werden abgelehnt/korrigiert (G1) | `llm-replay` + Gates |
+| End-to-End | Kern-Journeys inkl. Mobilansicht | Playwright (sobald UI existiert) |
 
 ## Golden-Tests gegen PoB
 
-Ziel: Änderungen an Übersetzung oder Bridge fallen auf, ohne dass Tests
-Zahlen erfinden.
-
-- Eingabe: Beispiel-Builds in `examples/` (bzw. `fixtures/pob/`).
-- Erwartung: **von PoB erzeugte** Ergebnisse, aufgezeichnet mit
-  `pobVersion` im Dateinamen oder Kopf, z. B.
-  `fixtures/pob/<build>.<pobVersion>.calc.json`. Niemals von Hand
-  geschriebene Erwartungswerte für DPS/Leben.
-- Neu aufzeichnen nur bewusst (eigenes Skript, z. B. `pnpm fixtures:record`),
-  mit Diff im PR und Begründung (PoB-Update, Bridge-Fix).
-- Tests, die LuaJIT brauchen, mit `describe.skipIf(!hasLuaJit)` kennzeichnen
+- Erwartung: **von PoB erzeugte** Werte, nie von Hand geschrieben.
+- Neu aufzeichnen nur bewusst (eigenes Skript), mit Diff und Begründung im
+  PR (PoB-Bump, Bridge-Fix).
+- Tests, die LuaJIT/PoB brauchen, mit `describe.skipIf(!hasPob)` kennzeichnen
   und im Bericht als übersprungen melden – nicht stillschweigend grün.
 
 ## Regeln
 
 - Tests prüfen Verhalten, nicht Implementierungsdetails.
-- Keine Tests deaktivieren oder Erwartungen „passend machen", um grün zu
-  werden. Fehlschlag verstehen, dann beheben.
-- Abdeckung: Kernlogik in `packages/core` und `packages/schema` hoch
-  (Richtwert 80 %+); UI nach Bedarf.
-- Zufall und Zeit (Preise `fetchedAt`) im Test fixieren.
+- Keine Tests deaktivieren oder Erwartungen „passend machen". Fehlschlag
+  verstehen, dann beheben.
+- Schwellen und Toleranzen aus `config/`, nicht im Test hart codiert.
+- Zufall (Seeds) und Zeit (`fetchedAt`) fixieren.
+- Eval-Kennzahlen dürfen sich durch einen PR nicht verschlechtern.

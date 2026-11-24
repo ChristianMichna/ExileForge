@@ -45,19 +45,20 @@ set -o pipefail
 pnpm build 2>&1 | tail -20
 ```
 
-## Phase 5 – PoB-Worker (nur wenn `services/pob-worker` geändert)
+## Phase 5 – PoB-Worker/Calc (nur wenn betroffen)
 
 ```bash
 luajit -v
 # Smoke-Test der Bridge, sobald vorhanden, z. B.:
 # echo '{"cmd":"ping"}' | luajit services/pob-worker/bridge.lua
-git -C services/pob-worker/PathOfBuilding status --porcelain   # muss leer sein
+# PoB-Submodul unverändert (Pfad je nach Repo-Layout):
+git submodule foreach --quiet 'git status --porcelain'   # muss leer sein
 ```
 
 ## Phase 6 – Projektregeln
 
 ```bash
-# Abo-Regel (CLAUDE.md Regel 4): App ruft nie Claude auf, keine Zugangsdaten
+# Regelkonform (Leitprinzip 5): kein Claude-Login/Abo-Routing durch unseren Code, keine Zugangsdaten
 git diff origin/main... -- apps packages | grep -nE "^\+.*((spawn|execFile|exec)\(.*claude|@anthropic-ai/(sdk|claude-agent-sdk)|\.claude/\.?credentials|ANTHROPIC_API_KEY|oauth|keychain)" || true
 # Stille Ersatzwerte auf Zahlen
 git diff origin/main... | grep -nE '^\+.*(\?\?\s*0\b|\|\|\s*0\b|catch\s*\(\w*\)\s*\{\s*\})' || true
@@ -66,7 +67,8 @@ git diff origin/main... | grep -nE '^\+.*console\.log' || true
 ```
 
 Treffer einzeln bewerten. Bei Änderungen an Zahlenpfaden zusätzlich den
-Agent `pob-number-auditor` laufen lassen; bei Main/IPC/Prozessstart
+Agent `pob-number-auditor`, bei Entitäten/Prompts/Daten den
+`catalog-integrity-auditor` laufen lassen; bei Main/IPC/Prozessstart
 `electron-security-reviewer`.
 
 ## Phase 7 – Diff-Durchsicht

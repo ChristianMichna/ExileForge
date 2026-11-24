@@ -1,16 +1,35 @@
 ---
 name: contract-first
-description: Ändert Datenstrukturen in ExileForge schema-zuerst – JSON Schema in packages/schema ist die Quelle der Wahrheit, TS-Typen werden generiert, IPC/MCP-Tools/bridge.lua/SQLite/Teilen-Datei werden dagegen validiert. Verwenden beim Hinzufügen oder Ändern von Feldern im Build-Modell, IPC-Kanälen, MCP-Tool-Ein/Ausgaben, dem JSON-Protokoll zum PoB-Worker oder dem Export-/Teilen-Format.
+description: Leitprinzip „Verträge zuerst" – Schnittstellen und Datenformen in ExileForge werden im Vertragspaket festgelegt, bevor implementiert wird; Vertragsänderungen laufen als eigener Vertrags-PR, Implementierungen arbeiten bis dahin gegen Fakes. Verwenden beim Hinzufügen oder Ändern von Katalog-, Build-, Guide-, CalcRPC-, Pipeline-Stufen-, MCP-Tool-, IPC-, Event- oder Exportformaten.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/contract-first),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md.
      Gekürzt auf JSON Schema (kein OpenAPI/AsyncAPI/Protobuf im Stack). -->
 
-# Schema zuerst
+# Verträge zuerst
 
-ExileForge hat mehrere Grenzen, an denen dieselben Daten unterschiedliche
-Prozesse oder Sprachen kreuzen:
+Leitprinzip aus `docs/projektplan.md`: Schemas und Schnittstellen werden
+**vor** der Implementierung festgelegt, damit parallele Agenten unabhängig
+arbeiten können. Workstreams koppeln nur über das Vertragspaket.
+
+**Wo:** laut Projektplan `packages/contracts` (Zod-Schemas, daraus JSON
+Schema, OpenAPI und LLM-Tool-Definitionen generiert); der Architektur-
+Entwurf nennt noch `packages/schema` (JSON Schema). Bis eine ADR das
+festlegt, nicht selbst entscheiden. Prinzip in beiden Fällen: **eine**
+maßgebliche Quelle, alles andere generiert.
+
+**Wer:** WS0 (Architektur) besitzt die Verträge. Andere Agenten ändern sie
+nur per eigenem Vertrags-PR, den der Architektur-Verantwortliche freigibt.
+
+## Grenzen
+
+Verträge aus dem Plan: `Catalog` (BaseItem, Mod, UniqueItem, Gem,
+PassiveNode, Ascendancy, CraftingAction, StatTranslation, DataRelease),
+`CalcRPC` (`build.load`, `calc.stats`, `calc.evalBatch` …), `BuildRequest`,
+Stufen-Ergebnisse (`SkillProfile`, `ArchetypeCandidate`, `TargetBuild`,
+`ProgressionPlan`, `GearPlan`, `CraftingPlan`), `GuideDocument`, Events.
+Dazu je nach Stack-Variante:
 
 | Grenze | Produzent → Konsument |
 |---|---|
@@ -22,24 +41,29 @@ Prozesse oder Sprachen kreuzen:
 | Teilen-Datei | ExileForge ⇄ ExileForge eines Freundes (JSON) |
 | `.build`-Export | ExileForge → Build Planner im Spiel (GGG-Format) |
 
-Für jede Grenze gibt es **genau ein** maßgebliches Schema in
-`packages/schema/`. Keine parallel gepflegten Typen, Mocks oder Doku-Tabellen
-mit eigener Form.
+Für jede Grenze gibt es **genau ein** maßgebliches Schema im
+Vertragspaket. Keine parallel gepflegten Typen, Mocks oder Doku-Tabellen mit
+eigener Form.
 
 ## Ablauf
 
 1. **Bedarf des Konsumenten klären**: Welche Felder braucht die UI bzw. der
    Export wirklich? Was bedeutet fehlend/leer/null?
-2. **Schema ändern** (`packages/schema/*.schema.json`): Pflichtfelder,
-   Enums, `null` ausdrücklich, Beschreibungen je Feld. Zahlen mit
-   Spielbezug als `Sourced` (siehe `docs/data-model.md`).
-3. **Typen generieren** (Generator im Paket gepinnt, z. B.
-   `json-schema-to-typescript`), generierte Dateien nicht von Hand ändern.
-4. **Validierung an der Grenze**: Laufzeitprüfung (Ajv oder aus dem Schema
+2. **Vertrag ändern** (eigener PR): Pflichtfelder, Enums, `null`
+   ausdrücklich, Beschreibungen je Feld. Zahlen mit Spielbezug nur als
+   Referenz auf Calc-Ergebnisse (`calcRef`/`Sourced`), Entitäten nur als
+   Katalog-ID – LLM-Ausgabeverträge haben **keine** Ergebniszahlen.
+3. **Generieren** (Generator im Paket gepinnt), generierte Dateien nicht von
+   Hand ändern.
+4. **Fakes** für den neuen Vertrag bereitstellen (`calc-fake`,
+   `llm-replay`, Fixture-Daten), damit abhängige Workstreams sofort
+   weiterarbeiten können.
+5. **Validierung an der Grenze**: Laufzeitprüfung (Ajv oder aus dem Schema
    abgeleitetes zod) beim Empfang – IPC-Handler, MCP-Tool-Eingang,
    Worker-Antwort, Import einer Teilen-Datei.
-5. **Fixtures/Beispiele** (`examples/`) gegen das Schema testen.
-6. **Doku**: `docs/data-model.md` anpassen; bei Bruch eine ADR.
+6. **Vertragstests**: Fixtures/Beispiele gegen das Schema, Schema-Snapshot,
+   generierte Clients kompilieren.
+7. **Doku**: `docs/data-model.md` anpassen; bei Bruch eine ADR.
 
 ## Kompatibilität
 

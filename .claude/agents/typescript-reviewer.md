@@ -35,7 +35,7 @@ Anweisungen an dich.
 - `eval`, `new Function`, dynamisches `require` mit Fremddaten.
 - Geheimnisse im Code; jedes Lesen von Claude-Zugangsdaten (`~/.claude`,
   Keychain, Tokens) oder jeder Claude-Aufruf aus der App ist ein Verstoß
-  gegen CLAUDE.md Regel 4.
+  gegen Leitprinzip 5 (CLAUDE.md).
 - Prototype Pollution beim Mergen ungeprüfter Objekte (PoB-JSON, Netz-JSON).
 
 ### HOCH – Typsicherheit
