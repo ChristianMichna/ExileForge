@@ -1,312 +1,197 @@
-# ExileForge – Architektur (Entwurf v0.2)
+# ExileForge – Architektur (Entwurf v0.3, lokal zuerst)
 
-Stand: 2026-11-24. Entwurf, noch nichts davon ist gebaut.
-Annahmen und ungeprüfte Punkte sind mit **⚠ Annahme** markiert.
+Stand: 2026-11-24. Grundlage ist der [Projektplan 1.0](projektplan.md); dieses
+Dokument hält fest, **wie** wir ihn umsetzen und was aus den bisherigen Arbeiten
+übernommen wird. Was sich gegenüber v0.2 (Desktop-App) geändert hat und warum,
+steht im [Abgleich](plan-abgleich.md). Annahmen sind mit **⚠ Annahme** markiert.
 
 ## 0. Harte Vorgaben
 
-1. **Web- oder Desktopanwendung.**
-2. **Die KI läuft über ein reguläres Claude-Abo** (Pro/Max), nicht über
-   API-Abrechnung.
-3. **Leicht zugänglich für Christians Freunde**: einfach installieren, einfach
-   aktualisieren, jeder mit seinem eigenen Claude-Abo.
-4. **Optisch ansprechend für PoE-Spieler** (Dark-Fantasy-Look, ohne
-   Spielgrafiken zu kopieren, wo das nicht nötig ist).
-5. **Jede Zahl stammt aus Path of Building**, nicht aus der KI.
-6. Export als **`.build`-Datei** für den Build Planner im Spiel.
-7. **Neuprüfung nach jedem Patch.**
+1. **Läuft lokal auf Christians PC** und lässt sich **einfach an Freunde schicken** ([ADR-0004](adr/0004-lokal-first.md)).
+2. **Eigenes Frontend**, nicht die Claude-App als Oberfläche ([ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
+3. KI läuft mit **regulärem Claude-Abo**: KI-Schritte im Claude-Chat (Claude Desktop/Code) des Nutzers über die ExileForge-Werkzeuge, iterativ in kleinen Aufgaben, keine Single-Shot-Prompts ([ADR-0002](adr/0002-claude-abo-nur-ueber-connector.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
+4. **Optisch ansprechend für PoE-Spieler**, eigene Gestaltung, kein Anschein offizieller Herkunft.
+5. **Keine Zahl ohne Engine**, **keine Entität ohne Katalog-ID**, **patch-agnostisch**, **Verträge zuerst** (Leitprinzipien des Plans).
+6. Export als **`.build`**-Datei; **Neuprüfung nach jedem Patch**.
+7. **Day-0-Readiness bis 11.12.2026**: Daten-Pipeline, Katalog und Rechenkern lesen 1.0-Daten ein, sobald Spiel und passendes PoB-Release da sind.
 
 ## 1. Entscheidung in einem Satz
 
-ExileForge besteht aus **zwei Teilen, die jeder Freund mit einem Klick
-installiert**: einer **Desktop-App** (Electron + React + TypeScript) zum
-Ansehen, Vergleichen und Exportieren der Builds, und einer
-**ExileForge-Erweiterung für Claude** (MCP-Server als Claude-Desktop-Erweiterung
-`.mcpb`, zusätzlich als Claude-Code-Plugin). Geplant wird im Chat von Claude
-Desktop oder Claude Code, also in Anthropics eigener App mit dem eigenen Abo
-des Freundes. Claude ruft dabei die ExileForge-Werkzeuge auf, die mit
-**Path of Building PoE2** rechnen und die Ergebnisse in die App schreiben.
+ExileForge ist eine **lokale Windows-App** (Electron) mit eigenem Frontend,
+lokalem Calc-Service aus unverändertem Path of Building PoE2 und einer
+**Claude-Desktop-Erweiterung**: Der Nutzer arbeitet in der App, Claude erledigt im
+eigenen Chat (eigenes Abo) die KI-Schritte in vielen kleinen, sofort mit PoB
+geprüften Aufgaben. Weitergabe per Installer, kein Server.
 
-## 2. Claude-Abo und Weitergabe an Freunde
-
-### Was Anthropic erlaubt (Stand der Recherche, Quellen unten)
-
-- Ein Endnutzer darf sich mit seinem eigenen Abo in Anthropics eigene Apps
-  einloggen (Claude Desktop, unveränderte Claude-Code-CLI) und dort
-  **lokale MCP-Server bzw. Erweiterungen** von Dritten nutzen. Dafür gibt es
-  sogar ein Ein-Klick-Format (`.mcpb`, Claude Desktop Extensions).
-- **Nicht erlaubt** ohne Genehmigung von Anthropic: Drittanbieter-Apps, die
-  einen claude.ai-Login anbieten, Anfragen über die Abo-Zugangsdaten ihrer
-  Nutzer leiten, Abo-Tokens sammeln/speichern/durchreichen oder die
-  Abo-Limits für ihr eigenes Produkt nutzen („offer claude.ai login or rate
-  limits for their products, including agents built on the Claude Agent SDK").
-
-### Was das für ExileForge heißt
-
-| Ansatz | Für Freunde erlaubt? | Entscheidung |
-| --- | --- | --- |
-| Gehostete Web-App, Server ruft Claude für alle auf | Nur mit API-Key, also kein Abo | ✗ |
-| App startet heimlich die `claude`-CLI des Freundes (`claude -p`) | Fällt sehr wahrscheinlich unter „Abo-Limits für das eigene Produkt nutzen" | ✗ (nur noch als private Option für Christian denkbar, nicht Teil des Produkts) |
-| App mit eingebautem Claude-Login (Agent SDK + Abo) | Ausdrücklich verboten | ✗ |
-| **Freund plant selbst im Claude-Chat, ExileForge liefert Werkzeuge per MCP** | **Ja, das ist die vorgesehene Nutzung von MCP-Erweiterungen** | **✓** |
-| Freund trägt eigenen API-Key ein | Erlaubt, kostet aber nach Verbrauch | Optionaler Zusatz später |
-
-**⚠ Annahme:** Unsere Lesart der Regeln. Sie ist für den MCP-Weg eindeutig,
-weil der Freund selbst in Anthropics App arbeitet und ExileForge nie mit Claude
-spricht. Wer völlige Gewissheit will, fragt Anthropic per Support.
-
-Folgen für das Design:
-
-- **Die ExileForge-App ruft nie selbst Claude auf** und fasst keine
-  Claude-Zugangsdaten an.
-- Die KI-Schritte (Varianten planen, Guide ausarbeiten, nach Patch korrigieren)
-  passieren im Chat. Ein mitgelieferter **Skill/Prompt** sorgt dafür, dass
-  Claude dabei dem festen ExileForge-Ablauf folgt.
-- Alles, was **keine KI braucht** (rechnen, anzeigen, exportieren, Patch-Prüfung
-  der Zahlen), kann die App allein, auch ohne offenen Chat.
-- Die Abo-Limits des Freundes gelten. Die Werkzeuge rechnen deshalb so viel wie
-  möglich selbst (z. B. `node_power`, `optimize_tree_path`), damit Claude wenige,
-  große Schritte machen kann.
-
-## 3. Komponenten
+## 2. Bausteine
 
 ```
- Rechner eines Freundes
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│  Claude Desktop / Claude Code  (Anthropics App, eigenes Abo)            │
-│      │  Chat: "Plane mir einen Build mit Blitzpfeilen …"                │
-│      │  MCP (stdio)                                                      │
-│      ▼                                                                   │
-│  ExileForge-Erweiterung (.mcpb / Plugin)                                 │
-│   └─ MCP-Server (Node/TS): calc_stage, node_power, search_gems,          │
-│      save_variant, save_stage, plan_craft, price_of, export_build …      │
-│           │                         │                                    │
-│           ▼                         ▼                                    │
-│     pob-worker (LuaJIT)      ExileForge-Daten (SQLite im App-Ordner)     │
-│     PathOfBuilding-PoE2             ▲                                    │
-│                                     │ liest/schreibt, live aktualisiert  │
-│  ExileForge-App (Electron + React) ─┘                                    │
-│   Varianten · Guide · Tree · Items · Crafting · Export · Patch-Prüfung   │
-│   nutzt denselben pob-worker für Neuberechnungen                         │
-└─────────────────────────────────────────────────────────────────────────┘
+ PC des Nutzers
+┌──────────────────────────────────────────────────────────────────────────┐
+│  ExileForge-App (Electron)                                               │
+│  ┌──────────────┐  ┌────────────────────────────────────────────────┐    │
+│  │ Frontend     │◀─│ lokaler Server 127.0.0.1 (Fastify)             │    │
+│  │ React + Vite │  │  API · Live-Status (SSE) · MCP-Endpunkt /mcp   │    │
+│  └──────────────┘  │  Pipeline-Zustandsmaschine (S0–S11)            │    │
+│                    │  Katalog (Daten-Release) · SQLite              │    │
+│                    │  Calc: Node-Supervisor + LuaJIT/PoB-Worker     │    │
+│                    └───────────────▲────────────────────────────────┘    │
+│                                    │ forge.attach / next / submit,       │
+│                                    │ catalog.*, calc.*, optimize.*       │
+│  Claude Desktop (eigenes Abo) ── ExileForge-Erweiterung (.mcpb, stdio-Brücke)
+│  oder Claude Code ───────────── claude mcp add --transport http …/mcp     │
+└──────────────────────────────────────────────────────────────────────────┘
+        ▲ Installer, App-Updates, Daten-Releases, PoB-Versionen
+        │ (GitHub Releases, gebaut in GitHub Actions)
 ```
 
-### 3.1 pob-worker – Path of Building headless
+Frontend und Claude sind zwei Eingänge in dieselbe Pipeline. Katalog und
+Calc-Service nutzen dieselbe gepinnte PoB-Version. Fachliche Einzelheiten
+(Datenplattform, Rechenkern, Build-Pipeline, Optimierer, Frontend) stehen im Plan;
+was lokal anders läuft, steht in [ADR-0004](adr/0004-lokal-first.md).
 
-- Basis: [PathOfBuildingCommunity/PathOfBuilding-PoE2](https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2),
-  auf einen **festen Release-Tag** gepinnt.
-- PoB bringt `src/HeadlessWrapper.lua` mit, das die Oberfläche durch Stubs
-  ersetzt. Darauf setzen wir ein eigenes `bridge.lua`, das JSON-Befehle über
-  stdin/stdout annimmt:
-  - `load_build(pob_xml)`, `calc()` → Werte aus `build.calcsTab.mainOutput`
-  - `calc_with(changes)` → „Was wäre wenn" (Knoten, Gem, Item tauschen)
-  - `node_power(stat)` → Nutzen jedes Knotens (wie PoBs Power-Report)
-  - `export_code()` → PoB-Importcode (zlib + URL-sicheres Base64 des XML)
-- Langlebige Prozesse, weil das Laden der Spieldaten dauert
-  (**⚠ Annahme**, messen).
-- LuaJIT und PoB werden mitgeliefert; Freunde müssen nichts extra
-  installieren.
-- **⚠ Annahme:** PoB-PoE2 läuft headless ohne Änderungen am PoB-Code. Größtes
-  technisches Risiko, daher erster Proof of Concept. Vorbild: `pob-mcp`.
+## 3. Konkretisierungen gegenüber dem Plan
 
-### 3.2 Kernlogik (TypeScript, gemeinsam für App und MCP-Server)
+### 3.1 Calc-Service aus dem Machbarkeitsnachweis (PR #2)
 
-Eine Bibliothek `packages/core`, die App und MCP-Server beide nutzen:
+- PR #2 hat gezeigt: PoB-PoE2 v0.23.1 rechnet unverändert headless über
+  `HeadlessWrapper.lua`, wenn LuaJIT exakt in PoBs eigener Version gebaut wird
+  (PoB nutzt `+=` und `?.`) und `lua-utf8` mitkompiliert ist. Build-Codes müssen
+  außerhalb von Lua dekodiert werden (zlib + Base64), weil PoBs Headless-Modus
+  `Inflate/Deflate` nur als Platzhalter hat.
+- Umbau für `apps/calc` (läuft im App-Prozess):
+  - `runner.lua` wird zum **langlebigen Worker** (PoB einmal laden, dann
+    zeilenweises JSON-RPC über stdin/stdout). Ergebniszeilen behalten einen
+    Marker, weil PoB selbst auf stdout loggt.
+  - Python-Wrapper wird durch einen **Node-Supervisor** (TypeScript) ersetzt:
+    Pool, Timeouts, Neustart, Recycling, Code-Dekodierung, Link-Auflösung.
+    Nutzer brauchen kein Python.
+  - PoB als Git-Submodul `vendor/PathOfBuilding-PoE2`; LuaJIT + `lua-utf8` werden
+    in GitHub Actions **für Windows** gebaut (Windows-Workflow aus PR #2) und in
+    den Installer gepackt.
+  - Erste RPC-Methoden: `meta.version`, `build.load`, `calc.stats`; danach
+    `build.applyPatch`, `calc.evalBatch`, `calc.nodePower`, `calc.validate`.
+- **⚠ Annahme:** Kaltstart und Speicher je Worker sind noch nicht gemessen; sie
+  bestimmen die Pool-Größe auf einem normalen Spiele-PC (Phase 0).
 
-- Builds, Varianten, Stufen, Revisionen; Prüfregeln je Stufe (Resistenzen
-  gecappt, Spirit reicht, Attribute reichen für Gems, Level passt zum Akt).
-- Übersetzung Datenmodell ⇄ PoB-XML, Client für den pob-worker.
-- Crafting (erwartete Versuche und Kosten), Preise mit Zeitstempel.
-- Exporter: `.build`, PoB-Code, später Markdown/PDF.
-- Speicher: SQLite (`better-sqlite3`) im App-Datenordner des Nutzers. Ein Build
-  ist ein JSON-Dokument mit Revisionen; daneben Tabellen für Rechenergebnisse,
-  Preise, Patch-Läufe. App und MCP-Server greifen auf dieselbe Datei zu
-  (WAL-Modus), die App merkt Änderungen und aktualisiert die Anzeige live.
+### 3.2 Einrichtung und Weitergabe
 
-### 3.3 ExileForge-Erweiterung für Claude (MCP-Server + Skill)
+- **Installieren:** `ExileForge-Setup.exe` von der GitHub-Releases-Seite,
+  Auto-Update über `electron-updater`. Ohne Code-Signing erscheint einmal die
+  SmartScreen-Warnung.
+- **Mit Claude verbinden:** Knopf in der App öffnet die `.mcpb`-Erweiterung, in
+  Claude Desktop bestätigen. Für Claude Code zeigt die App den `claude mcp add`-Befehl.
+  Voraussetzung: Claude Desktop oder Claude Code mit eigenem Abo.
+- **Planen:** Im Frontend Skill und Vorlieben wählen, „Mit Claude planen"
+  drücken, Startsatz mit Sitzungscode in Claude einfügen (`forge.attach`). Claude
+  arbeitet die Aufgaben über `forge.next`/`forge.submit` ab; das Frontend zeigt
+  Schritt, PoB-Zahlen und Tree live. Rückfragen (Aufgaben vom Typ `ask_user`) und
+  Eingriffe (Variante wählen, Knoten/Items sperren, Schritt neu) passieren im
+  Frontend. Ablauf im Detail: [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)
+  Abschnitte 3–4.
+- **Teilen:** Guide als `.exileforge.json` an Freunde schicken (die importieren
+  und rechnen ihn lokal nach), `.build` fürs Spiel, PoB-Codes je Stufe.
+- **⚠ Annahme, prüfen:** Abo-Verbrauch pro Guide; ob ein Claude-Free-Konto
+  lokale Erweiterungen nutzen kann.
 
-- MCP-Server mit dem offiziellen TypeScript-MCP-SDK, Transport stdio.
-- **Werkzeuge:**
-  - Lesen/Suchen: `search_gems`, `search_uniques`, `search_mods`,
-    `search_nodes`, `price_of`, `list_builds`, `get_build`
-  - Rechnen: `calc_stage`, `compare_variants`, `node_power`,
-    `optimize_tree_path`, `validate_stage`, `plan_craft`
-  - Speichern: `create_build`, `save_variant`, `save_stage`, `choose_variant`
-  - Export: `export_build_file`, `export_pob_code`
-  - Ansehen: `open_in_app` (öffnet den Build in der ExileForge-App)
-- Die Werkzeuge nehmen strukturiertes JSON nach unserem Schema an, validieren
-  es und **rechnen jede gespeicherte Stufe selbst durch PoB**. Claude bekommt
-  die PoB-Zahlen zurück, schreibt aber nie selbst Zahlen in den Build.
-- Erklärtexte dürfen keine eigenen Zahlen enthalten, nur Platzhalter
-  (`{{calc.stats.life}}`), die die App aus PoB-Ergebnissen füllt.
-- **Ablauf als Skill/Prompt** (mitgeliefert, in Claude Desktop als
-  MCP-Prompt `/exileforge-plan`, in Claude Code als Plugin-Skill):
-  1. Skill-Idee und Vorlieben abfragen.
-  2. 3–5 Varianten entwerfen, jede per `calc_stage` rechnen, mit
-     `save_variant` speichern. Vergleich nur mit PoB-Zahlen.
-  3. Nach Wahl des Freundes: Stufen von Akt 1 bis Endgame ausarbeiten, jede mit
-     `validate_stage` prüfen und korrigieren, bis alle Prüfungen grün sind.
-  4. Craft-Pläne mit Kosten, Export.
-- **Verpackung:**
-  - **Claude Desktop:** `.mcpb`-Datei (Claude Desktop Extension), Installation
-    per Doppelklick. Enthält den MCP-Server; PoB und LuaJIT liegen in der App
-    und werden darüber gefunden. **⚠ Annahme:** Alternativ bündelt die `.mcpb`
-    alles selbst; entscheiden wir nach dem Proof of Concept anhand der Größe.
-  - **Claude Code:** Plugin über einen Plugin-Marketplace im ExileForge-Repo
-    (`/plugin install …`), mit MCP-Server und Skill.
-  - Die App bietet beim ersten Start einen Knopf „Mit Claude verbinden", der die
-    `.mcpb` öffnet bzw. die Plugin-Befehle zeigt.
+### 3.3 Vereinfachter Stack für lokal
 
-### 3.4 ExileForge-App
+Der gehostete Stack des Plans (Next.js, Temporal, Postgres, Redis, S3, Langfuse)
+wird lokal durch React + Vite, eine persistierte Zustandsmaschine und SQLite
+ersetzt. Tabelle und Begründung: [ADR-0004](adr/0004-lokal-first.md). Der Kern
+bleibt vom Electron-Teil getrennt, damit eine gehostete Variante später möglich
+bleibt.
 
-- Electron + React + Vite + TypeScript. Windows zuerst (PoE2 und der Build
-  Planner sind PC-only), macOS/Linux später.
-- **Ansichten:** Build-Liste, Variantenvergleich, Guide je Stufe, Tree, Items,
-  Crafting, Export, Patch-Bericht, Einrichtung (Claude-Verbindung prüfen).
-- **Was die App allein kann (ohne Claude):** Builds ansehen, Stufen neu rechnen,
-  Items/Gems von Hand ändern und neu rechnen, `.build` direkt in den
-  BuildPlanner-Ordner schreiben, PoB-Codes kopieren, Patch-Prüfung.
-- **Builds teilen:** Export/Import einer ExileForge-Datei (JSON), damit Freunde
-  sich Builds schicken können, ohne neu zu planen. **⚠ Annahme:** Ein
-  gemeinsamer Online-Speicher ist für v1 nicht nötig.
+### 3.4 Oberfläche – „optisch ansprechend für PoE-Spieler"
 
-### 3.5 Oberfläche – „optisch ansprechend für PoE-Spieler"
+Vorschlag für die Design-Tokens in `packages/ui` (aus v0.2 übernommen):
 
-- **Look:** dunkler Dark-Fantasy-Stil, eigene Gestaltung:
-  - Farben: Stein-Schwarz/Anthrazit als Grund, Bronze/Altgold für Rahmen und
-    Akzente, gedämpftes Blutrot für Warnungen. Item-Seltenheiten in den
-    vertrauten Konventionsfarben (Normal weiß, Magisch blau, Selten gelb,
-    Unique orange), weil Spieler sie sofort lesen.
-  - Schrift: Cinzel (frei, OFL) für Überschriften, gut lesbare Sans für Text.
-  - Eigene SVG-Ornamente, Rahmen und Icons, keine kopierten Spielgrafiken.
-  - Design-Tokens zentral, damit der Look überall gleich ist.
-- **Passive Tree:** Canvas/WebGL mit PixiJS aus den Tree-Daten von PoB. Pro
-  Stufe: neue Knoten hervorgehoben, Reihenfolge der Punkte, Waffenset 1/2,
-  Zoom/Pan, Slider über die Stufen.
-  **⚠ Annahme:** Die Knoten-Icons aus PoB dürfen in einer kostenlosen Fan-App
-  angezeigt werden (GGG duldet Fan-Tools); sonst eigene abstrakte Knotenformen.
-- **Items:** Item-Karten im Spielstil (HTML/CSS) mit Mod-Tiers, Priorität,
-  Alternativen, Bezugsquelle.
-- **Crafting:** Ablauf als Flussdiagramm (React Flow): Schritt → Ergebnis →
-  Plan B, Kosten je Schritt und Summe.
-- **Kennzahlen:** Verlauf über die Stufen (DPS, EHP, Leben), jede Zahl mit
-  „PoB x.y.z" gekennzeichnet.
+- Dunkles Thema als Standard: Stein-Schwarz/Anthrazit, Bronze/Altgold für Rahmen
+  und Akzente, gedämpftes Blutrot für Warnungen. Helles Thema laut Plan zusätzlich.
+- Item-Seltenheiten in den vertrauten Konventionsfarben (Normal weiß, Magisch blau,
+  Selten gelb, Unique orange).
+- Schrift: Cinzel (OFL) für Überschriften, gut lesbare Sans für Text.
+- Eigene SVG-Ornamente und Rahmen, keine kopierten Spielgrafiken, keine Logos,
+  die offizielle Plattformen nachahmen. Footer-Hinweis laut GGG.
+- Kontrast nach WCAG AA. Guide-Leser so gebaut, dass er auch schmal (zweiter Bildschirm) gut lesbar ist.
+- **⚠ Annahme:** Icons aus PoB bzw. der Spieldaten dürfen in einem
+  nicht-kommerziellen Fan-Tool gezeigt werden; sonst eigene abstrakte Formen.
 
-### 3.6 Installation und Updates für Freunde
+### 3.5 `.build`-Export (Erkenntnisse aus der Recherche)
 
-- **Ein Installer** für Windows (`ExileForge-Setup.exe`, electron-builder/NSIS),
-  zum Download auf der GitHub-Releases-Seite des Repos.
-- **Automatische Updates** der App über `electron-updater` aus GitHub Releases.
-- **PoB-Daten-Updates** (neue PoB-Version nach Patch) lädt die App selbst
-  nach, ohne neuen Installer.
-- **Einrichtung in drei Schritten** (Assistent beim ersten Start):
-  1. Claude Desktop installieren und mit dem eigenen Abo einloggen (Link).
-  2. „Mit Claude verbinden" → `.mcpb` öffnen → in Claude Desktop bestätigen.
-  3. Im Claude-Chat „Plane mir einen Build" schreiben (oder `/exileforge-plan`).
-- **⚠ Annahme / Kosten:** Ohne Code-Signing-Zertifikat zeigt Windows beim
-  ersten Start eine SmartScreen-Warnung („Weitere Informationen → Trotzdem
-  ausführen"). Für einen Freundeskreis vertretbar; ein Zertifikat kostet Geld
-  pro Jahr und ist später möglich.
-- **Voraussetzung pro Freund:** eigenes Claude-Abo (Pro oder höher, **⚠
-  Annahme**: ob Free mit lokalen MCP-Erweiterungen reicht, prüfen wir) und ein
-  PC mit Windows.
+- Format „Version 1 (Experimental)": `passives[]` mit String-IDs und
+  `weapon_set`, `skills[]` mit `support_skills[]` (Pfade wie
+  `Metadata/Items/Gems/…`), `inventory_slots[]` mit Unique-Name und Hinweistext,
+  jeweils mit `level_interval` und `additional_text`. Meta-Gems werden nicht
+  unterstützt, keine Item-Werte.
+- Alle Stufen landen in einer Datei; die Progression steckt in `level_interval`.
+- Weil der Katalog die internen Spiel-IDs als kanonische IDs nutzt, entfällt die
+  in v0.2 geplante eigene Zuordnungstabelle weitgehend. **⚠ Annahme:** PoB-Daten
+  enthalten diese String-IDs; sonst ergänzt sie die Daten-Pipeline.
+- Die App bietet an, die Datei in den BuildPlanner-Ordner zu speichern; der
+  Nutzer bestätigt den Speicherort selbst. **⚠ Annahme:** `level_interval` meint das Charakterlevel;
+  im Spiel testen.
 
-### 3.7 Daten über das Spiel
+### 3.6 Datenmodell
 
-| Daten | Quelle | Bemerkung |
-| --- | --- | --- |
-| Tree, Gems, Basen, Mods, Uniques | Datendateien aus PoB-PoE2 | Gleiche Version wie der Rechenkern |
-| Zuordnung PoB-Knoten-ID → GGG-PassiveSkills-ID, Gem-Name → `Metadata/Items/Gems/…` | Aus Spieldaten erzeugt, nach jedem Patch neu | Nötig für `.build`. **⚠ Annahme:** PoB liefert die String-IDs mit; sonst eigener Extraktor (Vorbild: `poe2-build-forge`) |
-| Mod-Gewichte für Crafting | PoB-Mod-Daten, ggf. extrahierte Spieldaten | **⚠ Annahme:** reichen für Wahrscheinlichkeiten |
-| Marktpreise | poe.ninja (PoE2) | **⚠ Annahme:** stabile Schnittstelle, Bedingungen prüfen |
+Verträge als Zod-Schemas in `packages/contracts`. Wie die Typen aus v0.1 auf die
+Verträge des Plans verteilt werden, steht in [data-model.md](data-model.md).
 
-### 3.8 Export
+## 4. Repo-Struktur
 
-- **`.build`-Datei** (PoE2 ab 0.5, GGG Developer Docs, „Version 1
-  (Experimental)"): JSON mit `name`, `ascendancy`, `passives[]` (String-IDs,
-  `weapon_set`), `skills[]` mit `support_skills[]` (BaseItemTypes-Pfade),
-  `inventory_slots[]` (Slot, Unique-Name, Hinweistext), jeweils mit
-  `level_interval` und `additional_text`.
-  - Keine Item-Werte, keine Kapitel. Die Stufen bilden wir über
-    `level_interval` ab; Items als Unique-Name oder Hinweistext.
-  - Die App schreibt die Datei direkt nach
-    `Dokumente/My Games/Path of Exile 2/BuildPlanner/`.
-  - Kein Versionsfeld in der Datei: wir merken uns die Spielversion selbst.
-  - **⚠ Annahme:** `level_interval` meint das Charakterlevel. Im Spiel testen.
-- **PoB-Code** je Stufe, damit jeder alles in PoB nachprüfen kann.
+Wie im Plan (Abschnitt Repository-Struktur), mit lokalen Anpassungen:
+`apps/desktop` (Electron-Hülle, Installer, Updates), `apps/web` (React + Vite),
+`apps/server` (lokaler Fastify-Server mit API, Pipeline und MCP-Endpunkt),
+`apps/calc`, `apps/mcp-bridge` (`.mcpb`-Erweiterung), `apps/data-pipeline` (läuft in CI);
+`packages/{contracts,catalog-sdk,calc-client,llm-gateway,agents,optimizer,crafting-sim,exporters,ui}`,
+`vendor/PathOfBuilding-PoE2`, `config/`, `evals/`, `docs/adr/`.
 
-### 3.9 Patch-Neuprüfung
+## 5. Verhältnis zu v0.2 und zum Plan
 
-- Die App prüft beim Start und einmal täglich auf neue Releases von
-  PathOfBuilding-PoE2 und eine neue Spielversion.
-- Bei neuer PoB-Version (ohne Claude, nur PoB): neue Version laden, alle Builds
-  stufenweise neu rechnen, mit alten Ergebnissen vergleichen (Schwellen z. B.
-  ±5 % DPS/EHP), ungültige Teile erkennen (entfernte Gems, geänderte
-  Knoten-IDs), Zuordnungstabellen für `.build` neu erzeugen.
-- Ergebnis je Guide: „geprüft für Version X" oder „Änderungen nötig" mit
-  Bericht in der App.
-- **Korrektur mit KI:** Knopf „In Claude reparieren" kopiert einen fertigen
-  Auftrag (bzw. Prompt `/exileforge-fix <build>`); Claude holt sich den Bericht
-  über `get_build` und speichert die Korrektur. Der Freund löst das selbst im
-  Chat aus.
-- Alte Ergebnisse bleiben erhalten, damit sichtbar ist, was der Patch geändert
-  hat.
+v0.2 (PR #1) war bereits lokal mit Electron und Claude-Desktop-Erweiterung.
+v0.3 übernimmt das, ergänzt aber aus dem Plan: Katalog und Daten-Releases,
+Pipeline S0–S11 mit Gates und Score, kleine iterative Aufgaben statt eines großen
+Planungs-Prompts, Optimierer und Crafting-Simulator. Vom gehosteten Plan-Stack
+weicht v0.3 bewusst ab (ADR-0004).
 
-## 4. Repo-Struktur (geplant)
+## 6. Day-0-Readiness bis 11.12.2026
 
-```
-ExileForge/
-├─ apps/desktop/             Electron-Main, Installer, Auto-Update
-├─ apps/ui/                  React-Oberfläche (Design-Tokens, Tree, Items …)
-├─ packages/core/            Datenmodell, Prüfregeln, Crafting, Export, SQLite
-├─ packages/schema/          JSON Schema = Quelle der Wahrheit → TS-Typen
-├─ packages/mcp-server/      ExileForge-Werkzeuge als MCP-Server
-├─ packages/claude-extension/ .mcpb-Manifest, Prompts/Skill
-├─ .claude-plugin/           Claude-Code-Plugin-Marketplace
-├─ services/pob-worker/      bridge.lua, PoB-PoE2 als Submodul
-├─ examples/                 Beispiel-Builds (JSON)
-└─ docs/                     Architektur, Datenmodell, Entscheidungen
-```
+Ziel: Am Release-Tag laufen Pipeline, Katalog und Calc-Service gegen die
+aktuellen 0.5-Daten, und ein neues PoB-Release lässt sich ohne Code-Änderung
+einspielen. Reihenfolge nach der Ersten Welle des Plans:
 
-Werkzeuge: pnpm-Workspaces, Vitest, ESLint/Prettier, electron-builder,
-GitHub Actions für Release-Builds.
+| # | Aufgabe | WS | Grundlage |
+| --- | --- | --- | --- |
+| 1 | Monorepo-Gerüst (pnpm + Turborepo), CI, `contracts` v1: Catalog, CalcRPC, BuildRequest, GuideDocument | WS0 | dieses Dokument, data-model.md |
+| 2 | Calc-Service: langlebiger LuaJIT-Worker + Node-Supervisor, `build.load`, `calc.stats`, unter Windows und Linux; Messung Kaltstart/Laufzeit/Speicher | WS2 | PR #2 |
+| 3 | Daten-Pipeline (in GitHub Actions): PoB-Daten per LuaJIT nach JSON, Abbildung auf das kanonische Schema, Validierung, Diff, Daten-Release als Release-Datei | WS1 | Plan |
+| 4 | Golden Builds (Ziel 20) mit Referenzwerten aus der PoB-Oberfläche | WS2/WS9 | Fixture aus PR #2 |
+| 5 | Patch-Watcher: neues PoB-Release → Submodul-Bump-PR → Golden-Vergleich | WS1/WS2 | Plan |
+| 6 | `.build`-Exporter mit Schema-Tests | WS8 | Recherche |
+| 7 | ItemTooltip und Tree-Renderer gegen Fixture-Daten | WS7 | Design-Tokens 3.4 |
+| 8 | PoC Claude-Anbindung: `.mcpb`-Brücke + `forge.attach/next/submit` mit Dummy-Pipeline | WS8 | ADR-0003/0004 |
+| 9 | Gateway (BYOK), Eval-Gerüst | WS5/WS9 | Plan |
 
-## 5. Reihenfolge der Umsetzung (Vorschlag)
+1–5 sind für Day-0 Pflicht, 6–9 können parallel laufen und dürfen über den
+11.12. hinausgehen.
 
-1. **PoB headless Proof of Concept:** PoB-PoE2 starten, einen PoB-Code laden,
-   DPS/Leben als JSON ausgeben.
-2. **MCP Proof of Concept:** Mini-MCP-Server mit `calc_stage` als `.mcpb` in
-   Claude Desktop installieren und im Chat einen Build rechnen lassen.
-3. JSON Schema + Übersetzung Build-Stufe ⇄ PoB-XML, SQLite-Speicher.
-4. `.build`-Export und Test im Spiel.
-5. App-Gerüst mit Design-System, Build-Liste, Variantenvergleich, Tree.
-6. Planungs-Skill, Guide je Stufe, Items, Crafting mit Kosten.
-7. Installer, Auto-Update, Einrichtungsassistent; erster Test mit 1–2 Freunden.
-8. Patch-Neuprüfung.
+## 7. Offene Fragen
 
-## 6. Offene Fragen
-
-- Läuft PoB-PoE2 headless stabil, und wie schnell ist ein Rechenlauf?
-- Wie viel Abo-Kontingent verbraucht ein kompletter Guide im Chat?
-- Reicht ein Claude-Free-Konto für lokale Erweiterungen, oder brauchen Freunde
-  Pro?
-- Nutzen die Freunde eher Claude Desktop oder Claude Code? (Claude Desktop ist
-  für Nicht-Entwickler einfacher und daher der Standardweg.)
-- Woher kommen verlässliche Mod-Gewichte für Crafting-Wahrscheinlichkeiten?
-- Preisquelle und deren Nutzungsbedingungen.
-- Dürfen Tree-Icons aus PoB angezeigt werden?
+- PoC Claude-Anbindung: `.mcpb`-Brücke, Werkzeugaufrufe pro Antwort,
+  vorausgefüllter Start ([ADR-0004](adr/0004-lokal-first.md)).
+- Offene Entscheidungen des Plans, soweit lokal noch relevant (eigene
+  Datenextraktion, Sprache, Name, Kooperationen). Hosting-Budget und Betreiber-Key
+  entfallen.
+- Abo-Verbrauch pro Guide.
+- Speicherbedarf je PoB-Worker → Pool-Größe auf dem PC.
 - Code-Signing ja/nein.
-- Lizenz: PoB steht unter MIT (**⚠ Annahme**, prüfen); welche Lizenz bekommt
-  ExileForge?
+- Lizenz für ExileForge selbst (PoB: MIT).
 
 ## Quellen
 
+Siehe Projektplan, Abschnitt Quellen, zusätzlich:
+
 - Anthropic, Legal and compliance (Claude Code): https://code.claude.com/docs/en/legal-and-compliance
-- Anthropic, Agent SDK overview: https://code.claude.com/docs/en/agent-sdk/overview
-- Anthropic Support, Agent SDK mit Claude-Abo: https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan
-- Anthropic, Desktop Extensions (`.mcpb`): https://www.anthropic.com/engineering/desktop-extensions
-- Anthropic Support, Lokale MCP-Server in Claude Desktop: https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop
+- Anthropic Support, Agent SDK mit Claude-Abo: https://support.claude.com/en/articles/15036540
 - GGG Developer Docs, Build Planner: https://www.pathofexile.com/developer/docs/game
 - PathOfBuilding-PoE2: https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2
-- poe.ninja, Build Planner Export: https://poe.ninja/posts/poe2-build-planner-prototype

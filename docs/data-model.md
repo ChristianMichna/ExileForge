@@ -1,10 +1,43 @@
-# ExileForge – Datenmodell eines Builds (Entwurf v0.1)
+# ExileForge – Datenmodell eines Builds (Entwurf v0.2)
 
 Stand: 2026-11-24. Notation als TypeScript-Typen, weil das am lesbarsten ist.
-Quelle der Wahrheit wird später ein JSON Schema in `packages/schema/`, aus dem
-die Typen erzeugt werden. **⚠ Annahme** markiert ungeprüfte Punkte.
-Ein vollständiges Beispiel steht in
-[`examples/build.example.json`](../examples/build.example.json).
+Quelle der Wahrheit werden laut [Projektplan](projektplan.md) **Zod-Schemas in
+`packages/contracts`**, aus denen JSON Schema, OpenAPI und LLM-Tool-Definitionen
+erzeugt werden. **⚠ Annahme** markiert ungeprüfte Punkte.
+Ein Beispiel steht in [`examples/build.example.json`](../examples/build.example.json)
+(noch in der Struktur v0.1).
+
+## Zuordnung zu den Verträgen des Plans
+
+Dieses Modell entstand vor dem Plan. Die Typen bleiben inhaltlich gültig, werden
+aber auf die Stufen-Verträge der Build-Pipeline verteilt:
+
+| Hier (v0.1) | Vertrag im Plan | Pipeline-Stufe |
+| --- | --- | --- |
+| `BuildRequest` | `BuildRequest` (plus Ausschlüsse, Komplexitätstoleranz) | S0 |
+| – (neu) | `SkillProfile` | S1 |
+| `Variant` | `ArchetypeCandidate` (+ Skelett-Build und Vergleichsmatrix aus S3) | S2–S4 |
+| `Stage` des Endgames | `TargetBuild` | S5 |
+| `Guide.stages[]`, `TreeState`, `SkillSetup` | `ProgressionPlan` | S6 |
+| `ItemPlan`, `ItemSpec`, `ModSpec` | `GearPlan` (je Budget-Stufe) | S7 |
+| `CraftPlan`, `CraftStep` | `CraftingPlan` (Entscheidungsbaum, Monte-Carlo-Ergebnis) | S8 |
+| `Guide`, `GuideNote` | `GuideDocument` (11 Pflichtbausteine) | S9 |
+| `CheckResult` | Prüfbericht der Gates G1–G8 + Vollständigkeits-Score | S10 |
+| `ExportRecord` | Exporte (`.build`, PoB-Code je Stufe, Markdown/PDF) | S11 |
+| `Sourced<T>`, Platzhalter `{{calc…}}` | `calcRef` + Zahlen-Linter | überall |
+| `PatchStatus` | Revalidierung gegen ein neues Daten-Release (F-19) | – |
+
+Änderungen gegenüber v0.1:
+
+- **IDs:** Kanonisch sind die internen Spiel-IDs aus dem Katalog
+  (z. B. `Metadata/Items/Gems/…`, PassiveSkills-IDs), dieselben wie im
+  `.build`-Format. PoB-eigene numerische Knoten-IDs sind nur Zusatzfeld.
+  Jede Referenz muss im Katalog der Ziel-Version existieren (Gate G1).
+- **Versionen:** Statt nur `gameVersion` trägt jeder Build die
+  **Daten-Release-ID** (z. B. `poe2-1.0.0.3+r2`), die PoB-Version, Calc-Profil,
+  Modelle, Prompt-Versionen und Seeds.
+- **Calc-Profile:** Jedes `CalcResult` nennt sein Profil (`mapping`, `pinnacle`, `uber`).
+- **Stufen:** PoE2 1.0 hat Akte 1–6; Standard sind mindestens 10 Stufen.
 
 ## Grundregeln
 
@@ -107,10 +140,10 @@ interface Guide {
 
 ### Stufe
 
-Eine Stufe ist ein durchrechenbarer Stand des Charakters. Typische Aufteilung
-(**⚠ Annahme**, die KI darf feiner teilen):
-Akt 1 · Akt 2 · Akt 3 · Akt 4 · Interludien · Kampagnen-Ende ·
-Frühes Endgame · Mittleres Endgame · Ziel-Endgame.
+Eine Stufe ist ein durchrechenbarer Stand des Charakters. Standard laut Plan
+mindestens 10 Stufen (konfigurierbar in `config/`), z. B.:
+Akt 1 · Akt 2 · Akt 3 · Akt 4 · Akt 5 · Akt 6 · Übergang zu Maps · frühe Maps ·
+Atlas-Fortschritt · Pinnacle-ready · Endgame-Ausbau · optional Luxus.
 
 ```ts
 interface Stage {
@@ -257,6 +290,7 @@ interface CalcResult {
   pobVersion: string;
   gameVersion: string;
   inputHash: string;             // Hash des PoB-XML, das gerechnet wurde
+  calcProfile: "mapping" | "pinnacle" | "uber" | string; // config/calc-profiles/
   computedAt: string;
   mainSkillId: string;
   stats: {                       // feste Auswahl für Anzeige und Vergleich
@@ -319,4 +353,4 @@ interface PatchStatus {
 
 Alle Stufen landen in **einer** Datei; der Lebenslauf jedes Eintrags wird über
 `level_interval` ausgedrückt. Item-Werte, Crafting und Zahlen gehen dabei
-verloren; dafür gibt es den Guide in der App und die PoB-Codes.
+verloren; dafür gibt es den Guide in der Web-App und die PoB-Codes.
