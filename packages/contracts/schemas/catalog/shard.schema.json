@@ -135,8 +135,7 @@
               "tags",
               "requirements",
               "implicitModIds",
-              "properties",
-              "dropLevel"
+              "properties"
             ]
           }
         }
@@ -190,11 +189,15 @@
                 "maxLength": 256,
                 "description": "Classification id defined by the data release (not a fixed enum)"
               },
-              "domain": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 256,
-                "description": "Classification id defined by the data release (not a fixed enum)"
+              "domains": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Classification id defined by the data release (not a fixed enum)"
+                }
               },
               "tier": {
                 "type": "integer",
@@ -228,6 +231,32 @@
                     "statId",
                     "min",
                     "max"
+                  ]
+                }
+              },
+              "unresolved": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "unmatched",
+                        "ambiguous",
+                        "lossy",
+                        "hidden"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "reason"
                   ]
                 }
               },
@@ -272,7 +301,7 @@
               "id",
               "groups",
               "generationType",
-              "domain",
+              "domains",
               "requiredLevel",
               "stats",
               "spawnWeights"
@@ -358,6 +387,32 @@
                           "statId",
                           "min",
                           "max"
+                        ]
+                      }
+                    },
+                    "unresolved": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "text": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "unmatched",
+                              "ambiguous",
+                              "lossy",
+                              "hidden"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "reason"
                         ]
                       }
                     },
@@ -560,31 +615,6 @@
                     "min",
                     "max"
                   ]
-                }
-              },
-              "supportRules": {
-                "type": "object",
-                "properties": {
-                  "requiredTags": {
-                    "default": [],
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 256,
-                      "description": "Classification id defined by the data release (not a fixed enum)"
-                    }
-                  },
-                  "excludedTags": {
-                    "default": [],
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 256,
-                      "description": "Classification id defined by the data release (not a fixed enum)"
-                    }
-                  }
                 }
               },
               "icon": {
@@ -909,8 +939,7 @@
               "id",
               "name",
               "classId",
-              "nodeIds",
-              "pointUnlocks"
+              "nodeIds"
             ]
           }
         }
