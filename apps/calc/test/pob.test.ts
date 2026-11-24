@@ -113,6 +113,9 @@ describe.skipIf(!havePob)("calc pool with headless Path of Building", () => {
       mainSkill: res.mainSkill ?? "",
     });
     expect(picked.stats.CombinedDPS).toBe(res.stats.CombinedDPS);
+    // naming the saved main skill explicitly is the same calculation
+    expect(picked.calcId).toBe(res.calcId);
+    expect(picked.mainSkill).toBe(res.mainSkill);
     await expect(
       pool.request("calc.stats", { handle, profile: "as-saved", mainSkill: "No Such Skill Group" }),
     ).rejects.toMatchObject({ kind: "invalid_params" });

@@ -105,10 +105,9 @@ python3 -m unittest discover tests
 3. **Rechenergebnis = PoB-Konfiguration im Build.** Die Werte gelten für die im Build gespeicherten
    Einstellungen (Config-Tab: Gegner, Buffs, Ladungen, Hauptskill). Eine andere Hauptfertigkeit oder andere
    Config ändert DPS massiv. Für die Guides müssen wir diese Annahmen später bewusst setzen und anzeigen.
-4. **Gelöst in `apps/calc` (Node-Supervisor mit dauerhaften Workern, kein Python nötig):**
-   Build laden 450–650 ms, Rechnung auf geladenem Build unter 10 ms. Ursprünglich: **Ca. 2,5–3 s pro Aufruf**, fast alles davon PoB-Start (Baum + Item-Datenbank laden). Für viele
-   Varianten hintereinander (Leveling-Stufen, Item-Vergleiche) sollte später ein dauerhaft laufender
-   PoB-Prozess mehrere Builds nacheinander rechnen. Vermutung: dann deutlich unter 0,5 s pro Build.
+4. **Laufzeit pro Aufruf: gelöst in `apps/calc`.** Der Python-Wrapper braucht 2,5–3 s pro Aufruf,
+   fast alles davon PoB-Start. Der Calc-Service hält PoB dauerhaft geladen (Node-Supervisor, kein
+   Python beim Nutzer): Build laden 450–650 ms, Rechnung auf geladenem Build unter 10 ms.
 5. **Windows nativ läuft (in GitHub Actions getestet), auf einem normalen Spieler-PC noch nicht.** Details im Abschnitt
    „Windows ohne WSL“ unten.
 6. **„missing node …“-Meldungen** beim Start kommen von PoB selbst (Baumdaten), sie beeinflussen die

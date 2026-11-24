@@ -102,8 +102,11 @@ CalcPool (Node)                         PobWorker × N (LuaJIT, cwd = PoB/src)
 - `unsupportedMods`: Item-Zeilen, die PoB nicht oder nur teilweise versteht
   (`modLine.extra`, rot in PoB), und Zeilen verteilter Passives, für die PoB
   keine oder nur teilweise Mods hat (dieselbe Regel wie PoBs Tree-Tooltip).
+- `mainSkill`: das Label der Hauptgruppe, wie PoB es im Hauptskill-Menü zeigt
+  (eigenes Label oder die aktiven Skills der Gruppe). Genau dieses Label nimmt
+  `calc.stats` auch als Eingabe; mehrdeutige Labels sind `invalid_params`.
 - `calcId`: `calc-` + SHA-256 über PoB-Version, Daten-Release, Daten-Hash,
-  Profil (ID und Hash), `inputHash` und `mainSkill`. Gleiche Rechnung, gleiche
+  Profil (ID und Hash), `inputHash` und den gewählten Hauptskill. Gleiche Rechnung, gleiche
   ID; sie taugt damit als Cache-Schlüssel.
 - `inputHash`: SHA-256 des geladenen Build-XML (nach Dekodierung des Codes).
 - `dataReleaseId`: wird beim Start übergeben. Ohne veröffentlichtes
@@ -172,6 +175,14 @@ pnpm --filter @exileforge/calc test
   ein PoB-Pfad mit Umlauten und Leerzeichen.
 
 ## Offen
+
+- Vertrags-PR: Antwort-Marker `@@EXILEFORGE_RPC@@` im Kommentar von
+  `calc/rpc.ts` festhalten und das Profil-Dateiformat (`CalcProfileFile`) nach
+  `packages/contracts` verschieben.
+- Echtes Daten-Release durchreichen, sobald die App Daten-Releases lädt; bis
+  dahin meldet der Worker `+r0` (lokal).
+- Windows-Benutzerpfade außerhalb der ANSI-Codepage (LuaJIT öffnet Dateien
+  über ANSI-APIs): mit dem Installer-Ticket prüfen.
 
 - Weitere RPC-Methoden (siehe oben), Ergebnis-Cache (`calcId` ist der Schlüssel).
 - PoB als Submodul `vendor/PathOfBuilding-PoE2` und `luajit.exe` als

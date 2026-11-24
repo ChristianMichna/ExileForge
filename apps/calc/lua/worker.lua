@@ -257,23 +257,35 @@ local function applyProfile(profileId)
 	return profile
 end
 
+-- Main skill = PoB's socket group label (the name in PoB's main skill
+-- dropdown: the user's label or the group's active skills). calc.stats
+-- reports the same label back, so a result's mainSkill can be passed in again.
+local function groupLabel(group)
+	return group and (group.displayLabel or group.label) or nil
+end
+
 local function selectMainSkill(mainSkill)
 	if not mainSkill then
 		return
 	end
-	local labels = {}
+	local labels, matches = {}, {}
 	for index, group in ipairs(build.skillsTab.socketGroupList) do
-		local label = group.displayLabel or group.label
+		local label = groupLabel(group)
 		if label == mainSkill then
-			build.mainSocketGroup = index
-			build.buildFlag = true
-			return
+			matches[#matches + 1] = index
 		end
 		if label then
 			labels[#labels + 1] = label
 		end
 	end
-	fail("invalid_params", "Main skill not found in the build", mainSkill .. "; available: " .. table.concat(labels, ", "))
+	if #matches == 0 then
+		fail("invalid_params", "Main skill not found in the build", mainSkill .. "; available: " .. table.concat(labels, ", "))
+	end
+	if #matches > 1 then
+		fail("invalid_params", "Main skill is ambiguous: several skill groups have this label", mainSkill)
+	end
+	build.mainSocketGroup = matches[1]
+	build.buildFlag = true
 end
 
 local function getState(handle)
@@ -316,13 +328,11 @@ end
 -- ---------------------------------------------------------------- results
 
 local function currentMainSkill()
-	local env = build.calcsTab.mainEnv
-	local active = env and env.player and env.player.mainSkill
-	if active and active.activeEffect and active.activeEffect.grantedEffect then
-		return active.activeEffect.grantedEffect.name
-	end
-	local group = build.skillsTab.socketGroupList[build.mainSocketGroup]
-	return group and (group.displayLabel or group.label) or nil
+	return groupLabel(build.skillsTab.socketGroupList[build.mainSocketGroup])
+end
+
+local function stripColors(text)
+	return (tostring(text):gsub("%^x%x%x%x%x%x%x", ""):gsub("%^%d", ""))
 end
 
 local MOD_LINE_LISTS = { "buffModLines", "enchantModLines", "runeModLines", "implicitModLines", "explicitModLines" }
@@ -391,7 +401,7 @@ local function buildWarnings()
 		fail("calc_failed", "Path of Building's warning list is missing", "build.controls.warnings.lines")
 	end
 	for _, line in pairs(control.lines) do
-		out[#out + 1] = tostring(line)
+		out[#out + 1] = stripColors(line)
 	end
 	table.sort(out)
 	return out
@@ -461,7 +471,7 @@ methods["calc.stats"] = function(params)
 	local pobVersion = tostring(launch.versionNumber)
 	local mainSkill = currentMainSkill()
 	local calcId = "calc-" .. sha2.sha256(table.concat({
-		pobVersion, dataReleaseId, init.dataHash, profile, profileHash, state.inputHash, params.mainSkill or "",
+		pobVersion, dataReleaseId, init.dataHash, profile, profileHash, state.inputHash, mainSkill or "",
 	}, "\n")):sub(1, 40)
 	return {
 		calcId = calcId,
