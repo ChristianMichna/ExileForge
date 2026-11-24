@@ -175,6 +175,25 @@ describe("StatMatcher.match", () => {
     });
   });
 
+  it("reports a value-less text whose stat may be any value as hidden, not matched", () => {
+    const m = new StatMatcher({
+      "h:1": {
+        scope: "h",
+        order: 1,
+        stats: ["fake_any"],
+        tradeHash: 5,
+        variants: [{ limit: [["#", "#"]], text: "Does a Thing", handlers: [] }],
+      },
+    });
+    expect(m.match("Does a Thing", "h")).toEqual({
+      status: "hidden",
+      line: "Does a Thing",
+      descriptionId: "h:1",
+      statIds: ["fake_any"],
+    });
+    expect(m.matchByHash(5, ["Does a Thing"], "h")).toMatchObject({ status: "hidden" });
+  });
+
   it("reports two descriptions with the same text as ambiguous", () => {
     expect(matcher.match("15% increased Glow", "base")).toEqual({
       status: "ambiguous",

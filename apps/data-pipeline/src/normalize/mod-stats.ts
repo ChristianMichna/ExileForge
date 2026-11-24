@@ -15,7 +15,10 @@ export interface ModStatResult {
   modId: string;
   stats: StatValue[];
   /** lines whose stats could not be determined; kept visible, never dropped */
-  unresolved: { lines: string[]; reason: "unmatched" | "ambiguous" | "lossy" | "no-trade-hash" }[];
+  unresolved: {
+    lines: string[];
+    reason: "unmatched" | "ambiguous" | "lossy" | "hidden" | "no-trade-hash";
+  }[];
 }
 
 export interface ModStatSummary {

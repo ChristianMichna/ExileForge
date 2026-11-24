@@ -48,6 +48,8 @@ export type MatchResult =
   | { status: "matched"; descriptionId: string; stats: StatValue[] }
   /** the description is known but the display rounds, so raw values are not exact */
   | { status: "lossy"; line: string; descriptionId: string }
+  /** the description is known but its text shows no value, so the stat value is unknown */
+  | { status: "hidden"; line: string; descriptionId: string; statIds: string[] }
   | { status: "unmatched"; line: string }
   | { status: "ambiguous"; line: string; descriptionIds: string[] };
 
@@ -110,7 +112,8 @@ const INVERSE: Readonly<Record<string, Inverse | "noop">> = {
 
 // PoB's round(x, n) and floor(x, n) (Modules/Common.lua)
 const pobRound = (x: number, n = 0) => Math.floor(x * 10 ** n + 0.5) / 10 ** n;
-const pobFloor = (x: number, n = 0) => Math.floor(x * 10 ** n) / 10 ** n;
+// PoB adds 0.0001 before flooring
+const pobFloor = (x: number, n = 0) => Math.floor(x * 10 ** n + 0.0001) / 10 ** n;
 
 /**
  * Display handlers that round (PoB's applySpecial). Their inverse is only
@@ -214,6 +217,15 @@ function round(v: number): number {
   return Math.round(v * 1e6) / 1e6;
 }
 
+function hiddenResult(line: string, cv: CompiledVariant): MatchResult {
+  return {
+    status: "hidden",
+    line,
+    descriptionId: cv.descriptionId,
+    statIds: [...cv.description.stats],
+  };
+}
+
 export class StatMatcher {
   private readonly byScope = new Map<string, CompiledVariant[]>();
   /** PoB trade hash -> compiled variants of the descriptions with that hash */
@@ -268,7 +280,10 @@ export class StatMatcher {
     return chain;
   }
 
-  private tryVariant(cv: CompiledVariant, line: string): StatValue[] | "lossy" | undefined {
+  private tryVariant(
+    cv: CompiledVariant,
+    line: string,
+  ): StatValue[] | "lossy" | "hidden" | undefined {
     if (!cv.usable) return undefined;
     const m = cv.regex.exec(line);
     if (!m) return undefined;
@@ -352,6 +367,9 @@ export class StatMatcher {
     // raw stat values in PoB's mod data are whole numbers; a fraction means the display was rounded
     if (lossy || stats.some((st) => !Number.isInteger(st.min) || !Number.isInteger(st.max)))
       return "lossy";
+    // PoB only renders a description if some stat is non-zero; if none is
+    // determined, the value is hidden in the text and must not count as known
+    if (!stats.some((st) => st.min !== 0 || st.max !== 0)) return "hidden";
     for (const st of stats) {
       if (st.min > st.max)
         throw new Error(`internal: ${cv.descriptionId} produced min > max for ${st.statId}`);
@@ -401,12 +419,15 @@ export class StatMatcher {
       (a, b) => chain.indexOf(a.description.scope) - chain.indexOf(b.description.scope),
     );
     let lossy: string | undefined;
+    let hidden: CompiledVariant | undefined;
     for (const cv of candidates) {
       const stats = this.tryVariant(cv, text);
       if (stats === "lossy") lossy ??= cv.descriptionId;
+      else if (stats === "hidden") hidden ??= cv;
       else if (stats) return { status: "matched", descriptionId: cv.descriptionId, stats };
     }
     if (lossy) return { status: "lossy", line: text, descriptionId: lossy };
+    if (hidden) return hiddenResult(text, hidden);
     return { status: "unmatched", line: text };
   }
 
@@ -415,13 +436,20 @@ export class StatMatcher {
     for (const s of this.scopeChain(scope)) {
       const hits = new Map<string, StatValue[]>();
       let lossy: string | undefined;
+      const hidden: CompiledVariant[] = [];
       for (const cv of this.index.get(s)?.get(shapeKey(line)) ?? []) {
         if (hits.has(cv.descriptionId)) continue;
         const stats = this.tryVariant(cv, line);
         if (stats === "lossy") lossy ??= cv.descriptionId;
+        else if (stats === "hidden") hidden.push(cv);
         else if (stats) hits.set(cv.descriptionId, stats);
       }
       if (hits.size === 0 && lossy) return { status: "lossy", line, descriptionId: lossy };
+      if (hits.size === 0 && hidden.length > 0) {
+        const ids = [...new Set(hidden.map((h) => h.descriptionId))].sort();
+        if (ids.length > 1) return { status: "ambiguous", line, descriptionIds: ids };
+        return hiddenResult(line, hidden[0] as CompiledVariant);
+      }
       if (hits.size === 1) {
         const [[descriptionId, stats]] = [...hits] as [[string, StatValue[]]];
         return { status: "matched", descriptionId, stats };

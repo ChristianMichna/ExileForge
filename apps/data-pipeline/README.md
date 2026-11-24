@@ -81,10 +81,11 @@ den Text auf Stat-IDs und Rohwerte zurück, ausschließlich mit PoB-Daten:
    wird geraten.
 
 `exileforge-data stat-coverage <snapshot> [--out unresolved.json]` meldet die
-Abdeckung. Stand PoB 0.23.1: 94,0 % der Zeilengruppen, 93,7 % der Mods voll
-aufgelöst. Offen: 435 ohne passende Beschreibung (vor allem Radius-Jewel-Mods,
-deren Hash einen Zusatz-Stat enthält), 138 verlustbehaftet gerundet,
-14 mehrdeutig.
+Abdeckung. Stand PoB 0.23.1: 86,5 % der Zeilengruppen, 85,7 % der Mods voll
+aufgelöst. Offen: 741 `hidden` (Text ohne Zahl, z. B. reine Effekt-Zeilen; der
+Stat-Wert ist darin nicht sichtbar, die Stat-IDs stehen dabei), 435 ohne
+passende Beschreibung (vor allem Radius-Jewel-Mods, deren Hash einen
+Zusatz-Stat enthält), 138 verlustbehaftet gerundet, 14 mehrdeutig.
 
 ## Rechtliches
 
