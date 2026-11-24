@@ -177,7 +177,7 @@ export function rawSnapshot() {
           orbit: 1,
           orbitIndex: 2,
           stats: ["10% more Node Power", "Something unknowable"],
-          connections: [{ id: 1 }],
+          connections: [{ id: 1 }, { id: 5, orbit: 0 }],
         },
       },
       "3": {
@@ -189,6 +189,18 @@ export function rawSnapshot() {
           ascendancyName: "Fake Ascent",
           group: 2,
           orbit: 0,
+          orbitIndex: 0,
+          stats: {},
+          connections: {},
+        },
+      },
+      "5": {
+        kind: "node",
+        data: {
+          skill: 5,
+          name: "Ring",
+          group: 1,
+          orbit: 1,
           orbitIndex: 0,
           stats: {},
           connections: {},

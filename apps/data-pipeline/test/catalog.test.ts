@@ -219,14 +219,16 @@ describe("normalizeCatalog", () => {
   });
 
   it("places nodes from group centre and orbit tables, with arcs and groups", () => {
+    // connection orbit -1: centre on the right of the chord 1 → 2, as in PoB
     expect(byId(entities.passiveNode, "1")).toMatchObject({
       position: { groupId: "1", orbit: 0, orbitIndex: 0, point: { x: 100, y: 200 } },
-      arcs: [{ to: "2", radius: 10, side: -1 }],
+      arcs: [{ to: "2", center: { x: 91.34, y: 205 }, radius: 10 }],
     });
-    // orbit 1, angle π: below the centre (y grows downwards)
+    // orbit 1, angle π: below the centre (y grows downwards); connection orbit
+    // 0 on the same orbit of the same group: arc around the group centre
     expect(byId(entities.passiveNode, "2")).toMatchObject({
       position: { point: { x: 100, y: 210 } },
-      arcs: [],
+      arcs: [{ to: "5", center: { x: 100, y: 200 }, radius: 10 }],
     });
     expect(entities.passiveGroup).toEqual([
       { id: "1", center: { x: 100, y: 200 }, orbitRadii: [0, 10] },
@@ -234,7 +236,35 @@ describe("normalizeCatalog", () => {
     ]);
   });
 
-  it("leaves a node without point and reports it when its orbit is unknown", () => {
+  const withConnection = (orbit: number, orbitIndex = 2) => {
+    const raw = rawSnapshot();
+    const n1 = raw.passiveTree["1"] as { data: Record<string, unknown> };
+    n1.data = { ...n1.data, connections: [{ id: 2, orbit }] };
+    const n2 = raw.passiveTree["2"] as { data: Record<string, unknown> };
+    n2.data = { ...n2.data, orbitIndex, connections: [] };
+    return run(raw);
+  };
+
+  it("puts the arc centre on the other side for a positive connection orbit", () => {
+    expect(byId(withConnection(1).entities.passiveNode, "1")).toMatchObject({
+      arcs: [{ to: "2", center: { x: 108.66, y: 205 }, radius: 10 }],
+    });
+  });
+
+  it("draws straight lines where PoB does, without warnings", () => {
+    // orbit unknown to the constants (PoB data uses a placeholder value)
+    const unknown = withConnection(2147483647);
+    expect(byId(unknown.entities.passiveNode, "1")).toMatchObject({ arcs: [], connections: ["2"] });
+    expect(unknown.warnings.filter((w) => /orbit/.test(w.message))).toEqual([]);
+    // same orbit across groups would need an arc; nodes further apart than the
+    // diameter of the connection orbit stay straight
+    const raw = rawSnapshot();
+    const n3 = raw.passiveTree["3"] as { data: Record<string, unknown> };
+    n3.data = { ...n3.data, connections: [{ id: 1, orbit: 1 }] };
+    expect(byId(run(raw).entities.passiveNode, "3")).toMatchObject({ arcs: [] });
+  });
+
+  it("leaves a node without point and names the reason when its orbit is unknown", () => {
     const raw = rawSnapshot();
     const node = raw.passiveTree["2"] as { data: Record<string, unknown> };
     node.data = { ...node.data, orbit: 5 };
@@ -244,7 +274,17 @@ describe("normalizeCatalog", () => {
     expect(res.warnings).toContainEqual({
       kind: "passiveNode",
       id: "2",
-      message: "no tree position (group or orbit missing in source)",
+      message: "no tree position: orbit 5 index 2 not in the tree constants",
+    });
+  });
+
+  it("reports a group without centre as an error", () => {
+    const raw = rawSnapshot();
+    raw.passiveTree["group:2"] = { kind: "group", data: { orbits: [0] } };
+    expect(run(raw).errors).toContainEqual({
+      kind: "passiveGroup",
+      id: "2",
+      message: "source has no x/y",
     });
   });
 
@@ -271,14 +311,16 @@ describe("normalizeCatalog", () => {
     expect(res.warnings.filter((w) => w.id === "4")).toEqual([]);
   });
 
-  it("reports missing tree constants as an error", () => {
+  it("reports missing tree constants once as an error, not per node", () => {
     const raw = rawSnapshot();
     delete raw.passiveTree.constants;
-    expect(run(raw).errors).toContainEqual({
+    const res = run(raw);
+    expect(res.errors).toContainEqual({
       kind: "passiveGroup",
       id: "constants",
       message: "source has no tree constants",
     });
+    expect(res.warnings.filter((w) => w.message.startsWith("no tree position"))).toEqual([]);
   });
 
   it("builds stat translations, keeps every format code and counts what is skipped", () => {
@@ -359,6 +401,21 @@ describe("validateCatalog", () => {
     expect(errors.map((e) => e.message)).toEqual(
       expect.arrayContaining(["duplicate id", expect.stringMatching(/^contract: stats\.0\.max/)]),
     );
+  });
+
+  it("reports a node in an unknown group and an arc that is not a connection", () => {
+    const { entities } = run();
+    const node = byId<{ id: string; position: { groupId: string }; arcs: unknown[] }>(
+      entities.passiveNode,
+      "3",
+    );
+    if (!node) throw new Error("fixture node 3 missing");
+    node.position.groupId = "404";
+    node.arcs = [{ to: "1", center: { x: 0, y: 0 }, radius: 10 }];
+    expect(validateCatalog(entities).errors).toEqual([
+      { kind: "passiveNode", id: "3", message: 'position.groupId → unknown passiveGroup "404"' },
+      { kind: "passiveNode", id: "3", message: "arcs → 1 is not a connection" },
+    ]);
   });
 
   it("does not resolve references to an entity that violates its contract", () => {

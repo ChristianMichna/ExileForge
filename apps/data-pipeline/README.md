@@ -114,15 +114,22 @@ IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
 | Klasse / Aufstieg | Name bzw. PoB-interne Aufstiegs-ID            |
 | Stat-Text         | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
 
-Tree-Geometrie: Jede Passive bekommt `position.point` (Baum-Einheiten, y nach
-unten), berechnet wie in PoBs `PassiveTree:ProcessNode` aus Gruppenmitte,
-`constants.orbitRadii` und `constants.orbitAnglesByOrbit`. Verbindungen mit
-Orbit ungleich 0 werden zu `arcs` (Radius des Orbits, Seite = Vorzeichen), wenn
-die Knoten näher als der Durchmesser liegen; sonst zeichnet PoB eine Gerade.
-`passiveGroup` hält Gruppenmitte und Orbit-Radien für die Darstellung. Werte
-sind auf 0,001 gerundet, damit Diffs stabil bleiben. Fehlen die Konstanten,
-ist das ein Fehler; fehlt einem Knoten Gruppe oder Orbit, eine Warnung und der
-Knoten bleibt ohne `point` (nie `0,0`).
+Tree-Geometrie (wie PoBs `Classes/PassiveTree.lua`): Jede Passive bekommt
+`position.point` (Baum-Einheiten, y nach unten) aus Gruppenmitte,
+`constants.orbitRadii` und `constants.orbitAnglesByOrbit` (`ProcessNode`).
+`arcs` hält die Bögen aus `BuildConnector` mit Mittelpunkt und Radius (immer
+der kürzere Bogen): Verbindungen mit Orbit ≠ 0 bei Abstand unter dem
+Durchmesser, und Verbindungen mit Orbit 0 auf demselben Orbit derselben
+Gruppe (Bogen um die Gruppenmitte). Alles andere zeichnet PoB gerade,
+auch Verbindungen mit einem Orbit, den die Konstanten nicht kennen
+(PoB-Platzhalterwert); das ist kein Befund. Wie PoB zeichnen Renderer keine
+Verbindung in einen Klassenstart oder zwischen verschiedenen Aufstiegsklassen.
+Reine Bildknoten (`isOnlyImage`) heißen `decoration` und haben wie in PoB
+keine Verbindungen. `passiveGroup` hält Gruppenmitte und Orbit-Radien nur für
+die Darstellung; die ID ist PoBs Layout-Index und wird von Builds nie
+referenziert. Gespeicherte Werte sind auf 0,001 gerundet (Zwischenwerte nicht).
+Fehlen die Konstanten, ist das ein Fehler; kann ein Knoten nicht platziert
+werden, eine Warnung mit Grund, und er bleibt ohne `point` (nie `0,0`).
 
 `findings.json` enthält:
 

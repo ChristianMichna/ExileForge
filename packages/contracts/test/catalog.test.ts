@@ -162,15 +162,14 @@ describe("entities", () => {
     const withGeometry = PassiveNode.parse({
       ...node,
       position: { ...node.position, point: { x: -1.5, y: 2 } },
-      arcs: [{ to: "2", radius: 10, side: -1 }],
+      arcs: [{ to: "2", center: { x: 0, y: 5 }, radius: 10 }],
     });
     expect(withGeometry.position.point).toEqual({ x: -1.5, y: 2 });
     expect(
-      PassiveNode.safeParse({ ...node, arcs: [{ to: "2", radius: 0, side: 1 }] }).success,
+      PassiveNode.safeParse({ ...node, arcs: [{ to: "2", center: { x: 0, y: 0 }, radius: 0 }] })
+        .success,
     ).toBe(false);
-    expect(
-      PassiveNode.safeParse({ ...node, arcs: [{ to: "2", radius: 5, side: 0 }] }).success,
-    ).toBe(false);
+    expect(PassiveNode.safeParse({ ...node, arcs: [{ to: "2", radius: 5 }] }).success).toBe(false);
   });
 
   it("passive groups need a centre and non-negative orbit radii", () => {

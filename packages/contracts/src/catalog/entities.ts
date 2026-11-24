@@ -163,21 +163,21 @@ export const TreePoint = z.object({ x: z.number(), y: z.number() });
 export type TreePoint = z.infer<typeof TreePoint>;
 
 /**
- * Curved connection to another node: a circular arc of `radius` tree units.
- * The centre lies on the `side` (+1 or -1) of the chord from this node to
- * `to`, as defined by the source data (sign of the connection's orbit).
+ * Curved connection to another node: the shorter circular arc (at most half
+ * a circle) around `center` with `radius` tree units, from this node to `to`.
  */
 export const PassiveArc = z.object({
   to: PassiveNodeId,
+  center: TreePoint,
   radius: z.number().positive(),
-  side: z.union([z.literal(1), z.literal(-1)]),
 });
 export type PassiveArc = z.infer<typeof PassiveArc>;
 
 /**
- * Cluster of passive nodes around a common centre. Nodes refer to it by
- * `position.groupId`; `orbitRadii` lists the radii (tree units) of the
- * orbits its nodes sit on, for drawing.
+ * Cluster of passive nodes around a common centre, for drawing only. Nodes
+ * refer to it by `position.groupId`; `orbitRadii` lists the radii (tree
+ * units) of the orbits its nodes sit on. The id is the source's layout index,
+ * not a stable game id: builds and guides never reference groups.
  */
 export const PassiveGroup = z.object({
   id: z.string().min(1),
@@ -208,7 +208,9 @@ export const PassiveNode = z.object({
   connections: z.array(PassiveNodeId),
   /**
    * Connections drawn as an arc instead of a straight line, in the release's
-   * own geometry. Each target also appears in `connections`.
+   * own geometry. Each target also appears in `connections`. Like the source
+   * tool, renderers draw no connection into a class start or between
+   * different ascendancies; the arc data may still be present for those.
    */
   arcs: z.array(PassiveArc).default([]),
   classStartFor: z.array(CharacterClassId).default([]),
