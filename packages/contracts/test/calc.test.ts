@@ -48,6 +48,7 @@ describe("CalcMethods", () => {
       pobVersion: "v9.9.9",
       gameVersion: "9.8.7",
       dataReleaseId: "poe2-9.8.7+r3",
+      dataHash: "b".repeat(64),
     });
     expect(v.protocolVersion).toBe(CALC_PROTOCOL_VERSION);
   });
@@ -120,7 +121,7 @@ describe("result validation", () => {
       base: calcResult,
       results: [
         { key: "a", ok: true, calcId: "calc-2", deltas: { FixtureStatA: 0.5 } },
-        { key: "b", ok: false, error: "patch failed" },
+        { key: "b", ok: false, error: { kind: "calc_failed", detail: "patch failed" } },
       ],
     });
     expect(r.results.map((x) => x.ok)).toEqual([true, false]);

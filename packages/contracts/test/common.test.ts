@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
 import {
   CalcRef,
@@ -10,7 +10,7 @@ import {
   parseDataReleaseId,
   sourced,
 } from "../src/index.js";
-import type { ModId } from "../src/index.js";
+import type { Measured, ModId, Sourced } from "../src/index.js";
 import { without } from "./helpers.js";
 
 const pobSource = {
@@ -98,6 +98,17 @@ describe("Source", () => {
 
   it("requires a calc profile on PoB numbers", () => {
     expect(Source.safeParse(without(pobSource, "calcProfile")).success).toBe(false);
+  });
+});
+
+describe("hand-written generic types match the schema factories", () => {
+  it("Sourced<number> and Measured<number>", () => {
+    expectTypeOf<z.infer<ReturnType<typeof sourced<z.ZodNumber>>>>().toEqualTypeOf<
+      Sourced<number>
+    >();
+    expectTypeOf<z.infer<ReturnType<typeof measured<z.ZodNumber>>>>().toEqualTypeOf<
+      Measured<number>
+    >();
   });
 });
 

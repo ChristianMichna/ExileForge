@@ -49,7 +49,12 @@ LuaJIT-Workers. Der Worker meldet beim Start `meta.version` mit
 `protocolVersion`; der Supervisor lehnt Abweichungen ab. Build-Zustände sind
 unveränderlich: `build.applyPatch` liefert einen neuen Handle. Fehler tragen
 `data.kind` (`timeout`, `worker_crashed`, `calc_failed` …), nie einen
-Ersatzwert. `calc.evalBatch` meldet Fehler je Kandidat einzeln.
+Ersatzwert. `calc.evalBatch` meldet Fehler je Kandidat einzeln (`CalcErrorKind`).
+Die `calcId` eines Kandidaten (Batch, Node-/Item-Power) dient nur Log und
+Cache; sie ist kein Ziel eines `CalcRef`. Zahlen im Guide stammen immer aus
+einem vollen `calc.stats`. `meta.version` liefert zusätzlich `dataHash` der
+geladenen PoB-Daten für Cache-Schlüssel. Feste Protokollgrenzen:
+`MAX_BUILD_PAYLOAD_CHARS` (Build-Payload) und 20 000 Zeichen je Item-Text.
 
 ## Befehle
 

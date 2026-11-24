@@ -54,7 +54,9 @@
         },
         "diffPath": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+          "description": "Asset path relative to the data release root"
         }
       },
       "required": [
@@ -88,7 +90,9 @@
           },
           "path": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+            "description": "Asset path relative to the data release root"
           },
           "sha256": {
             "type": "string",

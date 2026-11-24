@@ -126,8 +126,28 @@
                 "const": false
               },
               "error": {
-                "type": "string",
-                "minLength": 1
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "invalid_params",
+                      "unknown_method",
+                      "unknown_handle",
+                      "build_load_failed",
+                      "calc_failed",
+                      "timeout",
+                      "worker_crashed",
+                      "protocol_mismatch"
+                    ]
+                  },
+                  "detail": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
               }
             },
             "required": [

@@ -6,6 +6,7 @@ import {
   DataReleaseId,
   GameVersion,
   PobVersion,
+  Sha256,
 } from "../common/version.js";
 import { CalcResult, StatMap } from "./result.js";
 
@@ -73,6 +74,26 @@ export const PatchOp = z.discriminatedUnion("op", [
 ]);
 export type PatchOp = z.infer<typeof PatchOp>;
 
+/** Error kinds the worker and supervisor report; JSON-RPC codes stay generic. */
+export const CalcErrorKind = z.enum([
+  "invalid_params",
+  "unknown_method",
+  "unknown_handle",
+  "build_load_failed",
+  "calc_failed",
+  "timeout",
+  "worker_crashed",
+  "protocol_mismatch",
+]);
+export type CalcErrorKind = z.infer<typeof CalcErrorKind>;
+
+const CandidateError = z.object({ kind: CalcErrorKind, detail: z.string().optional() });
+
+/*
+ * Candidate calcIds in evalBatch/nodePower/itemPower identify the candidate
+ * calculation for logs and caching only. They have no CalcResult and are not
+ * targets of a CalcRef; numbers shown in a guide come from a full calc.stats.
+ */
 const Deltas = StatMap.describe("Metric -> change against the base state");
 
 const method = <P extends z.ZodType, R extends z.ZodType>(params: P, result: R) => ({
@@ -90,6 +111,8 @@ export const CalcMethods = {
       /** Game version PoB declares as supported. */
       gameVersion: GameVersion,
       dataReleaseId: DataReleaseId,
+      /** Hash of the game data PoB has loaded; part of every cache key. */
+      dataHash: Sha256,
     }),
   ),
   "build.load": method(
@@ -127,7 +150,7 @@ export const CalcMethods = {
       results: z.array(
         z.discriminatedUnion("ok", [
           z.object({ key: z.string(), ok: z.literal(true), calcId: CalcId, deltas: Deltas }),
-          z.object({ key: z.string(), ok: z.literal(false), error: z.string().min(1) }),
+          z.object({ key: z.string(), ok: z.literal(false), error: CandidateError }),
         ]),
       ),
     }),
@@ -207,19 +230,6 @@ export const CalcRequest = z.object({
   params: z.unknown(),
 });
 export type CalcRequest = z.infer<typeof CalcRequest>;
-
-/** Error kinds the worker and supervisor report; JSON-RPC codes stay generic. */
-export const CalcErrorKind = z.enum([
-  "invalid_params",
-  "unknown_method",
-  "unknown_handle",
-  "build_load_failed",
-  "calc_failed",
-  "timeout",
-  "worker_crashed",
-  "protocol_mismatch",
-]);
-export type CalcErrorKind = z.infer<typeof CalcErrorKind>;
 
 export const CalcError = z.object({
   code: z.int(),

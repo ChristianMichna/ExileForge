@@ -7,9 +7,10 @@ import {
   IsoDateTime,
   PobVersion,
   Sha256,
-  parseDataReleaseId,
+  DATA_RELEASE_ID_PATTERN,
 } from "../common/version.js";
 import {
+  AssetPath as RelativePath,
   Ascendancy,
   BaseItem,
   CharacterClass,
@@ -35,10 +36,13 @@ export const DataRelease = z
     createdAt: IsoDateTime,
     previousReleaseId: DataReleaseId.optional(),
     /** Path of the CatalogDiff against previousReleaseId, inside the release. */
-    diffPath: z.string().min(1).optional(),
+    diffPath: RelativePath.optional(),
   })
   .superRefine((r, ctx) => {
-    const parsed = parseDataReleaseId(r.id);
+    // The id field has its own regex issue; never throw inside validation.
+    const match = DATA_RELEASE_ID_PATTERN.exec(r.id);
+    if (!match) return;
+    const parsed = { gameVersion: match[1], revision: Number(match[2]) };
     if (parsed.gameVersion !== r.gameVersion) {
       ctx.addIssue({ code: "custom", path: ["gameVersion"], message: "does not match id" });
     }
@@ -81,7 +85,7 @@ export const CatalogManifest = z
     shards: z.array(
       z.object({
         kind: EntityKind,
-        path: z.string().min(1),
+        path: RelativePath,
         sha256: Sha256,
         count: z.int().nonnegative(),
       }),
@@ -114,10 +118,12 @@ export const KindDiff = z.object({
 export type KindDiff = z.infer<typeof KindDiff>;
 
 /** Machine-readable diff between two data releases (basis for F-19 revalidation). */
-export const CatalogDiff = z.object({
-  schemaVersion: z.literal(CATALOG_SCHEMA_VERSION),
-  from: DataReleaseId,
-  to: DataReleaseId,
-  kinds: z.partialRecord(EntityKind, KindDiff),
-});
+export const CatalogDiff = z
+  .object({
+    schemaVersion: z.literal(CATALOG_SCHEMA_VERSION),
+    from: DataReleaseId,
+    to: DataReleaseId,
+    kinds: z.partialRecord(EntityKind, KindDiff),
+  })
+  .refine((d) => d.from !== d.to, { message: "from and to must differ", path: ["to"] });
 export type CatalogDiff = z.infer<typeof CatalogDiff>;

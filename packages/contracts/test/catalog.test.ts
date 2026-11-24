@@ -7,6 +7,7 @@ import {
   CatalogShard,
   DataRelease,
   StatRange,
+  StatTranslation,
 } from "../src/index.js";
 import { without } from "./helpers.js";
 
@@ -56,6 +57,16 @@ describe("DataRelease", () => {
     expect(DataRelease.safeParse(without(validRelease, "previousReleaseId")).success).toBe(false);
   });
 
+  it("reports an invalid id as issue instead of throwing", () => {
+    const r = DataRelease.safeParse({ ...validRelease, id: "bogus" });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => i.path.join("."))).toContain("id");
+  });
+
+  it("rejects diff paths that escape the release", () => {
+    expect(DataRelease.safeParse({ ...validRelease, diffPath: "../x.json" }).success).toBe(false);
+  });
+
   it("rejects malformed source hashes", () => {
     const r = DataRelease.safeParse({ ...validRelease, sourceHashes: { x: "abc" } });
     expect(r.success).toBe(false);
@@ -83,6 +94,23 @@ describe("entities", () => {
     expect(BaseItem.safeParse({ ...base, icon: "/abs.png" }).success).toBe(false);
   });
 
+  it("property ranges require min <= max", () => {
+    const props = { fixture_range: { min: 3, max: 1 } };
+    expect(BaseItem.safeParse({ ...base, properties: props }).success).toBe(false);
+  });
+
+  it("StatTranslation needs one condition per stat", () => {
+    const t = {
+      id: "fixture_translation",
+      statIds: ["fixture_stat_a", "fixture_stat_b"],
+      lang: "en",
+      variants: [{ conditions: [{}], template: "Fixture {0} {1}" }],
+    };
+    expect(StatTranslation.safeParse(t).success).toBe(false);
+    const ok = { ...t, variants: [{ conditions: [{}, {}], template: "Fixture {0} {1}" }] };
+    expect(StatTranslation.safeParse(ok).success).toBe(true);
+  });
+
   it("StatRange requires min <= max", () => {
     expect(StatRange.safeParse({ statId: "s", min: 2, max: 1 }).success).toBe(false);
     expect(StatRange.safeParse({ statId: "s", min: 1, max: 1 }).success).toBe(true);
@@ -97,6 +125,11 @@ describe("CatalogDiff", () => {
     const field = d.kinds.mod.changed[0]?.fields[0];
     if (!field) throw new Error("fixture changed");
     field.path = "stats.0.max";
+    expect(CatalogDiff.safeParse(d).success).toBe(false);
+  });
+
+  it("rejects a diff of a release against itself", () => {
+    const d = { ...(fixture.diff as object), to: "poe2-9.8.7+r2" };
     expect(CatalogDiff.safeParse(d).success).toBe(false);
   });
 

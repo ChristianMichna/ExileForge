@@ -28,7 +28,7 @@ import { JsonValue } from "../common/json.js";
 const name = z.string().min(1).describe("Display name in the release's default language");
 const nonNegInt = z.int().nonnegative();
 
-/** Path of an asset (icon, sprite) inside the data release. */
+/** Path of a file (asset, shard, diff) inside the data release. */
 export const AssetPath = z
   .string()
   .min(1)
@@ -43,7 +43,12 @@ export const StatRange = z
 export type StatRange = z.infer<typeof StatRange>;
 
 /** Value of a base property: fixed or a range (e.g. weapon damage). */
-export const PropertyValue = z.union([z.number(), z.object({ min: z.number(), max: z.number() })]);
+export const PropertyValue = z.union([
+  z.number(),
+  z
+    .object({ min: z.number(), max: z.number() })
+    .refine((r) => r.min <= r.max, { message: "min must be <= max", path: ["max"] }),
+]);
 export type PropertyValue = z.infer<typeof PropertyValue>;
 
 export const Requirements = z.object({
@@ -201,28 +206,40 @@ export const CraftingAction = z.object({
 });
 export type CraftingAction = z.infer<typeof CraftingAction>;
 
-export const StatTranslation = z.object({
-  id: StatTranslationId,
-  statIds: z.array(StatId).min(1),
-  /** BCP 47 language tag. */
-  lang: z.string().min(2).max(35),
-  variants: z
-    .array(
-      z.object({
-        /** One condition per stat id, same order as statIds. */
-        conditions: z.array(
-          z.object({
-            min: z.number().optional(),
-            max: z.number().optional(),
-            negated: z.boolean().default(false),
-          }),
-        ),
-        /** Template with {0}, {1} … placeholders. */
-        template: z.string().min(1),
-        /** Formatter ids per placeholder, defined by the release. */
-        formatters: z.array(z.string()).default([]),
-      }),
-    )
-    .min(1),
-});
+export const StatTranslation = z
+  .object({
+    id: StatTranslationId,
+    statIds: z.array(StatId).min(1),
+    /** BCP 47 language tag. */
+    lang: z.string().min(2).max(35),
+    variants: z
+      .array(
+        z.object({
+          /** One condition per stat id, same order as statIds. */
+          conditions: z.array(
+            z.object({
+              min: z.number().optional(),
+              max: z.number().optional(),
+              negated: z.boolean().default(false),
+            }),
+          ),
+          /** Template with {0}, {1} … placeholders. */
+          template: z.string().min(1),
+          /** Formatter ids per placeholder, defined by the release. */
+          formatters: z.array(z.string()).default([]),
+        }),
+      )
+      .min(1),
+  })
+  .superRefine((t, ctx) => {
+    t.variants.forEach((v, i) => {
+      if (v.conditions.length !== t.statIds.length) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["variants", i, "conditions"],
+          message: "needs one condition per stat id",
+        });
+      }
+    });
+  });
 export type StatTranslation = z.infer<typeof StatTranslation>;
