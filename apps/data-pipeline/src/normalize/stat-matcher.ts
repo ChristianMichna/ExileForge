@@ -46,6 +46,8 @@ export interface StatValue {
 
 export type MatchResult =
   | { status: "matched"; descriptionId: string; stats: StatValue[] }
+  /** the description is known but the display rounds, so raw values are not exact */
+  | { status: "lossy"; line: string; descriptionId: string }
   | { status: "unmatched"; line: string }
   | { status: "ambiguous"; line: string; descriptionIds: string[] };
 
@@ -106,6 +108,40 @@ const INVERSE: Readonly<Record<string, Inverse | "noop">> = {
   canonical_stat: "noop",
 };
 
+// PoB's round(x, n) and floor(x, n) (Modules/Common.lua)
+const pobRound = (x: number, n = 0) => Math.floor(x * 10 ** n + 0.5) / 10 ** n;
+const pobFloor = (x: number, n = 0) => Math.floor(x * 10 ** n) / 10 ** n;
+
+/**
+ * Display handlers that round (PoB's applySpecial). Their inverse is only
+ * exact if no neighbouring raw value renders to the same text; that is
+ * checked with these forward functions.
+ */
+const ROUNDING: Readonly<Record<string, (v: number) => number>> = {
+  divide_by_two_0dp: (v) => pobRound(v / 2),
+  divide_by_ten_0dp: (v) => pobRound(v / 10),
+  divide_by_ten_1dp: (v) => pobRound(v / 10, 1),
+  divide_by_ten_1dp_if_required: (v) => pobRound(v / 10, 1),
+  divide_by_fifteen_0dp: (v) => pobRound(v / 15),
+  divide_by_twenty_then_double_0dp: (v) => pobRound(v / 20) * 2,
+  divide_by_one_hundred_0dp: (v) => pobRound(v / 100),
+  divide_by_one_hundred_1dp: (v) => pobRound(v / 100, 1),
+  divide_by_one_hundred_2dp: (v) => pobRound(v / 100, 2),
+  divide_by_one_hundred_2dp_if_required: (v) => pobRound(v / 100, 2),
+  divide_by_ten_thousand_1dp: (v) => pobRound(v / 10000, 1),
+  per_minute_to_per_second: (v) => pobFloor(v / 60, 1),
+  per_minute_to_per_second_0dp: (v) => pobRound(v / 60),
+  per_minute_to_per_second_1dp: (v) => pobRound(v / 60, 1),
+  per_minute_to_per_second_2dp: (v) => pobRound(v / 60, 2),
+  per_minute_to_per_second_2dp_if_required: (v) => pobRound(v / 60, 2),
+  milliseconds_to_seconds_0dp: (v) => pobRound(v / 1000),
+  milliseconds_to_seconds_1dp: (v) => pobRound(v / 1000, 1),
+  milliseconds_to_seconds_2dp: (v) => pobRound(v / 1000, 2),
+  milliseconds_to_seconds_2dp_if_required: (v) => pobRound(v / 1000, 2),
+};
+
+const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+
 const NUM = String.raw`\d+(?:\.\d+)?`;
 // one displayed value: 12 | -12 | +12 | (5-8) | +(5-8) | -(5-8) | (-8--5)
 const VALUE = String.raw`([+-]?)(?:\((-?${NUM})-(-?${NUM})\)|(${NUM}))`;
@@ -121,6 +157,8 @@ interface CompiledVariant {
   descriptionId: string;
   description: RawStatDescription;
   variant: RawStatDescription["variants"][number];
+  /** position of the variant in its description (PoB takes the first fitting one) */
+  variantIndex: number;
   regex: RegExp;
   /** stat index (0-based) for each capture group set, in text order */
   placeholders: number[];
@@ -136,6 +174,7 @@ function compileVariant(
   descriptionId: string,
   description: RawStatDescription,
   variant: CompiledVariant["variant"],
+  variantIndex: number,
 ): CompiledVariant {
   const text = variant.text.replaceAll("%%", "%");
   const placeholders: number[] = [];
@@ -155,6 +194,7 @@ function compileVariant(
     descriptionId,
     description,
     variant,
+    variantIndex,
     regex: new RegExp(`^${pattern}$`),
     placeholders,
     usable,
@@ -193,9 +233,9 @@ export class StatMatcher {
       this.parents.set(d.scope, d.parent);
       const list = this.byScope.get(d.scope) ?? [];
       const hashList = this.byHash.get(d.tradeHash) ?? [];
-      for (const v of d.variants) {
+      for (const [index, v] of d.variants.entries()) {
         if (v.gemQuality) continue;
-        const cv = compileVariant(id, d, v);
+        const cv = compileVariant(id, d, v, index);
         list.push(cv);
         hashList.push(cv);
       }
@@ -228,7 +268,7 @@ export class StatMatcher {
     return chain;
   }
 
-  private tryVariant(cv: CompiledVariant, line: string): StatValue[] | undefined {
+  private tryVariant(cv: CompiledVariant, line: string): StatValue[] | "lossy" | undefined {
     if (!cv.usable) return undefined;
     const m = cv.regex.exec(line);
     if (!m) return undefined;
@@ -242,12 +282,12 @@ export class StatMatcher {
       const lo = m[2 + i * 4];
       const hi = m[3 + i * 4];
       const single = m[4 + i * 4];
+      // PoB writes negative ranges as "-(a-b)" meaning -a … -b (StatDescriber.lua)
       const range =
         single !== undefined
           ? { min: sign * Number(single), max: sign * Number(single) }
-          : sign === -1
-            ? { min: -Number(hi), max: -Number(lo) }
-            : { min: Number(lo), max: Number(hi) };
+          : { min: sign * Number(lo), max: sign * Number(hi) };
+      if (range.min > range.max) return undefined;
       const idx = cv.placeholders[i] as number;
       const prev = display[idx];
       if (prev && (prev.min !== range.min || prev.max !== range.max)) return undefined;
@@ -255,17 +295,36 @@ export class StatMatcher {
     }
     // invert handlers (applied in reverse order of PoB's application)
     const raw = display.map((d) => (d ? { ...d } : undefined));
+    let lossy = false;
     for (const h of [...cv.variant.handlers].reverse()) {
       const inv = INVERSE[h.k];
       if (typeof h.v !== "number") continue;
       const target = raw[h.v - 1];
       if (inv === "noop" || inv === undefined || !target) continue;
-      const a = inv(target.min);
-      const b = inv(target.max);
-      target.min = round(Math.min(a, b));
-      target.max = round(Math.max(a, b));
+      const a = round(inv(target.min));
+      const b = round(inv(target.max));
+      const forward = ROUNDING[h.k];
+      if (forward) {
+        // exact only if exactly one whole raw value renders to the shown value
+        const checks: [number, number][] = [
+          [target.min, a],
+          [target.max, b],
+        ];
+        for (const [shown, est] of checks) {
+          const r = Math.round(est);
+          if (
+            !near(forward(r), shown) ||
+            near(forward(r - 1), shown) ||
+            near(forward(r + 1), shown)
+          )
+            lossy = true;
+        }
+      }
+      target.min = Math.min(a, b);
+      target.max = Math.max(a, b);
     }
     const stats: StatValue[] = [];
+    const rawMin: number[] = [];
     for (let i = 0; i < statCount; i++) {
       const limit = cv.variant.limit[i] ?? ["#", "#"];
       const v = raw[i];
@@ -274,13 +333,28 @@ export class StatMatcher {
         // PoB picks the variant by the stat's min value
         if (!within(limit, v.min)) return undefined;
         stats.push({ statId, min: v.min, max: v.max });
+        rawMin.push(v.min);
       } else if (within(limit, 0)) {
-        // not shown and 0 allowed: the stat is absent on this mod
+        rawMin.push(0); // not shown and 0 allowed: the stat is absent on this mod
       } else if (typeof limit[0] === "number" && limit[0] === limit[1]) {
         stats.push({ statId, min: limit[0], max: limit[0] });
+        rawMin.push(limit[0]);
       } else {
         return undefined; // value of a hidden stat cannot be determined
       }
+    }
+    // PoB renders with the FIRST variant whose limits fit; a later variant
+    // matching the text is not what PoB would have produced
+    for (const earlier of cv.description.variants.slice(0, cv.variantIndex)) {
+      if (earlier.gemQuality) continue;
+      if (rawMin.every((v, i) => within(earlier.limit[i] ?? ["#", "#"], v))) return undefined;
+    }
+    // raw stat values in PoB's mod data are whole numbers; a fraction means the display was rounded
+    if (lossy || stats.some((st) => !Number.isInteger(st.min) || !Number.isInteger(st.max)))
+      return "lossy";
+    for (const st of stats) {
+      if (st.min > st.max)
+        throw new Error(`internal: ${cv.descriptionId} produced min > max for ${st.statId}`);
     }
     return stats;
   }
@@ -326,10 +400,13 @@ export class StatMatcher {
     candidates.sort(
       (a, b) => chain.indexOf(a.description.scope) - chain.indexOf(b.description.scope),
     );
+    let lossy: string | undefined;
     for (const cv of candidates) {
       const stats = this.tryVariant(cv, text);
-      if (stats) return { status: "matched", descriptionId: cv.descriptionId, stats };
+      if (stats === "lossy") lossy ??= cv.descriptionId;
+      else if (stats) return { status: "matched", descriptionId: cv.descriptionId, stats };
     }
+    if (lossy) return { status: "lossy", line: text, descriptionId: lossy };
     return { status: "unmatched", line: text };
   }
 
@@ -337,11 +414,14 @@ export class StatMatcher {
   match(line: string, scope: string): MatchResult {
     for (const s of this.scopeChain(scope)) {
       const hits = new Map<string, StatValue[]>();
+      let lossy: string | undefined;
       for (const cv of this.index.get(s)?.get(shapeKey(line)) ?? []) {
         if (hits.has(cv.descriptionId)) continue;
         const stats = this.tryVariant(cv, line);
-        if (stats) hits.set(cv.descriptionId, stats);
+        if (stats === "lossy") lossy ??= cv.descriptionId;
+        else if (stats) hits.set(cv.descriptionId, stats);
       }
+      if (hits.size === 0 && lossy) return { status: "lossy", line, descriptionId: lossy };
       if (hits.size === 1) {
         const [[descriptionId, stats]] = [...hits] as [[string, StatValue[]]];
         return { status: "matched", descriptionId, stats };

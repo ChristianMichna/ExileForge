@@ -84,6 +84,47 @@ const DESCRIPTIONS = {
     [{ limit: [[1, "#"]], text: "Something Hidden" }],
     107,
   ),
+  "base:8": desc(
+    "base",
+    8,
+    ["fake_plain"],
+    [{ limit: [["#", "#"]], text: "{0:+d} Plainness" }],
+    108,
+  ),
+  "base:9": desc(
+    "base",
+    9,
+    ["fake_per_minute"],
+    [
+      {
+        limit: [["#", "#"]],
+        text: "Gain {0} Zest per second",
+        handlers: [{ k: "per_minute_to_per_second_0dp", v: 1 }],
+      },
+    ],
+    109,
+  ),
+  "base:10": desc(
+    "base",
+    10,
+    ["fake_tenths"],
+    [{ limit: [["#", "#"]], text: "{0}% Tenths", handlers: [{ k: "divide_by_ten_1dp", v: 1 }] }],
+    110,
+  ),
+  "base:11": desc(
+    "base",
+    11,
+    ["fake_distance"],
+    [
+      { limit: [[10, 10]], text: "Reach {0} Unit", handlers: [{ k: "divide_by_ten_1dp", v: 1 }] },
+      {
+        limit: [["#", "#"]],
+        text: "Reach {0} Units",
+        handlers: [{ k: "divide_by_ten_1dp", v: 1 }],
+      },
+    ],
+    111,
+  ),
   "child:1": desc(
     "child",
     1,
@@ -162,6 +203,45 @@ describe("StatMatcher.match", () => {
 
   it("fails on an unknown scope", () => {
     expect(() => matcher.match("x", "nope")).toThrow(/unknown stat description scope/);
+  });
+});
+
+describe("StatMatcher value handling", () => {
+  it("reads PoB's negative range form -(a-b) as -a … -b", () => {
+    expect(matcher.match("-(8-5) Plainness", "base")).toEqual({
+      status: "matched",
+      descriptionId: "base:8",
+      stats: [{ statId: "fake_plain", min: -8, max: -5 }],
+    });
+  });
+
+  it("reports a rounding handler whose raw value is not unique as lossy", () => {
+    // 2 per second can come from several per-minute values
+    expect(matcher.match("Gain 2 Zest per second", "base")).toEqual({
+      status: "lossy",
+      line: "Gain 2 Zest per second",
+      descriptionId: "base:9",
+    });
+  });
+
+  it("keeps a rounding handler that is exact for whole raw values", () => {
+    expect(matcher.match("1.5% Tenths", "base")).toEqual({
+      status: "matched",
+      descriptionId: "base:10",
+      stats: [{ statId: "fake_tenths", min: 15, max: 15 }],
+    });
+  });
+
+  it("rejects a later variant when PoB would have used an earlier one", () => {
+    expect(matcher.match("Reach 1 Units", "base")).toMatchObject({ status: "unmatched" });
+    expect(matcher.match("Reach 1 Unit", "base")).toMatchObject({
+      status: "matched",
+      stats: [{ min: 10, max: 10 }],
+    });
+    expect(matcher.match("Reach 2 Units", "base")).toMatchObject({
+      status: "matched",
+      stats: [{ min: 20, max: 20 }],
+    });
   });
 });
 

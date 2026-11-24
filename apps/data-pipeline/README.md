@@ -73,13 +73,18 @@ den Text auf Stat-IDs und Rohwerte zurück, ausschließlich mit PoB-Daten:
    Beschreibungen gleichen Text haben (z. B. lokal und global).
 2. Der Text wird gegen die Vorlagen dieser Beschreibung geprüft; Handler wie
    `negate` oder `milliseconds_to_seconds` werden umgekehrt, Limits geprüft.
-3. Zeilen ohne Hash laufen über einen Text-Index. Mehrdeutige oder nicht
-   passende Zeilen bleiben je Mod in `unresolved` sichtbar, nichts wird geraten.
+3. Wie PoB gilt nur die erste Variante, deren Limits passen.
+4. Rundet die Anzeige (z. B. `per_minute_to_per_second_0dp`) so, dass mehrere
+   Rohwerte denselben Text ergeben, ist die Zeile `lossy` und bleibt offen.
+5. Zeilen ohne Hash laufen über einen Text-Index. Mehrdeutige, verlustbehaftete
+   oder nicht passende Zeilen bleiben je Mod in `unresolved` sichtbar, nichts
+   wird geraten.
 
 `exileforge-data stat-coverage <snapshot> [--out unresolved.json]` meldet die
-Abdeckung. Stand PoB 0.23.1: 95,4 % der Zeilengruppen, 95,2 % der Mods voll
-aufgelöst. Offen sind vor allem Radius-Jewel-Mods (Hash mit Zusatz-Stat) und
-Beschreibungen, die PoB nicht mitliefert.
+Abdeckung. Stand PoB 0.23.1: 94,0 % der Zeilengruppen, 93,7 % der Mods voll
+aufgelöst. Offen: 435 ohne passende Beschreibung (vor allem Radius-Jewel-Mods,
+deren Hash einen Zusatz-Stat enthält), 138 verlustbehaftet gerundet,
+14 mehrdeutig.
 
 ## Rechtliches
 

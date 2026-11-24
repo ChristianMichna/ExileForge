@@ -71,6 +71,12 @@ describe("resolveModStats", () => {
     ]);
   });
 
+  it("rejects a trade hash without lines", () => {
+    expect(() =>
+      resolveModStats({ M: { "1": "+1 to Alpha", tradeHashes: { "11": {} } } }, matcher, "s"),
+    ).toThrow(/lists no lines/);
+  });
+
   it("rejects a mod that is not an object", () => {
     expect(() => resolveModStats({ M: "text" }, matcher, "s")).toThrow(/mod M/);
   });

@@ -15,7 +15,7 @@ export interface ModStatResult {
   modId: string;
   stats: StatValue[];
   /** lines whose stats could not be determined; kept visible, never dropped */
-  unresolved: { lines: string[]; reason: "unmatched" | "ambiguous" | "no-trade-hash" }[];
+  unresolved: { lines: string[]; reason: "unmatched" | "ambiguous" | "lossy" | "no-trade-hash" }[];
 }
 
 export interface ModStatSummary {
@@ -72,7 +72,10 @@ export function resolveModStats(
     };
     for (const hash of Object.keys(parsed.data.tradeHashes ?? {}).sort()) {
       const value = parsed.data.tradeHashes?.[hash];
-      const lines = Array.isArray(value) ? value : [];
+      if (!Array.isArray(value) || value.length === 0) {
+        throw new Error(`mod ${modId}: trade hash ${hash} lists no lines`);
+      }
+      const lines = value;
       lines.forEach((l) => covered.add(l));
       record(matcher.matchByHash(Number(hash), lines, scope), lines);
     }
