@@ -1,0 +1,11 @@
+src/
+test/
+scripts/
+dist/
+node_modules/
+*.ts
+tsconfig*.json
+vitest.config.ts
+package.json
+README.md
+.turbo/
