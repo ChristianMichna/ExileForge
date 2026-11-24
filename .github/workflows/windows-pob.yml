@@ -72,5 +72,9 @@ jobs:
           cp tests/fixtures/witch_spark_lvl60.xml "$RUNNER_TEMP/Jörg Ü test/build.xml"
           python -m pob_bridge stats "$RUNNER_TEMP/Jörg Ü test/build.xml"
 
+      - name: Real builds from pobb.in
+        if: matrix.toolchain == 'msvc'
+        run: python tools/check_real_builds.py
+
       - name: Timing
         run: time python -m pob_bridge stats tests/fixtures/witch_spark_lvl60.xml > /dev/null

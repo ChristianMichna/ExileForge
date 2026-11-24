@@ -1,0 +1,11 @@
+# Public PoE2 builds used as a real-world check (tools/check_real_builds.py).
+# One link or build code per line. Found via web search on 2026-11-24.
+https://pobb.in/6kcvrqAkjTb2
+https://pobb.in/KCevYBaIJo8e
+https://pobb.in/njAVk9ILdZSc
+https://pobb.in/TUsV2f6hi8cg
+https://pobb.in/HlipAJFWM6Mi
+https://pobb.in/QNnfYUCq4x40
+https://pobb.in/-xJdU5CIi5V2
+https://pobb.in/D5R1g7C_q8Xp
+https://pobb.in/74Yg9hmD1DSP
