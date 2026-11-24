@@ -10,7 +10,7 @@ import {
   DATA_RELEASE_ID_PATTERN,
 } from "../common/version.js";
 import {
-  AssetPath as RelativePath,
+  ReleasePath,
   Ascendancy,
   BaseItem,
   CharacterClass,
@@ -36,7 +36,7 @@ export const DataRelease = z
     createdAt: IsoDateTime,
     previousReleaseId: DataReleaseId.optional(),
     /** Path of the CatalogDiff against previousReleaseId, inside the release. */
-    diffPath: RelativePath.optional(),
+    diffPath: ReleasePath.optional(),
   })
   .superRefine((r, ctx) => {
     // The id field has its own regex issue; never throw inside validation.
@@ -85,7 +85,7 @@ export const CatalogManifest = z
     shards: z.array(
       z.object({
         kind: EntityKind,
-        path: RelativePath,
+        path: ReleasePath,
         sha256: Sha256,
         count: z.int().nonnegative(),
       }),

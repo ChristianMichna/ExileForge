@@ -3,10 +3,11 @@
 Stand: 2026-11-24. Notation als TypeScript-Typen, weil das am lesbarsten ist.
 Quelle der Wahrheit sind laut [Projektplan](projektplan.md) **Zod-Schemas in
 `packages/contracts`**, aus denen JSON Schema und LLM-Tool-Definitionen
-erzeugt werden. **Stand v0.1:** Katalog, Herkunft (`Source`, `measured`,
-`CalcRef`) und Calc-RPC sind dort festgelegt
-([README](../packages/contracts/README.md)) und gehen diesem Dokument vor;
-Build, Guide, `forge.*` und Events folgen im nächsten Vertrags-PR. **⚠ Annahme** markiert ungeprüfte Punkte.
+erzeugt werden. **Stand v0.2:** Katalog, Herkunft (`Source`, `measured`,
+`CalcRef`), Calc-RPC, `BuildRequest`, Stufen-Ergebnisse S1–S10,
+`GuideDocument`, `forge.*`-Werkzeuge und Live-Events sind dort festgelegt
+([README](../packages/contracts/README.md)) und gehen diesem Dokument vor.
+Die Typen unten sind die historische Skizze. **⚠ Annahme** markiert ungeprüfte Punkte.
 Ein Beispiel steht in [`examples/build.example.json`](../examples/build.example.json)
 (noch in der Struktur v0.1).
 

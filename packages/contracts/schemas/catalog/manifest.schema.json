@@ -56,7 +56,7 @@
           "type": "string",
           "minLength": 1,
           "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
-          "description": "Asset path relative to the data release root"
+          "description": "Path relative to the data release root"
         }
       },
       "required": [
@@ -92,7 +92,7 @@
             "type": "string",
             "minLength": 1,
             "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
-            "description": "Asset path relative to the data release root"
+            "description": "Path relative to the data release root"
           },
           "sha256": {
             "type": "string",
