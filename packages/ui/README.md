@@ -55,6 +55,28 @@ und Abständen (Präfix `--ef-`). Komponenten und App-CSS nutzen nur
 | `Ledger`, `GuideNotes` | Guide-Leser: Messwert-Tabelle mit Herkunft und Zuständen, nummerierte Notizen (01, 02, …) |
 | `Sigil`, `OrnamentDivider`, `Diamond` | eigene Ornamente (Astrolabium-Siegel, gravierte Trennlinie) |
 
+## Passive Tree
+
+`PassiveTree` zeigt den Tree als Messinstrument: PixiJS (WebGL) zeichnet
+Knoten, Verbindungen, die Orbit-Ringe jeder Gruppe als Gravur und einen
+gradierten Lünettenring um den ganzen Tree. Eigene Knotenformen, keine
+Spielgrafik: Punkt (klein), Raute (Attribut), Doppelring (Notable), Stern
+im Ring (Keystone), Fadenkreuz (Jewel-Sockel), Skalenring (Klassenstart),
+gravierte Rosette (reine Bildknoten, `decoration`).
+
+| Teil | Datei | Aufgabe |
+|---|---|---|
+| Modell | `tree/tree-model.ts` | `buildTreeView(nodes, groups, { include })` aus `PassiveNode`/`PassiveGroup` des Katalogs: Punkte, Bögen, Kanten (einmal je Paar, keine über Aufstiegsklassen hinweg), Grenzen. Knoten ohne Punkt oder mit unbekannter Art stehen in `issues`, nie bei 0,0 |
+| Zeitleiste | `tree/tree-timeline.ts` | `buildTimeline(stages)` aus `allocationOrder`/`respecs` je Stufe (Form von `ProgressionStage`); Respecs werden vor den neuen Punkten erstattet. `stateAt(cursor)` liefert belegt, neu (mit Punktnummer) und erstattet |
+| Renderer | `tree/renderer.ts` | Kamera (Zoom am Mauszeiger, Ziehen, Tastatur), Treffertest über ein Raster, Hervorhebung. Farben aus `--ef-tree-*`, wird nur per `import()` geladen |
+| Oberfläche | `tree/PassiveTree.tsx`, `TreeCanvas.tsx`, `TreeTimelineRule.tsx` | Anzeigen in den Ecken (Stufe, Zähler, Suche, Zoom, Legende, Herkunft), Knotenkarte bei Hover/Klick, Namen belegter Notables ab einer Zoomstufe, Punktnummern, Zeitleiste als gravierte Skala mit Abspielen, Aufstiegs-Einschub, Textliste der Stufe als zugängliche Alternative |
+
+Zustände: neu in der Stufe leuchtet (`--ef-tree-new`), früher belegt ist
+gedämpft (`--ef-tree-allocated`), Respec ist bernsteinfarben und
+durchgestrichen (`--ef-tree-respec`, auch in der Liste als Text). Schlägt
+WebGL fehl, steht der Fehler im Rahmen, kein leerer Tree. Zählwerte im
+Anzeigefeld sind Anzahlen von Knoten, keine Spielwerte.
+
 ## Zahlen
 
 Komponenten erfinden keine Zahlen. `StatValue` bekommt einen `ValueState`;
@@ -79,5 +101,6 @@ Alle Schriften stehen unter der SIL Open Font License 1.1 und werden über
 ## Offen
 
 - Helles Thema (laut Plan zusätzlich)
-- Passive Tree (PixiJS), Crafting-Flow (React Flow), Gem-Setup, Stat-Kurven
+- Passive Tree: Waffenset-Umschalter, Jewel-Radien, Sprite-Icons (F-03)
+- Crafting-Flow (React Flow), Gem-Setup, Stat-Kurven
 - Abbildung `Sourced<T>` → `ProvenanceView`, sobald `packages/contracts` da ist

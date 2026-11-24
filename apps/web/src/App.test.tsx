@@ -21,6 +21,15 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Design System");
   });
 
+  it("opens the passive tree page via hash route", () => {
+    window.location.hash = "#/tree";
+    render(<App />);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Passive Tree");
+    expect(screen.getByRole("link", { name: "Passive Tree" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+  });
+
   it("shows the third-party notice required by GGG's guidelines", () => {
     render(<App />);
     expect(screen.getByText(/Not affiliated with or endorsed by Grinding Gear Games/)).toBeTruthy();
@@ -36,6 +45,7 @@ describe("App", () => {
 describe("parseRoute", () => {
   it("falls back to the overview for unknown hashes", () => {
     expect(parseRoute("#/design")).toBe("design");
+    expect(parseRoute("#/tree")).toBe("tree");
     expect(parseRoute("#/unknown")).toBe("overview");
     expect(parseRoute("")).toBe("overview");
   });

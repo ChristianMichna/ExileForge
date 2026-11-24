@@ -148,6 +148,27 @@ a.nav__link:hover {
   max-width: var(--ef-page-max-width);
 }
 
+.page--wide {
+  max-width: none;
+  gap: var(--ef-space-5);
+}
+
+.page--compact .page-header__title {
+  font-size: var(--ef-text-3xl);
+}
+
+.page--compact .page-header__subtitle {
+  font-size: var(--ef-text-md);
+}
+
+.tree-page__status {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-faint);
+}
+
 .page-header {
   display: flex;
   align-items: flex-end;
