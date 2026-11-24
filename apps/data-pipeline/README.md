@@ -110,8 +110,26 @@ IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
 | Unique            | `Titel, Basis`                                |
 | Gem               | Spiel-ID des Gems                             |
 | Passive           | numerische Knoten-ID (als Text)               |
+| Passiv-Gruppe     | PoB-Gruppen-ID (als Text)                     |
 | Klasse / Aufstieg | Name bzw. PoB-interne Aufstiegs-ID            |
 | Stat-Text         | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
+
+Tree-Geometrie (wie PoBs `Classes/PassiveTree.lua`): Jede Passive bekommt
+`position.point` (Baum-Einheiten, y nach unten) aus Gruppenmitte,
+`constants.orbitRadii` und `constants.orbitAnglesByOrbit` (`ProcessNode`).
+`arcs` hält die Bögen aus `BuildConnector` mit Mittelpunkt und Radius (immer
+der kürzere Bogen): Verbindungen mit Orbit ≠ 0 bei Abstand unter dem
+Durchmesser, und Verbindungen mit Orbit 0 auf demselben Orbit derselben
+Gruppe (Bogen um die Gruppenmitte). Alles andere zeichnet PoB gerade,
+auch Verbindungen mit einem Orbit, den die Konstanten nicht kennen
+(PoB-Platzhalterwert); das ist kein Befund. Wie PoB zeichnen Renderer keine
+Verbindung in einen Klassenstart oder zwischen verschiedenen Aufstiegsklassen.
+Reine Bildknoten (`isOnlyImage`) heißen `decoration` und haben wie in PoB
+keine Verbindungen. `passiveGroup` hält Gruppenmitte und Orbit-Radien nur für
+die Darstellung; die ID ist PoBs Layout-Index und wird von Builds nie
+referenziert. Gespeicherte Werte sind auf 0,001 gerundet (Zwischenwerte nicht).
+Fehlen die Konstanten, ist das ein Fehler; kann ein Knoten nicht platziert
+werden, eine Warnung mit Grund, und er bleibt ohne `point` (nie `0,0`).
 
 `findings.json` enthält:
 

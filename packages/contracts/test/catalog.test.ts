@@ -8,6 +8,8 @@ import {
   CatalogShard,
   DataRelease,
   Mod,
+  PassiveGroup,
+  PassiveNode,
   StatRange,
   UniqueModLine,
   StatTranslation,
@@ -143,6 +145,38 @@ describe("entities", () => {
       nodeIds: ["fixture_node_1"],
     };
     expect(Ascendancy.safeParse(asc).error).toBeUndefined();
+  });
+
+  it("passive nodes carry an optional point and arcs defaulting to []", () => {
+    const node = {
+      id: "1",
+      name: "Made-up Node",
+      kind: "small",
+      stats: [],
+      position: { groupId: "g1", orbit: 0, orbitIndex: 0 },
+      connections: ["2"],
+    };
+    const parsed = PassiveNode.parse(node);
+    expect(parsed.arcs).toEqual([]);
+    expect(parsed.position).not.toHaveProperty("point");
+    const withGeometry = PassiveNode.parse({
+      ...node,
+      position: { ...node.position, point: { x: -1.5, y: 2 } },
+      arcs: [{ to: "2", center: { x: 0, y: 5 }, radius: 10 }],
+    });
+    expect(withGeometry.position.point).toEqual({ x: -1.5, y: 2 });
+    expect(
+      PassiveNode.safeParse({ ...node, arcs: [{ to: "2", center: { x: 0, y: 0 }, radius: 0 }] })
+        .success,
+    ).toBe(false);
+    expect(PassiveNode.safeParse({ ...node, arcs: [{ to: "2", radius: 5 }] }).success).toBe(false);
+  });
+
+  it("passive groups need a centre and non-negative orbit radii", () => {
+    const group = { id: "g1", center: { x: 0, y: 0 }, orbitRadii: [0, 10] };
+    expect(PassiveGroup.parse(group)).toEqual(group);
+    expect(PassiveGroup.safeParse({ ...group, orbitRadii: [-1] }).success).toBe(false);
+    expect(PassiveGroup.safeParse({ id: "g1", orbitRadii: [] }).success).toBe(false);
   });
 
   it("drop level may be absent instead of guessed", () => {

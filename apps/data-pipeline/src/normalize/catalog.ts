@@ -72,6 +72,7 @@ export type CatalogEntities = Record<
   | "uniqueItem"
   | "gem"
   | "passiveNode"
+  | "passiveGroup"
   | "characterClass"
   | "ascendancy"
   | "statTranslation",
@@ -496,14 +497,20 @@ function normalizeTree(
   matcher: StatMatcher,
   cfg: NormalizeConfig,
   ctx: Context,
-): Pick<CatalogEntities, "passiveNode" | "characterClass" | "ascendancy"> {
+): Pick<CatalogEntities, "passiveNode" | "passiveGroup" | "characterClass" | "ascendancy"> {
   const tree = kindOf(raw, "passiveTree");
   const nodes: RawNode[] = [];
   const classes: { name: string; data: Obj }[] = [];
+  const rawGroups = new Map<string, Obj>();
+  let constants: Obj | undefined;
   for (const [key, entry] of Object.entries(tree)) {
     const e = obj(entry);
     const data = obj(e.data);
-    if (e.kind === "node") {
+    if (e.kind === "group") {
+      rawGroups.set(key.replace(/^group:/, ""), data);
+    } else if (e.kind === "constants") {
+      constants = data;
+    } else if (e.kind === "node") {
       const skill = num(data.skill);
       if (skill === undefined) throw new Error(`passive tree entry ${key}: node without skill id`);
       nodes.push({ skill, data });
@@ -513,6 +520,9 @@ function normalizeTree(
   }
   nodes.sort((a, b) => a.skill - b.skill);
   const nodeIds = new Set(nodes.map((n) => n.skill));
+  const imageOnly = new Set(nodes.filter((n) => n.data.isOnlyImage === true).map((n) => n.skill));
+  const geometry = treeGeometry(rawGroups, constants, ctx);
+  const nodeBySkill = new Map(nodes.map((n) => [n.skill, n.data]));
   const classNames = new Set(classes.map((c) => c.name));
 
   // nodes name their ascendancy by display name, so names must be unique
@@ -549,13 +559,32 @@ function normalizeTree(
       }
     }
     // PoB itself skips connections to nodes missing from the tree data
-    // ("missing node" on load); they are dropped here too, each one reported
+    // ("missing node" on load); they are dropped here too, each one reported.
+    // Image-only nodes (PoB type "OnlyImage") are never linked in PoB, so
+    // their connections are dropped silently, as PoB does.
     const connections: string[] = [];
     for (const c of list(data.connections)) {
       const target = num(obj(c).id);
       if (target === undefined) continue;
+      if (imageOnly.has(skill) || imageOnly.has(target)) continue;
       if (nodeIds.has(target)) connections.push(String(target));
       else ctx.warn("passiveNode", id, `connection to missing node ${String(target)} dropped`);
+    }
+    const placed = geometry.place(data);
+    if ("reason" in placed && geometry.ready)
+      ctx.warn("passiveNode", id, `no tree position: ${placed.reason}`);
+    const point = "x" in placed ? placed : undefined;
+    const arcs: { to: string; center: { x: number; y: number }; radius: number }[] = [];
+    for (const c of list(data.connections)) {
+      const target = num(obj(c).id);
+      const orbit = num(obj(c).orbit);
+      if (target === undefined || orbit === undefined || !point) continue;
+      if (!connections.includes(String(target))) continue;
+      const other = nodeBySkill.get(target);
+      const otherPlaced = other ? geometry.place(other) : undefined;
+      if (!other || !otherPlaced || !("x" in otherPlaced)) continue;
+      const arc = geometry.arc(data, point, other, otherPlaced, orbit);
+      if (arc) arcs.push({ to: String(target), ...arc });
     }
     const classStartFor: string[] = [];
     for (const c of list(data.classesStart)) {
@@ -580,8 +609,10 @@ function normalizeTree(
             : ctx.requireStr("passiveNode", id, "group", undefined),
         orbit: ctx.requireNum("passiveNode", id, "orbit", data.orbit),
         orbitIndex: ctx.requireNum("passiveNode", id, "orbitIndex", data.orbitIndex),
+        ...(point ? { point: roundPoint(point) } : {}),
       },
       connections,
+      arcs,
       classStartFor,
       ...(ascendancy ? { ascendancyId: ascendancy.id } : {}),
     };
@@ -630,7 +661,131 @@ function normalizeTree(
       };
     });
 
-  return { passiveNode, characterClass, ascendancy };
+  return { passiveNode, passiveGroup: geometry.groups, characterClass, ascendancy };
+}
+
+/** Tree units are rounded so snapshots and diffs stay byte-stable. */
+function roundUnit(v: number): number {
+  return Math.round(v * 1000) / 1000;
+}
+function roundPoint(p: Point): Point {
+  return { x: roundUnit(p.x), y: roundUnit(p.y) };
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+/**
+ * Tree geometry as PoB computes it (Classes/PassiveTree.lua). Radii and
+ * angles come from the tree's `constants`; nothing here is a game value.
+ * Intermediate values stay unrounded; only stored values are rounded.
+ */
+function treeGeometry(
+  rawGroups: ReadonlyMap<string, Obj>,
+  constants: Obj | undefined,
+  ctx: Context,
+): {
+  /** false when the constants are missing (one error instead of one warning per node) */
+  ready: boolean;
+  groups: Record<string, unknown>[];
+  /** ProcessNode: group centre plus orbit radius towards the orbit angle, y downwards */
+  place(node: Obj): Point | { reason: string };
+  /** BuildConnector: the arc PoB draws for a connection, if any */
+  arc(
+    node: Obj,
+    point: Point,
+    other: Obj,
+    otherPoint: Point,
+    connectionOrbit: number,
+  ): { center: Point; radius: number } | undefined;
+} {
+  if (!constants) ctx.error("passiveGroup", "constants", "source has no tree constants");
+  const radii = list(constants?.orbitRadii).map((r) => num(r));
+  const angles = list(constants?.orbitAnglesByOrbit).map((a) => list(a).map((x) => num(x)));
+  if (constants && radii.length === 0)
+    ctx.error("passiveGroup", "constants", "source has no orbitRadii");
+  if (constants && angles.length === 0)
+    ctx.error("passiveGroup", "constants", "source has no orbitAnglesByOrbit");
+  const ready = radii.length > 0 && angles.length > 0;
+  const radius = (orbit: number) => radii[orbit];
+
+  const centers = new Map<string, Point>();
+  const groups: Record<string, unknown>[] = [];
+  const ids = [...rawGroups.keys()].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b));
+  for (const id of ids) {
+    const g = rawGroups.get(id) ?? {};
+    const x = num(g.x);
+    const y = num(g.y);
+    if (x === undefined || y === undefined) {
+      ctx.error("passiveGroup", id, "source has no x/y");
+      continue;
+    }
+    centers.set(id, { x, y });
+    const orbitRadii: number[] = [];
+    for (const o of list(g.orbits)) {
+      const r = typeof o === "number" ? radius(o) : undefined;
+      if (r === undefined) ctx.error("passiveGroup", id, `unknown orbit ${JSON.stringify(o)}`);
+      else orbitRadii.push(r);
+    }
+    groups.push({ id, center: roundPoint({ x, y }), orbitRadii });
+  }
+
+  const place = (node: Obj): Point | { reason: string } => {
+    const group = num(node.group);
+    const orbit = num(node.orbit);
+    const orbitIndex = num(node.orbitIndex);
+    if (group === undefined) return { reason: "source has no group" };
+    if (orbit === undefined || orbitIndex === undefined)
+      return { reason: "source has no orbit/orbitIndex" };
+    const c = centers.get(String(group));
+    if (!c) return { reason: `group ${String(group)} has no centre` };
+    const r = radius(orbit);
+    const angle = angles[orbit]?.[orbitIndex];
+    if (r === undefined || angle === undefined)
+      return {
+        reason: `orbit ${String(orbit)} index ${String(orbitIndex)} not in the tree constants`,
+      };
+    return { x: c.x + Math.sin(angle) * r, y: c.y - Math.cos(angle) * r };
+  };
+
+  const arc = (
+    node: Obj,
+    point: Point,
+    other: Obj,
+    otherPoint: Point,
+    connectionOrbit: number,
+  ): { center: Point; radius: number } | undefined => {
+    if (connectionOrbit !== 0) {
+      // Unknown orbits (e.g. a placeholder value) are drawn straight by PoB.
+      const r = radius(Math.abs(connectionOrbit));
+      if (r === undefined || r <= 0) return undefined;
+      const dx = otherPoint.x - point.x;
+      const dy = otherPoint.y - point.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist === 0 || dist >= r * 2) return undefined;
+      const perp = Math.sqrt(r * r - (dist * dist) / 4) * (connectionOrbit > 0 ? 1 : -1);
+      return {
+        center: roundPoint({
+          x: point.x + dx / 2 + perp * (dy / dist),
+          y: point.y + dy / 2 - perp * (dx / dist),
+        }),
+        radius: r,
+      };
+    }
+    // Same group and same orbit: arc around the group centre.
+    const group = num(node.group);
+    const orbit = num(node.orbit);
+    if (group === undefined || orbit === undefined) return undefined;
+    if (num(other.group) !== group || num(other.orbit) !== orbit) return undefined;
+    const r = radius(orbit);
+    const c = centers.get(String(group));
+    if (r === undefined || r <= 0 || !c) return undefined;
+    return { center: roundPoint(c), radius: r };
+  };
+
+  return { ready, groups, place, arc };
 }
 
 // ---------------------------------------------------------------- stat translations

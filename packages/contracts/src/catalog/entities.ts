@@ -158,6 +158,34 @@ export const Gem = z.object({
 });
 export type Gem = z.infer<typeof Gem>;
 
+/** Point in passive tree units (y grows downwards, as in the source data). */
+export const TreePoint = z.object({ x: z.number(), y: z.number() });
+export type TreePoint = z.infer<typeof TreePoint>;
+
+/**
+ * Curved connection to another node: the shorter circular arc (at most half
+ * a circle) around `center` with `radius` tree units, from this node to `to`.
+ */
+export const PassiveArc = z.object({
+  to: PassiveNodeId,
+  center: TreePoint,
+  radius: z.number().positive(),
+});
+export type PassiveArc = z.infer<typeof PassiveArc>;
+
+/**
+ * Cluster of passive nodes around a common centre, for drawing only. Nodes
+ * refer to it by `position.groupId`; `orbitRadii` lists the radii (tree
+ * units) of the orbits its nodes sit on. The id is the source's layout index,
+ * not a stable game id: builds and guides never reference groups.
+ */
+export const PassiveGroup = z.object({
+  id: z.string().min(1),
+  center: TreePoint,
+  orbitRadii: z.array(z.number().nonnegative()),
+});
+export type PassiveGroup = z.infer<typeof PassiveGroup>;
+
 export const PassiveNode = z.object({
   id: PassiveNodeId,
   /** Numeric node id used by Path of Building; secondary to `id`. */
@@ -170,8 +198,21 @@ export const PassiveNode = z.object({
     groupId: z.string().min(1),
     orbit: nonNegInt,
     orbitIndex: nonNegInt,
+    /**
+     * Absolute point in tree units, derived from the group centre and the
+     * release's orbit radii and angles. Absent in releases built before it
+     * was added; renderers treat a missing point as an error, never as 0.
+     */
+    point: TreePoint.optional(),
   }),
   connections: z.array(PassiveNodeId),
+  /**
+   * Connections drawn as an arc instead of a straight line, in the release's
+   * own geometry. Each target also appears in `connections`. Like the source
+   * tool, renderers draw no connection into a class start or between
+   * different ascendancies; the arc data may still be present for those.
+   */
+  arcs: z.array(PassiveArc).default([]),
   classStartFor: z.array(CharacterClassId).default([]),
   ascendancyId: AscendancyId.optional(),
   icon: AssetPath.optional(),
