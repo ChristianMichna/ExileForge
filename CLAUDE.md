@@ -18,11 +18,13 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
 - `docs/adr/` – Architekturentscheidungen (sobald vorhanden)
 - `docs/agent-setup.md` – welche Agents/Skills/Hooks es hier gibt und warum
 
-> **⚠ Noch nicht abgeglichen:** Der Projektplan beschreibt eine Web-Anwendung
-> (Next.js, Fastify, Temporal, PostgreSQL, BYOK + MCP), der Architektur-Entwurf
-> v0.2 eine lokale Electron-App mit MCP-Erweiterung. Bis eine ADR das
-> entscheidet: **keine Stack-Entscheidung selbst treffen**, sondern nachfragen.
-> Die Leitprinzipien unten gelten in beiden Varianten.
+> **Stack:** maßgeblich sind die angenommenen ADRs in `docs/adr/` (Stand
+> 24.11.: Hybrid nach ADR-0003 – eigenes Frontend, KI-Schritte im Claude-Chat
+> des Nutzers über den ExileForge-MCP-Connector). Christians Vorgabe dazu:
+> **muss bei ihm lokal laufen und sich einfach an einen Freund weitergeben
+> lassen.** Wie das mit dem Betrieb zusammenpasst, wird gerade in der
+> Architektur geklärt. Bis eine ADR es festlegt: keine Stack- oder
+> Betriebsentscheidung selbst treffen, sondern nachfragen.
 
 ## Leitprinzipien (nicht verhandelbar)
 
@@ -55,6 +57,13 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
 - **Kein Spielwissen aus dem Modellgedächtnis** in Code, Tests oder Prompts.
   Spielfakten kommen aus dem Katalog oder aus Fixtures, die aus einem
   Daten-Release erzeugt wurden. Keine PoE1-Begriffe.
+- **Keine Single-Shot-Prompts.** KI-Arbeit ist in viele kleine Aufgaben mit
+  je eigenem Antwortschema zerlegt; jede Abgabe wird sofort mit PoB und den
+  Gates geprüft und bei Fehlern gezielt zurückgegeben (ADR-0003). Was
+  deterministisch geht, rechnet der Server ohne KI.
+- **Lokal lauffähig, einfach weitergebbar.** Ein Start auf Christians Rechner
+  und die Weitergabe an einen Freund dürfen keine Entwicklerwerkzeuge beim
+  Freund voraussetzen.
 - **Kein stiller Ersatzwert.** Fehlgeschlagene Rechnung, Preisabruf oder
   Import wird als Fehler sichtbar, nie `0`, `[]` oder alter Wert ohne
   Kennzeichnung.

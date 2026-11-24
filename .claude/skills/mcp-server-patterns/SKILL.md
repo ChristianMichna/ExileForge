@@ -5,7 +5,7 @@ description: Baut und erweitert den ExileForge-MCP-Server (packages/mcp-server) 
 
 <!-- Adaptiert aus everything-claude-code (skills/mcp-server-patterns),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md.
-     Entfernt: Streamable HTTP/Remote (App läuft lokal, nur stdio). -->
+     Ergänzt: forge.*-Aufgabenschleife nach ADR-0003. -->
 
 # MCP-Server-Muster für ExileForge
 
@@ -16,10 +16,15 @@ hier fehlt oder schlecht beschrieben ist, erfindet das Modell sonst selbst.
 
 ## Grundsätze
 
-- **Transport: nur stdio.** Claude Desktop (über die `.mcpb`-Erweiterung)
-  bzw. Claude Code (über das Plugin) startet den Server als Kindprozess.
-  Tool-Logik vom Transport trennen (`createServer()` vs. `main.ts`), damit
-  Tools ohne Transport testbar sind.
+- **Transport nach ADR**: Streamable HTTP für den Connector in claude.ai
+  (ADR-0003), stdio für einen lokalen Betrieb mit Claude Desktop/Claude Code.
+  Tool-Logik vom Transport trennen (`createServer()` vs. Einstiegspunkte), damit
+  beide Transporte dieselben Tools nutzen und Tools ohne Transport testbar sind.
+- **Kleine Aufgaben statt Single-Shot** (ADR-0003): Führung über
+  `forge.attach` / `forge.next` / `forge.submit` / `forge.status`. Jede Aufgabe
+  hat genau ein kleines Antwortschema; `forge.submit` prüft sofort mit Schema,
+  PoB und Gates und gibt konkrete Befunde zurück. Rückfragen an den Nutzer
+  sind Aufgaben vom Typ `ask_user`, keine Chat-Fragen.
 - **Läuft beim Freund ohne Entwicklerwerkzeuge**: Node aus der Laufzeit von
   Claude Desktop bzw. gebündelt; PoB/LuaJIT aus der App-Installation finden;
   keine Python-/git-Abhängigkeit.
