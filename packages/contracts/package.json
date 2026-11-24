@@ -1,0 +1,43 @@
+{
+  "name": "@exileforge/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Single source of truth for ExileForge data shapes: Zod schemas, inferred TS types and generated JSON Schema.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./common": {
+      "types": "./dist/common/index.d.ts",
+      "import": "./dist/common/index.js"
+    },
+    "./catalog": {
+      "types": "./dist/catalog/index.d.ts",
+      "import": "./dist/catalog/index.js"
+    },
+    "./calc": {
+      "types": "./dist/calc/index.d.ts",
+      "import": "./dist/calc/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "schemas"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "generate": "pnpm build && node scripts/generate-json-schema.mjs"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}

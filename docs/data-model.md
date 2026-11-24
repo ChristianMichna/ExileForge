@@ -1,9 +1,12 @@
 # ExileForge – Datenmodell eines Builds (Entwurf v0.2)
 
 Stand: 2026-11-24. Notation als TypeScript-Typen, weil das am lesbarsten ist.
-Quelle der Wahrheit werden laut [Projektplan](projektplan.md) **Zod-Schemas in
-`packages/contracts`**, aus denen JSON Schema, OpenAPI und LLM-Tool-Definitionen
-erzeugt werden. **⚠ Annahme** markiert ungeprüfte Punkte.
+Quelle der Wahrheit sind laut [Projektplan](projektplan.md) **Zod-Schemas in
+`packages/contracts`**, aus denen JSON Schema und LLM-Tool-Definitionen
+erzeugt werden. **Stand v0.1:** Katalog, Herkunft (`Source`, `measured`,
+`CalcRef`) und Calc-RPC sind dort festgelegt
+([README](../packages/contracts/README.md)) und gehen diesem Dokument vor;
+Build, Guide, `forge.*` und Events folgen im nächsten Vertrags-PR. **⚠ Annahme** markiert ungeprüfte Punkte.
 Ein Beispiel steht in [`examples/build.example.json`](../examples/build.example.json)
 (noch in der Struktur v0.1).
 
