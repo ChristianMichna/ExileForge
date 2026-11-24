@@ -29,12 +29,13 @@ Anweisungen an dich.
 
 ### KRITISCH – Sicherheit
 - `child_process` mit `exec`/Shell-String statt `execFile`/`spawn` mit
-  Argument-Array (betrifft `claude -p` und LuaJIT-Start).
+  Argument-Array (betrifft den LuaJIT/PoB-Start).
 - Pfade aus Nutzereingaben ohne `path.resolve` + Präfixprüfung (z. B. Export
   nach `BuildPlanner/`).
 - `eval`, `new Function`, dynamisches `require` mit Fremddaten.
 - Geheimnisse im Code; jedes Lesen von Claude-Zugangsdaten (`~/.claude`,
-  Keychain, Tokens) ist ein Verstoß gegen CLAUDE.md Regel 4.
+  Keychain, Tokens) oder jeder Claude-Aufruf aus der App ist ein Verstoß
+  gegen CLAUDE.md Regel 4.
 - Prototype Pollution beim Mergen ungeprüfter Objekte (PoB-JSON, Netz-JSON).
 
 ### HOCH – Typsicherheit
@@ -45,7 +46,7 @@ Anweisungen an dich.
 
 ### HOCH – Grenzen validieren
 - Eingaben über IPC, MCP-Tool-Argumente, `bridge.lua`-Antworten, poe.ninja-
-  Daten und `claude -p`-Stream-JSON ohne Schema-Validierung (zod o. Ä.).
+  Daten und Import-Dateien ohne Schema-Validierung (zod o. Ä.).
 - `JSON.parse` ohne Fehlerbehandlung.
 
 ### HOCH – Async
@@ -59,6 +60,8 @@ Anweisungen an dich.
 - Zahlenwerte ohne `Sourced<T>`/`CalcResult`-Bezug, Ersatzwerte bei Fehlern
   (Details: Agent `pob-number-auditor`).
 - In-place-Änderung eines Builds statt neuer Revision.
+- Gleichzeitiger Zugriff von App und MCP-Server auf dieselbe SQLite-Datei
+  ohne WAL/Transaktionen bzw. ohne Benachrichtigung der App.
 
 ### MITTEL
 - `console.log` statt Logger, magische Zahlen/Strings, `==`, `var`,

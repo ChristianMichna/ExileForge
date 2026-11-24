@@ -57,8 +57,8 @@ git -C services/pob-worker/PathOfBuilding status --porcelain   # muss leer sein
 ## Phase 6 – Projektregeln
 
 ```bash
-# Zugangsdaten / Abo-Regel (CLAUDE.md Regel 4)
-git diff origin/main... | grep -nE '\.claude/(\.credentials|credentials)|ANTHROPIC_API_KEY|oauth|keychain' || true
+# Abo-Regel (CLAUDE.md Regel 4): App ruft nie Claude auf, keine Zugangsdaten
+git diff origin/main... -- apps packages | grep -nE "^\+.*((spawn|execFile|exec)\(.*claude|@anthropic-ai/(sdk|claude-agent-sdk)|\.claude/\.?credentials|ANTHROPIC_API_KEY|oauth|keychain)" || true
 # Stille Ersatzwerte auf Zahlen
 git diff origin/main... | grep -nE '^\+.*(\?\?\s*0\b|\|\|\s*0\b|catch\s*\(\w*\)\s*\{\s*\})' || true
 # Debug-Ausgaben

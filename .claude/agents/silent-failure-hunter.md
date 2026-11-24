@@ -1,6 +1,6 @@
 ---
 name: silent-failure-hunter
-description: Sucht stille Fehler – verschluckte Exceptions, gefährliche Ersatzwerte, verlorene Fehlerursachen – besonders in PoB-Worker-Anbindung, Planer (claude -p), Preisabruf, Datenimport und Patch-Neuprüfung. Einsetzen bei Änderungen an Fehlerpfaden, Kindprozessen, Netzabrufen und Caches.
+description: Sucht stille Fehler – verschluckte Exceptions, gefährliche Ersatzwerte, verlorene Fehlerursachen – besonders in PoB-Worker-Anbindung, MCP-Tools, gemeinsamer SQLite-DB, Preisabruf, Datenimport, Auto-Update und Patch-Neuprüfung. Einsetzen bei Änderungen an Fehlerpfaden, Kindprozessen, Netzabrufen und Caches.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -31,8 +31,11 @@ korrekt aussieht. Du meldest Befunde, du änderst keinen Code.
 ### 3. Fehlerweitergabe
 - Verlorene Stacktraces, generisches `throw new Error("failed")` ohne Ursache
   (`{ cause }` nutzen).
-- stderr des LuaJIT-Workers oder der `claude`-CLI wird verworfen.
-- Exit-Code ≠ 0 oder Abbruch des Stream-JSON wird als Erfolg gewertet.
+- stderr des LuaJIT-Workers wird verworfen; Exit-Code ≠ 0 gilt als Erfolg.
+- MCP-Tool meldet Erfolg an Claude, obwohl Speichern oder PoB-Rechnung
+  fehlschlug (statt `isError` mit Ursache).
+- App bemerkt Änderungen des MCP-Servers an der DB nicht und zeigt alte
+  Daten ohne Hinweis.
 
 ### 4. Fehlende Fehlerbehandlung
 - Kein Timeout bei Kindprozessen oder Netzabrufen.

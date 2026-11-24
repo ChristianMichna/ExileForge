@@ -20,7 +20,8 @@ description: Recherche vor dem Bauen – vor neuem Code, neuer Abhängigkeit ode
    `pob-mcp` (PoB headless als MCP), `poe2-build-forge` (`.build`-Konverter),
    poe.ninja (Preise, Build-Planner-Export).
 5. **npm** – nur gepflegte Pakete mit passender Lizenz (MIT/Apache/BSD/ISC).
-6. **MCP-SDK und Claude-Code-Doku** für Planer und Tools.
+6. **MCP-SDK, `.mcpb`-Doku und Claude-Code-Plugin-Doku** für Erweiterung,
+   Tools und Prompts.
 
 ## Bewerten
 

@@ -31,7 +31,8 @@ Nur betroffene Tests erneut laufen lassen:
 | Crafting-Erwartungswerte | Unit mit kleinen, von Hand nachrechenbaren Gewichten; `derived.formula` geprüft |
 | Patch-Vergleich | Zwei aufgezeichnete `CalcResult`s, Schwellen ±x % |
 | MCP-Tools | Handler direkt + Protokolltest (Skill `mcp-server-patterns`) |
-| Planer | Antwort-Fixtures (aufgezeichnetes Stream-JSON); **nie** echte `claude`-Aufrufe in der Testsuite |
+| Speichernde MCP-Tools | Fixture-Eingabe → PoB-Nachrechnung → DB-Inhalt; Ergebnisfelder aus der Eingabe werden ignoriert |
+| Planungs-Skill/Prompts | Statisch prüfen (Tools existieren, keine Zahlen im Text); **nie** echte Claude-Aufrufe in der Testsuite |
 
 ## Golden-Tests gegen PoB
 

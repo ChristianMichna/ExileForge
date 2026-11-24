@@ -1,6 +1,6 @@
 ---
 name: contract-first
-description: Ändert Datenstrukturen in ExileForge schema-zuerst – JSON Schema in packages/schema ist die Quelle der Wahrheit, TS-Typen werden generiert, IPC/MCP/bridge.lua/KI-Antwortformat werden dagegen validiert. Verwenden beim Hinzufügen oder Ändern von Feldern im Build-Modell, IPC-Kanälen, MCP-Tool-Ein/Ausgaben, dem JSON-Protokoll zum PoB-Worker oder dem Antwortschema des Planers.
+description: Ändert Datenstrukturen in ExileForge schema-zuerst – JSON Schema in packages/schema ist die Quelle der Wahrheit, TS-Typen werden generiert, IPC/MCP-Tools/bridge.lua/SQLite/Teilen-Datei werden dagegen validiert. Verwenden beim Hinzufügen oder Ändern von Feldern im Build-Modell, IPC-Kanälen, MCP-Tool-Ein/Ausgaben, dem JSON-Protokoll zum PoB-Worker oder dem Export-/Teilen-Format.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/contract-first),
@@ -16,9 +16,10 @@ Prozesse oder Sprachen kreuzen:
 |---|---|
 | Build-Modell (`Build`, `Stage`, `Sourced<T>`) | core ⇄ db ⇄ UI ⇄ Export |
 | IPC | Main ⇄ Renderer (Preload) |
-| MCP-Tools | MCP-Server ⇄ claude-CLI/Modell |
+| MCP-Tools | MCP-Server ⇄ Claude (Desktop/Code des Nutzers) |
 | Worker-Protokoll | Node ⇄ `bridge.lua` (JSON über stdio) |
-| Planer-Antwort | Modell → Main (`--output-format` + JSON Schema) |
+| Gemeinsame DB | MCP-Server ⇄ App (beide über `packages/core`) |
+| Teilen-Datei | ExileForge ⇄ ExileForge eines Freundes (JSON) |
 | `.build`-Export | ExileForge → Build Planner im Spiel (GGG-Format) |
 
 Für jede Grenze gibt es **genau ein** maßgebliches Schema in
@@ -36,7 +37,7 @@ mit eigener Form.
    `json-schema-to-typescript`), generierte Dateien nicht von Hand ändern.
 4. **Validierung an der Grenze**: Laufzeitprüfung (Ajv oder aus dem Schema
    abgeleitetes zod) beim Empfang – IPC-Handler, MCP-Tool-Eingang,
-   Worker-Antwort, Planer-Antwort, Import.
+   Worker-Antwort, Import einer Teilen-Datei.
 5. **Fixtures/Beispiele** (`examples/`) gegen das Schema testen.
 6. **Doku**: `docs/data-model.md` anpassen; bei Bruch eine ADR.
 

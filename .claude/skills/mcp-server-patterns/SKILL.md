@@ -1,6 +1,6 @@
 ---
 name: mcp-server-patterns
-description: Baut und erweitert den ExileForge-MCP-Server (packages/mcp-server) mit dem TypeScript-MCP-SDK – Tools wie calc_stage, node_power, search_gems, price_of, plan_craft, validate_stage; zod-Schemas, stdio, strukturierte Fehler, Test mit claude -p. Verwenden beim Anlegen oder Ändern von MCP-Tools oder beim Debuggen der Anbindung an die claude-CLI.
+description: Baut und erweitert den ExileForge-MCP-Server (packages/mcp-server) mit dem TypeScript-MCP-SDK – Tools wie calc_stage, save_stage, node_power, search_gems, price_of, export_build_file; MCP-Prompts, zod-Schemas, stdio, strukturierte Fehler, Verpackung als .mcpb und Claude-Code-Plugin. Verwenden beim Anlegen oder Ändern von MCP-Tools/Prompts oder beim Debuggen der Anbindung an Claude Desktop/Claude Code.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/mcp-server-patterns),
@@ -9,16 +9,27 @@ description: Baut und erweitert den ExileForge-MCP-Server (packages/mcp-server) 
 
 # MCP-Server-Muster für ExileForge
 
-Der MCP-Server ist die **einzige** Tür, durch die die KI an Spieldaten und
-Zahlen kommt (Architektur §3.3). Was hier fehlt oder schlecht beschrieben
-ist, erfindet das Modell sonst selbst.
+Der MCP-Server ist die **einzige** Tür, durch die Claude an Spieldaten und
+Zahlen kommt (Architektur §3.3). Geplant wird im Chat von Claude Desktop oder
+Claude Code des Nutzers; die ExileForge-App selbst ruft Claude nie auf. Was
+hier fehlt oder schlecht beschrieben ist, erfindet das Modell sonst selbst.
 
 ## Grundsätze
 
-- **Transport: nur stdio.** Die App startet `claude -p --mcp-config
-  <exileforge-mcp.json>`; die CLI startet den Server als Kindprozess.
+- **Transport: nur stdio.** Claude Desktop (über die `.mcpb`-Erweiterung)
+  bzw. Claude Code (über das Plugin) startet den Server als Kindprozess.
   Tool-Logik vom Transport trennen (`createServer()` vs. `main.ts`), damit
   Tools ohne Transport testbar sind.
+- **Läuft beim Freund ohne Entwicklerwerkzeuge**: Node aus der Laufzeit von
+  Claude Desktop bzw. gebündelt; PoB/LuaJIT aus der App-Installation finden;
+  keine Python-/git-Abhängigkeit.
+- **Speichern rechnet nach**: `save_variant`/`save_stage` nehmen nur
+  Struktur (Knoten, Gems, Items) an, rechnen durch PoB und speichern über
+  `packages/core` in die gemeinsame SQLite-DB; Ergebnisfelder werden nie
+  vom Modell übernommen.
+- **Prompts** (`/exileforge-plan`, `/exileforge-fix`) als MCP-Prompts
+  registrieren; derselbe Ablauf liegt als Skill im Claude-Code-Plugin. Beide
+  aus einer Quelle erzeugen, damit sie nicht auseinanderlaufen.
 - **SDK-Version pinnen** (`@modelcontextprotocol/sdk` in `package.json`).
   Die Registrierungs-API hat sich zwischen Versionen geändert
   (`tool()` vs. `registerTool()`): vor dem Schreiben die aktuelle Doku oder
@@ -70,12 +81,13 @@ server.registerTool(
    gemockt oder mit aufgezeichneten Antworten.
 2. **Protokoll**: Server mit dem SDK-Client über stdio in einem Test starten,
    `listTools` und einen Aufruf prüfen.
-3. **Ende zu Ende** (manuell, verbraucht Abo-Kontingent, sparsam):
-   ```bash
-   claude -p "Rufe calc_stage für examples/build.example.json Stufe 1 auf" \
-     --mcp-config .tmp/exileforge-mcp.json \
-     --allowedTools "mcp__exileforge__*" --output-format stream-json
-   ```
+3. **Inspektor**: `npx @modelcontextprotocol/inspector node dist/main.js`
+   für manuelle Aufrufe ohne Abo-Verbrauch.
+4. **Ende zu Ende** (manuell, nur Entwicklung, verbraucht Abo-Kontingent):
+   `.mcpb` in Claude Desktop installieren bzw. Plugin in Claude Code laden und
+   im Chat einen Build rechnen lassen. Für schnelle Läufe in der Entwicklung
+   geht auch `claude -p … --mcp-config <datei>` – das ist ein Entwickler-
+   Werkzeug, **nie** ein Pfad, den die App benutzt.
 
 ## Checkliste für ein neues Tool
 
@@ -83,6 +95,7 @@ server.registerTool(
 - [ ] Ausgabe mit Herkunft (`Sourced`/`CalcResult`)
 - [ ] Fehlerfälle liefern `isError` mit Korrekturhinweis
 - [ ] Unit-Test + Protokolltest
-- [ ] In `docs/architecture.md` §3.3 Tool-Liste ergänzt
+- [ ] In `docs/architecture.md` §3.3 Tool-Liste ergänzt; Planungs-Skill/Prompt
+      kennt das Tool
 - [ ] Review: `typescript-reviewer`, `pob-number-auditor`,
       `electron-security-reviewer` (Abschnitt MCP)

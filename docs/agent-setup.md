@@ -5,8 +5,9 @@ und warum. Quelle der Übernahmen: [everything-claude-code][ecc] (ECC),
 Commit `4adeee6` vom 2026-11-19, MIT-Lizenz (Text in
 `.claude/THIRD_PARTY_NOTICES.md`).
 
-Grundsatz: Nur übernehmen, was zu **diesem** Stack (Electron + React + TS,
-MCP-Server, PoB headless in LuaJIT, `claude -p`) und **dieser** Kernregel
+Grundsatz: Nur übernehmen, was zu **diesem** Stack (Electron-App für Freunde,
+MCP-Erweiterung für Claude Desktop/Code, PoB headless in LuaJIT,
+gemeinsame SQLite-DB; die App ruft nie selbst Claude auf) und **dieser** Kernregel
 („jede Zahl aus PoB") passt. Alles wurde auf Deutsch übertragen, gekürzt
 und um Projektregeln ergänzt. Kein ECC-Plugin, kein Installer, keine
 Laufzeit-Abhängigkeit auf ECC.
@@ -43,8 +44,9 @@ Laufzeit-Abhängigkeit auf ECC.
 - **electron-security-reviewer**: ECCs `security-reviewer` zielt auf
   Web-Backends (Login, Sessions, Rate Limits, Zahlungen) – das gibt es hier
   nicht. Ersetzt durch die echten Angriffsflächen: Renderer/IPC,
-  `claude`- und LuaJIT-Start, Dateiexport, PoB-Downloads, MCP-Eingaben und
-  vor allem die Abo-Regel (App fasst Claude-Zugangsdaten nie an).
+  LuaJIT-Start, Dateiexport, PoB- und App-Updates, MCP-Tools und `.mcpb`,
+  gemeinsame DB und vor allem die Abo-Regel (App ruft nie Claude auf und
+  fasst keine Zugangsdaten an).
 - **silent-failure-hunter**: Ein still verschluckter Fehler ergibt hier
   einen plausibel aussehenden Guide mit falschen Zahlen. Ergänzt um
   PoB-/Preis-spezifische Ersatzwerte.
@@ -57,14 +59,15 @@ Laufzeit-Abhängigkeit auf ECC.
   vieles ab; Nachbauen wäre teuer und fehleranfällig. ECCs
   Researcher-Subagent und PyPI-/Skill-Katalogsuche entfernt.
 - **contract-first**: Die Architektur legt JSON Schema in `packages/schema`
-  als Quelle der Wahrheit fest; sechs Grenzen (Modell, IPC, MCP, Worker,
-  Planer-Antwort, `.build`). OpenAPI/AsyncAPI/Protobuf-Teile entfernt.
+  als Quelle der Wahrheit fest; sieben Grenzen (Modell, IPC, MCP, Worker,
+  gemeinsame DB, Teilen-Datei, `.build`). OpenAPI/AsyncAPI/Protobuf-Teile entfernt.
 - **tdd-workflow**: Von ~600 auf ~80 Zeilen. Kern: PoB-Golden-Tests mit
   **aufgezeichneten** PoB-Ergebnissen statt handgeschriebener Zahlen;
-  niemals echte `claude`-Aufrufe in Tests (Abo-Kontingent).
+  niemals echte Claude-Aufrufe in Tests (Abo-Kontingent).
 - **mcp-server-patterns**: Der MCP-Server ist die einzige Datenquelle der
-  KI. Remote/HTTP entfernt (nur stdio), ergänzt um Herkunft in Ausgaben,
-  Kostenhinweise in Tool-Beschreibungen, Test über `claude -p`.
+  KI. Remote/HTTP entfernt (nur stdio), ergänzt um `.mcpb`/Plugin,
+  MCP-Prompts, Nachrechnen beim Speichern, Herkunft in Ausgaben,
+  Kostenhinweise in Tool-Beschreibungen.
 - **verification-loop**: An pnpm, Lua-Worker und Projektregeln angepasst;
   meldet fehlende Skripte als „NICHT VORHANDEN" statt PASS.
 - **architecture-decision-records**: Die Architektur hat viele
@@ -103,6 +106,8 @@ Laufzeit-Abhängigkeit auf ECC.
   Tabelle oben ergänzen; die Lizenzdatei gilt weiter.
 - Kandidaten für später: Playwright-E2E für Electron (sobald `apps/ui`
   existiert), `build-error-resolver` für pnpm/electron-builder,
-  Skill für `.build`-Export, sobald das Format im Spiel getestet ist.
+  Skill für `.build`-Export, sobald das Format im Spiel getestet ist,
+  ECCs eigene Plugin-/Marketplace-Struktur als Vorlage für `.claude-plugin/`
+  (Schritt 6 der Umsetzung).
 
 [ecc]: https://github.com/affaan-m/everything-claude-code

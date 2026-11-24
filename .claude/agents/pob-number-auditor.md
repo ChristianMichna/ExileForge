@@ -1,6 +1,6 @@
 ---
 name: pob-number-auditor
-description: Prüft die Kernregel von ExileForge – jede Zahl stammt aus Path of Building oder ist als gamedata/market/derived mit Herkunft gekennzeichnet. Einsetzen bei Änderungen an Datenmodell, Rechen- und Prüflogik, Crafting/Preisen, Planer-Prompts, MCP-Tools, Export und jeder UI, die Werte anzeigt.
+description: Prüft die Kernregel von ExileForge – jede Zahl stammt aus Path of Building oder ist als gamedata/market/derived mit Herkunft gekennzeichnet. Einsetzen bei Änderungen an Datenmodell, Rechen- und Prüflogik, Crafting/Preisen, Planungs-Skill/MCP-Prompts, MCP-Tools, Export und jeder UI, die Werte anzeigt.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -30,11 +30,13 @@ Du meldest Befunde, du änderst keinen Code.
   Spielversion stehen.
 
 ### 3. KI-Grenze
-- Planer-Prompts verlangen, dass die KI Zahlen nur über MCP-Tools bezieht.
-- Das Antwortschema der KI hat **keine** freien Zahlenfelder für Ergebnisse
-  (DPS, EHP, Kosten); Texte nutzen Platzhalter wie `{{stage.dps}}`.
-- Nach der KI-Antwort wird jede Stufe vom Main-Prozess erneut durch PoB
-  gerechnet, bevor gespeichert wird.
+- Planungs-Skill/MCP-Prompts (`/exileforge-plan`, `/exileforge-fix`)
+  verlangen, dass Claude Zahlen nur über MCP-Tools bezieht.
+- Eingabeschemas der speichernden Tools (`save_variant`, `save_stage` …)
+  haben **keine** Felder für Ergebnisse (DPS, EHP, Kosten); Texte nutzen
+  Platzhalter wie `{{calc.stats.life}}`.
+- Speichernde Tools rechnen jede Stufe selbst durch PoB, bevor gespeichert
+  wird; Claude bekommt die PoB-Zahlen nur zurück.
 - Regex-Check auf Zahlen in KI-Freitexten vorhanden (Ziffern + Einheit wie
   `%`, `DPS`, `life`, `chaos`, `div`).
 
