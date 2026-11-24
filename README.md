@@ -8,46 +8,42 @@ mehrere Build-Varianten und arbeitet die gewählte zu einem lückenlosen Guide
 aus: Leveling von Akt 1 bis Endgame, Passive Tree je Stufe, Gems, Ausrüstung
 und Crafting mit Kosten.
 
-> **Status:** Planungsphase. Architektur und Datenmodell (Entwurf v0.2) plus
-> ein erster lauffähiger Baustein: Path of Building PoE2 headless (siehe unten).
+> **Status:** Planungsphase. Maßgeblich ist der [Projektplan](docs/projektplan.md)
+> (Konzeptversion 1.0). Es gibt noch keinen lauffähigen Produktcode, nur einen
+> Machbarkeitsnachweis für Path of Building headless.
 
 ## Versprechen
 
 - **Jede Zahl kommt aus Path of Building.** Die KI schlägt vor, PoB rechnet.
   Keine geschätzten DPS- oder Lebenswerte.
-- **Läuft mit deinem Claude-Abo.** Du planst im Chat von Claude Desktop (oder
-  Claude Code) mit deinem eigenen Pro/Max-Abo. ExileForge liefert die
-  Werkzeuge dazu als Claude-Erweiterung. Kein API-Key, und ExileForge fasst
-  deine Zugangsdaten nie an.
-- **Für Freunde gemacht.** Ein Installer, automatische Updates, die
-  Claude-Erweiterung per Doppelklick. Builds lassen sich als Datei teilen.
-- **Für Spieler gemacht.** Dunkler Dark-Fantasy-Look, Passive Tree, Item-Karten
-  und Crafting-Abläufe grafisch.
+- **Läuft mit deinem Claude-Abo.** Du arbeitest im ExileForge-Frontend; die
+  KI-Schritte erledigt Claude in deinem eigenen Claude Desktop (oder Claude Code)
+  über die ExileForge-Erweiterung, Schritt für Schritt und sofort mit PoB geprüft.
+  ExileForge sieht deine Claude-Zugangsdaten nie. Wer lieber einen API-Key nutzt,
+  kann das auch, mit Claude oder anderen Modellen.
+- **Läuft bei dir lokal.** Eine Windows-App, kein Server, keine Cloud. Freunden
+  schickst du einfach den Installer; Guides lassen sich als Datei teilen.
+- **Für Spieler gemacht.** Dunkler Dark-Fantasy-Look, Passive Tree mit
+  Level-Zeitleiste, Item-Tooltips und Crafting-Abläufe grafisch.
 - **Direkt im Spiel nutzbar.** Export als `.build`-Datei für den Build Planner
   von PoE2, plus PoB-Code je Stufe.
-- **Bleibt aktuell.** Nach jedem Patch bzw. PoB-Update werden alle Guides neu
-  gerechnet und Abweichungen gemeldet.
+- **Bleibt aktuell.** Jeder Patch ist ein neues Daten-Release; gespeicherte
+  Guides werden automatisch neu geprüft.
 
 ## Wie es funktioniert (kurz)
 
-1. Du installierst die **ExileForge-App** (Windows) und verbindest sie mit
-   **Claude Desktop** (Doppelklick auf die ExileForge-Erweiterung).
-2. Im Claude-Chat sagst du, welchen Skill du spielen willst und wie.
-   Claude plant Varianten und den Guide und nutzt dabei die
-   ExileForge-Werkzeuge, die mit **Path of Building PoE2** rechnen.
-3. Die **App** zeigt Varianten, Stufen, Tree, Items und Crafting, exportiert
-   die `.build`-Datei und prüft nach jedem Patch alles neu.
+1. Du installierst ExileForge (Windows) und verbindest es per Klick mit
+   Claude Desktop. In der App wählst du Skill und Vorlieben.
+2. ExileForge analysiert den Skill, Claude entwirft 3–6 Varianten, jede wird in
+   **Path of Building PoE2** gerechnet. Du wählst eine.
+3. Daraus entsteht ein vollständiger Guide von Akt 1 bis Endgame, der erst
+   ausgeliefert wird, wenn er alle Prüfungen besteht.
 
-Details: [docs/architecture.md](docs/architecture.md) ·
-Datenmodell: [docs/data-model.md](docs/data-model.md) ·
-Beispiel: [examples/build.example.json](examples/build.example.json)
-
-## Voraussetzungen (geplant)
-
-- Windows-PC (PoE2 und der Build Planner sind PC-only)
-- [Claude Desktop](https://claude.ai/download) mit deinem eigenen Claude-Abo
-  (oder Claude Code)
-- Path of Exile 2 ab Patch 0.5 für den `.build`-Import
+Projektplan: [docs/projektplan.md](docs/projektplan.md) ·
+Architektur: [docs/architecture.md](docs/architecture.md) ·
+Abgleich mit dem bisherigen Stand: [docs/plan-abgleich.md](docs/plan-abgleich.md) ·
+Entscheidungen: [docs/adr/](docs/adr/) ·
+Datenmodell: [docs/data-model.md](docs/data-model.md)
 
 ## Proof of Concept: Path of Building headless
 
@@ -61,16 +57,15 @@ python3 -m pob_bridge stats <build-code>   # oder Link (pobb.in, poe.ninja, …)
 python3 -m unittest discover tests
 ```
 
-## Nächste Schritte
+## Zeitplan
 
-1. Proof of Concept: Path of Building PoE2 headless rechnen lassen
-2. Proof of Concept: ExileForge-Werkzeug als Erweiterung in Claude Desktop
-3. JSON Schema und Übersetzung ins PoB-Format
-4. `.build`-Export im Spiel testen
-5. App-Gerüst mit Design-System
+PoE2 1.0 erscheint am 11.12.2026. Bis dahin entsteht das Fundament
+(Daten-Pipeline, Katalog, Rechenkern), der Build-Generator folgt, sobald
+Path of Building für 1.0 aktualisiert ist.
 
 ## Hinweise
 
+This product isn't affiliated with or endorsed by Grinding Gear Games in any way.
 ExileForge ist ein Fan-Projekt und steht in keiner Verbindung zu Grinding Gear
 Games oder Anthropic. Path of Exile ist eine Marke von Grinding Gear Games.
 Path of Building ist ein Community-Projekt
