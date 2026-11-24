@@ -28,10 +28,10 @@ export type {
   ItemView,
   ModKind,
 } from "./components/ItemTooltip";
-export { formatNumber, provenanceLabel } from "./components/provenance";
+export { formatNumber, provenanceLabel } from "./components/provenance-model";
 export type {
   NumberFormat,
   ProvenanceKind,
   ProvenanceView,
   ValueState,
-} from "./components/provenance";
+} from "./components/provenance-model";

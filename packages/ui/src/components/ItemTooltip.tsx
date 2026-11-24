@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import type { Rarity } from "../theme/tokens";
 import { RARITY_LABELS } from "../theme/tokens";
 import { ProvenanceBadge } from "./Provenance";
-import type { ProvenanceView } from "./provenance";
+import type { ProvenanceView } from "./provenance-model";
 import "./item-tooltip.css";
 
 /** Mirrors ModSpec.kind in docs/data-model.md; replaced by the contract type once it lands. */

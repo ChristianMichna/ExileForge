@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Badge } from "./Badge";
 import { ProvenanceBadge } from "./Provenance";
-import type { NumberFormat, ValueState } from "./provenance";
-import { formatNumber } from "./provenance";
+import type { NumberFormat, ValueState } from "./provenance-model";
+import { formatNumber } from "./provenance-model";
 import "./stat-value.css";
 
 export interface StatValueProps {

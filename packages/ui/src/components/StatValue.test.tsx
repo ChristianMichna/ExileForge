@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { StatGrid, StatValue } from "./StatValue";
-import { formatNumber, provenanceLabel } from "./provenance";
+import { formatNumber, provenanceLabel } from "./provenance-model";
 
 afterEach(cleanup);
 

@@ -1,5 +1,5 @@
-import type { ProvenanceKind, ProvenanceView } from "./provenance";
-import { provenanceLabel } from "./provenance";
+import type { ProvenanceKind, ProvenanceView } from "./provenance-model";
+import { provenanceLabel } from "./provenance-model";
 import "./provenance.css";
 
 const KIND_NAME: Readonly<Record<ProvenanceKind, string>> = {
