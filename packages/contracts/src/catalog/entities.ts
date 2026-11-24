@@ -193,8 +193,10 @@ export const Ascendancy = z.object({
   classId: CharacterClassId,
   startNodeId: PassiveNodeId.optional(),
   nodeIds: z.array(PassiveNodeId),
-  /** How ascendancy points are unlocked; source ids come from the release. */
-  /** Absent if the source has no data on how points are unlocked. */
+  /**
+   * How ascendancy points are unlocked; source ids come from the release.
+   * Absent if the source has no data on it.
+   */
   pointUnlocks: z
     .array(z.object({ source: ClassificationId, points: z.int().positive() }))
     .optional(),

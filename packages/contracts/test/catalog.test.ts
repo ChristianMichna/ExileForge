@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  Ascendancy,
   BaseItem,
   CatalogDiff,
   CatalogManifest,
@@ -8,6 +9,7 @@ import {
   DataRelease,
   Mod,
   StatRange,
+  UniqueModLine,
   StatTranslation,
 } from "../src/index.js";
 import { without } from "./helpers.js";
@@ -122,6 +124,25 @@ describe("entities", () => {
     expect(Mod.parse(withUnresolved).unresolved).toHaveLength(1);
     const badReason = { ...mod, unresolved: [{ text: "x", reason: "guessed" }] };
     expect(Mod.safeParse(badReason).success).toBe(false);
+  });
+
+  it("unresolved defaults to [] and also exists on unique mod lines", () => {
+    const mod = (fixture.shards[1] as { entities: Record<string, unknown>[] }).entities[0];
+    expect(Mod.parse(mod).unresolved).toEqual([]);
+    const line = { stats: [], unresolved: [{ text: "Fixture line", reason: "lossy" }] };
+    expect(UniqueModLine.parse(line).unresolved).toHaveLength(1);
+    const bad = { stats: [], unresolved: [{ text: "Fixture line", reason: "guessed" }] };
+    expect(UniqueModLine.safeParse(bad).success).toBe(false);
+  });
+
+  it("ascendancy point unlocks may be absent", () => {
+    const asc = {
+      id: "fixture_asc",
+      name: "Fixture Ascendancy",
+      classId: "fixture_class",
+      nodeIds: ["fixture_node_1"],
+    };
+    expect(Ascendancy.safeParse(asc).error).toBeUndefined();
   });
 
   it("drop level may be absent instead of guessed", () => {
