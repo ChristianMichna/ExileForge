@@ -21,7 +21,7 @@ einem regulären Claude-Abo laufen.
 - Die Build-Pipeline (S0–S11) ist eine **Zustandsmaschine bei ExileForge**. Jede
   LLM-Stufe wird in kleine Aufgaben zerlegt und entweder vom Gateway (A) ausgeführt
   oder dem Claude-Client über `forge.next` / `forge.submit` (B) gegeben
-  ([ADR-0003](0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)). Schema-Validierung,
+  ([ADR-0003](0003-hybrid-frontend-und-chat.md)). Schema-Validierung,
   Gates G1–G8, Rechnungen und Speicherung laufen in beiden Fällen gleich.
 
 ## Folgen

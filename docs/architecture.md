@@ -7,8 +7,8 @@ steht im [Abgleich](plan-abgleich.md). Annahmen sind mit **⚠ Annahme** markier
 
 ## 0. Harte Vorgaben
 
-1. Web- oder Desktop-App → **Web-App mit eigenem Frontend** ([ADR-0001](adr/0001-web-app-und-remote-mcp.md), [ADR-0003](adr/0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)).
-2. KI läuft mit **regulärem Claude-Abo** → KI-Schritte im Claude-Chat des Freundes über den Remote-Connector, iterativ, keine Single-Shot-Prompts ([ADR-0002](adr/0002-claude-abo-nur-ueber-connector.md), [ADR-0003](adr/0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)).
+1. Web- oder Desktop-App → **Web-App mit eigenem Frontend** ([ADR-0001](adr/0001-web-app-und-remote-mcp.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
+2. KI läuft mit **regulärem Claude-Abo** → KI-Schritte im Claude-Chat des Freundes über den Remote-Connector, iterativ, keine Single-Shot-Prompts ([ADR-0002](adr/0002-claude-abo-nur-ueber-connector.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
 3. **Leicht zugänglich für alle Freunde**: Browser + Claude-Konto, nichts installieren.
    Das ExileForge-Frontend ist die Oberfläche, nicht die Claude-App.
 4. **Optisch ansprechend für PoE-Spieler**, eigene Gestaltung, kein Anschein offizieller Herkunft.
@@ -31,7 +31,7 @@ Das Frontend zeigt live, was passiert, und der Freund greift dort ein.
         │ HTTPS                                    │ eigenes Claude-Abo
         ▼                                          │ MCP (Streamable HTTP)
  ┌──────────────┐   REST    ┌────────────┐         ▼
- │ apps/web     │─────────▶ │ apps/api   │◀── apps/mcp  (forge.next / forge.submit / forge.ask_user,
+ │ apps/web     │─────────▶ │ apps/api   │◀── apps/mcp  (forge.attach / forge.next / forge.submit,
  │ Next.js      │           │ Fastify    │              catalog.*, calc.*, optimize.*, …)
  └──────────────┘           └─────┬──────┘
                                   │
@@ -77,11 +77,11 @@ KI-Schicht, Build-Pipeline, Optimierer, Frontend).
   Claude Desktop und der Handy-App. Anmeldung am ExileForge-Konto per OAuth des
   eigenen Dienstes, damit Guides dem richtigen Nutzer gehören.
 - **Planen:** Im ExileForge-Frontend Skill und Vorlieben wählen, „Mit Claude
-  planen" drücken, Sitzungscode im Claude-Chat nennen. Claude arbeitet die
+  planen" drücken, Sitzungscode im Claude-Chat nennen (`forge.attach`). Claude arbeitet die
   Aufgaben über `forge.next`/`forge.submit` ab; Frontend zeigt Schritt, PoB-Zahlen
-  und Tree live. Rückfragen (`forge.ask_user`) und Eingriffe (Variante wählen,
+  und Tree live. Rückfragen (Aufgaben vom Typ `ask_user`) und Eingriffe (Variante wählen,
   Knoten/Items sperren, Schritt neu) passieren im Frontend.
-  Ablauf im Detail: [ADR-0003](adr/0003-hybrid-eigenes-frontend-iterativer-claude-chat.md).
+  Ablauf im Detail: [ADR-0003](adr/0003-hybrid-frontend-und-chat.md).
 - **Lesen:** Guide-Link im Browser, mobil zuerst.
 - **Konto:** anfangs nur auf Einladung (z. B. Discord-Login). Öffentliche Website
   ist eine spätere Entscheidung (Plan, offene Entscheidung „Betriebsform").
@@ -169,7 +169,7 @@ einspielen. Reihenfolge nach der Ersten Welle des Plans:
 
 ## 7. Offene Fragen
 
-- PoC Hybrid-Ablauf: Werkzeugaufrufe pro Claude-Antwort, vorausgefüllter Prompt per URL ([ADR-0003](adr/0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)).
+- PoC Hybrid-Ablauf: Werkzeugaufrufe pro Claude-Antwort, vorausgefüllter Prompt per URL ([ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
 - Offene Entscheidungen des Plans (Monetarisierung, eigene Datenextraktion,
   Betreiber-Key, Sprache, Name/Domain, Kooperationen, Hosting-Budget).
 - Remote-Connectors je Claude-Plan und Abo-Verbrauch pro Guide.

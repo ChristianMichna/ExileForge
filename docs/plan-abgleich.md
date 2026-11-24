@@ -30,7 +30,7 @@ Server Claude selbst aufrufen müssen, also API-Key statt Abo).
 **Entscheidung (Christian, 2026-11-24):** Hybrid. ExileForge hat ein **eigenes
 Frontend** für alles; nur die KI-Schritte laufen im Claude-Chat des Freundes über
 den Remote-Connector, iterativ in kleinen Aufgaben statt Single-Shot-Prompts
-([ADR-0003](adr/0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)).
+([ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
 PR #1 wird auf v0.3 umgeschrieben (dieser Stand), PR #2 bleibt als technischer
 Kern, wird aber umgebaut.
 
@@ -59,7 +59,7 @@ Kern, wird aber umgebaut.
   keine Windows-Abhängigkeit, Guide auf dem Handy, Builds sind Links statt Dateien,
   Updates ohne Zutun. Kosten: ein Server, den Christian betreibt und bezahlt.
 - **Auflösung:** Web-App mit eigenem Frontend laut Plan
-  ([ADR-0001](adr/0001-web-app-und-remote-mcp.md), [ADR-0003](adr/0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)). Electron, `.mcpb`,
+  ([ADR-0001](adr/0001-web-app-und-remote-mcp.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)). Electron, `.mcpb`,
   electron-updater, NSIS und SQLite entfallen. Der lokale Modus (F-21, R2) bleibt
   als spätere Option.
 

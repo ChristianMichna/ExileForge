@@ -1,6 +1,6 @@
 # ADR-0001: Gehostete Web-App mit Remote-MCP statt Desktop-App
 
-- Status: **angenommen in Hybrid-Form**, siehe [ADR-0003](0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)
+- Status: **angenommen in Hybrid-Form**, siehe [ADR-0003](0003-hybrid-frontend-und-chat.md)
 - Datum: 2026-11-24
 - Ersetzt: Entscheidung „Electron-App + `.mcpb`-Erweiterung" aus Architektur v0.2
 
