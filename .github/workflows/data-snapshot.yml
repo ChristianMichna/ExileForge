@@ -51,11 +51,11 @@ jobs:
         run: tools/setup_pob.sh
 
       - name: Pipeline tests against the real PoB
-        run: pnpm --filter @exileforge/data-pipeline test
+        run: pnpm exec turbo run test --filter=@exileforge/data-pipeline
 
       - name: Build snapshot
         run: |
-          pnpm --filter @exileforge/data-pipeline build
+          pnpm exec turbo run build --filter=@exileforge/data-pipeline
           node apps/data-pipeline/dist/cli.js snapshot \
             --game-version "$GAME_VERSION" --revision "$REVISION" --out data-snapshots/current
 
@@ -63,6 +63,11 @@ jobs:
         run: |
           node apps/data-pipeline/dist/cli.js stat-coverage data-snapshots/current \
             --out data-snapshots/current/stat-coverage.json 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Build catalog
+        run: |
+          node apps/data-pipeline/dist/cli.js catalog data-snapshots/current \
+            --out data-snapshots/current/catalog 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Diff against an older PoB release
         if: env.COMPARE_REF != ''

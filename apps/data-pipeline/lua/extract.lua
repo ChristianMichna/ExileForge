@@ -294,6 +294,49 @@ loaders["uniqueDB"] = function()
 	return t
 end
 
+-- per-level data of every gem's main granted effect, computed by PoB itself:
+-- level requirement, numeric level fields, cost per resource and attribute
+-- requirements via calcLib.getGemStatRequirement (PoB's in-game formula).
+loaders["gemLevels"] = function()
+	local t = {}
+	for gemId, gem in pairs(data.gems) do
+		local effect = gem.grantedEffect
+		if effect and effect.levels then
+			local levels = {}
+			for level, lv in pairs(effect.levels) do
+				local values = {}
+				for k, v in pairs(lv) do
+					if type(v) == "number" and k ~= "levelRequirement" then
+						values[k] = v
+					elseif k == "cost" and type(v) == "table" then
+						for resource, amount in pairs(v) do
+							values["cost." .. resource] = amount
+						end
+					end
+				end
+				-- no level requirement in PoB: left out, and so are the attribute
+				-- requirements PoB derives from it (never computed from a guess)
+				local req = lv.levelRequirement
+				local attributes = {}
+				if req then
+					for _, attr in ipairs({ "Str", "Dex", "Int" }) do
+						local weight = gem["req" .. attr]
+						if weight then
+							attributes[attr:lower()] = calcLib.getGemStatRequirement(req, weight, effect.support)
+						end
+					end
+				end
+				levels[#levels + 1] = { level = level, levelRequirement = req, attributes = attributes, values = values }
+			end
+			table.sort(levels, function(a, b)
+				return a.level < b.level
+			end)
+			t[gemId] = { grantedEffectId = effect.id, support = effect.support or false, levels = levels }
+		end
+	end
+	return t
+end
+
 -- stat description scopes (stat id -> text templates). Keyed "<scope>:<index>";
 -- the stat-name lookup tables in the same files are derived data and dropped.
 -- Handlers ({ k = "negate", v = 1 } …) stay as data next to the template.

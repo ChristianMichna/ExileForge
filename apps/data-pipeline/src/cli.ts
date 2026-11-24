@@ -5,7 +5,9 @@ import { parseArgs } from "node:util";
 import { loadPobSources } from "./config.ts";
 import { diffSnapshots, summarizeDiff } from "./diff/snapshot-diff.ts";
 import { pobInstallFromHome } from "./pob/extract.ts";
+import { loadNormalizeConfig } from "./normalize/catalog.ts";
 import { resolveModStats } from "./normalize/mod-stats.ts";
+import { buildCatalog } from "./normalize/release.ts";
 import { StatMatcher } from "./normalize/stat-matcher.ts";
 import { buildSnapshot } from "./snapshot/build.ts";
 import { readManifest, readShard } from "./snapshot/snapshot.ts";
@@ -18,6 +20,10 @@ const USAGE = `exileforge-data <command>
 
   stat-coverage <snapshotDir> [--scope stat_descriptions] [--out <file>]
       Map every mod's display lines to stat ids and report what stays unresolved.
+
+  catalog <snapshotDir> --out <dir> [--config config/data-pipeline/normalize.json]
+      Normalise a snapshot to the catalog contract, validate it and write the
+      release files (manifest.json, one shard per kind, findings.json).
 
   diff <fromDir> <toDir> [--out <dir>]
       Compare two snapshots; writes diff.json and diff.md to --out (default: <toDir>).
@@ -93,6 +99,34 @@ async function main(argv: string[]): Promise<void> {
         JSON.stringify({ releaseId: manifest.releaseId, summary, unresolved }, null, 2) + "\n",
       );
     }
+    return;
+  }
+  if (command === "catalog") {
+    const { values, positionals } = parseArgs({
+      args: rest,
+      options: {
+        out: { type: "string" },
+        config: { type: "string", default: "config/data-pipeline/normalize.json" },
+      },
+      allowPositionals: true,
+      strict: true,
+    });
+    const [dir] = positionals;
+    if (!dir || positionals.length !== 1) fail(USAGE);
+    const out = values.out ?? fail("--out is required");
+    const { manifest, warnings, summary } = await buildCatalog(
+      dir,
+      out,
+      await loadNormalizeConfig(resolve(values.config)),
+    );
+    console.warn(
+      `catalog ${manifest.release.id}: 0 errors, ${String(warnings.length)} warnings (findings.json)`,
+    );
+    for (const [kind, byReason] of Object.entries(summary.unresolved)) {
+      const parts = Object.entries(byReason).map(([r, n]) => `${String(n)} ${r}`);
+      console.warn(`  unresolved ${kind} lines: ${parts.join(", ")}`);
+    }
+    for (const s of manifest.shards) console.warn(`  ${s.kind}: ${String(s.count)}`);
     return;
   }
   if (command === "diff") {

@@ -1,10 +1,10 @@
 # @exileforge/data-pipeline
 
-Daten-Pipeline für den Spieldaten-Katalog (F-01, WS1). Dieser erste Teil baut
-aus dem gepinnten Path of Building (PoE2) einen **Roh-Snapshot** und vergleicht
-zwei Snapshots miteinander. Die Abbildung auf die Katalog-Verträge
-(`@exileforge/contracts/catalog`), die Validierung und das Veröffentlichen als
-Daten-Release folgen in eigenen PRs.
+Daten-Pipeline für den Spieldaten-Katalog (F-01, WS1). Sie baut aus dem
+gepinnten Path of Building (PoE2) einen **Roh-Snapshot**, vergleicht zwei
+Snapshots und bildet einen Snapshot auf die Katalog-Verträge
+(`@exileforge/contracts/catalog`) ab, geprüft gegen die Schemas. Das
+Veröffentlichen als Daten-Release folgt in einem eigenen PR.
 
 ## Ablauf
 
@@ -34,17 +34,17 @@ per „Run workflow" mit Spielversion und optionalem Vergleich gegen einen
 
 ## Arten im Roh-Snapshot
 
-| Art | Quelle in PoB | ID |
-| --- | --- | --- |
-| `itemBases` | `Data/Bases/*.lua` | Basis-Name (PoB führt keine Metadata-ID für Basen) |
-| `mods` | `Data/Mod*.lua`, Feld `domains` = Herkunftsdatei (Dateiname ohne `Mod`) | Mod-ID des Spiels |
-| `runes` | `Data/ModRunes.lua` | Name |
-| `essences` | `Data/Essence.lua` | Metadata-ID |
-| `gems` | `Data/Gems.lua` | Metadata-ID |
-| `skills` | `Data/Skills/*.lua` (ohne `SkillAssets.lua`) | Granted-Effect-ID |
-| `statDescriptions` | `Data/StatDescriptions/*.lua` (Auswahl in der Konfig) | `<scope>:<index>`, mit `tradeHash` (PoBs `HashStats`) |
-| `uniques` | `main.uniqueDB` (von PoBs Item-Parser gelesen) | `Titel, Basis` |
-| `passiveTree` | `TreeData/<version>/tree.lua` | Knoten-ID; `group:<id>`, `class:<name>`, `constants` |
+| Art                | Quelle in PoB                                                           | ID                                                    |
+| ------------------ | ----------------------------------------------------------------------- | ----------------------------------------------------- |
+| `itemBases`        | `Data/Bases/*.lua`                                                      | Basis-Name (PoB führt keine Metadata-ID für Basen)    |
+| `mods`             | `Data/Mod*.lua`, Feld `domains` = Herkunftsdatei (Dateiname ohne `Mod`) | Mod-ID des Spiels                                     |
+| `runes`            | `Data/ModRunes.lua`                                                     | Name                                                  |
+| `essences`         | `Data/Essence.lua`                                                      | Metadata-ID                                           |
+| `gems`             | `Data/Gems.lua`                                                         | Metadata-ID                                           |
+| `skills`           | `Data/Skills/*.lua` (ohne `SkillAssets.lua`)                            | Granted-Effect-ID                                     |
+| `statDescriptions` | `Data/StatDescriptions/*.lua` (Auswahl in der Konfig)                   | `<scope>:<index>`, mit `tradeHash` (PoBs `HashStats`) |
+| `uniques`          | `main.uniqueDB` (von PoBs Item-Parser gelesen)                          | `Titel, Basis`                                        |
+| `passiveTree`      | `TreeData/<version>/tree.lua`                                           | Knoten-ID; `group:<id>`, `class:<name>`, `constants`  |
 
 Regeln des Extraktors:
 
@@ -86,6 +86,64 @@ aufgelöst. Offen: 741 `hidden` (Text ohne Zahl, z. B. reine Effekt-Zeilen; der
 Stat-Wert ist darin nicht sichtbar, die Stat-IDs stehen dabei), 435 ohne
 passende Beschreibung (vor allem Radius-Jewel-Mods, deren Hash einen
 Zusatz-Stat enthält), 138 verlustbehaftet gerundet, 14 mehrdeutig.
+
+## Katalog aus dem Snapshot
+
+```bash
+node apps/data-pipeline/dist/cli.js catalog data-snapshots/poe2-0.5+r1 --out data-snapshots/catalog
+```
+
+`catalog` normalisiert den Roh-Snapshot (`src/normalize/catalog.ts`), prüft
+jede Entität gegen ihr Vertragsschema, eindeutige IDs und alle Referenzen
+(`src/normalize/validate.ts`) und schreibt je Art eine `CatalogShard`-Datei
+plus `manifest.json` (`CatalogManifest`). Steuerung über
+`config/data-pipeline/normalize.json` (Anzeigesprache, Stat-Scopes, Knotenarten,
+Mod-Stufen, Eigenschaftsgruppen); nichts davon ist im Code an eine Spielversion
+gebunden.
+
+IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
+
+| Art               | ID                                            |
+| ----------------- | --------------------------------------------- |
+| Mod               | PoB-Mod-ID                                    |
+| Basis             | Name der Basis                                |
+| Unique            | `Titel, Basis`                                |
+| Gem               | Spiel-ID des Gems                             |
+| Passive           | numerische Knoten-ID (als Text)               |
+| Klasse / Aufstieg | Name bzw. PoB-interne Aufstiegs-ID            |
+| Stat-Text         | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
+
+`findings.json` enthält:
+
+- `errors`: fehlender Pflichtwert in PoB (nie durch `0` oder `""` ersetzt),
+  Vertragsverstoß, doppelte ID, kaputte Referenz (auch Unique-Varianten). Der
+  Lauf bricht ab; es werden keine Katalogdateien und kein Manifest geschrieben.
+- `warnings`: Daten, die PoB nicht eindeutig hergibt, sichtbar statt geraten:
+  Basis-Implicits ohne genau einen passenden Mod (z. B. „Grants Skill"-Zeilen),
+  Baum-Verbindungen zu fehlenden Knoten, Startknoten unbekannter Klassen,
+  Unique-Zeilen mit nicht vorhandenen Varianten, Aufstiege ohne Knoten.
+- `unresolved`: offene Stat-Zeilen von Passiven mit Grund (der Vertrag hat bei
+  `PassiveNode` dafür kein Feld; Mods und Uniques tragen `unresolved` selbst).
+- `hiddenStatGroups`: Mods mit Stats, deren Beschreibung keinen Text erzeugt.
+- `summary`: Zählung aller offenen Zeilen je Art und Grund und von allem, was
+  nicht in den Katalog übernommen wird (Mods ohne Generierungsart, von PoB zur
+  Laufzeit interpolierte Gem-Werte, weitere Stat-Sets, Gem-Stufenfelder ohne
+  Platz im Vertrag wie Kosten, übersprungene Stat-Text-Varianten).
+
+Gem-Stufen enthalten unter `stats` nur Stat-IDs mit wörtlichen Werten aus dem
+ersten Stat-Set von PoB plus dessen konstante Stats.
+
+Stand PoB 0.23.1: 0 Fehler, 479 Warnungen, rund 2,5 s. Offene Stat-Zeilen:
+
+| Art | unmatched | ambiguous | lossy | hidden |
+|---|---|---|---|---|
+| Mod | 411 | 14 | 138 | 741 |
+| Unique (von 4167 Zeilen) | 1476 | 492 | 54 | 335 |
+| Passive | 131 | 555 | 25 | 467 |
+
+Bei Uniques fehlen PoB Trade-Hashes; mehrdeutig ist vor allem lokal gegen
+global (gleicher Text), nicht passend sind v. a. PoB-eigene Zeilen wie
+„Allocates …", „Grants Skill: …" und Radius-Zeilen von Juwelen.
 
 ## Rechtliches
 

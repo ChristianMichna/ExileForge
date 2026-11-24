@@ -23,3 +23,13 @@ export {
   type MatchResult,
   type StatValue,
 } from "./normalize/stat-matcher.ts";
+export {
+  loadNormalizeConfig,
+  normalizeCatalog,
+  normalizeConfigSchema,
+  type CatalogEntities,
+  type Finding,
+  type NormalizeConfig,
+} from "./normalize/catalog.ts";
+export { buildCatalog, type CatalogBuildResult } from "./normalize/release.ts";
+export { validateCatalog, type ValidationResult } from "./normalize/validate.ts";

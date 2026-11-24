@@ -47,13 +47,25 @@ describe("resolveModStats", () => {
         modId: "ModAmbiguous",
         stats: [],
         unresolved: [{ lines: ["4% more Beta"], reason: "ambiguous" }],
+        emptyGroupHashes: [],
       },
-      { modId: "ModHash", stats: [{ statId: "fake_b_local", min: 1, max: 3 }], unresolved: [] },
-      { modId: "ModText", stats: [{ statId: "fake_a", min: 5, max: 5 }], unresolved: [] },
+      {
+        modId: "ModHash",
+        stats: [{ statId: "fake_b_local", min: 1, max: 3 }],
+        unresolved: [],
+        emptyGroupHashes: [],
+      },
+      {
+        modId: "ModText",
+        stats: [{ statId: "fake_a", min: 5, max: 5 }],
+        unresolved: [],
+        emptyGroupHashes: [],
+      },
       {
         modId: "ModUnknown",
         stats: [],
         unresolved: [{ lines: ["+(1-2) to Gamma"], reason: "unmatched" }],
+        emptyGroupHashes: [],
       },
     ]);
     expect(summary).toEqual({
@@ -61,7 +73,22 @@ describe("resolveModStats", () => {
       modsFullyResolved: 2,
       lineGroups: 4,
       lineGroupsResolved: 2,
+      emptyGroups: 0,
     });
+  });
+
+  it("lists trade-hash groups that render no text instead of resolving them", () => {
+    const { results, summary } = resolveModStats(
+      { M: { "1": "+1 to Alpha", tradeHashes: { "11": ["+1 to Alpha"], "44": [""] } } },
+      matcher,
+      "s",
+    );
+    expect(results[0]).toMatchObject({
+      stats: [{ statId: "fake_a", min: 1, max: 1 }],
+      unresolved: [],
+      emptyGroupHashes: ["44"],
+    });
+    expect(summary).toMatchObject({ emptyGroups: 1, lineGroups: 1 });
   });
 
   it("marks lines without trade hash that do not match", () => {
