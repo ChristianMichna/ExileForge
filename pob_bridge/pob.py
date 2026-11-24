@@ -106,14 +106,21 @@ class PathOfBuilding:
 
     def __post_init__(self) -> None:
         self.home = Path(os.environ.get("EXILEFORGE_POB_HOME", self.home)).resolve()
-        self.luajit = self.home / "luajit"
         self.src = self.home / "PathOfBuilding-PoE2" / "src"
+        if os.environ.get("EXILEFORGE_LUAJIT"):
+            self.luajit = Path(os.environ["EXILEFORGE_LUAJIT"])
+        elif os.name == "nt":
+            # Windows: luajit.exe sits next to PoB's own lua51.dll / lua-utf8.dll
+            self.luajit = self.home / "PathOfBuilding-PoE2" / "runtime" / "luajit.exe"
+        else:
+            self.luajit = self.home / "luajit"
         if not self.luajit.exists() or not (self.src / "HeadlessWrapper.lua").exists():
             raise PoBError(f"Path of Building not installed in {self.home}. Run tools/setup_pob.sh first.")
 
     def _run(self, *args: str) -> dict:
         env = dict(os.environ)
-        env["LUA_CPATH"] = f"{self.home / 'lib' / '?.so'};" + env.get("LUA_CPATH", ";;")
+        if os.name != "nt":  # on Windows the default cpath already finds DLLs next to luajit.exe
+            env["LUA_CPATH"] = f"{self.home / 'lib' / '?.so'};" + env.get("LUA_CPATH", ";;")
         proc = subprocess.run(
             [str(self.luajit), str(LUA_DIR / "runner.lua"), str(LUA_DIR), *args],
             cwd=self.src,
@@ -121,6 +128,8 @@ class PathOfBuilding:
             stdin=subprocess.DEVNULL,  # PoB waits for Enter on startup errors
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=self.timeout,
         )
         for line in proc.stdout.splitlines():

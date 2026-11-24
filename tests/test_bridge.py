@@ -1,5 +1,6 @@
 """Run with: python3 -m unittest discover tests"""
 
+import os
 import unittest
 from pathlib import Path
 
@@ -10,6 +11,8 @@ FIXTURE = Path(__file__).parent / "fixtures" / "witch_spark_lvl60.xml"
 try:
     POB = PathOfBuilding()
 except PoBError:
+    if os.environ.get("EXILEFORGE_REQUIRE_POB"):  # CI: never skip silently
+        raise
     POB = None
 
 
