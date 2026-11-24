@@ -1,0 +1,128 @@
+{
+  "_comment": "Illustratives Beispiel fuer das Datenmodell (docs/data-model.md). IDs und Zahlen sind Platzhalter, keine echten PoB-Werte.",
+  "id": "00000000-0000-4000-8000-000000000001",
+  "revision": 3,
+  "schemaVersion": 1,
+  "name": "Blitzpfeil-Beispiel",
+  "createdAt": "2026-11-24T20:00:00Z",
+  "updatedAt": "2026-11-24T20:30:00Z",
+  "gameVersion": "0.5.x",
+  "league": "Standard",
+  "request": {
+    "skillIdea": "Blitzpfeile, schnelles Mapping",
+    "preferences": {
+      "playstyle": ["ranged"],
+      "pace": "fast-clear",
+      "focus": "mapping",
+      "defense": ["evasion", "energyShield"],
+      "budget": { "leveling": "league-start", "endgame": "medium" },
+      "mode": { "hardcore": false, "ssf": false }
+    }
+  },
+  "variants": [
+    {
+      "id": "v1",
+      "title": "Beispiel-Variante A",
+      "classId": "<PoB-Klasse>",
+      "ascendancyId": "<PoB-Aszendenz>",
+      "summary": "Lebt von {{calc.stats.movementSpeed}} Bewegung und hoher Evasion.",
+      "pros": ["schnelles Clearing"],
+      "cons": ["wenig Leben in frühen Akten"],
+      "snapshot": { "$ref": "#/guide/stages/1" },
+      "calc": { "$ref": "calc-example-endgame" }
+    }
+  ],
+  "chosenVariantId": "v1",
+  "guide": {
+    "variantId": "v1",
+    "stages": [
+      {
+        "id": "s-act1",
+        "order": 0,
+        "label": "Akt 1 – Level 1–12",
+        "kind": "campaign",
+        "act": 1,
+        "levelRange": [1, 12],
+        "tree": {
+          "treeVersion": "<PoB-Tree-Version>",
+          "allocated": [
+            { "nodeId": 12345, "ggId": "<PassiveSkills-ID>", "weaponSet": 0, "reason": "Weg zum ersten Projektil-Cluster" }
+          ],
+          "ascendancy": [],
+          "allocationOrder": [12345]
+        },
+        "skills": [
+          {
+            "id": "sk-main",
+            "role": "main",
+            "gem": { "gemId": "<PoB-Gem-ID>", "ggBaseType": "Metadata/Items/Gems/SkillGem<Name>", "level": 5, "quality": 0 },
+            "supports": [
+              { "gemId": "<PoB-Support-ID>", "ggBaseType": "Metadata/Items/Gems/SupportGem<Name>", "level": 1, "quality": 0 }
+            ],
+            "acquiredAt": { "act": 1, "level": 1, "how": "uncut-gem" }
+          }
+        ],
+        "items": [
+          {
+            "id": "it-weapon-a1",
+            "slot": "Weapon1",
+            "priority": "core",
+            "item": {
+              "rarity": "magic",
+              "baseTypeId": "<PoB-Bogen-Basis>",
+              "mods": [
+                { "modId": "<Mod-ID flacher Blitzschaden>", "kind": "prefix", "required": true }
+              ]
+            },
+            "acquisition": "vendor"
+          }
+        ],
+        "config": { "enemyIsBoss": "None" },
+        "notes": [
+          { "target": { "kind": "stage", "id": "s-act1" }, "text": "Ziel dieser Stufe: Resistenzen bei {{calc.stats.resists.lightning}} halten." }
+        ],
+        "calc": {
+          "calcId": "calc-example-act1",
+          "pobVersion": "<PoB-Version>",
+          "gameVersion": "0.5.x",
+          "inputHash": "sha256:<...>",
+          "computedAt": "2026-11-24T20:10:00Z",
+          "mainSkillId": "sk-main",
+          "stats": {
+            "life": 0, "energyShield": 0, "mana": 0, "spirit": 0,
+            "armour": 0, "evasion": 0,
+            "resists": { "fire": 0, "cold": 0, "lightning": 0, "chaos": 0 },
+            "attributes": { "str": 0, "dex": 0, "int": 0 }
+          },
+          "raw": {},
+          "warnings": ["Platzhalterwerte, nicht gerechnet"]
+        }
+      }
+    ],
+    "crafts": [
+      {
+        "id": "cr-bow",
+        "target": {
+          "rarity": "rare",
+          "baseTypeId": "<PoB-Bogen-Basis>",
+          "itemLevel": 82,
+          "mods": [{ "modId": "<Mod-ID>", "kind": "prefix", "tier": 1, "required": true }]
+        },
+        "startFrom": { "baseTypeId": "<PoB-Bogen-Basis>", "itemLevel": 82 },
+        "steps": [
+          {
+            "order": 1,
+            "action": "essence",
+            "currencyId": "<Essenz-ID>",
+            "quantityPerAttempt": 1,
+            "goal": "garantierter Blitz-Prefix",
+            "successChance": { "value": 1, "source": { "kind": "gamedata", "gameVersion": "0.5.x", "table": "Essences" } },
+            "onFail": { "action": "repeat" }
+          }
+        ]
+      }
+    ],
+    "exports": []
+  },
+  "patchStatus": { "state": "unchecked", "findings": [] }
+}
