@@ -101,15 +101,17 @@ Details: `evals/golden/README.md`.
 
 ## MCP-Server und Plugins
 
-Nur, was Umsetzung und Iteration wirklich verbessert. Im Repo eingerichtet ist
-nur, was ohne Zugangsdaten läuft.
+Nur, was Umsetzung und Iteration wirklich verbessert. Im Repo stehen keine
+Zugangsdaten; Keys kommen aus Umgebungsvariablen. Die Server in `.mcp.json`
+sind in `.claude/settings.json` (`enabledMcpjsonServers`) freigegeben und
+starten in jeder Claude-Code-Session im Repo, lokal wie in der Cloud.
 
 | Was | Status | Warum |
 |---|---|---|
 | **Playwright MCP** (`.mcp.json`, Start über `tools/playwright-mcp.mjs`) | eingerichtet | Agents sehen die Oberfläche selbst: Seite öffnen, klicken, Screenshot, Konsole lesen. Ohne das ist „sieht es gut aus?" für einen Agenten blind. Headless, frisches Profil je Session; in der Cloud mit dem vorinstallierten Chromium. Version in `package.json` gepinnt. |
 | **typescript-lsp** (Plugin aus `claude-plugins-official`, `.claude/settings.json`) | eingerichtet | Typfehler, Definitionen und Referenzen direkt nach jedem Edit statt erst bei `pnpm typecheck`. Spart viele Runden in einem strikt typisierten Monorepo. Braucht `typescript-language-server`, das `tools/dev-setup.sh` installiert. |
 | **GitHub** | in Claude-Code-Cloud schon da; lokal Vorschlag | PRs, CI-Logs und Artefakte lesen. Lokal braucht der offizielle GitHub-MCP-Server ein Token, deshalb nicht in `.mcp.json`. Wer lokal will: Plugin `github` aus `claude-plugins-official` mit eigenem Token. |
-| **Context7** (Plugin `context7`) | Vorschlag | Aktuelle Doku zu Electron, Vite, Fastify, PixiJS, React Flow, MCP-SDK, Zod statt Modellgedächtnis. Passt zur Regel „search-first". Verlangt eine Anmeldung bei Context7, deshalb nicht automatisch aktiv: `/plugin install context7@claude-plugins-official`. |
+| **Context7** (`.mcp.json`, Remote-Server `mcp.context7.com`) | eingerichtet | Aktuelle Doku zu Electron, Vite, Fastify, PixiJS, React Flow, MCP-SDK, Zod statt Modellgedächtnis; passt zur Regel „search-first". Der Gratis-Key kommt nur aus der Umgebungsvariable `CONTEXT7_API_KEY` (nie ins Repo); ohne Key läuft es mit niedrigerem Limit. Key holen: context7.com → Dashboard → API Key. Lokal unter Windows: `setx CONTEXT7_API_KEY "<key>"`, dann Claude neu starten. Cloud: in der Cloud-Umgebung `mcp.context7.com` erlauben und `CONTEXT7_API_KEY` als Variable eintragen. |
 | **ExileForge-MCP selbst** | später | Sobald `apps/server` den MCP-Endpunkt hat, per `claude mcp add --transport http` gegen die laufende App testen (Skill `mcp-server-patterns`). |
 
 Bewusst weggelassen: Datenbank-MCPs (SQLite ist lokal und klein, Tests

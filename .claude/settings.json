@@ -37,6 +37,5 @@
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true
   },
-  "enableAllProjectMcpServers": false,
-  "enabledMcpjsonServers": ["playwright"]
+  "enabledMcpjsonServers": ["playwright", "context7"]
 }
