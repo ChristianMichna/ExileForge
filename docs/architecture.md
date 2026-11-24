@@ -169,7 +169,7 @@ einspielen. Reihenfolge nach der Ersten Welle des Plans:
 | 5 | Patch-Watcher: neues PoB-Release → Submodul-Bump-PR → Golden-Vergleich | WS1/WS2 | Plan |
 | 6 | `.build`-Exporter mit Schema-Tests | WS8 | Recherche |
 | 7 | ItemTooltip und Tree-Renderer gegen Fixture-Daten | WS7 | Design-Tokens 3.4 |
-| 8 | PoC Claude-Anbindung: `.mcpb`-Brücke + `forge.attach/next/submit` mit Dummy-Pipeline | WS8 | ADR-0003/0004 |
+| 8 | PoC Claude-Anbindung: `.mcpb`-Brücke + `forge.attach/next/submit` mit Dummy-Pipeline (Server-Teil: `apps/server`, siehe dessen README) | WS8 | ADR-0003/0004 |
 | 9 | Gateway (BYOK), Eval-Gerüst | WS5/WS9 | Plan |
 
 1–5 sind für Day-0 Pflicht, 6–9 können parallel laufen und dürfen über den
@@ -177,7 +177,8 @@ einspielen. Reihenfolge nach der Ersten Welle des Plans:
 
 ## 7. Offene Fragen
 
-- PoC Claude-Anbindung: `.mcpb`-Brücke, Werkzeugaufrufe pro Antwort,
+- PoC Claude-Anbindung: `.mcpb`-Brücke, Werkzeugaufrufe pro Antwort (Recherche
+  und Folgen: `apps/server/README.md`, Abschnitt „Lange Schleifen“),
   vorausgefüllter Start ([ADR-0004](adr/0004-lokal-first.md)).
 - Offene Entscheidungen des Plans, soweit lokal noch relevant (eigene
   Datenextraktion, Sprache, Name, Kooperationen). Hosting-Budget und Betreiber-Key
