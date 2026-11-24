@@ -46,6 +46,11 @@ CI den Vergleich mit einem Hinweis.
 2. Lokal `fetch` und `record --missing`, oder PR öffnen: Die CI lädt und
    rechnet neue Builds und legt sie als Artefakt `golden-recorded` ab. Dateien
    aus dem Artefakt in den PR übernehmen.
+   Kommt man an das Artefakt nicht heran (Sandbox ohne Zugriff auf GitHubs
+   Artefakt-Speicher), steht der Build im Log des Schritts *Fetch missing
+   builds* als `BUILDCODE <id> <code>`. Nach `builds/<id>.xml` schreiben:
+   `python tools/golden_builds.py import --only <id> --code <code>`, dann
+   lokal `record --missing`.
 3. Im PR die neuen `expected/<id>.json` ansehen (Klasse, Level, Hauptskill,
    `gui.differs`). Werte nie von Hand ändern.
 

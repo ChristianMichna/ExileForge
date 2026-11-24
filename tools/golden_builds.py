@@ -5,6 +5,7 @@ them, and a new PoB release shows up as a deliberate re-record.
     python tools/golden_builds.py fetch    # download missing builds (sources in manifest)
     python tools/golden_builds.py record   # run PoB, write expected/<id>.json
     python tools/golden_builds.py check    # run PoB, compare with expected/<id>.json
+    python tools/golden_builds.py import --only ID --code CODE   # store a build code
 
 Options: --only ID (repeatable), --missing (record only unrecorded builds),
 --pob-home DIR.
@@ -189,7 +190,31 @@ def cmd_fetch(args) -> int:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(xml, encoding="utf-8")
         print(f"fetched {b['id']}")
+        if os.environ.get("GITHUB_ACTIONS"):
+            # Sandboxes that cannot reach build sites or artifact storage can
+            # take the build from the CI log: decode it and `record` locally.
+            print(f"BUILDCODE {b['id']} {pob.encode_build_code(xml)}")
     return 1 if failed else 0
+
+
+def cmd_import(args) -> int:
+    """Store a build given as code (e.g. a BUILDCODE line from a CI log)."""
+    pob = bridge()
+    if not args.only or len(args.only) != 1 or not args.code:
+        raise SystemExit("usage: golden_builds.py import --only ID --code CODE")
+    build_id = args.only[0]
+    entries([build_id])  # must be in the manifest
+    try:
+        xml = pob.decode_build_code(args.code)
+        pob.check_build_xml(xml)
+    except pob.PoBError as exc:
+        print(f"FAIL {build_id}: {exc}", file=sys.stderr)
+        return 1
+    dest = build_path(build_id)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(xml, encoding="utf-8")
+    print(f"imported {build_id}")
+    return 0
 
 
 def evaluate(pob, engine, build_id: str) -> tuple[str, dict]:
@@ -286,12 +311,14 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):  # Windows consoles default to cp1252
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=["fetch", "record", "check"])
+    p.add_argument("command", choices=["fetch", "import", "record", "check"])
+    p.add_argument("--code", help="import: build code to store as builds/<ID>.xml")
     p.add_argument("--only", action="append", metavar="ID", help="limit to this build id (repeatable)")
     p.add_argument("--missing", action="store_true", help="record: only builds without expected values")
     p.add_argument("--pob-home", help="PoB install dir (default: .pob, or EXILEFORGE_POB_HOME)")
     args = p.parse_args(argv)
-    return {"fetch": cmd_fetch, "record": cmd_record, "check": cmd_check}[args.command](args)
+    commands = {"fetch": cmd_fetch, "import": cmd_import, "record": cmd_record, "check": cmd_check}
+    return commands[args.command](args)
 
 
 if __name__ == "__main__":
