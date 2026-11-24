@@ -15,7 +15,7 @@ pnpm build >/dev/null
 # shim serves the built app because the image has no pnpm.
 docker run --rm --network host --ipc=host -v "$ROOT":/work -w /work/apps/web "$IMAGE" bash -c '
   mkdir -p /tmp/shim
-  printf "#!/bin/sh\nexec /work/apps/web/node_modules/.bin/vite preview --port 4173 --strictPort\n" > /tmp/shim/pnpm
+  printf "#!/bin/sh\nexec /work/apps/web/node_modules/.bin/vite preview --host 127.0.0.1 --port 4173 --strictPort\n" > /tmp/shim/pnpm
   chmod +x /tmp/shim/pnpm
   PATH=/tmp/shim:/work/apps/web/node_modules/.bin:$PATH playwright test --update-snapshots=all "$@"
 ' _ "$@"
