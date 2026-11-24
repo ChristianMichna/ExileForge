@@ -5,11 +5,13 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { describe, expect, it } from "vitest";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { APP_NOT_RUNNING, startBridge } from "../src/bridge.js";
+import { APP_ERROR, APP_NOT_RUNNING, TOKEN_REJECTED, startBridge } from "../src/bridge.js";
 import { DEFAULT_PORT, endpointFromEnv } from "../src/endpoint.js";
-import { fetchWithToken } from "../src/token.js";
+import { fetchWithToken, TokenInvalidError, TokenMissingError } from "../src/token.js";
 
 const silent = { error: () => undefined };
 
@@ -44,11 +46,66 @@ describe("stdio bridge", () => {
   });
 });
 
+describe("bridge over real HTTP", () => {
+  const token = "c".repeat(64);
+  let tokenFile: string;
+  let server: Server;
+  let port: number;
+  const seen: { authorization: string | undefined; host: string | undefined }[] = [];
+  let status = 401;
+
+  beforeAll(async () => {
+    tokenFile = join(mkdtempSync(join(tmpdir(), "ef-bridge-")), "access-token");
+    writeFileSync(tokenFile, `${token}\n`);
+    server = createServer((req, res) => {
+      seen.push({ authorization: req.headers.authorization, host: req.headers.host });
+      req.resume();
+      res.writeHead(status, { "content-type": "application/json" }).end("{}");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    port = (server.address() as AddressInfo).port;
+  });
+  afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+
+  async function connectThroughBridge(file: string): Promise<Error> {
+    const [clientSide, bridgeLocal] = InMemoryTransport.createLinkedPair();
+    const remote = new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`), {
+      fetch: fetchWithToken(file),
+    });
+    await startBridge(bridgeLocal, remote, silent);
+    const client = new Client({ name: "claude", version: "0" });
+    return client.connect(clientSide).then(
+      () => new Error("connected unexpectedly"),
+      (error: unknown) => error as Error,
+    );
+  }
+
+  it("sends the token and loopback host; a refused token is reported as such", async () => {
+    status = 401;
+    const error = await connectThroughBridge(tokenFile);
+    expect(error.message).toContain(TOKEN_REJECTED);
+    expect(seen.at(-1)).toEqual({ authorization: `Bearer ${token}`, host: `127.0.0.1:${port}` });
+  });
+
+  it("reports other app errors without claiming the app is down", async () => {
+    status = 500;
+    expect((await connectThroughBridge(tokenFile)).message).toContain(APP_ERROR);
+  });
+
+  it("reports a missing token file as app not started", async () => {
+    expect((await connectThroughBridge(join(tmpdir(), "missing-ef-token"))).message).toContain(
+      APP_NOT_RUNNING,
+    );
+  });
+});
+
 describe("endpoint and token", () => {
   it("only ever targets 127.0.0.1 with a valid port", () => {
     expect(endpointFromEnv({}).href).toBe(`http://127.0.0.1:${DEFAULT_PORT}/mcp`);
     expect(endpointFromEnv({ EXILEFORGE_PORT: "50000" }).href).toBe("http://127.0.0.1:50000/mcp");
-    expect(() => endpointFromEnv({ EXILEFORGE_PORT: "evil.example" })).toThrow(/port number/);
+    for (const bad of ["evil.example", "0x50", "1e3", " 80 ", "80", "70000"]) {
+      expect(() => endpointFromEnv({ EXILEFORGE_PORT: bad })).toThrow(/port number/);
+    }
   });
 
   it("adds the access token from the token file to every request", async () => {
@@ -65,6 +122,13 @@ describe("endpoint and token", () => {
 
   it("fails loudly when the token file is missing (app never started)", async () => {
     const fetcher = fetchWithToken("/nonexistent/exileforge/token", async () => new Response("{}"));
-    await expect(fetcher("http://127.0.0.1:1/mcp")).rejects.toThrow(/access token not found/);
+    await expect(fetcher("http://127.0.0.1:1/mcp")).rejects.toBeInstanceOf(TokenMissingError);
+  });
+
+  it("refuses a damaged token file instead of sending it", async () => {
+    const file = join(mkdtempSync(join(tmpdir(), "ef-bridge-")), "access-token");
+    writeFileSync(file, "");
+    const fetcher = fetchWithToken(file, async () => new Response("{}"));
+    await expect(fetcher("http://127.0.0.1:1/mcp")).rejects.toBeInstanceOf(TokenInvalidError);
   });
 });

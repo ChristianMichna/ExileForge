@@ -13,13 +13,11 @@
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@types/node": "22.20.5",
     "esbuild": "0.28.2",
     "typescript": "5.9.3",
-    "vitest": "5.1.1"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.2",
+    "vitest": "5.1.1",
     "zod": "4.6.7"
   }
 }

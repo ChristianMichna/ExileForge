@@ -56,17 +56,13 @@ importers:
         version: 5.1.1(@types/node@22.20.5)(jsdom@27.4.0)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2))
 
   apps/mcp-bridge:
-    dependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: 1.32.2
-        version: 1.32.2(zod@4.6.7)
-      zod:
-        specifier: 4.6.7
-        version: 4.6.7
     devDependencies:
       '@anthropic-ai/mcpb':
         specifier: 2.1.2
         version: 2.1.2
+      '@modelcontextprotocol/sdk':
+        specifier: 1.32.2
+        version: 1.32.2(zod@4.6.7)
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
@@ -79,6 +75,9 @@ importers:
       vitest:
         specifier: 5.1.1
         version: 5.1.1(@types/node@22.20.5)(jsdom@27.4.0)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2))
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   apps/server:
     dependencies:
