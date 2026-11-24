@@ -11,3 +11,15 @@ export {
   type SnapshotManifest,
 } from "./snapshot/snapshot.ts";
 export type { Json } from "./json.ts";
+export {
+  modLines,
+  resolveModStats,
+  type ModStatResult,
+  type ModStatSummary,
+} from "./normalize/mod-stats.ts";
+export {
+  StatMatcher,
+  shapeKey,
+  type MatchResult,
+  type StatValue,
+} from "./normalize/stat-matcher.ts";

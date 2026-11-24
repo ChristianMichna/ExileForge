@@ -37,6 +37,20 @@
         }
       ]
     },
+    {
+      "kind": "statDescriptions",
+      "sources": [
+        { "loader": "statDescriptions", "file": "Data/StatDescriptions/stat_descriptions.lua" },
+        {
+          "loader": "statDescriptions",
+          "file": "Data/StatDescriptions/passive_skill_stat_descriptions.lua"
+        },
+        {
+          "loader": "statDescriptions",
+          "file": "Data/StatDescriptions/advanced_mod_stat_descriptions.lua"
+        }
+      ]
+    },
     { "kind": "uniques", "sources": [{ "loader": "uniqueDB" }] },
     { "kind": "passiveTree", "sources": [{ "loader": "tree", "treeVersion": "latest" }] }
   ]

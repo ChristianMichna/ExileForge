@@ -24,6 +24,7 @@ const moduleSource = z.discriminatedUnion("loader", [
     })
     .strict(),
   z.object({ loader: z.literal("uniqueDB") }).strict(),
+  z.object({ loader: z.literal("statDescriptions"), file: relativeLuaPath }).strict(),
   z
     .object({
       loader: z.literal("tree"),

@@ -59,6 +59,11 @@ jobs:
           node apps/data-pipeline/dist/cli.js snapshot \
             --game-version "$GAME_VERSION" --revision "$REVISION" --out data-snapshots/current
 
+      - name: Stat coverage of mods
+        run: |
+          node apps/data-pipeline/dist/cli.js stat-coverage data-snapshots/current \
+            --out data-snapshots/current/stat-coverage.json 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Diff against an older PoB release
         if: env.COMPARE_REF != ''
         run: |
