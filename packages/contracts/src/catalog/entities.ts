@@ -72,7 +72,8 @@ export const BaseItem = z.object({
   /** Base properties keyed by property id (defences, weapon values …). */
   properties: z.record(z.string().min(1), PropertyValue),
   socketCapacity: nonNegInt.optional(),
-  dropLevel: nonNegInt,
+  /** Drop level if the source has one; absent rather than guessed. */
+  dropLevel: nonNegInt.optional(),
   icon: AssetPath.optional(),
 });
 export type BaseItem = z.infer<typeof BaseItem>;
@@ -80,16 +81,28 @@ export type BaseItem = z.infer<typeof BaseItem>;
 export const SpawnWeight = z.object({ tag: ClassificationId, weight: nonNegInt });
 export type SpawnWeight = z.infer<typeof SpawnWeight>;
 
+/**
+ * A mod line whose stat values could not be resolved from the source. Kept
+ * visible instead of silently dropping it or making `stats` look complete.
+ */
+export const UnresolvedLine = z.object({
+  text: z.string().min(1),
+  reason: z.enum(["unmatched", "ambiguous", "lossy", "hidden"]),
+});
+export type UnresolvedLine = z.infer<typeof UnresolvedLine>;
+
 export const Mod = z.object({
   id: ModId,
   /** Mod families/groups; two mods sharing a group exclude each other. */
   groups: z.array(ClassificationId),
   generationType: ClassificationId,
-  domain: ClassificationId,
+  /** The same mod can be valid in several domains. */
+  domains: z.array(ClassificationId).min(1),
   /** Tier within its family as computed by the pipeline (1 = best); absent if not tiered. */
   tier: z.int().positive().optional(),
   requiredLevel: nonNegInt,
   stats: z.array(StatRange),
+  unresolved: z.array(UnresolvedLine).default([]),
   spawnWeights: z.array(SpawnWeight),
   tags: z.array(ClassificationId).default([]),
   /** Rendered text in the default language; source of truth is StatTranslation. */
@@ -101,6 +114,7 @@ export const UniqueModLine = z.object({
   /** Mod id if the release has one for this line. */
   modId: ModId.optional(),
   stats: z.array(StatRange),
+  unresolved: z.array(UnresolvedLine).default([]),
   text: z.string().optional(),
   /** Restrict this line to some variants; absent = all variants. */
   variantIds: z.array(z.string().min(1)).optional(),
@@ -135,13 +149,11 @@ export const Gem = z.object({
   tags: z.array(ClassificationId),
   levels: z.array(GemLevel).min(1),
   qualityStats: z.array(StatRange).default([]),
-  /** For supports: which skills they may support, by tags. */
-  supportRules: z
-    .object({
-      requiredTags: z.array(ClassificationId).default([]),
-      excludedTags: z.array(ClassificationId).default([]),
-    })
-    .optional(),
+  /*
+   * Support compatibility is not modelled yet: the source has boolean
+   * expressions over skill types, not flat tag lists. It gets its own
+   * expression schema in a later contract PR.
+   */
   icon: AssetPath.optional(),
 });
 export type Gem = z.infer<typeof Gem>;
@@ -182,7 +194,10 @@ export const Ascendancy = z.object({
   startNodeId: PassiveNodeId.optional(),
   nodeIds: z.array(PassiveNodeId),
   /** How ascendancy points are unlocked; source ids come from the release. */
-  pointUnlocks: z.array(z.object({ source: ClassificationId, points: z.int().positive() })),
+  /** Absent if the source has no data on how points are unlocked. */
+  pointUnlocks: z
+    .array(z.object({ source: ClassificationId, points: z.int().positive() }))
+    .optional(),
 });
 export type Ascendancy = z.infer<typeof Ascendancy>;
 

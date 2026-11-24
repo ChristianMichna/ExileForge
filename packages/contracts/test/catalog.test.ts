@@ -6,6 +6,7 @@ import {
   CatalogManifest,
   CatalogShard,
   DataRelease,
+  Mod,
   StatRange,
   StatTranslation,
 } from "../src/index.js";
@@ -109,6 +110,22 @@ describe("entities", () => {
     expect(StatTranslation.safeParse(t).success).toBe(false);
     const ok = { ...t, variants: [{ conditions: [{}, {}], template: "Fixture {0} {1}" }] };
     expect(StatTranslation.safeParse(ok).success).toBe(true);
+  });
+
+  it("mods need at least one domain and keep unresolved lines visible", () => {
+    const mod = (fixture.shards[1] as { entities: Record<string, unknown>[] }).entities[0];
+    expect(Mod.safeParse({ ...mod, domains: [] }).success).toBe(false);
+    const withUnresolved = {
+      ...mod,
+      unresolved: [{ text: "Fixture unresolved line", reason: "ambiguous" }],
+    };
+    expect(Mod.parse(withUnresolved).unresolved).toHaveLength(1);
+    const badReason = { ...mod, unresolved: [{ text: "x", reason: "guessed" }] };
+    expect(Mod.safeParse(badReason).success).toBe(false);
+  });
+
+  it("drop level may be absent instead of guessed", () => {
+    expect(BaseItem.safeParse(without(base ?? {}, "dropLevel")).success).toBe(true);
   });
 
   it("StatRange requires min <= max", () => {
