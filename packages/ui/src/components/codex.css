@@ -1,0 +1,81 @@
+/* Codex elements for the guide reader: ledger rules, rubric, drop caps. */
+.ef-ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--ef-font-codex);
+  font-size: var(--ef-text-lg);
+}
+
+.ef-ledger__caption {
+  margin-bottom: var(--ef-space-2);
+  font-family: var(--ef-font-codex);
+  font-size: var(--ef-text-xl);
+  color: var(--ef-color-rubric);
+  text-align: left;
+}
+
+.ef-ledger__row th,
+.ef-ledger__row td {
+  padding: var(--ef-space-2) 0;
+  border-bottom: 1px dotted var(--ef-color-ink-rule);
+  vertical-align: baseline;
+}
+
+.ef-ledger__label {
+  font-weight: 400;
+  text-align: left;
+  color: var(--ef-color-text);
+}
+
+.ef-ledger__source {
+  display: block;
+  font-family: var(--ef-font-body);
+  font-style: italic;
+}
+
+.ef-ledger__value {
+  padding-left: var(--ef-space-4);
+  text-align: right;
+  white-space: nowrap;
+  color: var(--ef-color-text-strong);
+}
+
+.ef-ledger__row--emphasis .ef-ledger__label,
+.ef-ledger__row--emphasis .ef-ledger__value {
+  font-size: var(--ef-text-2xl);
+}
+
+.ef-ledger__row--emphasis .ef-ledger__value {
+  color: var(--ef-color-heat-bright);
+}
+
+.ef-ledger__row--loading .ef-ledger__value,
+.ef-ledger__row--uncalibrated .ef-ledger__value {
+  font-style: italic;
+  color: var(--ef-color-text-faint);
+}
+
+.ef-ledger__row--error .ef-ledger__value {
+  font-style: italic;
+  white-space: normal;
+  color: var(--ef-color-danger-bright);
+}
+
+.ef-codex-prose {
+  font-family: var(--ef-font-codex);
+  font-size: var(--ef-text-lg);
+  line-height: 1.55;
+  color: var(--ef-color-text);
+}
+
+.ef-codex-prose > p + p {
+  margin-top: var(--ef-space-3);
+}
+
+.ef-codex-prose > p:first-child::first-letter {
+  float: left;
+  padding: 6px var(--ef-space-2) 0 0;
+  font-size: 3.6em;
+  line-height: 0.8;
+  color: var(--ef-color-rubric);
+}

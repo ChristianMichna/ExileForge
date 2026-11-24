@@ -1,78 +1,80 @@
+/* Riveted iron plate. Rivets are drawn as four radial gradients. */
 .ef-panel {
+  --ef-rivet: radial-gradient(
+    circle at 35% 35%,
+    var(--ef-color-rivet-hi),
+    var(--ef-color-rivet-lo) 62%,
+    transparent 70%
+  );
+  --ef-rivet-inset: 9px;
+
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background-color: var(--ef-color-surface-1);
-  background-image: var(--ef-texture-stone);
+}
+
+.ef-panel--plate {
   border: 1px solid var(--ef-color-line-strong);
-  box-shadow: var(--ef-shadow-panel);
+  background:
+    var(--ef-rivet) left var(--ef-rivet-inset) top var(--ef-rivet-inset) / var(--ef-rivet-size)
+      var(--ef-rivet-size) no-repeat,
+    var(--ef-rivet) right var(--ef-rivet-inset) top var(--ef-rivet-inset) / var(--ef-rivet-size)
+      var(--ef-rivet-size) no-repeat,
+    var(--ef-rivet) left var(--ef-rivet-inset) bottom var(--ef-rivet-inset) / var(--ef-rivet-size)
+      var(--ef-rivet-size) no-repeat,
+    var(--ef-rivet) right var(--ef-rivet-inset) bottom var(--ef-rivet-inset) / var(--ef-rivet-size)
+      var(--ef-rivet-size) no-repeat,
+    var(--ef-texture-iron),
+    var(--ef-gradient-plate);
+  box-shadow: var(--ef-shadow-plate);
 }
 
-.ef-panel--framed {
-  outline: 1px solid var(--ef-color-inset);
-  outline-offset: 0;
-  margin: 3px;
-}
-
-.ef-panel--framed::before {
-  content: "";
-  position: absolute;
-  inset: 3px;
+.ef-panel--recessed {
   border: 1px solid var(--ef-color-line);
-  pointer-events: none;
-}
-
-.ef-panel--plain {
-  background-color: var(--ef-color-surface-2);
-  border-color: var(--ef-color-line);
-  box-shadow: none;
+  background: var(--ef-color-inset);
+  box-shadow: var(--ef-shadow-stamp);
 }
 
 .ef-panel__header {
-  position: relative;
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
   gap: var(--ef-space-4);
-  padding: var(--ef-space-4) var(--ef-space-5) var(--ef-space-3);
-  border-bottom: 1px solid var(--ef-color-line);
-  background: linear-gradient(to bottom, var(--ef-color-surface-3), transparent);
+  padding: var(--ef-space-5) var(--ef-space-6) var(--ef-space-3);
 }
 
-.ef-panel--plain .ef-panel__header {
+.ef-panel--recessed .ef-panel__header {
   padding: var(--ef-space-3) var(--ef-space-4) var(--ef-space-2);
 }
 
 .ef-panel__heading {
   min-width: 0;
+  flex: none;
 }
 
 .ef-panel__kicker {
   margin-bottom: var(--ef-space-1);
   font-size: var(--ef-text-xs);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
   color: var(--ef-color-text-faint);
 }
 
 .ef-panel__title {
-  display: flex;
-  align-items: center;
-  gap: var(--ef-space-2);
-  font-size: var(--ef-text-lg);
-  letter-spacing: 0.04em;
-  color: var(--ef-color-gold);
+  font-size: var(--ef-text-2xl);
+  color: var(--ef-color-text-strong);
 }
 
-.ef-panel--plain .ef-panel__title {
-  font-size: var(--ef-text-md);
+.ef-panel--recessed .ef-panel__title {
+  font-size: var(--ef-text-xl);
 }
 
-.ef-panel__title-mark {
-  width: 10px;
-  height: 10px;
+.ef-panel__rule {
+  flex: 1;
+  height: 1px;
+  margin-bottom: 0.55em;
+  background: linear-gradient(90deg, var(--ef-color-line-strong), transparent);
 }
 
 .ef-panel__actions {
@@ -82,9 +84,9 @@
 }
 
 .ef-panel__body {
-  padding: var(--ef-space-4) var(--ef-space-5) var(--ef-space-5);
+  padding: var(--ef-space-2) var(--ef-space-6) var(--ef-space-6);
 }
 
-.ef-panel--plain .ef-panel__body {
-  padding: var(--ef-space-3) var(--ef-space-4) var(--ef-space-4);
+.ef-panel--recessed .ef-panel__body {
+  padding: var(--ef-space-2) var(--ef-space-4) var(--ef-space-4);
 }

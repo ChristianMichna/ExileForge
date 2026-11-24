@@ -2,8 +2,7 @@
 export { RARITIES, RARITY_LABELS, COLOR_TOKEN_GROUPS, SPACE_STEPS, colorVar } from "./theme/tokens";
 export type { Rarity } from "./theme/tokens";
 
-export { CornerOrnament, Diamond, OrnamentDivider, Sigil } from "./ornaments/Ornaments";
-export type { CornerPosition } from "./ornaments/Ornaments";
+export { Diamond, OrnamentDivider, Sigil } from "./ornaments/Ornaments";
 
 export { Panel } from "./components/Panel";
 export type { PanelProps } from "./components/Panel";
@@ -19,6 +18,8 @@ export { ProvenanceBadge } from "./components/Provenance";
 export type { ProvenanceBadgeProps } from "./components/Provenance";
 export { StatValue, StatGrid } from "./components/StatValue";
 export type { StatValueProps } from "./components/StatValue";
+export { Ledger, CodexProse } from "./components/Ledger";
+export type { LedgerRow } from "./components/Ledger";
 export { ItemTooltip } from "./components/ItemTooltip";
 export type {
   ItemModView,

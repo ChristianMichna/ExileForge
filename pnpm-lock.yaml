@@ -113,15 +113,15 @@ importers:
 
   packages/ui:
     dependencies:
-      '@fontsource/cinzel':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@fontsource/eb-garamond':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@fontsource/source-sans-3':
-        specifier: 5.3.0
-        version: 5.3.0
+      '@fontsource/alegreya-sans':
+        specifier: 5.2.5
+        version: 5.2.5
+      '@fontsource/grenze-gotisch':
+        specifier: 5.2.5
+        version: 5.2.5
+      '@fontsource/im-fell-english':
+        specifier: 5.2.5
+        version: 5.2.5
     devDependencies:
       '@testing-library/react':
         specifier: 16.3.3
@@ -332,14 +332,14 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@fontsource/cinzel@5.3.0':
-    resolution: {integrity: sha512-KEOYTsrRppW0uRIPWBDPrQgunCS6f8u4nzZxYRBfo9SCknKojLYjK7B0ZoVmJhyVLefz271ZQRF9EOpHZlfhRw==}
+  '@fontsource/alegreya-sans@5.2.5':
+    resolution: {integrity: sha512-gYr8J2ExytMwkYWjfN4M+HcPb2g0vDY4MEbHLRHLjmdaDnbJpo4RmTq0NjKpLIirshvE9DrpWjw6PcVx6Q5hlw==}
 
-  '@fontsource/eb-garamond@5.3.0':
-    resolution: {integrity: sha512-VplwHpB8FLuzl+4G5LDci1b3Z4SghiuXH8XEgaxjnOb5aue5mEt1njmDKeO6iyLeGa73LffU7PC7hzncLRx0ZA==}
+  '@fontsource/grenze-gotisch@5.2.5':
+    resolution: {integrity: sha512-0i71Tf9eso5IGcaAhKimvwzaNvclB2Kwuv7r8tQ6CkpNL2b3xHtr5XVzQanC4yvOLPKeskpmTRAFwxQCBdLNGQ==}
 
-  '@fontsource/source-sans-3@5.3.0':
-    resolution: {integrity: sha512-VrWixSgF93kOVSEkwjs9ImnAbxrBew4PgcnaJYEitG9TyJSwxjFUNJIgzB1XFP/acyAWcTDg7+sWe7JI8LTB9w==}
+  '@fontsource/im-fell-english@5.2.5':
+    resolution: {integrity: sha512-8hkpOcUegSENA4hfz4SuC+/CIhEjCk0RdVY4SRR2c60eClrZkpQC0B4fL1bLKyOIhda3l7t4at+Bn4hUrlZsDw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1679,11 +1679,11 @@ snapshots:
 
   '@exodus/bytes@1.16.0': {}
 
-  '@fontsource/cinzel@5.3.0': {}
+  '@fontsource/alegreya-sans@5.2.5': {}
 
-  '@fontsource/eb-garamond@5.3.0': {}
+  '@fontsource/grenze-gotisch@5.2.5': {}
 
-  '@fontsource/source-sans-3@5.3.0': {}
+  '@fontsource/im-fell-english@5.2.5': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

@@ -5,7 +5,9 @@ import {
   Button,
   COLOR_TOKEN_GROUPS,
   Callout,
+  CodexProse,
   ItemTooltip,
+  Ledger,
   OrnamentDivider,
   Panel,
   ProvenanceBadge,
@@ -32,6 +34,7 @@ const PROVENANCE_EXAMPLES: readonly ProvenanceView[] = [
 
 export function DesignSystem() {
   const [tab, setTab] = useState("a");
+  const [stage, setStage] = useState("s2");
   return (
     <div className="page">
       <PageHeader
@@ -59,9 +62,9 @@ export function DesignSystem() {
           </div>
         </Panel>
 
-        <Panel title="Typography" kicker="Cinzel · Source Sans 3 · EB Garamond">
+        <Panel title="Typography" kicker="Grenze Gotisch · Alegreya Sans · IM Fell English">
           <div className="type-samples">
-            <p className="type-sample type-sample--display">The Forge of the Exiled</p>
+            <p className="type-sample type-sample--display ef-molten">The Forge of the Exiled</p>
             <p className="type-sample type-sample--h2">Heading Level 2</p>
             <p className="type-sample type-sample--h3">Heading Level 3</p>
             <p className="type-sample">
@@ -71,6 +74,7 @@ export function DesignSystem() {
             <p className="type-sample type-sample--small">Small text for metadata and provenance</p>
             <p className="type-sample type-sample--numbers ef-numeric">1,234,567 · 89.5% · ×2.40</p>
             <p className="type-sample type-sample--flavour">Forged from ash, tempered in embers.</p>
+            <p className="type-sample type-sample--codex">Codex text for the guide reader</p>
           </div>
         </Panel>
 
@@ -110,6 +114,18 @@ export function DesignSystem() {
 
         <Panel title="Tabs">
           <Tabs
+            label="Example timeline"
+            variant="timeline"
+            value={stage}
+            onChange={setStage}
+            items={[
+              { id: "s1", label: "Start", hint: "Level 1–12", content: null },
+              { id: "s2", label: "Build-up", hint: "Level 13–28", content: null },
+              { id: "s3", label: "Transition", hint: "Level 29–52", content: null },
+              { id: "s4", label: "Endgame", hint: "Level 53+", content: null },
+            ]}
+          />
+          <Tabs
             label="Example tabs"
             value={tab}
             onChange={setTab}
@@ -146,8 +162,8 @@ export function DesignSystem() {
             <Sigil size={24} />
           </div>
           <OrnamentDivider className="gallery__divider" />
-          <Panel title="Nested Panel" variant="plain">
-            <p>No corner ornaments, for content inside a frame.</p>
+          <Panel title="Recessed Panel" variant="recessed">
+            <p>A sunken tray for content inside a plate.</p>
           </Panel>
         </Panel>
 
@@ -181,6 +197,40 @@ export function DesignSystem() {
               state={{ status: "uncalibrated", reason: "No market data" }}
             />
           </StatGrid>
+        </Panel>
+
+        <Panel title="Codex" kicker="Guide reader: ledger and prose">
+          <Ledger
+            caption="The Reckoning"
+            rows={[
+              {
+                id: "dps",
+                label: "Hit DPS",
+                emphasis: true,
+                state: {
+                  status: "ready",
+                  value: 6120,
+                  provenance: { kind: "sample", fixture: "calc-fake" },
+                },
+              },
+              { id: "ehp", label: "Effective Hit Pool", state: { status: "loading" } },
+              {
+                id: "cost",
+                label: "Stage Cost",
+                state: { status: "error", message: "worker timed out" },
+              },
+            ]}
+          />
+        </Panel>
+
+        <Panel title="Codex Prose">
+          <CodexProse>
+            <p>
+              Pick up a second ember source before the transition, then swap both rings for ones
+              with resistance.
+            </p>
+            <p>Keep the starting staff until the twentieth level.</p>
+          </CodexProse>
         </Panel>
 
         <Panel title="Messages" className="gallery__wide">

@@ -14,7 +14,7 @@ export interface NavEntry {
 }
 
 export const NAV: readonly NavEntry[] = [
-  { id: "overview", label: "Build Overview", href: "#/" },
+  { id: "overview", label: "Build", href: "#/" },
   { id: "guide", label: "Guide", upcoming: true },
   { id: "tree", label: "Passive Tree", upcoming: true },
   { id: "crafting", label: "Crafting", upcoming: true },

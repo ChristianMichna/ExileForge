@@ -1,7 +1,11 @@
 # @exileforge/ui
 
-Design-System von ExileForge: Tokens, Schriften, eigene SVG-Ornamente und
-React-Bausteine im Dark-Fantasy-Stil für PoE-Spieler. Vorgaben:
+Design-System von ExileForge im Stil **„Glutschmiede"**: Die App ist eine
+Schmiede. Rußschwarzes Eisen, genietete Platten, eingeprägte Kennzahlen,
+glühendes Metall für Fokus und Fortschritt (Stufen als Barren an einer
+glühenden Naht). Die Guide-Ansicht nutzt Kodex-Elemente: rote Initialen,
+Kassenbuch-Zeilen, Fell-Schrift. Entschieden aus drei Entwürfen
+(Glutschmiede, Kodex, Obsidian-Instrument). Vorgaben:
 `docs/architecture.md` §3.4 und Skill `poe-ui-design`.
 
 ## Verwendung
@@ -27,26 +31,28 @@ und Abständen (Präfix `--ef-`). Komponenten und App-CSS nutzen nur
 | Gruppe | Tokens |
 |---|---|
 | Grund | `ground`, `surface-1…3`, `inset`, `line`, `line-strong` |
-| Akzent | `bronze-dark`, `bronze`, `gold`, `gold-bright` |
+| Glut | `coal`, `ember`, `heat`, `heat-bright`, `white-hot`; Verläufe `--ef-gradient-molten/ingot/cooled/seam` |
+| Kodex | `rubric`, `vellum`, `ink-rule` |
 | Rückmeldung | `danger`, `warning`, `success`, `info` (+ `-ground`) |
 | Seltenheit | `rarity-normal/magic/rare/unique`, `gem`, `currency` |
 | Herkunft | `prov-pob/market/derived/gamedata/sample/uncalibrated` |
-| Schrift | `--ef-font-display` (Cinzel), `--ef-font-body` (Source Sans 3), `--ef-font-flavour` (EB Garamond) |
+| Schrift | `--ef-font-display` (Grenze Gotisch), `--ef-font-body` (Alegreya Sans), `--ef-font-codex`/`--ef-font-flavour` (IM Fell English), `--ef-font-mono` |
 | Abstände | `--ef-space-1…7` = 4/8/12/16/24/32/48 px |
-| Form | harte Kanten, Fasen `--ef-chamfer-sm/md`, keine Rundungen |
+| Form | harte Kanten, Fasen `--ef-chamfer-sm/md`, Barren `--ef-shape-ingot`, Nieten `--ef-rivet-size` |
 
 ## Bausteine
 
 | Baustein | Zweck |
 |---|---|
-| `Panel` | Rahmen mit Eckornamenten (`framed`) oder schlicht (`plain`), Titel, Kicker, Aktionen |
+| `Panel` | genietete Eisenplatte (`plate`) oder eingelassene Schale (`recessed`), Titel, Kicker, Aktionen |
 | `Button` | `primary`, `secondary`, `ghost`, `danger`; `sm`/`md`; `busy` (z. B. „PoB rechnet") |
-| `Tabs` | gesteuert, WAI-ARIA-Muster, Pfeiltasten/Home/End, Hinweis je Tab (Stufenbereich) |
+| `Tabs` | gesteuert, WAI-ARIA-Muster, Pfeiltasten/Home/End; `variant="timeline"` zeigt Stufen als Barren an einer glühenden Naht |
 | `ItemTooltip` | Seltenheitskopf, Eigenschaften, Anforderungen (nicht erfüllt auch als Text), Implizite, Mods mit Präfix/Suffix, Tier und Wertebereich (`showTiers`), Flavour, Bezug |
 | `StatValue`, `StatGrid` | Kennzahl mit Herkunft; Zustände `ready`, `loading`, `error`, `uncalibrated`, `stale`. `StatValue` rendert `dt`/`dd` und gehört immer in ein `StatGrid` |
 | `ProvenanceBadge` | Herkunft einer Zahl; Form des Markers je Art, Farbe nie einziges Signal |
 | `Callout`, `Badge` | Hinweise und Zustände, Ton immer auch als Text/Icon |
-| `Sigil`, `OrnamentDivider`, `CornerOrnament`, `Diamond` | eigene Ornamente |
+| `Ledger`, `CodexProse` | Kodex-Elemente für den Guide: Wertezeilen mit Herkunft und Zuständen, Text mit roter Initiale |
+| `Sigil`, `OrnamentDivider`, `Diamond` | eigene Ornamente (Amboss mit Flamme, Schweißnaht) |
 
 ## Zahlen
 

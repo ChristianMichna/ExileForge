@@ -12,9 +12,7 @@ describe("App", () => {
   it("shows the build overview by default", () => {
     render(<App />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Emberweaver");
-    expect(screen.getByRole("link", { name: "Build Overview" }).getAttribute("aria-current")).toBe(
-      "page",
-    );
+    expect(screen.getByRole("link", { name: "Build" }).getAttribute("aria-current")).toBe("page");
   });
 
   it("opens the design-system gallery via hash route", () => {

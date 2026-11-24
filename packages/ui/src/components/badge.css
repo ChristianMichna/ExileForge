@@ -1,6 +1,7 @@
 .ef-badge {
   --ef-badge-cut: 4px;
   --ef-badge-color: var(--ef-color-text-muted);
+  --ef-badge-ground: var(--ef-color-inset);
 
   display: inline-flex;
   align-items: center;
@@ -16,16 +17,18 @@
     0 var(--ef-badge-cut)
   );
   color: var(--ef-badge-color);
-  background: var(--ef-color-inset);
+  background: var(--ef-badge-ground);
   font-size: var(--ef-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   line-height: 1.5;
   white-space: nowrap;
 }
 
 .ef-badge--gold {
-  --ef-badge-color: var(--ef-color-gold);
+  --ef-badge-color: var(--ef-color-heat-bright);
+  --ef-badge-ground: color-mix(in srgb, var(--ef-color-coal) 30%, transparent);
 }
 
 .ef-badge--danger {
@@ -34,6 +37,7 @@
 
 .ef-badge--warning {
   --ef-badge-color: var(--ef-color-warning);
+  --ef-badge-ground: var(--ef-color-warning-ground);
 }
 
 .ef-badge--success {

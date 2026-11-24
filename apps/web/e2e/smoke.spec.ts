@@ -10,7 +10,10 @@ async function open(page: Page, hash: string) {
 test("build overview renders on sample data", async ({ page }) => {
   await open(page, "#/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Emberweaver");
-  await expect(page.getByRole("tab", { name: /Start/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /Build-up/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await expect(
     page.getByText("Not affiliated with or endorsed by Grinding Gear Games", { exact: false }),
   ).toBeVisible();

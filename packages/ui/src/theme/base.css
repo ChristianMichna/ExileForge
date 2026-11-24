@@ -13,7 +13,8 @@ body {
 
 body {
   background-color: var(--ef-color-ground);
-  background-image: var(--ef-texture-stone);
+  background-image: var(--ef-forge-light), var(--ef-texture-iron);
+  background-attachment: fixed;
   color: var(--ef-color-text);
   font-family: var(--ef-font-body);
   font-size: var(--ef-text-md);
@@ -27,9 +28,9 @@ h3,
 h4 {
   margin: 0;
   font-family: var(--ef-font-display);
-  font-weight: 600;
+  font-weight: 500;
   line-height: var(--ef-leading-tight);
-  color: var(--ef-color-gold);
+  color: var(--ef-color-text-strong);
 }
 
 p {
@@ -37,7 +38,7 @@ p {
 }
 
 a {
-  color: var(--ef-color-gold-bright);
+  color: var(--ef-color-heat-bright);
 }
 
 :focus-visible {
@@ -46,8 +47,8 @@ a {
 }
 
 ::selection {
-  background: var(--ef-color-bronze);
-  color: var(--ef-color-text-on-accent);
+  background: var(--ef-color-ember);
+  color: var(--ef-color-text-strong);
 }
 
 .ef-visually-hidden {
@@ -64,4 +65,13 @@ a {
 
 .ef-numeric {
   font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Molten text for hero numbers and the word mark */
+.ef-molten {
+  background: var(--ef-gradient-molten);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(var(--ef-glow-gold));
 }

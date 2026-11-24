@@ -17,9 +17,9 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@fontsource/cinzel": "5.3.0",
-    "@fontsource/eb-garamond": "5.3.0",
-    "@fontsource/source-sans-3": "5.3.0"
+    "@fontsource/alegreya-sans": "5.2.5",
+    "@fontsource/grenze-gotisch": "5.2.5",
+    "@fontsource/im-fell-english": "5.2.5"
   },
   "peerDependencies": {
     "react": "19.3.1"

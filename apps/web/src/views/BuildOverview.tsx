@@ -1,11 +1,21 @@
 import { useState } from "react";
-import { Button, Callout, ItemTooltip, Panel, StatGrid, StatValue, Tabs } from "@exileforge/ui";
+import {
+  Button,
+  Callout,
+  CodexProse,
+  ItemTooltip,
+  Panel,
+  StatGrid,
+  StatValue,
+  Tabs,
+} from "@exileforge/ui";
 import type { SampleStage } from "../fixtures/sample-build";
 import { SAMPLE_BUILD, SAMPLE_ITEMS, SAMPLE_STAGES } from "../fixtures/sample-build";
 import { PageHeader } from "../shell/PageHeader";
 
 export function BuildOverview() {
-  const [stage, setStage] = useState(SAMPLE_STAGES[0]?.id ?? "");
+  // Opens on the second stage so the timeline shows cooled, glowing and cold ingots.
+  const [stage, setStage] = useState(SAMPLE_STAGES[1]?.id ?? "");
   return (
     <div className="page">
       <PageHeader
@@ -24,6 +34,7 @@ export function BuildOverview() {
       </Callout>
       <Tabs
         label="Guide stages"
+        variant="timeline"
         value={stage}
         onChange={setStage}
         items={SAMPLE_STAGES.map((s) => ({
@@ -41,7 +52,7 @@ function StageView({ stage }: { stage: SampleStage }) {
   return (
     <div className="stage">
       <div className="stage__top">
-        <Panel title="Key Stats" kicker={stage.levels} className="stage__stats">
+        <Panel title={`Forged Stats · ${stage.label}`} kicker={stage.levels}>
           <StatGrid>
             {stage.stats.map((s) => (
               <StatValue
@@ -54,12 +65,10 @@ function StageView({ stage }: { stage: SampleStage }) {
             ))}
           </StatGrid>
         </Panel>
-        <Panel title="Notes" variant="plain" className="stage__notes">
-          <ol className="notes">
-            {stage.notes.map((note) => (
-              <li key={note}>{note}</li>
-            ))}
-          </ol>
+        <Panel title="From the Codex" variant="recessed">
+          <CodexProse>
+            <p>{stage.notes.join(" ")}</p>
+          </CodexProse>
         </Panel>
       </div>
       <Panel title="Equipment" kicker="Modifier priority from top to bottom">

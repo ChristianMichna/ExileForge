@@ -1,11 +1,12 @@
 /* Bundled fonts (SIL Open Font License 1.1, see packages/ui/FONTS.md).
    Served from the app itself: the desktop app works offline and never calls
-   a font CDN. Latin subset covers German and English UI text. */
-@import "@fontsource/cinzel/latin-500.css";
-@import "@fontsource/cinzel/latin-600.css";
-@import "@fontsource/cinzel/latin-700.css";
-@import "@fontsource/source-sans-3/latin-400.css";
-@import "@fontsource/source-sans-3/latin-400-italic.css";
-@import "@fontsource/source-sans-3/latin-600.css";
-@import "@fontsource/source-sans-3/latin-700.css";
-@import "@fontsource/eb-garamond/latin-400-italic.css";
+   a font CDN. */
+@import "@fontsource/grenze-gotisch/latin-500.css";
+@import "@fontsource/grenze-gotisch/latin-700.css";
+@import "@fontsource/alegreya-sans/latin-400.css";
+@import "@fontsource/alegreya-sans/latin-400-italic.css";
+@import "@fontsource/alegreya-sans/latin-500.css";
+@import "@fontsource/alegreya-sans/latin-700.css";
+@import "@fontsource/alegreya-sans/latin-800.css";
+@import "@fontsource/im-fell-english/latin-400.css";
+@import "@fontsource/im-fell-english/latin-400-italic.css";

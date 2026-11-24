@@ -1,20 +1,23 @@
 /*
- * Item card. Layout follows what players read fastest (rarity header,
- * properties, requirements, implicits, explicits, flavour), drawn with our
- * own caps, separators and colours.
+ * Item card, forged: a dark slab in a double iron frame, rarity-coloured
+ * header with heat glow, glowing seams between sections. Section order
+ * follows what players read fastest.
  */
 .ef-item {
   --ef-item-color: var(--ef-color-rarity-normal);
-  --ef-item-edge: color-mix(in srgb, var(--ef-item-color) 55%, transparent);
-  --ef-item-edge-soft: color-mix(in srgb, var(--ef-item-color) 22%, transparent);
+  --ef-item-edge: color-mix(in srgb, var(--ef-item-color) 60%, transparent);
+  --ef-item-glow: color-mix(in srgb, var(--ef-item-color) 22%, transparent);
 
   display: flex;
   flex-direction: column;
   width: var(--ef-tooltip-width);
   max-width: 100%;
+  margin: 5px;
   border: 1px solid var(--ef-item-edge);
-  background: color-mix(in srgb, var(--ef-color-inset) 94%, transparent);
-  box-shadow: var(--ef-shadow-tooltip);
+  background: var(--ef-color-inset);
+  box-shadow:
+    var(--ef-shadow-tooltip),
+    0 0 50px var(--ef-item-glow);
   text-align: center;
 }
 
@@ -30,25 +33,39 @@
   --ef-item-color: var(--ef-color-rarity-unique);
 }
 
-/* Header band */
 .ef-item__header {
   position: relative;
   display: flex;
   align-items: stretch;
-  min-height: 40px;
-  border-bottom: 1px solid var(--ef-item-edge);
+  min-height: 48px;
+  border-bottom: 2px solid var(--ef-item-color);
   background:
-    radial-gradient(ellipse at 50% 0%, var(--ef-item-edge-soft), transparent 70%),
-    linear-gradient(to bottom, var(--ef-color-surface-3), var(--ef-color-surface-1));
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--ef-item-color) 20%, transparent),
+      transparent
+    ),
+    var(--ef-color-surface-1);
+  box-shadow: inset 0 -14px 24px var(--ef-item-glow);
+}
+
+.ef-item__header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ef-item-color), transparent);
 }
 
 .ef-item__header--double {
-  min-height: 56px;
+  min-height: 70px;
 }
 
 .ef-item__cap {
   flex: none;
-  width: 18px;
+  width: 16px;
   height: auto;
 }
 
@@ -73,24 +90,31 @@
   flex-direction: column;
   justify-content: center;
   min-width: 0;
-  padding: var(--ef-space-1) var(--ef-space-2);
+  padding: var(--ef-space-2) var(--ef-space-1);
 }
 
-.ef-item__name,
-.ef-item__base {
+.ef-item__name {
   margin: 0;
   font-family: var(--ef-font-display);
-  font-size: var(--ef-text-lg);
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: 0.03em;
+  font-size: var(--ef-text-2xl);
+  font-weight: 700;
+  line-height: 1;
   color: var(--ef-item-color);
+  text-shadow: 0 0 16px var(--ef-item-glow);
 }
 
-/* Body */
+.ef-item__base {
+  margin: 2px 0 0;
+  font-family: var(--ef-font-display);
+  font-size: var(--ef-text-lg);
+  font-weight: 500;
+  line-height: 1.1;
+  color: color-mix(in srgb, var(--ef-item-color) 75%, var(--ef-color-text));
+}
+
 .ef-item__body {
-  padding: var(--ef-space-2) var(--ef-space-4) var(--ef-space-3);
-  font-size: var(--ef-text-sm);
+  padding: var(--ef-space-3) var(--ef-space-5) var(--ef-space-4);
+  font-size: var(--ef-text-md);
   line-height: 1.45;
 }
 
@@ -99,28 +123,26 @@
   padding: 0;
 }
 
+/* Glowing seam between sections */
 .ef-item__separator {
   display: flex;
   align-items: center;
-  gap: var(--ef-space-1);
-  margin: var(--ef-space-2) var(--ef-space-3);
+  margin: var(--ef-space-2) var(--ef-space-5);
 }
 
 .ef-item__separator span {
   flex: 1;
-  height: 1px;
-}
-
-.ef-item__separator span:first-child {
-  background: linear-gradient(to right, transparent, var(--ef-item-edge));
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ef-item-edge));
+  box-shadow: 0 0 6px var(--ef-item-glow);
 }
 
 .ef-item__separator span:last-child {
-  background: linear-gradient(to left, transparent, var(--ef-item-edge));
+  background: linear-gradient(270deg, transparent, var(--ef-item-edge));
 }
 
 .ef-item__separator svg {
-  fill: var(--ef-item-edge);
+  display: none;
 }
 
 .ef-item__class {
@@ -192,10 +214,9 @@
 }
 
 .ef-item__mod--priority .ef-item__mod-text {
-  text-shadow: 0 0 10px color-mix(in srgb, var(--ef-color-mod) 45%, transparent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--ef-color-mod) 50%, transparent);
 }
 
-/* Planner view: mods left aligned with tier/range at the right edge. */
 .ef-item--tiers .ef-item__mods {
   text-align: left;
 }
@@ -222,31 +243,33 @@
 .ef-item__corrupted {
   margin-top: var(--ef-space-1);
   color: var(--ef-color-danger-bright);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .ef-item__flavour {
   font-family: var(--ef-font-flavour);
   font-style: italic;
-  font-size: var(--ef-text-md);
-  line-height: 1.35;
+  font-size: var(--ef-text-lg);
+  line-height: 1.3;
   color: var(--ef-color-flavour);
 }
 
 .ef-item__footer {
   display: flex;
-  flex-direction: column;
-  gap: var(--ef-space-1);
-  padding: var(--ef-space-2) var(--ef-space-4);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-2) var(--ef-space-5);
   border-top: 1px solid var(--ef-color-line);
-  background: var(--ef-color-surface-1);
   font-size: var(--ef-text-xs);
+  letter-spacing: 0.04em;
   color: var(--ef-color-text-muted);
   text-align: left;
 }
 
 .ef-item__footer-label {
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
   color: var(--ef-color-text-faint);

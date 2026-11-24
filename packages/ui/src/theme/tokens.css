@@ -1,90 +1,122 @@
 /*
- * ExileForge design tokens. The only place where raw colour values, font
- * stacks and spacing values live. Components use var(--ef-*) exclusively.
- * Style direction: docs/architecture.md §3.4 and skill poe-ui-design.
- * Own palette; rarity colours follow the convention players read at a glance.
+ * ExileForge design tokens – "Emberforge" style.
+ * The app is a forge: soot-black iron, riveted plates, molten heat for
+ * focus and progress. The guide reader borrows from a dark codex
+ * (rubric red, ledger rules, drop caps). The only place where raw colour
+ * values, font stacks and spacing values live; components use var(--ef-*).
+ * Rarity colours follow the convention players read at a glance.
  */
 :root {
   color-scheme: dark;
 
-  /* Ground: stone black to anthracite, stepped surfaces */
-  --ef-color-ground: #0a0908;
-  --ef-color-surface-1: #12100d;
-  --ef-color-surface-2: #1a1713;
-  --ef-color-surface-3: #241f1a;
-  --ef-color-inset: #070605;
-  --ef-color-line: #2e2720;
-  --ef-color-line-strong: #4a3d2e;
+  /* Iron and soot */
+  --ef-color-ground: #0a0807;
+  --ef-color-surface-1: #15110e;
+  --ef-color-surface-2: #1d1814;
+  --ef-color-surface-3: #2a221b;
+  --ef-color-inset: #0d0a08;
+  --ef-color-line: #2f261e;
+  --ef-color-line-strong: #4a3a2c;
+  --ef-color-rivet-hi: #8a7563;
+  --ef-color-rivet-lo: #2a211a;
 
-  /* Accent: bronze and old gold */
-  --ef-color-bronze-dark: #5e4626;
-  --ef-color-bronze: #8f6c3c;
-  --ef-color-gold: #c9a55f;
-  --ef-color-gold-bright: #ead08f;
+  /* Heat: from coal to white-hot */
+  --ef-color-coal: #7a2a0c;
+  --ef-color-ember: #c2410c;
+  --ef-color-heat: #ff7a1a;
+  --ef-color-heat-bright: #ffb347;
+  --ef-color-white-hot: #ffe2a8;
+
+  /* Old metal accents (kept for borders and quiet highlights) */
+  --ef-color-bronze-dark: #4a3626;
+  --ef-color-bronze: #8a6a4a;
+  --ef-color-gold: #d9a35c;
+  --ef-color-gold-bright: #f0c88a;
 
   /* Text */
-  --ef-color-text: #e4d9c6;
-  --ef-color-text-muted: #a8997f;
-  --ef-color-text-faint: #8a7d67;
-  --ef-color-text-on-accent: #120e09;
+  --ef-color-text: #ecdfcc;
+  --ef-color-text-strong: #f8ead2;
+  --ef-color-text-muted: #a8957d;
+  --ef-color-text-faint: #8a7965;
+  --ef-color-text-on-accent: #1a0d05;
 
-  /* Feedback: muted blood red, ember, verdigris. Always paired with icon/text. */
-  --ef-color-danger: #b8463c;
-  --ef-color-danger-bright: #e0796c;
-  --ef-color-danger-ground: #2a1311;
-  --ef-color-warning: #c98a3a;
-  --ef-color-warning-ground: #2a1d0e;
-  --ef-color-success: #7fa56a;
-  --ef-color-success-ground: #142014;
-  --ef-color-info: #7d9fb8;
-  --ef-color-info-ground: #111a21;
+  /* Codex (guide reader) */
+  --ef-color-rubric: #d0503a;
+  --ef-color-vellum: #1b1712;
+  --ef-color-ink-rule: #4a3e2e;
+
+  /* Feedback. Always paired with icon or text. */
+  --ef-color-danger: #b8432f;
+  --ef-color-danger-bright: #ff8a6a;
+  --ef-color-danger-ground: #1c0b08;
+  --ef-color-warning: #e0952e;
+  --ef-color-warning-ground: #23170a;
+  --ef-color-success: #8fb36a;
+  --ef-color-success-ground: #131b0e;
+  --ef-color-info: #c9b79a;
+  --ef-color-info-ground: #17120e;
 
   /* Item rarity (convention colours) */
   --ef-color-rarity-normal: #dcd7cd;
   --ef-color-rarity-magic: #8f93ff;
   --ef-color-rarity-rare: #f3e07a;
-  --ef-color-rarity-unique: #d88a45;
+  --ef-color-rarity-unique: #e0883e;
   --ef-color-gem: #4fbfae;
   --ef-color-currency: #c8bb98;
 
   /* Item text roles */
-  --ef-color-mod: #9fb2ff;
+  --ef-color-mod: #a3b4ff;
   --ef-color-mod-implicit: #c6cbe8;
   --ef-color-mod-enchant: #b7d4f0;
   --ef-color-mod-rune: #d2c7a4;
   --ef-color-mod-desecrated: #c98fae;
-  --ef-color-property-value: #f4efe4;
-  --ef-color-flavour: #b67a3c;
+  --ef-color-property-value: #f6ecdc;
+  --ef-color-flavour: #d08345;
 
-  /* Provenance of numbers (subtle; never the only signal) */
-  --ef-color-prov-pob: #7fb3d1;
-  --ef-color-prov-market: #8fbf7a;
-  --ef-color-prov-derived: #c7a6d6;
-  --ef-color-prov-gamedata: #c9b27f;
-  --ef-color-prov-sample: #9b8a6c;
+  /* Provenance of numbers (subtle; marker shape is the second signal) */
+  --ef-color-prov-pob: #8fc0d8;
+  --ef-color-prov-market: #9cc47f;
+  --ef-color-prov-derived: #cfa8dd;
+  --ef-color-prov-gamedata: #d9bd82;
+  --ef-color-prov-sample: #b07a4c;
   --ef-color-prov-uncalibrated: #8a8378;
 
-  /* Focus */
-  --ef-color-focus: #f2d58f;
+  --ef-color-focus: #ffc266;
 
-  /* Typography (bundled OFL fonts, see packages/ui/FONTS.md) */
-  --ef-font-display: "Cinzel", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --ef-font-body:
-    "Source Sans 3", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --ef-font-flavour: "EB Garamond", "Palatino Linotype", Georgia, serif;
+  /* Heat gradients and glows */
+  --ef-gradient-molten: linear-gradient(180deg, #ffe2a8, #ff8a2a 55%, #c2410c);
+  --ef-gradient-ingot: radial-gradient(circle at 50% 40%, #ffcf7a, #ff6a10 55%, #8a2a08);
+  --ef-gradient-cooled: radial-gradient(circle, #6a2a10, #2a120a);
+  --ef-gradient-cold: linear-gradient(180deg, #2a221b, #120e0b);
+  --ef-gradient-plate: linear-gradient(170deg, #241d17, #15110d 60%);
+  --ef-gradient-seam: linear-gradient(90deg, transparent, #ff8a2a, transparent);
+  --ef-glow-heat: 0 0 14px rgb(255 120 30 / 55%);
+  --ef-glow-heat-soft: 0 0 40px rgb(255 120 30 / 22%);
+  --ef-glow-gold: 0 0 12px rgb(255 140 40 / 40%);
+  --ef-forge-light:
+    radial-gradient(ellipse 70% 42% at 50% 112%, rgb(255 110 20 / 30%), transparent 70%),
+    radial-gradient(ellipse 45% 30% at 88% -8%, rgb(255 140 40 / 7%), transparent 70%);
+
+  /* Typography (bundled OFL fonts) */
+  --ef-font-display: "Grenze Gotisch", "Palatino Linotype", Georgia, serif;
+  --ef-font-body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --ef-font-codex: "IM Fell English", "Palatino Linotype", Georgia, serif;
+  --ef-font-flavour: "IM Fell English", "Palatino Linotype", Georgia, serif;
   --ef-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   --ef-text-xs: 0.75rem;
   --ef-text-sm: 0.875rem;
   --ef-text-md: 1rem;
-  --ef-text-lg: 1.125rem;
-  --ef-text-xl: 1.375rem;
-  --ef-text-2xl: 1.75rem;
+  --ef-text-lg: 1.1875rem;
+  --ef-text-xl: 1.5rem;
+  --ef-text-2xl: 1.875rem;
   --ef-text-3xl: 2.25rem;
+  --ef-text-4xl: 3.5rem;
+  --ef-text-hero: 5rem;
 
-  --ef-leading-tight: 1.2;
+  --ef-leading-tight: 1.05;
   --ef-leading-body: 1.5;
-  --ef-tracking-caps: 0.08em;
+  --ef-tracking-caps: 0.2em;
 
   /* Spacing scale 4/8/12/16/24/32/48 */
   --ef-space-1: 4px;
@@ -95,29 +127,34 @@
   --ef-space-6: 32px;
   --ef-space-7: 48px;
 
-  /* Shape: hard edges and chamfers instead of round corners */
+  /* Shape: hard edges, chamfers, hexagonal ingots */
   --ef-chamfer-sm: 5px;
   --ef-chamfer-md: 9px;
-  --ef-radius-none: 0;
+  --ef-rivet-size: 9px;
+  --ef-shape-ingot: polygon(20% 0, 80% 0, 100% 50%, 80% 100%, 20% 100%, 0 50%);
 
   /* Depth */
-  --ef-shadow-panel: 0 1px 0 rgb(255 240 210 / 4%) inset, 0 12px 32px rgb(0 0 0 / 55%);
-  --ef-shadow-tooltip: 0 0 0 1px rgb(0 0 0 / 90%), 0 18px 40px rgb(0 0 0 / 70%);
-  --ef-glow-gold: 0 0 12px rgb(201 165 95 / 35%);
+  --ef-shadow-plate:
+    inset 0 1px 0 rgb(255 220 180 / 7%), inset 0 -2px 0 rgb(0 0 0 / 60%),
+    0 18px 40px rgb(0 0 0 / 60%);
+  --ef-shadow-stamp: inset 0 2px 8px rgb(0 0 0 / 80%);
+  --ef-shadow-tooltip: 0 0 0 4px #120e0b, 0 0 0 5px #3a2e24, 0 30px 60px rgb(0 0 0 / 80%);
 
-  /* Subtle stone grain for large surfaces (own SVG noise) */
-  --ef-texture-stone: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.85  0 0 0 0 0.75  0 0 0 0 0.6  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  /* Brushed iron grain */
+  --ef-texture-iron: repeating-linear-gradient(
+    115deg,
+    rgb(255 255 255 / 1.2%) 0 2px,
+    transparent 2px 7px
+  );
 
-  /* Motion: sparse and purposeful */
   --ef-duration-fast: 120ms;
-  --ef-duration-base: 200ms;
+  --ef-duration-base: 220ms;
   --ef-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 
   /* Layout */
   --ef-page-max-width: 1400px;
-  --ef-sidebar-width: 232px;
-  --ef-topbar-height: 56px;
-  --ef-tooltip-width: 336px;
+  --ef-topbar-height: 76px;
+  --ef-tooltip-width: 352px;
 }
 
 @media (prefers-reduced-motion: reduce) {
