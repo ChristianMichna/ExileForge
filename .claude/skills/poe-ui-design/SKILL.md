@@ -14,7 +14,7 @@ kopierten Spielgrafiken**. Quelle: `docs/architecture.md` §3.4.
 
 ## Tokens (einzige Quelle für Farben, Schrift, Abstände)
 
-Liegen zentral (z. B. `apps/ui/src/theme/tokens.ts` + CSS Custom Properties).
+Liegen zentral (z. B. `packages/ui/src/theme/tokens.ts` + CSS Custom Properties).
 Komponenten nutzen nur Tokens, nie freie Hex-Werte.
 
 | Gruppe | Richtung |

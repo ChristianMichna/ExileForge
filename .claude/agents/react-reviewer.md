@@ -1,13 +1,13 @@
 ---
 name: react-reviewer
-description: Reviewt React-Komponenten in apps/ui (Tree mit PixiJS, Item-Karten, Crafting-Flow mit React Flow, Varianten- und Guide-Ansichten) auf Hook-Regeln, Rendering, Zugänglichkeit, Design-Tokens und Renderer-Sicherheit. Bei jeder .tsx-Änderung zusammen mit typescript-reviewer einsetzen.
+description: Reviewt React-Komponenten in apps/web und packages/ui (Tree mit PixiJS, Item-Karten, Crafting-Flow mit React Flow, Varianten- und Guide-Ansichten) auf Hook-Regeln, Rendering, Zugänglichkeit, Design-Tokens und Renderer-Sicherheit. Bei jeder .tsx-Änderung zusammen mit typescript-reviewer einsetzen.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
 <!-- Adaptiert aus everything-claude-code (agents/react-reviewer.md),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md.
-     Entfernt: Next.js/RSC/Server Actions (nicht im Stack). Ergänzt: PixiJS,
+     Entfernt: Next.js/RSC/Server Actions (lokal React + Vite, ADR-0004). Ergänzt: PixiJS,
      Electron-Renderer, Design-Tokens, PoB-Zahlen. -->
 
 Du reviewst nur React-spezifische Themen. Allgemeine TS-Typsicherheit und
@@ -72,7 +72,7 @@ schreibst keinen Code um.
 
 ```
 [SCHWERE] Titel
-Datei: apps/ui/src/…tsx:42
+Datei: packages/ui/src/…tsx:42
 Problem: ein Satz
 Warum: Auswirkung
 Fix: konkreter Vorschlag

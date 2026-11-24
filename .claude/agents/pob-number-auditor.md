@@ -29,9 +29,9 @@ Du meldest Befunde, du änderst keinen Code.
 - Neue Zahlenfelder im Vertrag ohne Herkunft → HOCH.
 
 ### 2. Die KI wählt, die Engine misst
-- Ausgabeverträge von LLM-Stufen (S1, S2, S5, S6, S8, S9, Critic) bzw.
-  Eingaben speichernder MCP-Tools haben **keine** Felder für
-  Ergebniszahlen (DPS, EHP, Resistenzen, Kosten, Chancen).
+- Antwortschemas der `forge`-Aufgaben bzw. LLM-Stufen (S1, S2, S5, S6, S8,
+  S9, Critic) haben **keine** Felder für Ergebniszahlen (DPS, EHP,
+  Resistenzen, Kosten, Chancen); `forge.submit` rechnet selbst durch PoB.
 - Prompts verlangen, Zahlen nur über Tools zu beziehen, und verbieten
   Schätzungen; Zahlen aus Tool-Ergebnissen werden per Referenz
   eingebunden, nicht abgeschrieben.

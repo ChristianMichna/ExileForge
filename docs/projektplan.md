@@ -163,7 +163,7 @@ Gewichtete Punkte für Abdeckung und Tiefe: Begründungsdichte je Entscheidung, 
 
 ExileForge besteht aus sechs Diensten um zwei gemeinsame Wahrheiten herum: den versionierten Katalog und den Calc-Service. Alles ist TypeScript außer dem PoB-Kern (Lua), damit Schemas einmal definiert und überall typsicher genutzt werden.
 
-> _(Grafik im Originaldokument: Systemarchitektur · 11 Bausteine, 2 gemeinsame Datenquellen – hier nicht enthalten.)_
+&#91;embedded content: Systemarchitektur · 11 Bausteine, 2 gemeinsame Datenquellen\]
 
 Web und MCP sind zwei gleichwertige Eingänge in dieselbe Pipeline; Katalog und Calc-Service nutzen dieselbe gepinnte PoB-Version, deshalb passen angezeigte Daten und berechnete Zahlen immer zusammen.
 
@@ -354,7 +354,7 @@ Die Agenten arbeiten in einer geschlossenen Welt: kein Web-Zugriff, nur diese To
 
 Die Pipeline plant **vom Endgame rückwärts**: Erst steht ein validierter Ziel-Build, dann werden daraus die Progressionsstufen bis Level 1 abgeleitet. So führt jede Stufe nachweislich zum Ziel, statt dass ein Leveling-Guide in einer Sackgasse endet. Sie läuft als Temporal-Workflow; jede Stufe ist eine Activity mit typisiertem Ein- und Ausgang, damit sie einzeln getestet, wiederholt und von verschiedenen Agenten gebaut werden kann.
 
-> _(Grafik im Originaldokument: Build-Pipeline · 12 Stufen in 3 Phasen, 1 Gate mit Rücksprung – hier nicht enthalten.)_
+&#91;embedded content: Build-Pipeline · 12 Stufen in 3 Phasen, 1 Gate mit Rücksprung\]
 
 Der Nutzer entscheidet einmal (S4); danach läuft die Ausarbeitung asynchron, und jeder Gate-Fehler geht gezielt an die Stufe zurück, die ihn verursacht hat.
 
@@ -527,7 +527,7 @@ Vor dem öffentlichen Start prüft eine kleine Gruppe erfahrener Spieler Guides 
 
 Bis zum Spielrelease am 11.12.2026 entsteht das Fundament; der Generator-MVP folgt in den Wochen nach dem PoB-Update für 1.0. Die Dauern ab P2 sind Schätzungen für einen parallel arbeitenden Agent-Swarm und werden nach P0 anhand gemessener Geschwindigkeit neu geplant.
 
-> _(Grafik im Originaldokument: Roadmap · 5 Phasen, 4 Gates – hier nicht enthalten.)_
+&#91;embedded content: Roadmap · 5 Phasen, 4 Gates\]
 
 Eine Phase gilt erst als abgeschlossen, wenn ihr Gate grün ist; Arbeiten der Folgephase dürfen vorher beginnen, aber nicht ausgeliefert werden.
 
@@ -623,4 +623,3 @@ Stand der Recherche: 24.11.2026.
 - [poe.ninja API-Dokumentation](https://poe.ninja/docs/api)
 - [PoEDB: Developer API und Datenexport](https://poedb.tw/us/markdown_raw?oldid=8311)
 - [poe-tool-dev/dat-schema](https://github.com/poe-tool-dev/dat-schema)
-- [pathofexile-dat (npm)](https://www.npmjs.com/package/pathofexile-dat)

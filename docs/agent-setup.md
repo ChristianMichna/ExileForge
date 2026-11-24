@@ -24,10 +24,10 @@ kein Installer, keine Laufzeit-Abhängigkeit auf ECC.
 | Kein Spielwissen aus dem Modellgedächtnis | `CLAUDE.md`, `catalog-integrity-auditor`, `tdd-workflow` |
 | PoB nicht patchen | Hook `protect-vendored` |
 
-Stack-Hinweis: Projektplan (Web) und Architektur-Entwurf v0.2 (lokale
-Electron-App) sind noch nicht abgeglichen. Das Setup ist auf die Prinzipien
-ausgerichtet; stack-spezifische Teile (Electron-Prüfungen, `.mcpb`, Pfade des
-PoB-Submoduls) decken beide Varianten ab bzw. sind als solche markiert.
+Stack: lokale Windows-App nach ADR-0004 (Electron, React + Vite, lokaler
+Fastify-Server auf `127.0.0.1` mit MCP-Endpunkt, `.mcpb`-Brücke für Claude
+Desktop, LuaJIT/PoB, SQLite). Web-spezifische Teile aus ECC (Next.js,
+Konten, Rate Limits, OAuth) sind deshalb bewusst weggelassen.
 
 ## Übersicht
 
@@ -59,17 +59,17 @@ PoB-Submoduls) decken beide Varianten ab bzw. sind als solche markiert.
 
 ### Agents
 - **typescript-reviewer / react-reviewer**: Der ganze Code ist TS/React.
-  Next.js-, RSC- und Server-Action-Teile entfernt (Architektur v0.2 ohne
-  Next.js; fällt die Entscheidung für die Web-Variante aus dem Projektplan,
-  diese Abschnitte aus ECC nachziehen);
+  Next.js-, RSC- und Server-Action-Teile entfernt (lokal React + Vite,
+  ADR-0004);
   ergänzt um Kindprozesse, Schema-Drift, PixiJS-Cleanup, Design-Tokens,
   Farbe-nicht-einziges-Signal (Seltenheitsfarben).
 - **electron-security-reviewer**: ECCs `security-reviewer` zielt auf
   Web-Backends (Login, Sessions, Rate Limits, Zahlungen) – das gibt es hier
-  nicht. Ersetzt durch die echten Angriffsflächen: Renderer/IPC,
-  LuaJIT-Start, Dateiexport, PoB- und App-Updates, MCP-Tools und `.mcpb`,
-  gemeinsame DB und vor allem die Abo-Regel (App ruft nie Claude auf und
-  fasst keine Zugangsdaten an).
+  nicht. Ersetzt durch die echten Angriffsflächen der lokalen App:
+  Renderer/IPC, der lokale Port auf `127.0.0.1` (DNS-Rebinding, fremde
+  Webseiten), `.mcpb`-Brücke, LuaJIT-Start, Dateiexport, Downloads und
+  Updates ohne Code-Signing, BYOK-Keys und vor allem die Abo-Regel (App
+  nutzt das Claude-Abo nie selbst und fasst keine Zugangsdaten an).
 - **silent-failure-hunter**: Ein still verschluckter Fehler ergibt hier
   einen plausibel aussehenden Guide mit falschen Zahlen. Ergänzt um
   PoB-/Preis-spezifische Ersatzwerte.
@@ -89,16 +89,17 @@ PoB-Submoduls) decken beide Varianten ab bzw. sind als solche markiert.
 - **search-first**: PoB, `pob-mcp`, `poe2-build-forge` und poe.ninja decken
   vieles ab; Nachbauen wäre teuer und fehleranfällig. ECCs
   Researcher-Subagent und PyPI-/Skill-Katalogsuche entfernt.
-- **contract-first**: Die Architektur legt JSON Schema in `packages/schema`
-  als Quelle der Wahrheit fest; sieben Grenzen (Modell, IPC, MCP, Worker,
-  gemeinsame DB, Teilen-Datei, `.build`). OpenAPI/AsyncAPI/Protobuf-Teile entfernt.
+- **contract-first**: Leitprinzip „Verträge zuerst"; Zod in
+  `packages/contracts` als einzige Quelle, Vertrags-PR, Fakes; Grenzen der
+  lokalen App (IPC, lokale API, MCP/`forge`, Calc-RPC, Daten-Release,
+  Teilen-Datei, `.build`). OpenAPI/AsyncAPI/Protobuf-Teile entfernt.
 - **tdd-workflow**: Von ~600 auf ~80 Zeilen. Kern: PoB-Golden-Tests mit
   **aufgezeichneten** PoB-Ergebnissen statt handgeschriebener Zahlen;
   niemals echte Claude-Aufrufe in Tests (Abo-Kontingent).
-- **mcp-server-patterns**: Der MCP-Server ist die einzige Datenquelle der
-  KI. Remote/HTTP entfernt (nur stdio), ergänzt um `.mcpb`/Plugin,
-  MCP-Prompts, Nachrechnen beim Speichern, Herkunft in Ausgaben,
-  Kostenhinweise in Tool-Beschreibungen.
+- **mcp-server-patterns**: Der MCP-Endpunkt ist die einzige Datenquelle der
+  KI. Öffentliches Remote-Hosting entfernt; ergänzt um lokalen Endpunkt auf
+  `127.0.0.1` mit `.mcpb`-stdio-Brücke (ADR-0004), `forge`-Aufgabenschleife
+  ohne Single-Shot (ADR-0003), Herkunft in Ausgaben, Kostenhinweise.
 - **verification-loop**: An pnpm, Lua-Worker und Projektregeln angepasst;
   meldet fehlende Skripte als „NICHT VORHANDEN" statt PASS.
 - **architecture-decision-records**: Die Architektur hat viele

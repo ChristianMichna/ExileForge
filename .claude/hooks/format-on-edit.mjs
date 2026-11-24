@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 const EXTENSIONS = new Set([
   ".ts", ".tsx", ".js", ".mjs", ".cjs", ".jsx", ".json", ".css", ".md", ".yml", ".yaml", ".html",
 ]);
-const SKIP = ["services/pob-worker/PathOfBuilding/", "vendor/", "node_modules/", "pnpm-lock.yaml"];
+const SKIP = ["vendor/", "node_modules/", "pnpm-lock.yaml"];
 
 let raw = "";
 process.stdin.setEncoding("utf8");

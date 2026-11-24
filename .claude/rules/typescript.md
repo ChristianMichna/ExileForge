@@ -16,8 +16,8 @@ paths:
   String-Literal-Unions statt `enum`.
 - Kein `any`. Externe Daten sind `unknown` und werden per Schema validiert
   (IPC, MCP, PoB-Worker, Netz, KI-Antwort).
-- Typen für das Build-Modell kommen aus `packages/schema` (generiert), nicht
-  von Hand dupliziert.
+- Typen kommen aus `packages/contracts` (`z.infer`), nicht von Hand
+  dupliziert.
 - Unveränderlich arbeiten: neue Objekte statt Mutation; Build-Änderung =
   neue Revision.
 - Fehler: `throw new Error(msg, { cause })`; keine leeren `catch`; keine

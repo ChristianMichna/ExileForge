@@ -5,7 +5,7 @@ description: Leitprinzip „Verträge zuerst" – Schnittstellen und Datenformen
 
 <!-- Adaptiert aus everything-claude-code (skills/contract-first),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md.
-     Gekürzt auf JSON Schema (kein OpenAPI/AsyncAPI/Protobuf im Stack). -->
+     Gekürzt auf Zod/JSON Schema (kein OpenAPI/AsyncAPI/Protobuf im Stack). -->
 
 # Verträge zuerst
 
@@ -13,11 +13,9 @@ Leitprinzip aus `docs/projektplan.md`: Schemas und Schnittstellen werden
 **vor** der Implementierung festgelegt, damit parallele Agenten unabhängig
 arbeiten können. Workstreams koppeln nur über das Vertragspaket.
 
-**Wo:** laut Projektplan `packages/contracts` (Zod-Schemas, daraus JSON
-Schema, OpenAPI und LLM-Tool-Definitionen generiert); der Architektur-
-Entwurf nennt noch `packages/schema` (JSON Schema). Bis eine ADR das
-festlegt, nicht selbst entscheiden. Prinzip in beiden Fällen: **eine**
-maßgebliche Quelle, alles andere generiert.
+**Wo:** `packages/contracts` (Zod-Schemas; daraus JSON Schema für
+Tool-Definitionen und Antwortschemas der `forge`-Aufgaben generiert).
+**Eine** maßgebliche Quelle, alles andere generiert.
 
 **Wer:** WS0 (Architektur) besitzt die Verträge. Andere Agenten ändern sie
 nur per eigenem Vertrags-PR, den der Architektur-Verantwortliche freigibt.
@@ -29,16 +27,16 @@ PassiveNode, Ascendancy, CraftingAction, StatTranslation, DataRelease),
 `CalcRPC` (`build.load`, `calc.stats`, `calc.evalBatch` …), `BuildRequest`,
 Stufen-Ergebnisse (`SkillProfile`, `ArchetypeCandidate`, `TargetBuild`,
 `ProgressionPlan`, `GearPlan`, `CraftingPlan`), `GuideDocument`, Events.
-Dazu je nach Stack-Variante:
+Dazu die Grenzen der lokalen App (ADR-0004):
 
 | Grenze | Produzent → Konsument |
 |---|---|
-| Build-Modell (`Build`, `Stage`, `Sourced<T>`) | core ⇄ db ⇄ UI ⇄ Export |
-| IPC | Main ⇄ Renderer (Preload) |
-| MCP-Tools | MCP-Server ⇄ Claude (Desktop/Code des Nutzers) |
-| Worker-Protokoll | Node ⇄ `bridge.lua` (JSON über stdio) |
-| Gemeinsame DB | MCP-Server ⇄ App (beide über `packages/core`) |
-| Teilen-Datei | ExileForge ⇄ ExileForge eines Freundes (JSON) |
+| IPC | Electron-Main ⇄ Renderer (Preload) |
+| Lokale API + Live-Status | `apps/server` ⇄ `apps/web` |
+| MCP-Tools, `forge`-Aufgaben | `apps/server` ⇄ Claude (über `.mcpb`-Brücke bzw. HTTP) |
+| Calc-RPC | `calc-client` ⇄ LuaJIT-Worker (JSON-RPC über stdio) |
+| Daten-Release | `apps/data-pipeline` (CI) → App |
+| Teilen-Datei | ExileForge ⇄ ExileForge eines Freundes (`.exileforge.json`) |
 | `.build`-Export | ExileForge → Build Planner im Spiel (GGG-Format) |
 
 Für jede Grenze gibt es **genau ein** maßgebliches Schema im

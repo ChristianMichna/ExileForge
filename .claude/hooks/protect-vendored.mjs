@@ -5,9 +5,7 @@
 
 import path from "node:path";
 
-// Both locations are listed until an ADR fixes the repo layout
-// (architecture draft: services/pob-worker/…, project plan: vendor/…).
-const PROTECTED = ["services/pob-worker/PathOfBuilding/", "vendor/PathOfBuilding-PoE2/"];
+const PROTECTED = ["vendor/PathOfBuilding-PoE2/"];
 
 let raw = "";
 process.stdin.setEncoding("utf8");

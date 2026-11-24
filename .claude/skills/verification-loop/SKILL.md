@@ -50,7 +50,7 @@ pnpm build 2>&1 | tail -20
 ```bash
 luajit -v
 # Smoke-Test der Bridge, sobald vorhanden, z. B.:
-# echo '{"cmd":"ping"}' | luajit services/pob-worker/bridge.lua
+# echo '{"method":"meta.version"}' | <luajit> apps/calc/lua/<bridge>.lua
 # PoB-Submodul unverändert (Pfad je nach Repo-Layout):
 git submodule foreach --quiet 'git status --porcelain'   # muss leer sein
 ```

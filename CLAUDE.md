@@ -13,18 +13,36 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
 
 - `docs/projektplan.md` – Projektplan 1.0: Leitprinzipien, Features (F-xx),
   Qualitätsstandard und Gates (G1–G8), Pipeline (S0–S11), Workstreams (WS0–WS9)
-- `docs/architecture.md` – Architektur-Entwurf (Stack, Komponenten)
+- `docs/architecture.md` – Architektur (Komponenten, Reihenfolge)
 - `docs/data-model.md` – Datenmodell, `Sourced<T>`, Revisionen
 - `docs/adr/` – Architekturentscheidungen (sobald vorhanden)
 - `docs/agent-setup.md` – welche Agents/Skills/Hooks es hier gibt und warum
 
-> **Betrieb: lokal, nicht in der Cloud** (Christian, 24.11.2026). ExileForge
-> läuft als lokale Anwendung auf dem Rechner des Nutzers und muss sich einfach
-> an einen Freund weitergeben lassen. Kein gehosteter Server. Die
-> Claude-Anbindung läuft lokal (z. B. MCP über stdio mit Claude Desktop/Claude
-> Code). Der Betriebsteil von ADR-0003 (gehostet, Remote-Connector) ist damit
-> überholt; die Details legt die nächste ADR fest. Bis dahin keine weitere
-> Stack-Entscheidung selbst treffen, sondern nachfragen.
+## Betrieb und Stack (ADR-0004, angenommen 24.11.2026)
+
+ExileForge ist eine **lokale Windows-App**, kein gehosteter Dienst. Christians
+Vorgabe: läuft auf seinem PC und lässt sich per Installer an einen Freund
+weitergeben.
+
+- `apps/desktop` Electron-Hülle, Installer (`ExileForge-Setup.exe`),
+  Auto-Update (`electron-updater`) über GitHub Releases
+- `apps/web` eigenes Frontend (React + Vite), Komponenten aus `packages/ui`
+  (PixiJS-Tree, Item-Tooltips, React-Flow-Crafting)
+- `apps/server` lokaler Fastify-Server **nur auf `127.0.0.1`**: API,
+  Live-Status, Pipeline als Zustandsmaschine, MCP-Endpunkt; Zustand in SQLite
+- `apps/calc` LuaJIT-Worker-Pool mit gepinntem PoB
+  (`vendor/PathOfBuilding-PoE2`), für Windows gebaut und mitgeliefert
+- `apps/mcp-bridge` Claude-Desktop-Erweiterung (`.mcpb`), dünne stdio-Brücke
+  zum lokalen MCP-Endpunkt; Claude Code verbindet sich per
+  `claude mcp add --transport http`
+- `apps/data-pipeline` läuft in CI und veröffentlicht Daten-Releases; die App
+  lädt Daten-Releases und PoB-Versionen selbst nach
+- `packages/{contracts,catalog-sdk,calc-client,llm-gateway,agents,optimizer,crafting-sim,exporters,ui}`,
+  `config/`, `evals/`, `docs/adr/`
+- pnpm + Turborepo, TypeScript strict, Vitest, ESLint/Prettier
+
+Der Kern (`contracts`, `calc`, Pipeline, `ui`) bleibt vom Electron-Teil
+getrennt. Weitere Stack-Änderungen nur per ADR.
 
 ## Leitprinzipien (nicht verhandelbar)
 
@@ -46,9 +64,10 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
    Implementierung festgelegt; parallele Arbeit koppelt nur über das
    Vertragspaket. Vertragsänderungen nur per eigenem Vertrags-PR.
 5. **Regelkonform.** Anthropic-Regeln: kein „Mit Claude anmelden", keine
-   Claude-Zugangsdaten sammeln, speichern oder durchreichen; Abo-Nutzung nur
-   über Anthropics eigene Clients (MCP) oder den unveränderten Claude Code des
-   Nutzers. GGG-Richtlinien: kein Anschein offizieller Herkunft,
+   Claude-Zugangsdaten sammeln, speichern oder durchreichen; die App nutzt das
+   Claude-Abo des Nutzers nie selbst. KI-Schritte laufen im Claude Desktop/Code
+   des Nutzers über den lokalen MCP-Endpunkt, alternativ mit dem eigenen
+   API-Key des Nutzers (BYOK) über `llm-gateway`. GGG-Richtlinien: kein Anschein offizieller Herkunft,
    Third-Party-Hinweis, keine Interaktion mit Spielclient oder Spieldateien
    beim Nutzer, identifizierbarer User-Agent. Lizenzen (PoB: MIT) beachten.
 
@@ -59,11 +78,12 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
   Daten-Release erzeugt wurden. Keine PoE1-Begriffe.
 - **Keine Single-Shot-Prompts.** KI-Arbeit ist in viele kleine Aufgaben mit
   je eigenem Antwortschema zerlegt; jede Abgabe wird sofort mit PoB und den
-  Gates geprüft und bei Fehlern gezielt zurückgegeben (ADR-0003). Was
-  deterministisch geht, rechnet der Server ohne KI.
-- **Lokal, einfach weitergebbar.** Kein Cloud-Betrieb. Die Weitergabe an einen
-  Freund darf keine Entwicklerwerkzeuge (Python, WSL, Compiler, git) beim
-  Freund voraussetzen.
+  Gates geprüft und bei Fehlern gezielt zurückgegeben (ADR-0003,
+  `forge.attach`/`next`/`submit`). Was deterministisch geht, rechnet die App
+  ohne KI.
+- **Lokal, einfach weitergebbar.** Kein Cloud-Betrieb, kein Konto, kein
+  OAuth. Der Freund braucht nur den Installer und Claude Desktop mit eigenem
+  Abo; keine Entwicklerwerkzeuge (Python, WSL, Compiler, git, Docker).
 - **Kein stiller Ersatzwert.** Fehlgeschlagene Rechnung, Preisabruf oder
   Import wird als Fehler sichtbar, nie `0`, `[]` oder alter Wert ohne
   Kennzeichnung.
@@ -105,7 +125,7 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
 | Zahlen, Calc, Guide-Inhalt | Agent `pob-number-auditor` |
 | Entitäten, Prompts, Daten, Fixtures, Patch-Bezug | Agent `catalog-integrity-auditor` |
 | `.ts` / `.tsx` | Agents `typescript-reviewer` / zusätzlich `react-reviewer` |
-| Prozesse, Dateien, Netz, Keys, MCP, Updates | Agent `electron-security-reviewer` |
+| Electron, lokaler Server/Port, Prozesse, Dateien, Downloads, Keys, MCP, Updates | Agent `electron-security-reviewer` |
 | Fehlerpfade | Agent `silent-failure-hunter` |
 
 ## Befehle
@@ -124,7 +144,7 @@ pnpm build
 ## Stil
 
 - TypeScript `strict`, kein `any` ohne Begründung, `unknown` an Grenzen und
-  per Vertrag (Zod/JSON Schema) validieren.
+  per Vertrag (Zod aus `packages/contracts`) validieren.
 - Unveränderliche Daten; Builds/Guides sind Revisionen, nie in-place ändern.
 - Fehler als `Error` mit `cause`; keine leeren `catch`-Blöcke.
 - UI: nur Design-Tokens → Skill `poe-ui-design`.
