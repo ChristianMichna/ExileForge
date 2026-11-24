@@ -1,0 +1,80 @@
+# Checks that headless Path of Building runs natively on Windows (no WSL),
+# using PoB's own runtime DLLs plus a small luajit.exe host.
+name: Windows headless PoB
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [msvc, mingw]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch pinned PoB and LuaJIT sources
+        run: |
+          pob_ref=$(sed -n 's/^POB_REF="\${POB_REF:-\([0-9a-f]*\)}".*/\1/p' tools/setup_pob.sh)
+          lj_ref=$(sed -n 's/^LUAJIT_REF="\([0-9a-f]*\)".*/\1/p' tools/setup_pob.sh)
+          echo "PoB $pob_ref / LuaJIT $lj_ref"
+          fetch() { git init -q "$3"; git -C "$3" remote add origin "$1"; git -C "$3" fetch -q --depth 1 origin "$2"; git -C "$3" checkout -q FETCH_HEAD; }
+          fetch https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2.git "$pob_ref" .pob/PathOfBuilding-PoE2
+          fetch https://github.com/LuaJIT/LuaJIT.git "$lj_ref" .pob/luajit-src
+          ls .pob/PathOfBuilding-PoE2/runtime
+
+      - name: Set up MSVC
+        if: matrix.toolchain == 'msvc'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build luajit.exe (MSVC, UCRT like PoB's DLLs)
+        if: matrix.toolchain == 'msvc'
+        shell: cmd
+        run: |
+          cd .pob\luajit-src\src
+          call msvcbuild.bat
+          copy /Y luajit.exe ..\..\PathOfBuilding-PoE2\runtime\luajit.exe
+
+      - name: Build luajit.exe (MinGW gcc against PoB's lua51.dll)
+        if: matrix.toolchain == 'mingw'
+        run: |
+          src=.pob/luajit-src/src
+          relver=$(git -C .pob/luajit-src show -s --format=%ct)
+          sed -e "s/ROLLING/$relver/g" -e '/DO NOT USE luajit_rolling.h/d' $src/luajit_rolling.h > $src/luajit.h
+          gcc --version | head -1
+          gcc -O2 -I$src $src/luajit.c .pob/PathOfBuilding-PoE2/runtime/lua51.dll -o .pob/PathOfBuilding-PoE2/runtime/luajit.exe
+
+      - name: LuaJIT version check
+        run: |
+          .pob/PathOfBuilding-PoE2/runtime/luajit.exe -v
+          strings .pob/PathOfBuilding-PoE2/runtime/lua51.dll 2>/dev/null | grep -m1 "LuaJIT 2" || true
+
+      - name: Unit tests (PoB headless)
+        env:
+          EXILEFORGE_REQUIRE_POB: "1"
+        run: python -m unittest discover -v tests
+
+      - name: Stats from a path with umlauts and spaces
+        run: |
+          mkdir -p "$RUNNER_TEMP/Jörg Ü test"
+          cp tests/fixtures/witch_spark_lvl60.xml "$RUNNER_TEMP/Jörg Ü test/build.xml"
+          python -m pob_bridge stats "$RUNNER_TEMP/Jörg Ü test/build.xml"
+
+      - name: Real builds from pobb.in
+        if: matrix.toolchain == 'msvc'
+        run: python tools/check_real_builds.py
+
+      - name: Timing
+        run: time python -m pob_bridge stats tests/fixtures/witch_spark_lvl60.xml > /dev/null
