@@ -110,8 +110,19 @@ IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
 | Unique            | `Titel, Basis`                                |
 | Gem               | Spiel-ID des Gems                             |
 | Passive           | numerische Knoten-ID (als Text)               |
+| Passiv-Gruppe     | PoB-Gruppen-ID (als Text)                     |
 | Klasse / Aufstieg | Name bzw. PoB-interne Aufstiegs-ID            |
 | Stat-Text         | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
+
+Tree-Geometrie: Jede Passive bekommt `position.point` (Baum-Einheiten, y nach
+unten), berechnet wie in PoBs `PassiveTree:ProcessNode` aus Gruppenmitte,
+`constants.orbitRadii` und `constants.orbitAnglesByOrbit`. Verbindungen mit
+Orbit ungleich 0 werden zu `arcs` (Radius des Orbits, Seite = Vorzeichen), wenn
+die Knoten näher als der Durchmesser liegen; sonst zeichnet PoB eine Gerade.
+`passiveGroup` hält Gruppenmitte und Orbit-Radien für die Darstellung. Werte
+sind auf 0,001 gerundet, damit Diffs stabil bleiben. Fehlen die Konstanten,
+ist das ein Fehler; fehlt einem Knoten Gruppe oder Orbit, eine Warnung und der
+Knoten bleibt ohne `point` (nie `0,0`).
 
 `findings.json` enthält:
 

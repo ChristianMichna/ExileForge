@@ -158,6 +158,34 @@ export const Gem = z.object({
 });
 export type Gem = z.infer<typeof Gem>;
 
+/** Point in passive tree units (y grows downwards, as in the source data). */
+export const TreePoint = z.object({ x: z.number(), y: z.number() });
+export type TreePoint = z.infer<typeof TreePoint>;
+
+/**
+ * Curved connection to another node: a circular arc of `radius` tree units.
+ * The centre lies on the `side` (+1 or -1) of the chord from this node to
+ * `to`, as defined by the source data (sign of the connection's orbit).
+ */
+export const PassiveArc = z.object({
+  to: PassiveNodeId,
+  radius: z.number().positive(),
+  side: z.union([z.literal(1), z.literal(-1)]),
+});
+export type PassiveArc = z.infer<typeof PassiveArc>;
+
+/**
+ * Cluster of passive nodes around a common centre. Nodes refer to it by
+ * `position.groupId`; `orbitRadii` lists the radii (tree units) of the
+ * orbits its nodes sit on, for drawing.
+ */
+export const PassiveGroup = z.object({
+  id: z.string().min(1),
+  center: TreePoint,
+  orbitRadii: z.array(z.number().nonnegative()),
+});
+export type PassiveGroup = z.infer<typeof PassiveGroup>;
+
 export const PassiveNode = z.object({
   id: PassiveNodeId,
   /** Numeric node id used by Path of Building; secondary to `id`. */
@@ -170,8 +198,19 @@ export const PassiveNode = z.object({
     groupId: z.string().min(1),
     orbit: nonNegInt,
     orbitIndex: nonNegInt,
+    /**
+     * Absolute point in tree units, derived from the group centre and the
+     * release's orbit radii and angles. Absent in releases built before it
+     * was added; renderers treat a missing point as an error, never as 0.
+     */
+    point: TreePoint.optional(),
   }),
   connections: z.array(PassiveNodeId),
+  /**
+   * Connections drawn as an arc instead of a straight line, in the release's
+   * own geometry. Each target also appears in `connections`.
+   */
+  arcs: z.array(PassiveArc).default([]),
   classStartFor: z.array(CharacterClassId).default([]),
   ascendancyId: AscendancyId.optional(),
   icon: AssetPath.optional(),

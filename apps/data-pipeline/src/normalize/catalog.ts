@@ -72,6 +72,7 @@ export type CatalogEntities = Record<
   | "uniqueItem"
   | "gem"
   | "passiveNode"
+  | "passiveGroup"
   | "characterClass"
   | "ascendancy"
   | "statTranslation",
@@ -496,14 +497,20 @@ function normalizeTree(
   matcher: StatMatcher,
   cfg: NormalizeConfig,
   ctx: Context,
-): Pick<CatalogEntities, "passiveNode" | "characterClass" | "ascendancy"> {
+): Pick<CatalogEntities, "passiveNode" | "passiveGroup" | "characterClass" | "ascendancy"> {
   const tree = kindOf(raw, "passiveTree");
   const nodes: RawNode[] = [];
   const classes: { name: string; data: Obj }[] = [];
+  const rawGroups = new Map<string, Obj>();
+  let constants: Obj | undefined;
   for (const [key, entry] of Object.entries(tree)) {
     const e = obj(entry);
     const data = obj(e.data);
-    if (e.kind === "node") {
+    if (e.kind === "group") {
+      rawGroups.set(key.replace(/^group:/, ""), data);
+    } else if (e.kind === "constants") {
+      constants = data;
+    } else if (e.kind === "node") {
       const skill = num(data.skill);
       if (skill === undefined) throw new Error(`passive tree entry ${key}: node without skill id`);
       nodes.push({ skill, data });
@@ -513,6 +520,10 @@ function normalizeTree(
   }
   nodes.sort((a, b) => a.skill - b.skill);
   const nodeIds = new Set(nodes.map((n) => n.skill));
+  const geometry = treeGeometry(rawGroups, constants, ctx);
+  const nodeBySkill = new Map(nodes.map((n) => [n.skill, n.data]));
+  const pointOf = (data: Obj): { x: number; y: number } | undefined =>
+    geometry.point(num(data.group), num(data.orbit), num(data.orbitIndex));
   const classNames = new Set(classes.map((c) => c.name));
 
   // nodes name their ascendancy by display name, so names must be unique
@@ -557,6 +568,30 @@ function normalizeTree(
       if (nodeIds.has(target)) connections.push(String(target));
       else ctx.warn("passiveNode", id, `connection to missing node ${String(target)} dropped`);
     }
+    const point = pointOf(data);
+    if (!point) ctx.warn("passiveNode", id, "no tree position (group or orbit missing in source)");
+    const arcs: { to: string; radius: number; side: 1 | -1 }[] = [];
+    for (const c of list(data.connections)) {
+      const target = num(obj(c).id);
+      const orbit = num(obj(c).orbit);
+      if (target === undefined || orbit === undefined || orbit === 0 || !point) continue;
+      const other = nodeBySkill.get(target);
+      const otherPoint = other ? pointOf(other) : undefined;
+      if (!otherPoint) continue;
+      const radius = geometry.radius(Math.abs(orbit));
+      // PoB (PassiveTree:BuildConnector) draws a straight line when the
+      // orbit is unknown or the nodes are further apart than its diameter
+      if (radius === undefined) {
+        ctx.warn(
+          "passiveNode",
+          id,
+          `connection to ${String(target)}: unknown orbit ${String(orbit)}`,
+        );
+        continue;
+      }
+      const dist = Math.hypot(otherPoint.x - point.x, otherPoint.y - point.y);
+      if (dist < radius * 2) arcs.push({ to: String(target), radius, side: orbit > 0 ? 1 : -1 });
+    }
     const classStartFor: string[] = [];
     for (const c of list(data.classesStart)) {
       if (typeof c !== "string") continue;
@@ -580,8 +615,10 @@ function normalizeTree(
             : ctx.requireStr("passiveNode", id, "group", undefined),
         orbit: ctx.requireNum("passiveNode", id, "orbit", data.orbit),
         orbitIndex: ctx.requireNum("passiveNode", id, "orbitIndex", data.orbitIndex),
+        ...(point ? { point } : {}),
       },
       connections,
+      arcs,
       classStartFor,
       ...(ascendancy ? { ascendancyId: ascendancy.id } : {}),
     };
@@ -630,7 +667,79 @@ function normalizeTree(
       };
     });
 
-  return { passiveNode, characterClass, ascendancy };
+  return { passiveNode, passiveGroup: geometry.groups, characterClass, ascendancy };
+}
+
+/** Tree units are rounded so snapshots and diffs stay byte-stable. */
+function roundUnit(v: number): number {
+  return Math.round(v * 1000) / 1000;
+}
+
+/**
+ * Node positions as PoB computes them (PassiveTree:ProcessNode): group centre
+ * plus the orbit radius in the direction of the orbit angle, with y growing
+ * downwards. Radii and angles come from the tree's `constants`; nothing here
+ * is a game value.
+ */
+function treeGeometry(
+  rawGroups: ReadonlyMap<string, Obj>,
+  constants: Obj | undefined,
+  ctx: Context,
+): {
+  groups: Record<string, unknown>[];
+  radius(orbit: number): number | undefined;
+  point(
+    group: number | undefined,
+    orbit: number | undefined,
+    orbitIndex: number | undefined,
+  ): { x: number; y: number } | undefined;
+} {
+  if (!constants) ctx.error("passiveGroup", "constants", "source has no tree constants");
+  const radii = list(constants?.orbitRadii).map((r) => num(r));
+  const angles = list(constants?.orbitAnglesByOrbit).map((a) => list(a).map((x) => num(x)));
+  if (constants && radii.length === 0)
+    ctx.error("passiveGroup", "constants", "source has no orbitRadii");
+  if (constants && angles.length === 0)
+    ctx.error("passiveGroup", "constants", "source has no orbitAnglesByOrbit");
+  const radius = (orbit: number) => radii[orbit];
+
+  const centers = new Map<string, { x: number; y: number }>();
+  const groups: Record<string, unknown>[] = [];
+  const ids = [...rawGroups.keys()].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b));
+  for (const id of ids) {
+    const g = rawGroups.get(id) ?? {};
+    const x = num(g.x);
+    const y = num(g.y);
+    if (x === undefined || y === undefined) {
+      ctx.error("passiveGroup", id, "source has no x/y");
+      continue;
+    }
+    const center = { x: roundUnit(x), y: roundUnit(y) };
+    centers.set(id, { x, y });
+    const orbitRadii: number[] = [];
+    for (const o of list(g.orbits)) {
+      const r = typeof o === "number" ? radius(o) : undefined;
+      if (r === undefined) ctx.error("passiveGroup", id, `unknown orbit ${JSON.stringify(o)}`);
+      else orbitRadii.push(r);
+    }
+    groups.push({ id, center, orbitRadii });
+  }
+
+  return {
+    groups,
+    radius,
+    point(group, orbit, orbitIndex) {
+      if (group === undefined || orbit === undefined || orbitIndex === undefined) return undefined;
+      const c = centers.get(String(group));
+      const r = radius(orbit);
+      const angle = angles[orbit]?.[orbitIndex];
+      if (!c || r === undefined || angle === undefined) return undefined;
+      return {
+        x: roundUnit(c.x + Math.sin(angle) * r),
+        y: roundUnit(c.y - Math.cos(angle) * r),
+      };
+    },
+  };
 }
 
 // ---------------------------------------------------------------- stat translations

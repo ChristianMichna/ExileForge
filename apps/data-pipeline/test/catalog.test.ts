@@ -218,6 +218,46 @@ describe("normalizeCatalog", () => {
     );
   });
 
+  it("places nodes from group centre and orbit tables, with arcs and groups", () => {
+    expect(byId(entities.passiveNode, "1")).toMatchObject({
+      position: { groupId: "1", orbit: 0, orbitIndex: 0, point: { x: 100, y: 200 } },
+      arcs: [{ to: "2", radius: 10, side: -1 }],
+    });
+    // orbit 1, angle π: below the centre (y grows downwards)
+    expect(byId(entities.passiveNode, "2")).toMatchObject({
+      position: { point: { x: 100, y: 210 } },
+      arcs: [],
+    });
+    expect(entities.passiveGroup).toEqual([
+      { id: "1", center: { x: 100, y: 200 }, orbitRadii: [0, 10] },
+      { id: "2", center: { x: -50, y: 0 }, orbitRadii: [0] },
+    ]);
+  });
+
+  it("leaves a node without point and reports it when its orbit is unknown", () => {
+    const raw = rawSnapshot();
+    const node = raw.passiveTree["2"] as { data: Record<string, unknown> };
+    node.data = { ...node.data, orbit: 5 };
+    const res = run(raw);
+    const n = byId<{ id: string; position: object }>(res.entities.passiveNode, "2");
+    expect(n?.position).not.toHaveProperty("point");
+    expect(res.warnings).toContainEqual({
+      kind: "passiveNode",
+      id: "2",
+      message: "no tree position (group or orbit missing in source)",
+    });
+  });
+
+  it("reports missing tree constants as an error", () => {
+    const raw = rawSnapshot();
+    delete raw.passiveTree.constants;
+    expect(run(raw).errors).toContainEqual({
+      kind: "passiveGroup",
+      id: "constants",
+      message: "source has no tree constants",
+    });
+  });
+
   it("builds stat translations, keeps every format code and counts what is skipped", () => {
     expect(byId(entities.statTranslation, `${scope}:1`)).toEqual({
       id: `${scope}:1`,

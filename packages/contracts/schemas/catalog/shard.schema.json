@@ -721,6 +721,21 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 9007199254740991
+                  },
+                  "point": {
+                    "type": "object",
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y"
+                    ]
                   }
                 },
                 "required": [
@@ -736,6 +751,42 @@
                   "minLength": 1,
                   "maxLength": 512,
                   "description": "Passive skill id – internal game id from the data release"
+                }
+              },
+              "arcs": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Passive skill id – internal game id from the data release"
+                    },
+                    "radius": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "side": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "const": 1
+                        },
+                        {
+                          "type": "number",
+                          "const": -1
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to",
+                    "radius",
+                    "side"
+                  ]
                 }
               },
               "classStartFor": {
@@ -768,6 +819,69 @@
               "stats",
               "position",
               "connections"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "passiveGroup"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "center": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y"
+                ]
+              },
+              "orbitRadii": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "required": [
+              "id",
+              "center",
+              "orbitRadii"
             ]
           }
         }

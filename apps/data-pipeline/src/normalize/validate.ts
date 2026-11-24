@@ -4,6 +4,7 @@ import {
   CharacterClass,
   Gem,
   Mod,
+  PassiveGroup,
   PassiveNode,
   StatTranslation,
   UniqueItem,
@@ -17,6 +18,7 @@ const SCHEMAS: Record<keyof CatalogEntities, z.ZodType> = {
   uniqueItem: UniqueItem,
   gem: Gem,
   passiveNode: PassiveNode,
+  passiveGroup: PassiveGroup,
   characterClass: CharacterClass,
   ascendancy: Ascendancy,
   statTranslation: StatTranslation,
@@ -108,8 +110,21 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
     connections?: string[];
     ascendancyId?: string;
     classStartFor?: string[];
+    position?: { groupId?: string };
+    arcs?: { to: string }[];
   }[]) {
     for (const c of n.connections ?? []) ref("passiveNode", n.id, "connections", "passiveNode", c);
+    if (n.position?.groupId !== undefined)
+      ref("passiveNode", n.id, "position.groupId", "passiveGroup", n.position.groupId);
+    for (const a of n.arcs ?? []) {
+      ref("passiveNode", n.id, "arcs", "passiveNode", a.to);
+      if (!(n.connections ?? []).includes(a.to))
+        errors.push({
+          kind: "passiveNode",
+          id: n.id,
+          message: `arcs → ${a.to} is not a connection`,
+        });
+    }
     if (n.ascendancyId !== undefined)
       ref("passiveNode", n.id, "ascendancyId", "ascendancy", n.ascendancyId);
     for (const c of n.classStartFor ?? [])

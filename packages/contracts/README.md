@@ -10,7 +10,7 @@ Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
 | Export | Inhalt | Konsumenten |
 | --- | --- | --- |
 | `@exileforge/contracts/common` | Katalog-IDs (gebrandet je Art), `DataReleaseId`, `PobVersion`, `CalcProfileId`, `CalcId`, Herkunft `Source`, `sourced()`, `measured()`, `CalcRef` | alle |
-| `@exileforge/contracts/catalog` | `BaseItem`, `Mod`, `UniqueItem`, `Gem`, `PassiveNode`, `CharacterClass`, `Ascendancy`, `CraftingAction`, `StatTranslation`, `DataRelease`, `CatalogManifest`, `CatalogShard`, `CatalogDiff` | data-pipeline, catalog-sdk, ui |
+| `@exileforge/contracts/catalog` | `BaseItem`, `Mod`, `UniqueItem`, `Gem`, `PassiveNode` (mit `position.point` und `arcs`), `PassiveGroup`, `CharacterClass`, `Ascendancy`, `CraftingAction`, `StatTranslation`, `DataRelease`, `CatalogManifest`, `CatalogShard`, `CatalogDiff` | data-pipeline, catalog-sdk, ui |
 | `@exileforge/contracts/calc` | `CalcResult`, `PatchOp`, `CalcMethods` (JSON-RPC: `meta.version`, `build.*`, `calc.*`), `parseCalcParams`, `parseCalcResult` | calc, calc-client, optimizer |
 | `@exileforge/contracts/build` | `BuildRequest` (S0), `BuildState`, `ItemSpec`, `RichText`, Stufen-Ergebnisse `SkillProfile` (S1), `ArchetypeCandidate`/`ArchetypeEvaluation` (S2/S3), `TargetBuild` (S5), `ProgressionPlan` (S6), `GearPlan` (S7), `CraftingPlan` (S8), `Finding` (mit `returnTo` für den gezielten Rücksprung), `ValidationReport` (S10) | agents, optimizer, crafting-sim, ui |
 | `@exileforge/contracts/guide` | `GuideDocument` mit den 11 Pflichtbausteinen des Plans, `PublishedGuide` (S11, nur mit bestandenem Prüfbericht) | agents, exporters, ui |

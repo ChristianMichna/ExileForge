@@ -63,6 +63,7 @@ export const EntityKind = z
     "uniqueItem",
     "gem",
     "passiveNode",
+    "passiveGroup",
     "characterClass",
     "ascendancy",
     "craftingAction",
