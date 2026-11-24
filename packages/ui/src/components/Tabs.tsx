@@ -26,6 +26,8 @@ export function Tabs({ items, value, onChange, label, className }: TabsProps) {
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
   const enabled = items.filter((item) => !item.disabled);
   const active = items.find((item) => item.id === value);
+  // Keep the tab list reachable by keyboard even if value is unknown or disabled.
+  const focusableId = active && !active.disabled ? active.id : (enabled[0]?.id ?? undefined);
 
   function focusAndSelect(id: string) {
     onChange(id);
@@ -33,8 +35,11 @@ export function Tabs({ items, value, onChange, label, className }: TabsProps) {
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const index = enabled.findIndex((item) => item.id === value);
-    if (index < 0 || enabled.length === 0) return;
+    if (enabled.length === 0) return;
+    const index = Math.max(
+      0,
+      enabled.findIndex((item) => item.id === value),
+    );
     let next: TabItem | undefined;
     switch (event.key) {
       case "ArrowRight":
@@ -75,7 +80,7 @@ export function Tabs({ items, value, onChange, label, className }: TabsProps) {
               id={`${baseId}-tab-${item.id}`}
               aria-selected={selected}
               aria-controls={`${baseId}-panel-${item.id}`}
-              tabIndex={selected ? 0 : -1}
+              tabIndex={item.id === focusableId ? 0 : -1}
               disabled={item.disabled}
               className="ef-tabs__tab"
               onClick={() => onChange(item.id)}

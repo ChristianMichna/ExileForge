@@ -42,11 +42,7 @@ export function Diamond({ className }: { className?: string }) {
 /** Ornamental horizontal rule with a centre diamond. */
 export function OrnamentDivider({ className }: { className?: string }) {
   return (
-    <div
-      className={className ? `ef-divider ${className}` : "ef-divider"}
-      role="separator"
-      aria-hidden="true"
-    >
+    <div className={className ? `ef-divider ${className}` : "ef-divider"} aria-hidden="true">
       <span className="ef-divider__line ef-divider__line--start" />
       <Diamond />
       <span className="ef-divider__line ef-divider__line--end" />

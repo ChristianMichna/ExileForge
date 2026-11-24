@@ -4,10 +4,10 @@ import "./callout.css";
 export type CalloutTone = "info" | "warning" | "danger" | "success";
 
 const TONE_LABEL: Readonly<Record<CalloutTone, string>> = {
-  info: "Hinweis",
-  warning: "Warnung",
-  danger: "Fehler",
-  success: "Erledigt",
+  info: "Note",
+  warning: "Warning",
+  danger: "Error",
+  success: "Done",
 };
 
 export interface CalloutProps {
@@ -15,12 +15,15 @@ export interface CalloutProps {
   readonly title: string;
   readonly children?: ReactNode;
   readonly actions?: ReactNode;
+  /** Announce to screen readers (status/alert). Only for messages that appear at runtime. */
+  readonly live?: boolean;
 }
 
 /** Message block. Tone is always carried by icon and a text label, not colour alone. */
-export function Callout({ tone = "info", title, children, actions }: CalloutProps) {
+export function Callout({ tone = "info", title, children, actions, live = false }: CalloutProps) {
+  const role = live ? (tone === "danger" ? "alert" : "status") : undefined;
   return (
-    <div className={`ef-callout ef-callout--${tone}`} role={tone === "danger" ? "alert" : "status"}>
+    <div className={`ef-callout ef-callout--${tone}`} role={role}>
       <CalloutIcon tone={tone} />
       <div className="ef-callout__content">
         <p className="ef-callout__title">

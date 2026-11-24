@@ -4,10 +4,10 @@ import "./provenance.css";
 
 const KIND_NAME: Readonly<Record<ProvenanceKind, string>> = {
   pob: "Path of Building",
-  market: "Marktpreis",
-  derived: "abgeleitet",
-  gamedata: "Spieldaten",
-  sample: "Beispielwert",
+  market: "Market price",
+  derived: "Derived",
+  gamedata: "Game data",
+  sample: "Sample value",
 };
 
 /** Marker shape differs per kind so colour is never the only signal. */

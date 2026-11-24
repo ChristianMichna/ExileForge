@@ -178,13 +178,17 @@
   color: var(--ef-color-mod-implicit);
 }
 
-.ef-item__mod--crafted {
-  color: var(--ef-color-mod-crafted);
+.ef-item__mod--enchant {
+  color: var(--ef-color-mod-enchant);
+  font-style: italic;
 }
 
-.ef-item__mod--enchant {
-  color: var(--ef-color-mod-crafted);
-  font-style: italic;
+.ef-item__mod--rune {
+  color: var(--ef-color-mod-rune);
+}
+
+.ef-item__mod--desecrated {
+  color: var(--ef-color-mod-desecrated);
 }
 
 .ef-item__mod--priority .ef-item__mod-text {
@@ -230,6 +234,9 @@
 }
 
 .ef-item__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
   padding: var(--ef-space-2) var(--ef-space-4);
   border-top: 1px solid var(--ef-color-line);
   background: var(--ef-color-surface-1);

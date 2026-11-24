@@ -33,23 +33,23 @@ export function provenanceLabel(p: ProvenanceView): string {
     case "pob":
       return `PoB ${p.pobVersion} · ${p.calcProfile}`;
     case "market":
-      return `Markt · ${p.provider} · ${p.fetchedAt}`;
+      return `Market · ${p.provider} · ${p.fetchedAt}`;
     case "derived":
-      return `berechnet · ${p.formula}`;
+      return `Derived · ${p.formula}`;
     case "gamedata":
-      return `Spieldaten · ${p.dataRelease}`;
+      return `Game data · ${p.dataRelease}`;
     case "sample":
-      return `Beispielwert · ${p.fixture}`;
+      return `Sample value · ${p.fixture}`;
   }
 }
 
 export type NumberFormat = "integer" | "decimal1" | "percent" | "multiplier";
 
 const FORMATTERS: Readonly<Record<NumberFormat, Intl.NumberFormat>> = {
-  integer: new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }),
-  decimal1: new Intl.NumberFormat("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-  percent: new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }),
-  multiplier: new Intl.NumberFormat("de-DE", {
+  integer: new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }),
+  decimal1: new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+  percent: new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }),
+  multiplier: new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }),
@@ -61,7 +61,7 @@ export function formatNumber(value: number, format: NumberFormat): string {
     throw new Error(`formatNumber: non-finite value ${String(value)} cannot be displayed`);
   }
   const text = FORMATTERS[format].format(value);
-  if (format === "percent") return `${text} %`;
+  if (format === "percent") return `${text}%`;
   if (format === "multiplier") return `×${text}`;
   return text;
 }

@@ -3,6 +3,9 @@
 Anleitung für Claude Code (und andere Agenten) in diesem Repository.
 Sprache im Repo: **Deutsch** für Doku, Commits und PR-Texte; Code, Bezeichner
 und Code-Kommentare auf Englisch.
+**Die Anwendung selbst ist komplett auf Englisch** (Christian, 24.11.2026):
+alle UI-Texte, Beispieldaten, Fehlermeldungen, MCP-Texte für Nutzer und
+Zahlenformat (`en-US`). Deutsch nur in Doku und PR-Texten.
 
 ## Worum es geht
 

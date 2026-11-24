@@ -2,9 +2,12 @@ import type { ReactElement } from "react";
 import { Fragment } from "react";
 import type { Rarity } from "../theme/tokens";
 import { RARITY_LABELS } from "../theme/tokens";
+import { ProvenanceBadge } from "./Provenance";
+import type { ProvenanceView } from "./provenance";
 import "./item-tooltip.css";
 
-export type ModKind = "implicit" | "prefix" | "suffix" | "crafted" | "enchant";
+/** Mirrors ModSpec.kind in docs/data-model.md; replaced by the contract type once it lands. */
+export type ModKind = "prefix" | "suffix" | "implicit" | "enchant" | "rune" | "desecrated";
 
 /** Display model of one modifier line. Text comes from the catalog, never typed by hand. */
 export interface ItemModView {
@@ -48,6 +51,8 @@ export interface ItemView {
   readonly corrupted?: boolean;
   /** Where the guide suggests getting it (vendor, craft, trade). */
   readonly acquisition?: string;
+  /** Source of every number on the card (catalog release, PoB, sample fixture). */
+  readonly provenance: ProvenanceView;
 }
 
 export interface ItemTooltipProps {
@@ -61,16 +66,18 @@ const MOD_KIND_SHORT: Readonly<Record<ModKind, string>> = {
   implicit: "Impl.",
   prefix: "P",
   suffix: "S",
-  crafted: "Hand",
-  enchant: "Verz.",
+  enchant: "Ench.",
+  rune: "Rune",
+  desecrated: "Desc.",
 };
 
 const MOD_KIND_LABEL: Readonly<Record<ModKind, string>> = {
-  implicit: "Implizit",
-  prefix: "Präfix",
+  implicit: "Implicit",
+  prefix: "Prefix",
   suffix: "Suffix",
-  crafted: "Handwerk",
-  enchant: "Verzauberung",
+  enchant: "Enchantment",
+  rune: "Rune",
+  desecrated: "Desecrated",
 };
 
 /** Item card in the style players know: rarity header, sections, mod lines. Own artwork. */
@@ -111,13 +118,13 @@ export function ItemTooltip({ item, showTiers = false, className }: ItemTooltipP
   if (item.requirements.length > 0) {
     sections.push(
       <p key="reqs" className="ef-item__section ef-item__reqs">
-        <span className="ef-item__reqs-label">Benötigt </span>
+        <span className="ef-item__reqs-label">Requires </span>
         {item.requirements.map((r, i) => (
           <Fragment key={r.label}>
             {i > 0 ? ", " : null}
             <span className={r.met ? "ef-item__req" : "ef-item__req ef-item__req--unmet"}>
               {r.label} <span className="ef-numeric">{r.value}</span>
-              {r.met ? null : <span className="ef-visually-hidden"> (nicht erfüllt)</span>}
+              {r.met ? null : <span className="ef-visually-hidden"> (not met)</span>}
             </span>
           </Fragment>
         ))}
@@ -126,16 +133,16 @@ export function ItemTooltip({ item, showTiers = false, className }: ItemTooltipP
   }
   if (item.implicits.length > 0) {
     sections.push(
-      <ModList key="impl" mods={item.implicits} showTiers={showTiers} label="Implizite Mods" />,
+      <ModList key="impl" mods={item.implicits} showTiers={showTiers} label="Implicit modifiers" />,
     );
   }
   if (item.explicits.length > 0 || item.corrupted) {
     sections.push(
       <div key="expl" className="ef-item__section">
         {item.explicits.length > 0 ? (
-          <ModList mods={item.explicits} showTiers={showTiers} label="Mods" bare />
+          <ModList mods={item.explicits} showTiers={showTiers} label="Modifiers" bare />
         ) : null}
-        {item.corrupted ? <p className="ef-item__corrupted">Verderbt</p> : null}
+        {item.corrupted ? <p className="ef-item__corrupted">Corrupted</p> : null}
       </div>,
     );
   }
@@ -160,7 +167,7 @@ export function ItemTooltip({ item, showTiers = false, className }: ItemTooltipP
           )}
         </div>
         <HeaderCap side="end" />
-        <span className="ef-visually-hidden">Seltenheit: {RARITY_LABELS[item.rarity]}</span>
+        <span className="ef-visually-hidden">Rarity: {RARITY_LABELS[item.rarity]}</span>
       </header>
       <div className="ef-item__body">
         {sections.map((section, i) => (
@@ -170,11 +177,14 @@ export function ItemTooltip({ item, showTiers = false, className }: ItemTooltipP
           </Fragment>
         ))}
       </div>
-      {item.acquisition ? (
-        <footer className="ef-item__footer">
-          <span className="ef-item__footer-label">Bezug</span> {item.acquisition}
-        </footer>
-      ) : null}
+      <footer className="ef-item__footer">
+        {item.acquisition ? (
+          <span>
+            <span className="ef-item__footer-label">Source</span> {item.acquisition}
+          </span>
+        ) : null}
+        <ProvenanceBadge provenance={item.provenance} />
+      </footer>
     </article>
   );
 }

@@ -5,9 +5,9 @@ export type Rarity = (typeof RARITIES)[number];
 
 export const RARITY_LABELS: Readonly<Record<Rarity, string>> = {
   normal: "Normal",
-  magic: "Magisch",
-  rare: "Selten",
-  unique: "Einzigartig",
+  magic: "Magic",
+  rare: "Rare",
+  unique: "Unique",
 };
 
 /** Token groups shown in the design gallery. Names only, never values. */
@@ -16,18 +16,18 @@ export const COLOR_TOKEN_GROUPS: ReadonlyArray<{
   readonly tokens: readonly string[];
 }> = [
   {
-    title: "Grund",
+    title: "Ground",
     tokens: ["ground", "surface-1", "surface-2", "surface-3", "inset", "line", "line-strong"],
   },
-  { title: "Akzent", tokens: ["bronze-dark", "bronze", "gold", "gold-bright"] },
+  { title: "Accent", tokens: ["bronze-dark", "bronze", "gold", "gold-bright"] },
   { title: "Text", tokens: ["text", "text-muted", "text-faint"] },
-  { title: "Rückmeldung", tokens: ["danger", "warning", "success", "info"] },
+  { title: "Feedback", tokens: ["danger", "warning", "success", "info"] },
   {
-    title: "Seltenheit",
+    title: "Rarity",
     tokens: ["rarity-normal", "rarity-magic", "rarity-rare", "rarity-unique", "gem", "currency"],
   },
   {
-    title: "Herkunft",
+    title: "Provenance",
     tokens: [
       "prov-pob",
       "prov-market",

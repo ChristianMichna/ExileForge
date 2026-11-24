@@ -14,11 +14,11 @@ export interface NavEntry {
 }
 
 export const NAV: readonly NavEntry[] = [
-  { id: "overview", label: "Build-Übersicht", href: "#/" },
+  { id: "overview", label: "Build Overview", href: "#/" },
   { id: "guide", label: "Guide", upcoming: true },
   { id: "tree", label: "Passive Tree", upcoming: true },
   { id: "crafting", label: "Crafting", upcoming: true },
-  { id: "design", label: "Design-System", href: "#/design" },
+  { id: "design", label: "Design System", href: "#/design" },
 ];
 
 export function parseRoute(hash: string): RouteId {

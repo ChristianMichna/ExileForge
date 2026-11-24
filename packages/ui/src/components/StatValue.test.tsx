@@ -14,7 +14,7 @@ describe("StatValue", () => {
   it("shows the number together with its PoB provenance", () => {
     renderStat(
       <StatValue
-        label="Treffer-DPS"
+        label="Hit DPS"
         state={{
           status: "ready",
           value: 12345,
@@ -22,39 +22,53 @@ describe("StatValue", () => {
         }}
       />,
     );
-    expect(screen.getByText("12.345")).toBeTruthy();
+    expect(screen.getByText("12,345")).toBeTruthy();
     expect(screen.getByText("PoB 0.0.0-test · test-profile")).toBeTruthy();
   });
 
   it("never renders a number while PoB is still calculating", () => {
-    const { container } = renderStat(<StatValue label="Leben" state={{ status: "loading" }} />);
-    expect(screen.getByText("PoB rechnet …")).toBeTruthy();
+    const { container } = renderStat(<StatValue label="Life" state={{ status: "loading" }} />);
+    expect(screen.getByText("Calculating …")).toBeTruthy();
     expect(container.textContent).not.toMatch(/\d/);
   });
 
   it("shows a failed calculation as an error, not as 0", () => {
     const { container } = renderStat(
-      <StatValue label="Leben" state={{ status: "error", message: "Worker abgestürzt" }} />,
+      <StatValue label="Life" state={{ status: "error", message: "Worker crashed" }} />,
     );
-    expect(screen.getByText("Rechnung fehlgeschlagen")).toBeTruthy();
-    expect(screen.getByText("Worker abgestürzt")).toBeTruthy();
+    expect(screen.getByText("Value unavailable")).toBeTruthy();
+    expect(screen.getByText("Worker crashed")).toBeTruthy();
     expect(container.textContent).not.toMatch(/\b0\b/);
+  });
+
+  it("shows a non-finite engine value as invalid instead of crashing", () => {
+    renderStat(
+      <StatValue
+        label="Life"
+        state={{
+          status: "ready",
+          value: Number.NaN,
+          provenance: { kind: "sample", fixture: "calc-fake" },
+        }}
+      />,
+    );
+    expect(screen.getByText("Invalid value")).toBeTruthy();
   });
 
   it("labels missing data as uncalibrated", () => {
     renderStat(
       <StatValue
-        label="Kosten"
-        state={{ status: "uncalibrated", reason: "Kein Marktpreis für diese Liga" }}
+        label="Cost"
+        state={{ status: "uncalibrated", reason: "No market price for this league" }}
       />,
     );
-    expect(screen.getByText("unkalibriert")).toBeTruthy();
+    expect(screen.getByText("Uncalibrated")).toBeTruthy();
   });
 
   it("marks values from an older data release as stale", () => {
     renderStat(
       <StatValue
-        label="Leben"
+        label="Life"
         state={{
           status: "ready",
           value: 10,
@@ -63,16 +77,16 @@ describe("StatValue", () => {
         }}
       />,
     );
-    expect(screen.getByText("veraltet nach Patch")).toBeTruthy();
+    expect(screen.getByText("Outdated after patch")).toBeTruthy();
   });
 });
 
 describe("formatNumber", () => {
-  it("formats with German separators", () => {
-    expect(formatNumber(1234567, "integer")).toBe("1.234.567");
-    expect(formatNumber(1.5, "decimal1")).toBe("1,5");
-    expect(formatNumber(75, "percent")).toBe("75 %");
-    expect(formatNumber(1.5, "multiplier")).toBe("×1,50");
+  it("formats with English separators", () => {
+    expect(formatNumber(1234567, "integer")).toBe("1,234,567");
+    expect(formatNumber(1.5, "decimal1")).toBe("1.5");
+    expect(formatNumber(75, "percent")).toBe("75%");
+    expect(formatNumber(1.5, "multiplier")).toBe("×1.50");
   });
 
   it("refuses non-finite values instead of showing a placeholder", () => {
@@ -82,13 +96,13 @@ describe("formatNumber", () => {
 
 describe("provenanceLabel", () => {
   it("names every kind", () => {
-    expect(provenanceLabel({ kind: "market", provider: "Test", fetchedAt: "heute" })).toBe(
-      "Markt · Test · heute",
+    expect(provenanceLabel({ kind: "market", provider: "Test", fetchedAt: "today" })).toBe(
+      "Market · Test · today",
     );
-    expect(provenanceLabel({ kind: "derived", formula: "a × b" })).toBe("berechnet · a × b");
-    expect(provenanceLabel({ kind: "gamedata", dataRelease: "r1" })).toBe("Spieldaten · r1");
+    expect(provenanceLabel({ kind: "derived", formula: "a × b" })).toBe("Derived · a × b");
+    expect(provenanceLabel({ kind: "gamedata", dataRelease: "r1" })).toBe("Game data · r1");
     expect(provenanceLabel({ kind: "sample", fixture: "calc-fake" })).toBe(
-      "Beispielwert · calc-fake",
+      "Sample value · calc-fake",
     );
   });
 });

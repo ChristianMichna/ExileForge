@@ -7,16 +7,16 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
   return (
     <div className="shell">
       <header className="topbar">
-        <a className="brand" href="#/" aria-label="ExileForge, zur Build-Übersicht">
+        <a className="brand" href="#/" aria-label="ExileForge, go to build overview">
           <Sigil size={34} />
           <span className="brand__name">ExileForge</span>
         </a>
         <div className="topbar__status">
-          <Badge tone="warning">Beispieldaten</Badge>
-          <Badge>PoB nicht verbunden</Badge>
+          <Badge tone="warning">Sample data</Badge>
+          <Badge>PoB not connected</Badge>
         </div>
       </header>
-      <nav className="sidebar" aria-label="Hauptnavigation">
+      <nav className="sidebar" aria-label="Main navigation">
         <ul className="nav">
           {NAV.map((entry) => {
             const current = entry.id === route;
@@ -35,7 +35,7 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
                   <span className="nav__link nav__link--upcoming" aria-disabled="true">
                     <Diamond className="nav__mark" />
                     {entry.label}
-                    <span className="nav__soon">folgt</span>
+                    <span className="nav__soon">soon</span>
                   </span>
                 )}
               </li>
@@ -45,8 +45,8 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
       </nav>
       <main className="content">{children}</main>
       <footer className="footer">
-        Fan-Projekt. Nicht mit Grinding Gear Games verbunden oder von ihnen unterstützt. Path of
-        Exile ist eine Marke von Grinding Gear Games.
+        Fan project. Not affiliated with or endorsed by Grinding Gear Games. Path of Exile is a
+        trademark of Grinding Gear Games.
       </footer>
     </div>
   );

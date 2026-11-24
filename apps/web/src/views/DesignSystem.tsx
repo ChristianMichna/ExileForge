@@ -20,13 +20,13 @@ import { SAMPLE_ITEMS } from "../fixtures/sample-build";
 import { PageHeader } from "../shell/PageHeader";
 
 // Gallery of every token and component. Doubles as the screenshot target
-// for visual regression tests (e2e/design-system.spec.ts).
+// for visual regression tests (e2e/smoke.spec.ts).
 
 const PROVENANCE_EXAMPLES: readonly ProvenanceView[] = [
-  { kind: "pob", pobVersion: "x.y.z", calcProfile: "Profil" },
-  { kind: "market", provider: "Anbieter", fetchedAt: "Abrufzeit" },
-  { kind: "derived", formula: "Versuche × Preis" },
-  { kind: "gamedata", dataRelease: "Daten-Release" },
+  { kind: "pob", pobVersion: "x.y.z", calcProfile: "profile" },
+  { kind: "market", provider: "Provider", fetchedAt: "fetch time" },
+  { kind: "derived", formula: "attempts × price" },
+  { kind: "gamedata", dataRelease: "data release" },
   { kind: "sample", fixture: "calc-fake" },
 ];
 
@@ -35,13 +35,13 @@ export function DesignSystem() {
   return (
     <div className="page">
       <PageHeader
-        kicker="Referenz"
-        title="Design-System"
-        subtitle="Tokens, Schrift und Bausteine von ExileForge. Eigene Gestaltung, keine Spielgrafiken."
+        kicker="Reference"
+        title="Design System"
+        subtitle="Tokens, typography and building blocks of ExileForge. Original artwork, no game assets."
       />
 
       <div className="gallery">
-        <Panel title="Farben" kicker="Nur über Tokens, nie freie Werte" className="gallery__wide">
+        <Panel title="Colours" kicker="Tokens only, never raw values" className="gallery__wide">
           <div className="swatch-groups">
             {COLOR_TOKEN_GROUPS.map((group) => (
               <div key={group.title} className="swatch-group">
@@ -59,26 +59,22 @@ export function DesignSystem() {
           </div>
         </Panel>
 
-        <Panel title="Schrift" kicker="Cinzel · Source Sans 3 · EB Garamond">
+        <Panel title="Typography" kicker="Cinzel · Source Sans 3 · EB Garamond">
           <div className="type-samples">
-            <p className="type-sample type-sample--display">Die Schmiede der Verbannten</p>
-            <p className="type-sample type-sample--h2">Überschrift Ebene 2</p>
-            <p className="type-sample type-sample--h3">Überschrift Ebene 3</p>
+            <p className="type-sample type-sample--display">The Forge of the Exiled</p>
+            <p className="type-sample type-sample--h2">Heading Level 2</p>
+            <p className="type-sample type-sample--h3">Heading Level 3</p>
             <p className="type-sample">
-              Fließtext für Guides: gut lesbar auch auf dem zweiten Bildschirm, mit Umlauten ÄÖÜ und
-              ß.
+              Body text for guides: easy to read even on a second monitor, with clear figures and
+              punctuation.
             </p>
-            <p className="type-sample type-sample--small">Kleintext für Metadaten und Herkunft</p>
-            <p className="type-sample type-sample--numbers ef-numeric">
-              1.234.567 · 89,5 % · ×2,40
-            </p>
-            <p className="type-sample type-sample--flavour">
-              Aus Asche geschmiedet, in Glut gehärtet.
-            </p>
+            <p className="type-sample type-sample--small">Small text for metadata and provenance</p>
+            <p className="type-sample type-sample--numbers ef-numeric">1,234,567 · 89.5% · ×2.40</p>
+            <p className="type-sample type-sample--flavour">Forged from ash, tempered in embers.</p>
           </div>
         </Panel>
 
-        <Panel title="Abstände" kicker="4 · 8 · 12 · 16 · 24 · 32 · 48 px">
+        <Panel title="Spacing" kicker="4 · 8 · 12 · 16 · 24 · 32 · 48 px">
           <ul className="space-scale">
             {SPACE_STEPS.map((step) => (
               <li key={step} className="space-scale__row">
@@ -91,48 +87,48 @@ export function DesignSystem() {
 
         <Panel title="Buttons">
           <div className="row">
-            <Button variant="primary">Build schmieden</Button>
-            <Button variant="secondary">Variante wählen</Button>
-            <Button variant="ghost">Abbrechen</Button>
-            <Button variant="danger">Stufe verwerfen</Button>
+            <Button variant="primary">Forge Build</Button>
+            <Button variant="secondary">Choose Variant</Button>
+            <Button variant="ghost">Cancel</Button>
+            <Button variant="danger">Discard Stage</Button>
           </div>
           <div className="row">
             <Button variant="primary" size="sm">
-              Klein
+              Small
             </Button>
             <Button variant="secondary" size="sm">
-              Klein
+              Small
             </Button>
             <Button variant="secondary" busy>
-              PoB rechnet
+              Calculating
             </Button>
             <Button variant="secondary" disabled>
-              Gesperrt
+              Locked
             </Button>
           </div>
         </Panel>
 
         <Panel title="Tabs">
           <Tabs
-            label="Beispiel-Tabs"
+            label="Example tabs"
             value={tab}
             onChange={setTab}
             items={[
-              { id: "a", label: "Leveling", hint: "Stufe 1–52", content: <p>Inhalt Leveling</p> },
-              { id: "b", label: "Endgame", hint: "Stufe 53+", content: <p>Inhalt Endgame</p> },
-              { id: "c", label: "Gesperrt", disabled: true, content: null },
+              { id: "a", label: "Leveling", hint: "Level 1–52", content: <p>Leveling content</p> },
+              { id: "b", label: "Endgame", hint: "Level 53+", content: <p>Endgame content</p> },
+              { id: "c", label: "Locked", disabled: true, content: null },
             ]}
           />
         </Panel>
 
-        <Panel title="Badges und Herkunft" kicker="Jede Zahl nennt ihre Quelle">
+        <Panel title="Badges and Provenance" kicker="Every number names its source">
           <div className="row">
             <Badge>Neutral</Badge>
-            <Badge tone="gold">Empfohlen</Badge>
-            <Badge tone="success">Geprüft</Badge>
+            <Badge tone="gold">Recommended</Badge>
+            <Badge tone="success">Verified</Badge>
             <Badge tone="info">Info</Badge>
-            <Badge tone="warning">Veraltet</Badge>
-            <Badge tone="danger">Fehler</Badge>
+            <Badge tone="warning">Outdated</Badge>
+            <Badge tone="danger">Error</Badge>
           </div>
           <ul className="prov-list">
             {PROVENANCE_EXAMPLES.map((p) => (
@@ -143,22 +139,22 @@ export function DesignSystem() {
           </ul>
         </Panel>
 
-        <Panel title="Ornamente" kicker="Eigene SVGs, keine Spielgrafiken">
+        <Panel title="Ornaments" kicker="Original SVGs, no game assets">
           <div className="ornament-row">
-            <Sigil size={64} title="ExileForge-Zeichen" />
+            <Sigil size={64} title="ExileForge sigil" />
             <Sigil size={40} />
             <Sigil size={24} />
           </div>
           <OrnamentDivider className="gallery__divider" />
-          <Panel title="Verschachteltes Panel" variant="plain">
-            <p>Ohne Eckornamente, für Inhalte innerhalb eines Rahmens.</p>
+          <Panel title="Nested Panel" variant="plain">
+            <p>No corner ornaments, for content inside a frame.</p>
           </Panel>
         </Panel>
 
-        <Panel title="Kennzahlen-Zustände" className="gallery__wide">
+        <Panel title="Stat States" className="gallery__wide">
           <StatGrid>
             <StatValue
-              label="Bereit"
+              label="Ready"
               emphasis
               state={{
                 status: "ready",
@@ -167,7 +163,7 @@ export function DesignSystem() {
               }}
             />
             <StatValue
-              label="Veraltet"
+              label="Outdated"
               state={{
                 status: "ready",
                 value: 1200,
@@ -175,44 +171,44 @@ export function DesignSystem() {
                 provenance: { kind: "sample", fixture: "calc-fake" },
               }}
             />
-            <StatValue label="Lädt" state={{ status: "loading" }} />
+            <StatValue label="Loading" state={{ status: "loading" }} />
             <StatValue
-              label="Fehler"
-              state={{ status: "error", message: "PoB-Worker nicht erreichbar" }}
+              label="Error"
+              state={{ status: "error", message: "PoB worker unreachable" }}
             />
             <StatValue
-              label="Unkalibriert"
-              state={{ status: "uncalibrated", reason: "Keine Marktdaten" }}
+              label="Uncalibrated"
+              state={{ status: "uncalibrated", reason: "No market data" }}
             />
           </StatGrid>
         </Panel>
 
-        <Panel title="Hinweise" className="gallery__wide">
+        <Panel title="Messages" className="gallery__wide">
           <div className="stack">
-            <Callout tone="info" title="Neues Daten-Release verfügbar">
-              Gespeicherte Guides werden im Hintergrund neu geprüft.
+            <Callout tone="info" title="New data release available">
+              Saved guides are being rechecked in the background.
             </Callout>
-            <Callout tone="success" title="Alle Prüfungen bestanden" />
-            <Callout tone="warning" title="Zwei Werte sind veraltet">
-              Sie stammen aus einem älteren Daten-Release.
+            <Callout tone="success" title="All checks passed" />
+            <Callout tone="warning" title="Two values are outdated">
+              They come from an older data release.
             </Callout>
             <Callout
               tone="danger"
-              title="Rechnung fehlgeschlagen"
+              title="Calculation failed"
               actions={
                 <Button size="sm" variant="danger">
-                  Erneut versuchen
+                  Retry
                 </Button>
               }
             >
-              Der PoB-Worker hat nicht geantwortet. Es wird kein Wert angezeigt.
+              The PoB worker did not respond. No value is shown.
             </Callout>
           </div>
         </Panel>
 
         <Panel
-          title="Item-Karten"
-          kicker="Normal · Magisch · Selten (Planer-Ansicht mit Tiers) · Einzigartig"
+          title="Item Cards"
+          kicker="Normal · Magic · Rare (planner view with tiers) · Unique"
           className="gallery__wide"
         >
           <div className="item-row">

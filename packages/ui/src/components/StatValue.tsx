@@ -31,12 +31,22 @@ export function StatValue({ label, state, format = "integer", emphasis = false }
 function StatBody({ state, format }: { state: ValueState; format: NumberFormat }) {
   switch (state.status) {
     case "ready":
+      if (!Number.isFinite(state.value)) {
+        return (
+          <>
+            <span className="ef-stat__status-text">Invalid value</span>
+            <span className="ef-stat__meta ef-stat__meta--error">
+              Source returned a non-finite value
+            </span>
+          </>
+        );
+      }
       return (
         <>
           <span className="ef-stat__number ef-numeric">{formatNumber(state.value, format)}</span>
           <span className="ef-stat__meta">
             <ProvenanceBadge provenance={state.provenance} />
-            {state.stale ? <Badge tone="warning">veraltet nach Patch</Badge> : null}
+            {state.stale ? <Badge tone="warning">Outdated after patch</Badge> : null}
           </span>
         </>
       );
@@ -44,20 +54,20 @@ function StatBody({ state, format }: { state: ValueState; format: NumberFormat }
       return (
         <>
           <span className="ef-stat__placeholder" aria-hidden="true" />
-          <span className="ef-stat__meta ef-stat__meta--status">PoB rechnet …</span>
+          <span className="ef-stat__meta ef-stat__meta--status">Calculating …</span>
         </>
       );
     case "error":
       return (
         <>
-          <span className="ef-stat__status-text">Rechnung fehlgeschlagen</span>
+          <span className="ef-stat__status-text">Value unavailable</span>
           <span className="ef-stat__meta ef-stat__meta--error">{state.message}</span>
         </>
       );
     case "uncalibrated":
       return (
         <>
-          <span className="ef-stat__status-text">unkalibriert</span>
+          <span className="ef-stat__status-text">Uncalibrated</span>
           <span className="ef-stat__meta ef-stat__meta--status">{state.reason}</span>
         </>
       );

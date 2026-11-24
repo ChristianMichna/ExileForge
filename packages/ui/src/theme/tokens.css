@@ -50,7 +50,9 @@
   /* Item text roles */
   --ef-color-mod: #9fb2ff;
   --ef-color-mod-implicit: #c6cbe8;
-  --ef-color-mod-crafted: #b7d4f0;
+  --ef-color-mod-enchant: #b7d4f0;
+  --ef-color-mod-rune: #d2c7a4;
+  --ef-color-mod-desecrated: #c98fae;
   --ef-color-property-value: #f4efe4;
   --ef-color-flavour: #b67a3c;
 
@@ -70,6 +72,7 @@
   --ef-font-body:
     "Source Sans 3", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --ef-font-flavour: "EB Garamond", "Palatino Linotype", Georgia, serif;
+  --ef-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   --ef-text-xs: 0.75rem;
   --ef-text-sm: 0.875rem;
@@ -111,6 +114,7 @@
   --ef-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 
   /* Layout */
+  --ef-page-max-width: 1400px;
   --ef-sidebar-width: 232px;
   --ef-topbar-height: 56px;
   --ef-tooltip-width: 336px;

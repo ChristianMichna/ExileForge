@@ -3,7 +3,7 @@
 
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--ef-space-1);
   max-width: 100%;
   color: var(--ef-prov-color);
   font-size: var(--ef-text-xs);

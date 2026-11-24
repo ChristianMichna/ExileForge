@@ -43,7 +43,7 @@ und Abständen (Präfix `--ef-`). Komponenten und App-CSS nutzen nur
 | `Button` | `primary`, `secondary`, `ghost`, `danger`; `sm`/`md`; `busy` (z. B. „PoB rechnet") |
 | `Tabs` | gesteuert, WAI-ARIA-Muster, Pfeiltasten/Home/End, Hinweis je Tab (Stufenbereich) |
 | `ItemTooltip` | Seltenheitskopf, Eigenschaften, Anforderungen (nicht erfüllt auch als Text), Implizite, Mods mit Präfix/Suffix, Tier und Wertebereich (`showTiers`), Flavour, Bezug |
-| `StatValue`, `StatGrid` | Kennzahl mit Herkunft; Zustände `ready`, `loading`, `error`, `uncalibrated`, `stale` |
+| `StatValue`, `StatGrid` | Kennzahl mit Herkunft; Zustände `ready`, `loading`, `error`, `uncalibrated`, `stale`. `StatValue` rendert `dt`/`dd` und gehört immer in ein `StatGrid` |
 | `ProvenanceBadge` | Herkunft einer Zahl; Form des Markers je Art, Farbe nie einziges Signal |
 | `Callout`, `Badge` | Hinweise und Zustände, Ton immer auch als Text/Icon |
 | `Sigil`, `OrnamentDivider`, `CornerOrnament`, `Diamond` | eigene Ornamente |
@@ -52,11 +52,16 @@ und Abständen (Präfix `--ef-`). Komponenten und App-CSS nutzen nur
 
 Komponenten erfinden keine Zahlen. `StatValue` bekommt einen `ValueState`;
 es gibt keinen Ersatzwert: Laden, Fehler und „unkalibriert" sind sichtbare
-Zustände, nie `0`. `formatNumber` formatiert nur (de-DE) und wirft bei
+Zustände, nie `0`. `formatNumber` formatiert nur (en-US, die App ist komplett englisch) und wirft bei
 `NaN`/`Infinity`. `ProvenanceView` ist ein UI-Modell und wird aus dem
 `Sourced<T>`-Vertrag in `packages/contracts` abgebildet, sobald dieser
 vorliegt. Die Art `sample` kennzeichnet Fantasiewerte aus Fixtures
-(`calc-fake`) und erscheint nie in echten Guides.
+(`calc-fake`) und erscheint nie in echten Guides; die Abbildung aus
+`Sourced<T>` darf `sample` nie erzeugen. Felder, die heute abweichen
+(`calcProfile` statt `calcId`, `dataRelease` statt `gameVersion`+`table`,
+fehlende `league`/`from`), werden mit dem Vertrag angeglichen.
+`ItemTooltip` verlangt eine `provenance` für alle Zahlen der Karte.
+`ModKind` folgt `ModSpec.kind` aus `docs/data-model.md`.
 
 ## Schriften und Rechtliches
 

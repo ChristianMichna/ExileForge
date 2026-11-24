@@ -14,16 +14,16 @@ export function BuildOverview() {
         subtitle={SAMPLE_BUILD.idea}
         actions={
           <Button variant="secondary" onClick={() => (window.location.hash = "#/design")}>
-            Design-System
+            Design System
           </Button>
         }
       />
-      <Callout tone="info" title="Beispieldaten">
-        Alle Zahlen auf dieser Seite sind Fantasiewerte aus <code>calc-fake</code>. Echte Werte
-        kommen aus Path of Building, sobald der Calc-Service angebunden ist.
+      <Callout tone="info" title="Sample data">
+        Every number on this page is a made-up value from <code>calc-fake</code>. Real values come
+        from Path of Building once the calc service is connected.
       </Callout>
       <Tabs
-        label="Stufen des Guides"
+        label="Guide stages"
         value={stage}
         onChange={setStage}
         items={SAMPLE_STAGES.map((s) => ({
@@ -41,7 +41,7 @@ function StageView({ stage }: { stage: SampleStage }) {
   return (
     <div className="stage">
       <div className="stage__top">
-        <Panel title="Kennzahlen" kicker={stage.levels} className="stage__stats">
+        <Panel title="Key Stats" kicker={stage.levels} className="stage__stats">
           <StatGrid>
             {stage.stats.map((s) => (
               <StatValue
@@ -54,7 +54,7 @@ function StageView({ stage }: { stage: SampleStage }) {
             ))}
           </StatGrid>
         </Panel>
-        <Panel title="Hinweise" variant="plain" className="stage__notes">
+        <Panel title="Notes" variant="plain" className="stage__notes">
           <ol className="notes">
             {stage.notes.map((note) => (
               <li key={note}>{note}</li>
@@ -62,7 +62,7 @@ function StageView({ stage }: { stage: SampleStage }) {
           </ol>
         </Panel>
       </div>
-      <Panel title="Ausrüstung" kicker="Priorität der Mods von oben nach unten">
+      <Panel title="Equipment" kicker="Modifier priority from top to bottom">
         <div className="item-row">
           {SAMPLE_ITEMS.map((item) => (
             <ItemTooltip key={item.id} item={item} showTiers={item.rarity === "rare"} />
