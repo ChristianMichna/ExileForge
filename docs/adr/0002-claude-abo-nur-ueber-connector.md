@@ -28,8 +28,8 @@ einem regulären Claude-Abo laufen.
 
 - Kein „Mit Claude anmelden" auf der Website, keine Abo-Token auf dem Server.
 - Die Abo-Limits des Freundes gelten. Werkzeuge rechnen deshalb so viel wie
-  möglich deterministisch (Optimierer, `calc.evalBatch`), damit Claude wenige,
-  große Schritte macht.
+  möglich deterministisch (Optimierer, `calc.evalBatch`), damit Claude nur
+  Entscheidungen trifft und die vielen kleinen Aufgaben wenig Kontingent kosten.
 - Prompts in `packages/agents/prompts` dienen beiden Wegen: als Systemprompt im
   Gateway und als Aufgabenbeschreibung in `forge.submit`-Antworten bzw. als
   MCP-Prompt.
