@@ -89,10 +89,18 @@ python3 -m unittest discover tests
 
 ## Grenzen und offene Punkte
 
-1. **Nicht mit echten Spieler-Builds getestet.** Die Sandbox, in der das gebaut wurde, durfte pobb.in &
-   Co. nicht erreichen. Der Testbuild ist synthetisch (per PoB-API erzeugt: Witch 60, 3 Items, 12 Passives,
-   Spark). Der Download-Code für Links ist geschrieben, aber ungetestet. **Nächster Schritt: 3–5 echte
-   Build-Codes durchlaufen lassen und mit der PoB-GUI vergleichen.**
+1. **Echte Builds (Stand 2026-11-24): 19 öffentliche PoE2-Builds von pobb.in**, Workflow
+   `.github/workflows/real-builds.yml` (bei jedem PR und montags). Alle 19 laden und rechnen fehlerfrei.
+   Verglichen wird mit den Werten, die PoB beim Speichern selbst in die Datei schreibt:
+   - 2 Builds sind exakt gleich, darunter ein Stormweaver mit 248.060 DPS. Die Headless-Rechnung ist also
+     dieselbe wie in der PoB-Oberfläche, wenn Version und Daten übereinstimmen.
+   - 13 Builds stammen aus älteren Patches (Tree 0.1 bis 0.4). Dort weichen die Zahlen erwartbar ab, weil
+     PoB seither Spielwerte geändert hat; bei einem 0.1-Build lassen sich 5 Items gar nicht mehr laden.
+   - 4 Builds vom aktuellen Patch 0.5 weichen um 1 bis 13 % ab (ein Build: ES 0 statt 363). Vermutung:
+     sie wurden mit einer anderen PoB-Version gespeichert; die Datei verrät die Version nicht. Nicht
+     abschließend geklärt.
+   Wichtig: PoB ist auf den **Release-Tag v0.23.1** gepinnt (das, was Spieler installiert haben), nicht auf
+   den Entwicklungszweig, der unter derselben Versionsnummer schon Monate weiter ist.
 2. **Nur PoE2.** PoE1-Builds werden erkannt und mit Fehlermeldung abgelehnt.
 3. **Rechenergebnis = PoB-Konfiguration im Build.** Die Werte gelten für die im Build gespeicherten
    Einstellungen (Config-Tab: Gegner, Buffs, Ladungen, Hauptskill). Eine andere Hauptfertigkeit oder andere
