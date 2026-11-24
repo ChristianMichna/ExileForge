@@ -65,7 +65,7 @@ def main() -> int:
             secs = time.time() - t0
         except (PoBError, OSError) as exc:
             failures += 1
-            rows.append(f"| {name} | ❌ | {str(exc)[:120]} | | | | |")
+            rows.append(f"| {name} | | ❌ | {str(exc)[:120]} | | | | |")
             continue
         b, s = result["build"], result["stats"]
         pob_version = result["pobVersion"]
@@ -76,14 +76,18 @@ def main() -> int:
         diag_lines.append(f"{name}: xml items={items_xml} specs={len(specs)} treeVersions={[sp.get('treeVersion') for sp in specs]} "
                           f"activeSpec={root.find('Tree').get('activeSpec') if root.find('Tree') is not None else None} "
                           f"mainSocketGroup={bx.get('mainSocketGroup')} | loaded={result.get('loaded')}")
+        tree = (result.get("loaded") or {}).get("treeVersion") or "?"
+        lost = items_xml - (result.get("loaded") or {}).get("items", items_xml)
         diffs = [k for k in COMPARE if k in stored and not same(s.get(k), stored[k])]
         if not diffs:
             matches += 1
         res = "/".join(fmt(s.get(f"{e}Resist")) for e in ("Fire", "Cold", "Lightning", "Chaos"))
         verdict = "✅ wie PoB-GUI" if not diffs else "⚠️ abweichend: " + ", ".join(
             f"{k} {fmt(s.get(k))} statt {fmt(stored[k])}" for k in diffs)
+        if lost > 0:
+            verdict += f" · {lost} Items nicht geladen"
         rows.append(
-            f"| {name} | {b.get('className')} / {b.get('ascendancy')} L{b.get('level')} | {b.get('mainSkill') or '–'} "
+            f"| {name} | {tree.replace('_', '.')} | {b.get('className')} / {b.get('ascendancy')} L{b.get('level')} | {b.get('mainSkill') or '–'} "
             f"| {fmt(s.get('CombinedDPS'))} | {fmt(s.get('Life'))} / {fmt(s.get('EnergyShield'))} | {res} | {verdict} ({secs:.1f}s) |")
 
     report = "\n".join([
@@ -91,8 +95,11 @@ def main() -> int:
         "",
         f"{len(entries)} Builds, {matches} identisch mit den in der Datei gespeicherten PoB-Werten, {failures} Fehler.",
         "",
-        "| Build | Klasse | Hauptskill | DPS | Leben / ES | Res F/C/L/Ch | Vergleich mit PoB-GUI |",
-        "|---|---|---|---|---|---|---|",
+        "Patch = Passive-Tree-Version der Datei (aktuell: 0.5). Builds von älteren Patches weichen erwartbar ab,",
+        "weil PoB seitdem Spielwerte angepasst hat.",
+        "",
+        "| Build | Patch | Klasse | Hauptskill | DPS | Leben / ES | Res F/C/L/Ch | Vergleich mit PoB-GUI |",
+        "|---|---|---|---|---|---|---|---|",
         *rows,
     ])
     print(report)

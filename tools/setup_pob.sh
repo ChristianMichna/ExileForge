@@ -12,7 +12,7 @@ set -euo pipefail
 
 # --- pinned versions (update together, see docs/pob-headless.md) -------------
 POB_REPO="https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2.git"
-POB_REF="${POB_REF:-601768bd105869618c3d6581b883e5d7aeec91b2}"   # PoB-PoE2 v0.23.1 (2026-11-10)
+POB_REF="${POB_REF:-7d6f530cbdab20389ff8bc6ba97a37ac27f74e41}"   # PoB-PoE2 release v0.23.1 (tag, 2026-07-28) = what players run
 LUAJIT_REPO="https://github.com/LuaJIT/LuaJIT.git"
 # Must match PoB's SimpleGraphic vcpkg port: PoB uses newer LuaJIT syntax
 # (`x += 1`, `a?.b`) that older LuaJIT builds (e.g. distro packages) reject.
