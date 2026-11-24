@@ -264,6 +264,10 @@
                   "id"
                 ]
               },
+              "returnTo": {
+                "type": "string",
+                "pattern": "^S(?:[0-9]|1[01])(?:\\.[a-z][a-z0-9-]*)?$"
+              },
               "calcId": {
                 "type": "string",
                 "minLength": 1,
@@ -595,6 +599,30 @@
               "required": [
                 "kind",
                 "stage"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "pause"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "resume"
+                }
+              },
+              "required": [
+                "kind"
               ]
             },
             {

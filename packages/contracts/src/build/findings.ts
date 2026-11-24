@@ -2,6 +2,10 @@ import { z } from "zod";
 import { EntityRef } from "../common/ids.js";
 import { CalcId } from "../common/version.js";
 
+/** Pipeline stage S0–S11 plus optional part, e.g. "S5.gems". */
+export const TaskType = z.string().regex(/^S(?:[0-9]|1[01])(?:\.[a-z][a-z0-9-]*)?$/);
+export type TaskType = z.infer<typeof TaskType>;
+
 /** Quality gates of the plan (G1–G8) plus schema and engine checks. */
 export const GateId = z.enum(["schema", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"]);
 export type GateId = z.infer<typeof GateId>;
@@ -16,6 +20,8 @@ export const Finding = z.object({
   /** JSON pointer into the submitted payload or document. */
   path: z.string().startsWith("/").optional(),
   entity: EntityRef.optional(),
+  /** Stage/task that caused the problem and gets it back (max. returns per stage from config). */
+  returnTo: TaskType.optional(),
   /** Calculation the finding is based on, if any. */
   calcId: CalcId.optional(),
 });

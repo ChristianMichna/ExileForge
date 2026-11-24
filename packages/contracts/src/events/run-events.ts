@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { CalcId, IsoDateTime } from "../common/version.js";
 import { Finding } from "../build/findings.js";
-import { RunId, RunPhase, TaskId, TaskType, UserIntervention } from "../forge/tools.js";
+import { TaskType } from "../build/findings.js";
+import { RunId, RunPhase, TaskId, UserIntervention } from "../forge/tools.js";
 
 /*
  * Live status from apps/server to apps/web (Server-Sent Events). One event per

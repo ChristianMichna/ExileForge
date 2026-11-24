@@ -107,3 +107,10 @@ export const GuideDocument = z.object({
   validation: ValidationReport.optional(),
 });
 export type GuideDocument = z.infer<typeof GuideDocument>;
+
+/** A guide as published (S11): the validation protocol is mandatory and passed. */
+export const PublishedGuide = GuideDocument.extend({ validation: ValidationReport }).refine(
+  (g) => g.validation.passed,
+  { message: "only validated guides are published", path: ["validation", "passed"] },
+);
+export type PublishedGuide = z.infer<typeof PublishedGuide>;

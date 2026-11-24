@@ -17,7 +17,7 @@ import {
  * by reference where the state is used.
  */
 
-/** Weapon set index as used by the game (0 = shared). Range is checked by PoB. */
+/** Weapon set index as used by PoB and the .build format; meaning and range are checked by PoB. */
 export const WeaponSet = z.int().nonnegative();
 
 export const AllocatedNode = z.object({
@@ -70,7 +70,14 @@ export const ItemSpec = z.discriminatedUnion("kind", [
     rarity: ClassificationId,
     itemLevel: z.int().positive().optional(),
     mods: z.array(ModSpec),
-    socketables: z.array(CraftingActionId.or(BaseItemId)).default([]),
+    socketables: z
+      .array(
+        z.discriminatedUnion("kind", [
+          z.object({ kind: z.literal("craftingAction"), id: CraftingActionId }),
+          z.object({ kind: z.literal("baseItem"), id: BaseItemId }),
+        ]),
+      )
+      .default([]),
   }),
 ]);
 export type ItemSpec = z.infer<typeof ItemSpec>;

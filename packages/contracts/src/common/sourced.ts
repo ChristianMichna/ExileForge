@@ -87,6 +87,29 @@ export type Measured<T> =
   | { status: "failed"; error: { code: string; message: string } };
 
 /**
+ * Like measured(), but only the given source kinds are allowed, e.g. prices
+ * must come from the market or be derived, never from PoB.
+ */
+export const measuredFrom = <T extends z.ZodType, S extends readonly [AnySource, ...AnySource[]]>(
+  value: T,
+  sources: S,
+) =>
+  z.discriminatedUnion("status", [
+    z.object({
+      status: z.literal("ok"),
+      value,
+      source: z.discriminatedUnion("kind", sources),
+    }),
+    z.object({ status: z.literal("uncalibrated"), reason: z.string().min(1) }),
+    z.object({
+      status: z.literal("failed"),
+      error: z.object({ code: z.string().min(1), message: z.string().min(1) }),
+    }),
+  ]);
+type AnySource =
+  typeof PobSource | typeof GamedataSource | typeof MarketSource | typeof DerivedSource;
+
+/**
  * Reference to one number of a PoB calculation. Guide text and LLM outputs
  * use this instead of writing a number.
  */

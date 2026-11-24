@@ -11,7 +11,7 @@ import {
   StatId,
   UniqueItemId,
 } from "../common/ids.js";
-import { measured } from "../common/sourced.js";
+import { DerivedSource, GamedataSource, MarketSource, measuredFrom } from "../common/sourced.js";
 import { CalcId, CalcProfileId } from "../common/version.js";
 import { BudgetTierId } from "./request.js";
 import { BuildState, ItemSpec } from "./state.js";
@@ -32,8 +32,19 @@ export const Price = z.object({
 });
 export type Price = z.infer<typeof Price>;
 
-export const MeasuredPrice = measured(Price);
-export const MeasuredNumber = measured(z.number());
+/** Prices come from the market or are derived (e.g. expected crafting cost). */
+export const MeasuredPrice = measuredFrom(Price, [MarketSource, DerivedSource]);
+/** Probabilities and attempt counts come from game data (mod weights) or are derived. */
+export const MeasuredChance = measuredFrom(z.number().min(0).max(1), [
+  GamedataSource,
+  DerivedSource,
+]);
+export const MeasuredCount = measuredFrom(z.number().nonnegative(), [
+  GamedataSource,
+  DerivedSource,
+]);
+/** Ratios such as gain per cost are always derived. */
+export const MeasuredRatio = measuredFrom(z.number(), [DerivedSource]);
 
 /** Calculation of a state: a PoB result id, or an explicit failure. */
 export const CalcOutcome = z.discriminatedUnion("status", [
@@ -102,6 +113,8 @@ export const ProgressionStage = z
     /** Order in which this stage's new passives are allocated. */
     allocationOrder: z.array(PassiveNodeId),
     respecs: z.array(PassiveNodeId).default([]),
+    /** Respec cost of this stage (G6); derived from game data and market. */
+    respecCost: MeasuredPrice.optional(),
     tasks: z.array(RichText).min(1),
     dangers: z.array(RichText).default([]),
     rationale: z.array(Rationale).default([]),
@@ -138,7 +151,7 @@ export const GearPlan = z.object({
       z.object({
         budgetTier: BudgetTierId,
         slots: z.array(GearSlotPlan).min(1),
-        upgradeOrder: z.array(z.object({ slot: z.string().min(1), gainPerCost: MeasuredNumber })),
+        upgradeOrder: z.array(z.object({ slot: z.string().min(1), gainPerCost: MeasuredRatio })),
       }),
     )
     .min(1),
@@ -147,15 +160,17 @@ export type GearPlan = z.infer<typeof GearPlan>;
 
 export const CraftStep = z.object({
   order: z.int().nonnegative(),
-  actionId: CraftingActionId,
+  /** Actions used together in this step (e.g. a currency plus modifiers). */
+  actionIds: z.array(CraftingActionId).min(1),
   goal: RichText,
-  successChance: MeasuredNumber,
-  expectedAttempts: MeasuredNumber,
+  successChance: MeasuredChance,
+  expectedAttempts: MeasuredCount,
   expectedCost: MeasuredPrice,
   onFail: z.discriminatedUnion("action", [
     z.object({ action: z.literal("repeat") }),
     z.object({ action: z.literal("restart") }),
     z.object({ action: z.literal("accept") }),
+    z.object({ action: z.literal("abort"), reason: RichText }),
     z.object({ action: z.literal("goto"), order: z.int().nonnegative() }),
   ]),
 });

@@ -65,7 +65,22 @@ describe("forge tools", () => {
     );
   });
 
+  it("findings name the stage they go back to", () => {
+    const out = ForgeTools["forge.submit"].output;
+    const finding = { gate: "G4", severity: "error", code: "fixture", message: "Fixture" };
+    const next = { kind: "task", task };
+    expect(
+      out.safeParse({ result: "rejected", findings: [{ ...finding, returnTo: "S7" }], next })
+        .success,
+    ).toBe(true);
+    expect(
+      out.safeParse({ result: "rejected", findings: [{ ...finding, returnTo: "gear" }], next })
+        .success,
+    ).toBe(false);
+  });
+
   it("unknown interventions are rejected", () => {
+    expect(UserIntervention.safeParse({ kind: "pause" }).success).toBe(true);
     expect(UserIntervention.safeParse({ kind: "deleteRun" }).success).toBe(false);
   });
 });

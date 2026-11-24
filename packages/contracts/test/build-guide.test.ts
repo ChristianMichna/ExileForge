@@ -6,6 +6,7 @@ import {
   GuideDocument,
   ItemSpec,
   ProgressionStage,
+  PublishedGuide,
   RichText,
 } from "../src/index.js";
 import { without } from "./helpers.js";
@@ -62,10 +63,17 @@ const stage = {
   calcs: { "fixture-profile": calcOk },
 };
 
+const market = {
+  kind: "market",
+  provider: "fixture-market",
+  league: "Fixture League",
+  fetchedAt: "2026-01-01T00:00:00Z",
+  confidence: "low",
+} as const;
 const price = {
   status: "ok",
   value: { amount: 1, currencyItemId: "Fixture/Currency/A" },
-  source: pob,
+  source: market,
 };
 const uncal = { status: "uncalibrated", reason: "no market data" };
 
@@ -82,7 +90,7 @@ const crafting = {
   steps: [
     {
       order: 0,
-      actionId: "Fixture/Currency/A",
+      actionIds: ["Fixture/Currency/A"],
       goal: text("Fixture goal"),
       successChance: uncal,
       expectedAttempts: uncal,
@@ -214,16 +222,67 @@ describe("stages", () => {
   });
 });
 
+describe("number provenance in plans", () => {
+  it("prices may not claim a PoB source", () => {
+    const pobPrice = { ...price, source: pob };
+    const g = structuredClone(guide);
+    const slot = g.gear.tiers[0]?.slots[0];
+    if (!slot) throw new Error("fixture changed");
+    (slot as { cost: unknown }).cost = pobPrice;
+    expect(GuideDocument.safeParse(g).success).toBe(false);
+  });
+
+  it("chances must be within 0..1 and from game data or derived", () => {
+    const step = crafting.steps[0];
+    const gamedata = {
+      kind: "gamedata",
+      dataReleaseId: releaseId,
+      entity: { kind: "mod", id: "FixtureMod1" },
+      field: "/spawnWeights/0/weight",
+    };
+    const ok = { ...step, successChance: { status: "ok", value: 0.5, source: gamedata } };
+    expect(CraftingPlan.safeParse({ ...crafting, steps: [ok] }).error).toBeUndefined();
+    const tooBig = { ...step, successChance: { status: "ok", value: 2, source: gamedata } };
+    expect(CraftingPlan.safeParse({ ...crafting, steps: [tooBig] }).success).toBe(false);
+    const fromMarket = { ...step, successChance: { status: "ok", value: 0.5, source: market } };
+    expect(CraftingPlan.safeParse({ ...crafting, steps: [fromMarket] }).success).toBe(false);
+  });
+});
+
+describe("PublishedGuide", () => {
+  it("requires a passed validation report", () => {
+    expect(PublishedGuide.safeParse(guide).success).toBe(false);
+    const validation = {
+      gates: [{ gate: "G1", passed: true, findings: [] }],
+      completenessScore: 95,
+      scoringConfigVersion: "1",
+      passed: true,
+    };
+    expect(PublishedGuide.safeParse({ ...guide, validation }).error).toBeUndefined();
+    const failed = { ...validation, passed: false };
+    expect(PublishedGuide.safeParse({ ...guide, validation: failed }).success).toBe(false);
+  });
+});
+
 describe("GuideDocument", () => {
   it("accepts a complete fixture guide", () => {
     expect(GuideDocument.safeParse(guide).error).toBeUndefined();
   });
 
-  it.each(["summary", "mechanics", "progression", "gear", "playstyle", "atlas", "metadata"])(
-    "rejects a guide without %s",
-    (part) => {
-      const g = without(guide, part as keyof typeof guide);
-      expect(GuideDocument.safeParse(g).success).toBe(false);
-    },
-  );
+  it.each([
+    "metadata",
+    "request",
+    "summary",
+    "mechanics",
+    "progression",
+    "gear",
+    "crafting",
+    "playstyle",
+    "atlas",
+    "variants",
+    "faq",
+  ])("rejects a guide without %s", (part) => {
+    const g = without(guide, part as keyof typeof guide);
+    expect(GuideDocument.safeParse(g).success).toBe(false);
+  });
 });

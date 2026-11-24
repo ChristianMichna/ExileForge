@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { EntityRef } from "../common/ids.js";
 import { JsonValue } from "../common/json.js";
-import { Finding } from "../build/findings.js";
+import { Finding, TaskType } from "../build/findings.js";
 import { RichText } from "../build/text.js";
 
 /*
@@ -23,10 +23,6 @@ export const SessionCode = z
   .regex(/^[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{2}$/, "expected session code like 7F3K-QX");
 export type SessionCode = z.infer<typeof SessionCode>;
 
-/** Pipeline stage S0–S11 plus part, e.g. "S5.gems". */
-export const TaskType = z.string().regex(/^S(?:[0-9]|1[01])(?:\.[a-z][a-z0-9-]*)?$/);
-export type TaskType = z.infer<typeof TaskType>;
-
 /** Something the user did in the frontend since the last task. */
 export const UserIntervention = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("chooseVariant"), candidateKey: z.string().min(1) }),
@@ -34,6 +30,8 @@ export const UserIntervention = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("reject"), entity: EntityRef }),
   z.object({ kind: z.literal("adjust"), request: z.string().min(1).max(2000) }),
   z.object({ kind: z.literal("redoStage"), stage: TaskType }),
+  z.object({ kind: z.literal("pause") }),
+  z.object({ kind: z.literal("resume") }),
   z.object({ kind: z.literal("answer"), askId: z.string().min(1), answer: z.string().max(2000) }),
 ]);
 export type UserIntervention = z.infer<typeof UserIntervention>;
