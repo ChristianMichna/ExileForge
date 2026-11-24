@@ -86,7 +86,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- 'apps/*/e2e/__screenshots__'
+          git add -A -- ':(glob)apps/*/e2e/__screenshots__/**'
           if git diff --cached --quiet; then
             echo "Baselines unchanged."
           else
