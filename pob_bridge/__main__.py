@@ -18,8 +18,8 @@ def _fmt(v, pct=False):
 
 def print_summary(result: dict) -> None:
     b, s = result["build"], result["stats"]
-    print(f"Path of Building {result['pobVersion']}  |  {b['className']} / {b['ascendancy']}  |  Level {b['level']}")
-    print(f"Main skill: {b['mainSkill']}")
+    print(f"Path of Building {result['pobVersion']}  |  {b.get('className')} / {b.get('ascendancy')}  |  Level {b.get('level')}")
+    print(f"Main skill: {b.get('mainSkill') or '-'}")
     print()
     print(f"  DPS (Combined)   {_fmt(s.get('CombinedDPS'))}")
     print(f"  Hit DPS          {_fmt(s.get('TotalDPS'))}")

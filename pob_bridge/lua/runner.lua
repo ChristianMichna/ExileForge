@@ -61,9 +61,15 @@ local function collect()
 	end
 
 	-- main skill name, so callers can see what the DPS refers to
+	-- Prefer the skill PoB actually calculated; fall back to the socket group label.
 	local mainSkill
+	local env = build.calcsTab.mainEnv
+	local active = env and env.player and env.player.mainSkill
+	if active and active.activeEffect and active.activeEffect.grantedEffect then
+		mainSkill = active.activeEffect.grantedEffect.name
+	end
 	local group = build.skillsTab.socketGroupList[build.mainSocketGroup]
-	if group then
+	if not mainSkill and group then
 		mainSkill = group.displayLabel or group.label
 	end
 

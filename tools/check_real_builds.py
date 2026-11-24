@@ -70,7 +70,7 @@ def main() -> int:
         verdict = "✅ wie PoB-GUI" if not diffs else "⚠️ abweichend: " + ", ".join(
             f"{k} {fmt(s.get(k))} statt {fmt(stored[k])}" for k in diffs)
         rows.append(
-            f"| {name} | {b['className']} / {b['ascendancy']} L{b['level']} | {b['mainSkill']} "
+            f"| {name} | {b.get('className')} / {b.get('ascendancy')} L{b.get('level')} | {b.get('mainSkill') or '–'} "
             f"| {fmt(s.get('CombinedDPS'))} | {fmt(s.get('Life'))} / {fmt(s.get('EnergyShield'))} | {res} | {verdict} ({secs:.1f}s) |")
 
     report = "\n".join([
