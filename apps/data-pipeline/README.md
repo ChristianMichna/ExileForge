@@ -42,6 +42,7 @@ per „Run workflow" mit Spielversion und optionalem Vergleich gegen einen
 | `essences` | `Data/Essence.lua` | Metadata-ID |
 | `gems` | `Data/Gems.lua` | Metadata-ID |
 | `skills` | `Data/Skills/*.lua` (ohne `SkillAssets.lua`) | Granted-Effect-ID |
+| `statDescriptions` | `Data/StatDescriptions/*.lua` (Auswahl in der Konfig) | `<scope>:<index>`, mit `tradeHash` (PoBs `HashStats`) |
 | `uniques` | `main.uniqueDB` (von PoBs Item-Parser gelesen) | `Titel, Basis` |
 | `passiveTree` | `TreeData/<version>/tree.lua` | Knoten-ID; `group:<id>`, `class:<name>`, `constants` |
 
@@ -61,6 +62,30 @@ Regeln des Extraktors:
 - `SkillType`-Werte werden als Namen ausgegeben, nicht als PoB-interne Zahlen.
 - Eine leere Art, ein Glob ohne Treffer oder ein Snapshot mit falschem Hash ist
   ein Fehler, nie ein leeres Ergebnis.
+
+## Stat-IDs für Mods
+
+PoB führt Mods nur als Anzeigetext. `src/normalize/stat-matcher.ts` bildet
+den Text auf Stat-IDs und Rohwerte zurück, ausschließlich mit PoB-Daten:
+
+1. Jeder Mod nennt in `tradeHashes` PoBs Hash über die Stat-IDs einer
+   Beschreibung. Darüber ist die Beschreibung eindeutig, auch wenn zwei
+   Beschreibungen gleichen Text haben (z. B. lokal und global).
+2. Der Text wird gegen die Vorlagen dieser Beschreibung geprüft; Handler wie
+   `negate` oder `milliseconds_to_seconds` werden umgekehrt, Limits geprüft.
+3. Wie PoB gilt nur die erste Variante, deren Limits passen.
+4. Rundet die Anzeige (z. B. `per_minute_to_per_second_0dp`) so, dass mehrere
+   Rohwerte denselben Text ergeben, ist die Zeile `lossy` und bleibt offen.
+5. Zeilen ohne Hash laufen über einen Text-Index. Mehrdeutige, verlustbehaftete
+   oder nicht passende Zeilen bleiben je Mod in `unresolved` sichtbar, nichts
+   wird geraten.
+
+`exileforge-data stat-coverage <snapshot> [--out unresolved.json]` meldet die
+Abdeckung. Stand PoB 0.23.1: 86,5 % der Zeilengruppen, 85,7 % der Mods voll
+aufgelöst. Offen: 741 `hidden` (Text ohne Zahl, z. B. reine Effekt-Zeilen; der
+Stat-Wert ist darin nicht sichtbar, die Stat-IDs stehen dabei), 435 ohne
+passende Beschreibung (vor allem Radius-Jewel-Mods, deren Hash einen
+Zusatz-Stat enthält), 138 verlustbehaftet gerundet, 14 mehrdeutig.
 
 ## Rechtliches
 

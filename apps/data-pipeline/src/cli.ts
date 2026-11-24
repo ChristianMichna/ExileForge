@@ -5,13 +5,19 @@ import { parseArgs } from "node:util";
 import { loadPobSources } from "./config.ts";
 import { diffSnapshots, summarizeDiff } from "./diff/snapshot-diff.ts";
 import { pobInstallFromHome } from "./pob/extract.ts";
+import { resolveModStats } from "./normalize/mod-stats.ts";
+import { StatMatcher } from "./normalize/stat-matcher.ts";
 import { buildSnapshot } from "./snapshot/build.ts";
+import { readManifest, readShard } from "./snapshot/snapshot.ts";
 
 const USAGE = `exileforge-data <command>
 
   snapshot --game-version <x.y[.z.w]> --revision <n> --out <dir>
            [--pob-home .pob] [--sources config/data-pipeline/pob-sources.json]
       Extract the pinned PoB's game data into <dir>/raw and write <dir>/manifest.json.
+
+  stat-coverage <snapshotDir> [--scope stat_descriptions] [--out <file>]
+      Map every mod's display lines to stat ids and report what stays unresolved.
 
   diff <fromDir> <toDir> [--out <dir>]
       Compare two snapshots; writes diff.json and diff.md to --out (default: <toDir>).
@@ -55,6 +61,38 @@ async function main(argv: string[]): Promise<void> {
       `snapshot ${manifest.releaseId} (PoB ${manifest.pobVersion}, tree ${manifest.treeVersion})`,
     );
     for (const s of manifest.shards) console.warn(`  ${s.kind}: ${String(s.count)}`);
+    return;
+  }
+  if (command === "stat-coverage") {
+    const { values, positionals } = parseArgs({
+      args: rest,
+      options: { scope: { type: "string", default: "stat_descriptions" }, out: { type: "string" } },
+      allowPositionals: true,
+      strict: true,
+    });
+    const [dir] = positionals;
+    if (!dir || positionals.length !== 1) fail(USAGE);
+    const manifest = await readManifest(dir);
+    const matcher = new StatMatcher(await readShard(dir, manifest, "statDescriptions"));
+    const { results, summary } = resolveModStats(
+      await readShard(dir, manifest, "mods"),
+      matcher,
+      values.scope,
+    );
+    const pct = (a: number, b: number) => (b === 0 ? "n/a" : `${((100 * a) / b).toFixed(1)}%`);
+    console.warn(
+      `${manifest.releaseId}: line groups resolved ${String(summary.lineGroupsResolved)}/${String(summary.lineGroups)} (${pct(summary.lineGroupsResolved, summary.lineGroups)}), ` +
+        `mods fully resolved ${String(summary.modsFullyResolved)}/${String(summary.mods)} (${pct(summary.modsFullyResolved, summary.mods)})`,
+    );
+    if (values.out) {
+      const unresolved = results
+        .filter((r) => r.unresolved.length > 0)
+        .map((r) => ({ modId: r.modId, unresolved: r.unresolved }));
+      await writeFile(
+        resolve(values.out),
+        JSON.stringify({ releaseId: manifest.releaseId, summary, unresolved }, null, 2) + "\n",
+      );
+    }
     return;
   }
   if (command === "diff") {

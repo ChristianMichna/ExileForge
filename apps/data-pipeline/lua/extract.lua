@@ -294,6 +294,37 @@ loaders["uniqueDB"] = function()
 	return t
 end
 
+-- stat description scopes (stat id -> text templates). Keyed "<scope>:<index>";
+-- the stat-name lookup tables in the same files are derived data and dropped.
+-- Handlers ({ k = "negate", v = 1 } …) stay as data next to the template.
+loaders["statDescriptions"] = function(src)
+	local scope = src.file:match("([^/]+)%.lua$")
+	local file = LoadModule(src.file)
+	local t = {}
+	for index, entry in pairs(file) do
+		if type(index) == "number" then
+			local variants = {}
+			for i, v in ipairs(entry[1] or {}) do
+				local handlers = {}
+				for _, h in ipairs(v) do
+					handlers[#handlers + 1] = { k = h.k, v = h.v }
+				end
+				variants[i] = { limit = v.limit, text = v.text, handlers = handlers, gemQuality = v.gem_quality or nil }
+			end
+			t[scope .. ":" .. index] = {
+				scope = scope,
+				order = index,
+				parent = file.parent,
+				stats = entry.stats,
+				variants = variants,
+				-- PoB's own hash over the stat ids; mods list it in tradeHashes
+				tradeHash = HashStats(entry.stats),
+			}
+		end
+	end
+	return t
+end
+
 -- passive tree of the given version ("latest" = PoB's latestTreeVersion).
 -- Only game data is kept; art layout tables (assets, ddsCoords, ...) are dropped.
 loaders["tree"] = function(src)
