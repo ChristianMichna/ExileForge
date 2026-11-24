@@ -1,0 +1,4 @@
+.pob/
+__pycache__/
+*.pyc
+sample_build.xml
