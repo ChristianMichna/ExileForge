@@ -520,6 +520,7 @@ function normalizeTree(
   }
   nodes.sort((a, b) => a.skill - b.skill);
   const nodeIds = new Set(nodes.map((n) => n.skill));
+  const imageOnly = new Set(nodes.filter((n) => n.data.isOnlyImage === true).map((n) => n.skill));
   const geometry = treeGeometry(rawGroups, constants, ctx);
   const nodeBySkill = new Map(nodes.map((n) => [n.skill, n.data]));
   const pointOf = (data: Obj): { x: number; y: number } | undefined =>
@@ -560,11 +561,14 @@ function normalizeTree(
       }
     }
     // PoB itself skips connections to nodes missing from the tree data
-    // ("missing node" on load); they are dropped here too, each one reported
+    // ("missing node" on load); they are dropped here too, each one reported.
+    // Image-only nodes (PoB type "OnlyImage") are never linked in PoB, so
+    // their connections are dropped silently, as PoB does.
     const connections: string[] = [];
     for (const c of list(data.connections)) {
       const target = num(obj(c).id);
       if (target === undefined) continue;
+      if (imageOnly.has(skill) || imageOnly.has(target)) continue;
       if (nodeIds.has(target)) connections.push(String(target));
       else ctx.warn("passiveNode", id, `connection to missing node ${String(target)} dropped`);
     }
@@ -575,6 +579,7 @@ function normalizeTree(
       const target = num(obj(c).id);
       const orbit = num(obj(c).orbit);
       if (target === undefined || orbit === undefined || orbit === 0 || !point) continue;
+      if (!connections.includes(String(target))) continue;
       const other = nodeBySkill.get(target);
       const otherPoint = other ? pointOf(other) : undefined;
       if (!otherPoint) continue;

@@ -248,6 +248,29 @@ describe("normalizeCatalog", () => {
     });
   });
 
+  it("marks image-only nodes as decoration and never links them, as PoB does", () => {
+    const raw = rawSnapshot();
+    raw.passiveTree["4"] = {
+      kind: "node",
+      data: {
+        skill: 4,
+        name: "Pattern",
+        isOnlyImage: true,
+        group: 2,
+        orbit: 0,
+        orbitIndex: 0,
+        stats: {},
+        connections: [{ id: 1, orbit: 0 }],
+      },
+    };
+    const res = run(raw);
+    expect(byId(res.entities.passiveNode, "4")).toMatchObject({
+      kind: "decoration",
+      connections: [],
+    });
+    expect(res.warnings.filter((w) => w.id === "4")).toEqual([]);
+  });
+
   it("reports missing tree constants as an error", () => {
     const raw = rawSnapshot();
     delete raw.passiveTree.constants;
