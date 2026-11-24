@@ -20,7 +20,9 @@ Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
 Fehlende Quelldaten werden nicht erfunden: `BaseItem.dropLevel` und
 `Ascendancy.pointUnlocks` sind optional; Mod-Zeilen, deren Werte sich nicht
 eindeutig bestimmen lassen, stehen in `unresolved` (Grund `unmatched`,
-`ambiguous`, `lossy` oder `hidden`). Support-Kompatibilität bekommt ein
+`ambiguous`, `lossy` oder `hidden`), ebenso offene Stat-Zeilen von Passives.
+Gem-Stufenwerte ohne Stat-ID (Kosten je Ressource, Multiplikatoren, Cooldown
+…) stehen in `GemLevel.values` mit Schlüsseln aus dem Release. Support-Kompatibilität bekommt ein
 eigenes Ausdrucksschema (UND/ODER über Skill-Typen).
 
 Bekannte Lücken: Der Katalog kennt noch keine Bosse und keine

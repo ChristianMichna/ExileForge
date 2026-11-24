@@ -136,8 +136,13 @@ export type UniqueItem = z.infer<typeof UniqueItem>;
 export const GemLevel = z.object({
   level: z.int().positive(),
   requirements: Requirements,
-  /** Per-level values (cost, reservation, damage …) keyed by stat id. */
+  /** Per-level stat values keyed by stat id. */
   stats: z.record(z.string().min(1), z.number()),
+  /**
+   * Per-level values that have no stat id in the source (costs per resource,
+   * multipliers, cooldown …), keyed by a field id defined by the release.
+   */
+  values: z.record(ClassificationId, z.number()).default({}),
 });
 export type GemLevel = z.infer<typeof GemLevel>;
 
@@ -166,6 +171,7 @@ export const PassiveNode = z.object({
   /** Node kind (small, notable, keystone, jewel socket …) as defined by the release. */
   kind: ClassificationId,
   stats: z.array(z.object({ statId: StatId.optional(), text: z.string().min(1) })),
+  unresolved: z.array(UnresolvedLine).default([]),
   position: z.object({
     groupId: z.string().min(1),
     orbit: nonNegInt,
