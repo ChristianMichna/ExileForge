@@ -1,0 +1,25 @@
+# Loads real public PoE2 builds (tests/real_builds.txt) and checks that headless
+# PoB calculates the same numbers the PoB GUI stored in each build.
+# Runs on PRs, by hand, and weekly (early warning when PoB or builds change).
+name: Real builds through PoB
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 1"   # Mondays 05:17 UTC
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up headless PoB
+        run: tools/setup_pob.sh
+      - name: Check real builds
+        env:
+          DUMP_CODES: ""   # comma-separated build ids whose codes to print (debugging)
+        run: python tools/check_real_builds.py

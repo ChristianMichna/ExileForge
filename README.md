@@ -45,6 +45,18 @@ Abgleich mit dem bisherigen Stand: [docs/plan-abgleich.md](docs/plan-abgleich.md
 Entscheidungen: [docs/adr/](docs/adr/) ·
 Datenmodell: [docs/data-model.md](docs/data-model.md)
 
+## Proof of Concept: Path of Building headless
+
+Ein Build-Code rein, DPS, Leben und Resistenzen raus, gerechnet von PoB selbst.
+Läuft unter Linux/macOS und nativ unter Windows (in GitHub Actions getestet).
+Details und Grenzen: [docs/pob-headless.md](docs/pob-headless.md).
+
+```bash
+tools/setup_pob.sh                         # einmalig: PoB + passendes LuaJIT nach .pob/
+python3 -m pob_bridge stats <build-code>   # oder Link (pobb.in, poe.ninja, …) oder XML-Datei
+python3 -m unittest discover tests
+```
+
 ## Zeitplan
 
 PoE2 1.0 erscheint am 11.12.2026. Bis dahin entsteht das Fundament
