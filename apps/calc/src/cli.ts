@@ -25,6 +25,12 @@ function fail(message: string): never {
   process.exit(2);
 }
 
+function positiveInt(value: string, name: string): number {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) fail(`${name} must be a positive integer, got ${value}`);
+  return n;
+}
+
 const MAIN_STATS = [
   "CombinedDPS",
   "TotalDPS",
@@ -140,6 +146,7 @@ async function main(argv: string[]): Promise<number> {
         const v = res.stats[k];
         out(`  ${k.padEnd(16)} ${v === undefined ? "(not reported)" : v.toLocaleString("en-US")}`);
       }
+      for (const w of warnings) out(`Load message: ${w}`);
       for (const w of res.warnings) out(`Warning: ${w}`);
       if (res.unsupportedMods.length) {
         out(`Lines Path of Building does not support (${String(res.unsupportedMods.length)}):`);
@@ -153,7 +160,7 @@ async function main(argv: string[]): Promise<number> {
     return withPool(
       root,
       pobHome,
-      values.workers ? Number(values.workers) : undefined,
+      values.workers ? positiveInt(values.workers, "--workers") : undefined,
       async (pool) => {
         const outcomes = await checkGoldenBuilds(pool, root, values.only);
         out(
@@ -174,8 +181,8 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (command === "bench") {
-    const rounds = Number(values.rounds);
-    const workers = values.workers ? Number(values.workers) : 1;
+    const rounds = positiveInt(values.rounds, "--rounds");
+    const workers = values.workers ? positiveInt(values.workers, "--workers") : 1;
     const xml = await readFile(resolve(root, "evals/golden/builds/pobb-ljOBlCON5WGB.xml"), "utf8");
     const t0 = Date.now();
     return withPool(root, pobHome, workers, async (pool) => {

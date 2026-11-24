@@ -43,8 +43,12 @@ print = function(...)
 	end
 	local line = table.concat(parts, "\t")
 	stderr:write(line, "\n")
-	if capture and #capture < MAX_CAPTURED then
-		capture[#capture + 1] = line
+	if capture then
+		if #capture < MAX_CAPTURED then
+			capture[#capture + 1] = line
+		elseif #capture == MAX_CAPTURED then
+			capture[#capture + 1] = "(further Path of Building messages left out)"
+		end
 	end
 end
 
@@ -101,7 +105,15 @@ end
 -- no id; the worker then reports revision 0, which no published release uses.
 local dataReleaseId = init.dataReleaseId
 if type(dataReleaseId) ~= "string" then
-	dataReleaseId = latestTreeVersion and ("poe2-" .. latestTreeVersion:gsub("_", ".") .. "+r0") or nil
+	if type(latestTreeVersion) ~= "string" then
+		writeLine({ jsonrpc = "2.0", id = dkjson.null, error = {
+			code = -32000,
+			message = "Path of Building declares no tree version",
+			data = { kind = "worker_crashed", detail = "latestTreeVersion missing; cannot name the local data release" },
+		} }, dkjson)
+		os.exit(3)
+	end
+	dataReleaseId = "poe2-" .. latestTreeVersion:gsub("_", ".") .. "+r0"
 end
 local varList = LoadModule("Modules/ConfigOptions")
 local varByName = {}
@@ -352,7 +364,11 @@ end
 local function collectStats(warnings)
 	local stats = {}
 	local nonFinite = {}
-	for key, value in pairs(build.calcsTab.mainOutput or {}) do
+	local output = build.calcsTab.mainOutput
+	if type(output) ~= "table" or next(output) == nil then
+		fail("calc_failed", "Path of Building produced no output for this build")
+	end
+	for key, value in pairs(output) do
 		if type(key) == "string" and type(value) == "number" then
 			if isFiniteNumber(value) then
 				stats[key] = value
@@ -370,7 +386,11 @@ end
 
 local function buildWarnings()
 	local out = {}
-	for _, line in pairs(build.controls.warnings and build.controls.warnings.lines or {}) do
+	local control = build.controls.warnings
+	if not (control and type(control.lines) == "table") then
+		fail("calc_failed", "Path of Building's warning list is missing", "build.controls.warnings.lines")
+	end
+	for _, line in pairs(control.lines) do
 		out[#out + 1] = tostring(line)
 	end
 	table.sort(out)

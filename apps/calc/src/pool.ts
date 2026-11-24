@@ -28,6 +28,20 @@ export type PoolEvent =
   | { type: "slot-disabled"; slot: number; error: CalcServiceError }
   | { type: "release-failed"; slot: number; handle: string; error: unknown };
 
+/** Validates a worker answer the pool uses internally; a bad answer is `calc_failed`. */
+function workerResult<M extends CalcMethodName>(method: M, raw: unknown): CalcResultOf<M> {
+  try {
+    return parseCalcResult(method, raw);
+  } catch (cause) {
+    throw new CalcServiceError(
+      "calc_failed",
+      `Calc worker returned an invalid result for ${method}`,
+      cause instanceof Error && cause.cause instanceof Error ? cause.cause.message : undefined,
+      { cause },
+    );
+  }
+}
+
 export interface CalcPoolOptions {
   install: PobInstall;
   profiles: ReadonlyMap<string, CalcProfile>;
@@ -89,6 +103,7 @@ export class CalcPool {
   private readonly builds = new Map<string, StoredBuild>();
   private nextHandle = 1;
   private closed = false;
+  private readonly timers = new Set<NodeJS.Timeout>();
   private lastStartError: CalcServiceError | undefined;
   private metaInfo: CalcResultOf<"meta.version"> | undefined;
 
@@ -186,17 +201,7 @@ export class CalcPool {
         { cause },
       );
     }
-    const raw = await this.dispatch(method, p);
-    try {
-      return parseCalcResult(method, raw);
-    } catch (cause) {
-      throw new CalcServiceError(
-        "calc_failed",
-        `Calc worker returned an invalid result for ${method}`,
-        cause instanceof Error && cause.cause instanceof Error ? cause.cause.message : undefined,
-        { cause },
-      );
-    }
+    return workerResult(method, await this.dispatch(method, p));
   }
 
   private async dispatch(method: CalcMethodName, params: unknown): Promise<unknown> {
@@ -236,7 +241,7 @@ export class CalcPool {
         { format: "xml", payload: xml },
         this.opts.config.requestTimeoutMs,
       );
-      const res = parseCalcResult("build.load", raw);
+      const res = workerResult("build.load", raw);
       this.builds.set(handle, { xml });
       slot.handles.set(handle, res.handle);
       return { handle, warnings: res.warnings };
@@ -247,7 +252,7 @@ export class CalcPool {
     const raw = await this.withBuild(p.handle, (worker, wh) =>
       worker.call("build.export", { handle: wh, format: "xml" }, this.opts.config.requestTimeoutMs),
     );
-    const res = parseCalcResult("build.export", raw);
+    const res = workerResult("build.export", raw);
     return p.format === "code" ? { payload: encodeBuildCode(res.payload) } : res;
   }
 
@@ -280,7 +285,12 @@ export class CalcPool {
           { format: "xml", payload: stored.xml },
           this.opts.config.requestTimeoutMs,
         );
-        wh = parseCalcResult("build.load", raw).handle;
+        wh = workerResult("build.load", raw).handle;
+        if (!this.builds.has(handle)) {
+          // Released while it was loading: free it in the worker, too.
+          slot.toRelease.push(wh);
+          throw new CalcServiceError("unknown_handle", "Build was released", handle);
+        }
         slot.handles.set(handle, wh);
       }
       return fn(worker, wh);
@@ -343,7 +353,8 @@ export class CalcPool {
 
   private releaseSlot(slot: Slot): void {
     slot.busy = false;
-    slot.requests++;
+    // A crashed worker's slot was reset already; its replacement starts at 0.
+    if (slot.worker?.alive) slot.requests++;
     if (slot.worker?.alive && slot.requests >= this.opts.config.recycleAfterRequests) {
       this.emit({ type: "worker-recycled", slot: slot.index, requests: slot.requests });
       const old = slot.worker;
@@ -385,7 +396,24 @@ export class CalcPool {
       await worker.stop();
       return;
     }
-    this.metaInfo ??= worker.meta;
+    const known = this.metaInfo;
+    const meta = worker.meta;
+    if (
+      known &&
+      meta &&
+      (meta.pobVersion !== known.pobVersion ||
+        meta.dataHash !== known.dataHash ||
+        meta.dataReleaseId !== known.dataReleaseId)
+    ) {
+      // E.g. the PoB install was replaced on disk: one pool serves one version.
+      await worker.stop();
+      throw new CalcServiceError(
+        "protocol_mismatch",
+        "New calc worker runs another PoB version or data than the pool",
+        `${meta.pobVersion}/${meta.dataReleaseId} instead of ${known.pobVersion}/${known.dataReleaseId}`,
+      );
+    }
+    this.metaInfo ??= meta;
     slot.worker = worker;
     slot.startFailures = 0;
     this.emit({
@@ -409,6 +437,7 @@ export class CalcPool {
   private respawn(slot: Slot): void {
     if (this.closed) return;
     this.spawnInto(slot).catch((err: unknown) => {
+      if (this.closed) return;
       const error =
         err instanceof CalcServiceError
           ? err
@@ -431,7 +460,11 @@ export class CalcPool {
         }
         return;
       }
-      setTimeout(() => this.respawn(slot), this.opts.config.restartBackoffMs * slot.startFailures);
+      const timer = setTimeout(() => {
+        this.timers.delete(timer);
+        this.respawn(slot);
+      }, this.opts.config.restartBackoffMs * slot.startFailures);
+      this.timers.add(timer);
     });
   }
 
@@ -445,13 +478,20 @@ export class CalcPool {
   }
 
   private emit(event: PoolEvent): void {
-    this.opts.onEvent?.(event);
+    if (this.opts.onEvent) {
+      this.opts.onEvent(event);
+    } else if (event.type === "release-failed" || event.type === "slot-disabled") {
+      // Without a listener these would go unnoticed.
+      console.warn(`[calc] ${event.type} in slot ${String(event.slot)}`, event);
+    }
   }
 
   /** Stops all workers, rejects queued requests and removes temporary files. */
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
+    for (const t of this.timers) clearTimeout(t);
+    this.timers.clear();
     for (const w of this.waiters.splice(0)) {
       w.reject(new CalcServiceError("worker_crashed", "Calc pool is closed"));
     }

@@ -13,6 +13,8 @@ import { type PobInstall, WORKER_LUA, workerLuaDir } from "./install.ts";
 export const RESPONSE_MARKER = "@@EXILEFORGE_RPC@@";
 /** Lines of PoB output kept for error messages. */
 const LOG_TAIL_LINES = 40;
+/** Longest stdout line accepted; a build export is at most a few MB. */
+const MAX_LINE_CHARS = 64 * 1024 * 1024;
 
 export interface WorkerOptions {
   install: PobInstall;
@@ -69,11 +71,31 @@ export class PobWorker {
     this.child.stdout.setEncoding("utf8").on("data", (d: string) => this.onStdout(d));
     this.child.stderr.setEncoding("utf8").on("data", (d: string) => this.onStderr(d));
     // A write to a dead worker raises EPIPE here; the exit handler reports it.
-    this.child.stdin.on("error", (err) => this.log(`stdin: ${err.message}`));
-    this.child.on("error", (err) =>
-      this.handleExit(`cannot run ${install.luajit}: ${err.message}`),
-    );
-    this.child.on("exit", (code, signal) =>
+    this.child.stdin.on("error", (err) => {
+      // EPIPE: the worker is gone or going; do not wait for the request timeout.
+      this.log(`stdin: ${err.message}`);
+      this.failPending(
+        new CalcServiceError(
+          "worker_crashed",
+          "Calc worker stopped reading requests",
+          err.message,
+          {
+            cause: err,
+          },
+        ),
+      );
+      this.kill();
+    });
+    this.child.on("error", (err) => {
+      // Without a pid the process never started; otherwise (e.g. a failed
+      // kill) it may still run, and `close` reports its end.
+      if (this.child.pid === undefined)
+        this.handleExit(`cannot run ${install.luajit}: ${err.message}`);
+      else this.log(`process error: ${err.message}`);
+    });
+    // `close`, not `exit`: it fires after stdout/stderr are drained, so a last
+    // response or error line written just before exiting is not lost.
+    this.child.on("close", (code, signal) =>
       this.handleExit(signal ? `killed by ${signal}` : `exit code ${String(code)}`),
     );
   }
@@ -129,6 +151,11 @@ export class PobWorker {
 
   private handleExit(arg: string): void {
     if (this.exited) return;
+    // Keep a last line without trailing newline in the tail.
+    if (this.stderrBuf) this.log(this.stderrBuf);
+    if (this.stdoutBuf) this.log(this.stdoutBuf);
+    this.stderrBuf = "";
+    this.stdoutBuf = "";
     this.exited = true;
     this.exitReason = arg;
     this.failPending(
@@ -211,12 +238,21 @@ export class PobWorker {
 
   private onStdout(chunk: string): void {
     this.stdoutBuf += chunk;
+    if (this.stdoutBuf.length > MAX_LINE_CHARS) {
+      this.protocolError(`stdout line longer than ${String(MAX_LINE_CHARS)} characters`);
+      this.stdoutBuf = "";
+      return;
+    }
     let nl: number;
     while ((nl = this.stdoutBuf.indexOf("\n")) >= 0) {
       const line = this.stdoutBuf.slice(0, nl).replace(/\r$/, "");
       this.stdoutBuf = this.stdoutBuf.slice(nl + 1);
-      if (line.startsWith(RESPONSE_MARKER)) this.onResponse(line.slice(RESPONSE_MARKER.length));
-      else if (line) this.log(line);
+      // PoB may have written to stdout without a newline before the response.
+      const at = line.indexOf(RESPONSE_MARKER);
+      if (at >= 0) {
+        if (at > 0) this.log(line.slice(0, at));
+        this.onResponse(line.slice(at + RESPONSE_MARKER.length));
+      } else if (line) this.log(line);
     }
   }
 

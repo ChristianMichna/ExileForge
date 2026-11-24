@@ -1,6 +1,8 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
+import { CalcServiceError } from "./errors.ts";
 import type { CalcPool } from "./pool.ts";
 
 /*
@@ -59,6 +61,18 @@ export function compareStats(
     .filter((d) => !sameValue(d.actual, d.expected, tol));
 }
 
+/** Message with the calc error kind and the cause chain, for the report. */
+function describe(err: unknown): string {
+  const parts: string[] = [];
+  for (let e: unknown = err; e !== undefined && parts.length < 5;) {
+    if (e instanceof CalcServiceError) parts.push(`[${e.kind}] ${e.message}`);
+    else if (e instanceof Error) parts.push(e.message);
+    else parts.push(String(e));
+    e = e instanceof Error ? e.cause : undefined;
+  }
+  return parts.join(" <- ");
+}
+
 async function readJson(path: string): Promise<unknown> {
   try {
     return JSON.parse(await readFile(path, "utf8"));
@@ -76,22 +90,40 @@ export async function checkGoldenBuilds(
   const dir = join(root, "evals", "golden");
   const config = GoldenConfig.parse(await readJson(join(dir, "config.json")));
   const manifest = Manifest.parse(await readJson(join(dir, "manifest.json")));
+  const unknown = (only ?? []).filter((id) => !manifest.builds.some((b) => b.id === id));
+  if (unknown.length) throw new Error(`golden builds not in the manifest: ${unknown.join(", ")}`);
   const builds = manifest.builds.filter((b) => !only || only.includes(b.id));
+  if (builds.length === 0) throw new Error(`no golden builds in ${dir}`);
   return Promise.all(
     builds.map(async ({ id }): Promise<GoldenOutcome> => {
+      const expectedPath = join(dir, "expected", `${id}.json`);
+      const buildPath = join(dir, "builds", `${id}.xml`);
+      // Only "not recorded yet" is a soft outcome; unreadable or invalid files are errors.
+      if (!existsSync(expectedPath) || !existsSync(buildPath)) {
+        return {
+          id,
+          status: "missing",
+          detail: "build or expected values not recorded",
+          diffs: [],
+        };
+      }
       let expected: z.infer<typeof Expected>;
       let xml: string;
       try {
-        expected = Expected.parse(await readJson(join(dir, "expected", `${id}.json`)));
-        xml = await readFile(join(dir, "builds", `${id}.xml`), "utf8");
+        expected = Expected.parse(await readJson(expectedPath));
+        xml = await readFile(buildPath, "utf8");
       } catch (err) {
-        return { id, status: "missing", detail: String(err), diffs: [] };
+        return { id, status: "error", detail: describe(err), diffs: [] };
       }
       const started = Date.now();
       try {
         const { handle } = await pool.request("build.load", { format: "xml", payload: xml });
-        const result = await pool.request("calc.stats", { handle, profile: "as-saved" });
-        await pool.request("build.release", { handle });
+        let result;
+        try {
+          result = await pool.request("calc.stats", { handle, profile: "as-saved" });
+        } finally {
+          await pool.request("build.release", { handle });
+        }
         const ms = Date.now() - started;
         if (result.pobVersion.replace(/^v/, "") !== expected.pobVersion.replace(/^v/, "")) {
           return {
@@ -113,7 +145,7 @@ export async function checkGoldenBuilds(
         return {
           id,
           status: "error",
-          detail: err instanceof Error ? err.message : String(err),
+          detail: describe(err),
           diffs: [],
         };
       }
