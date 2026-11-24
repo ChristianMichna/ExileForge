@@ -43,7 +43,7 @@ export function summarizeDiff(diff: SnapshotDiff): string {
   const lines = [
     `Diff ${diff.from} -> ${diff.to}`,
     "",
-    "| Art | neu | entfernt | geändert |",
+    "| Kind | added | removed | changed |",
     "| --- | ---: | ---: | ---: |",
   ];
   for (const [kind, d] of Object.entries(diff.kinds)) {
