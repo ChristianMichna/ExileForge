@@ -1,0 +1,17 @@
+{
+  "name": "ExileForge",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
+  },
+  "containerEnv": {
+    "EXILEFORGE_PLAYWRIGHT_DEPS": "1"
+  },
+  "postCreateCommand": "tools/dev-setup.sh",
+  "forwardPorts": [5173, 4173],
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "ms-playwright.playwright"]
+    }
+  }
+}

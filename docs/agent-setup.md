@@ -137,8 +137,10 @@ Konten, Rate Limits, OAuth) sind deshalb bewusst weggelassen.
 - Neue Agents/Skills nur mit Begründung in dieser Datei.
 - Bei Übernahme weiterer ECC-Teile: Kommentar mit Herkunft in die Datei,
   Tabelle oben ergänzen; die Lizenzdatei gilt weiter.
-- Kandidaten für später: Playwright-E2E für Electron (sobald `apps/ui`
-  existiert), `build-error-resolver` für pnpm/electron-builder,
+- Entwickler-Werkzeuge (CI, Playwright-Screenshots, Golden Builds,
+  Setup-Skript, MCP-Server und Plugins): `docs/dev-tooling.md`.
+- Kandidaten für später: Playwright-E2E gegen die Electron-Hülle (sobald
+  `apps/desktop` existiert), `build-error-resolver` für pnpm/electron-builder,
   Skill für `.build`-Export, sobald das Format im Spiel getestet ist,
   ECCs eigene Plugin-/Marketplace-Struktur als Vorlage für `.claude-plugin/`
   (Schritt 6 der Umsetzung).

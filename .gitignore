@@ -1,4 +1,24 @@
+# Node / pnpm / Turborepo
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
+# Headless PoB (tools/setup_pob.sh)
 .pob/
 __pycache__/
 *.pyc
 sample_build.xml
+
+# Golden builds: local run output
+evals/golden/out/
+
+# Screenshot baselines: only the linux ones (rendered in the Playwright container) are committed
+**/__screenshots__/**/*-win32.png
+**/__screenshots__/**/*-darwin.png
+.playwright-mcp/
