@@ -80,19 +80,25 @@ jobs:
         id: record
         if: steps.bridge.outputs.present == 'true'
         run: |
+          # Keep going after a rejected build so the accepted ones still reach
+          # the artifact; the step's exit code is restored at the end.
+          set +e
           if [ "${{ inputs.mode }}" = "record" ]; then
             python tools/golden_builds.py record
           else
             python tools/golden_builds.py record --missing
           fi
+          rc=$?
+          set -e
           if [ -n "$(git status --porcelain -- evals/golden)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "::warning::New golden data recorded. Review artifact 'golden-recorded' and commit it (see evals/golden/README.md)."
             git status --short -- evals/golden
           fi
+          exit $rc
 
       - name: Upload recorded golden data
-        if: steps.record.outputs.changed == 'true'
+        if: always() && steps.record.outputs.changed == 'true'
         uses: actions/upload-artifact@v5
         with:
           name: golden-recorded

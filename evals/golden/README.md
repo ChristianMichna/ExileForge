@@ -76,8 +76,10 @@ unsere Werte nicht unbemerkt verschieben.
 
 - `pr2-synthetic-fixture`: synthetischer Testbuild aus den Bridge-Tests
   (PR #2), mit PoB-Release v0.23.1 aufgezeichnet.
-- `pobb-ljOBlCON5WGB`, `pobb-fFCc0Ca4ROzt`: öffentliche Builds von pobb.in,
-  die im PR-#2-Lauf vom 2026-11-24 exakt den GUI-Werten entsprachen. Sie
-  werden beim ersten CI-Lauf mit Bridge geladen, aufgezeichnet und als
-  Artefakt `golden-recorded` abgelegt, weil pobb.in aus der Entwicklungs-
-  Sandbox nicht erreichbar ist.
+- `pobb-ljOBlCON5WGB`: öffentlicher Build von pobb.in (Tree 0.5), der im
+  PR-#2-Lauf vom 2026-11-24 exakt den GUI-Werten entsprach. In der CI geladen
+  und aufgezeichnet, weil pobb.in aus der Entwicklungs-Sandbox nicht
+  erreichbar ist.
+- Abgelehnt: `pobb-fFCc0Ca4ROzt` (Tree 0.4). Stimmt bei DPS, Leben und
+  Resistenzen, aber Rüstung, Ausweichen und EHP weichen von den GUI-Werten ab
+  (PR #2 vergleicht diese Werte nicht).
