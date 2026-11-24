@@ -9,15 +9,18 @@ aus: Leveling von Akt 1 bis Endgame, Passive Tree je Stufe, Gems, Ausrüstung
 und Crafting mit Kosten.
 
 > **Status:** Planungsphase. Es gibt noch keinen lauffähigen Code, nur
-> Architektur und Datenmodell (Entwurf v0.1).
+> Architektur und Datenmodell (Entwurf v0.2).
 
 ## Versprechen
 
 - **Jede Zahl kommt aus Path of Building.** Die KI schlägt vor, PoB rechnet.
   Keine geschätzten DPS- oder Lebenswerte.
-- **Läuft mit deinem Claude-Abo.** ExileForge nutzt die Claude-Code-CLI, die du
-  selbst installierst und mit deinem Pro/Max-Abo einloggst. Kein API-Key, und
-  ExileForge fasst deine Zugangsdaten nie an.
+- **Läuft mit deinem Claude-Abo.** Du planst im Chat von Claude Desktop (oder
+  Claude Code) mit deinem eigenen Pro/Max-Abo. ExileForge liefert die
+  Werkzeuge dazu als Claude-Erweiterung. Kein API-Key, und ExileForge fasst
+  deine Zugangsdaten nie an.
+- **Für Freunde gemacht.** Ein Installer, automatische Updates, die
+  Claude-Erweiterung per Doppelklick. Builds lassen sich als Datei teilen.
 - **Für Spieler gemacht.** Dunkler Dark-Fantasy-Look, Passive Tree, Item-Karten
   und Crafting-Abläufe grafisch.
 - **Direkt im Spiel nutzbar.** Export als `.build`-Datei für den Build Planner
@@ -27,13 +30,13 @@ und Crafting mit Kosten.
 
 ## Wie es funktioniert (kurz)
 
-ExileForge ist eine Desktop-App (Electron + React + TypeScript), die lokal
-läuft:
-
-1. **Path of Building PoE2** läuft unsichtbar im Hintergrund und rechnet.
-2. Die **Claude-Code-CLI** plant Varianten und Guide und greift dabei über einen
-   ExileForge-**MCP-Server** auf PoB, Spieldaten und Preise zu.
-3. Die **Oberfläche** zeigt Varianten, Stufen, Tree, Items und Crafting.
+1. Du installierst die **ExileForge-App** (Windows) und verbindest sie mit
+   **Claude Desktop** (Doppelklick auf die ExileForge-Erweiterung).
+2. Im Claude-Chat sagst du, welchen Skill du spielen willst und wie.
+   Claude plant Varianten und den Guide und nutzt dabei die
+   ExileForge-Werkzeuge, die mit **Path of Building PoE2** rechnen.
+3. Die **App** zeigt Varianten, Stufen, Tree, Items und Crafting, exportiert
+   die `.build`-Datei und prüft nach jedem Patch alles neu.
 
 Details: [docs/architecture.md](docs/architecture.md) ·
 Datenmodell: [docs/data-model.md](docs/data-model.md) ·
@@ -41,15 +44,15 @@ Beispiel: [examples/build.example.json](examples/build.example.json)
 
 ## Voraussetzungen (geplant)
 
-- Windows (PoE2 und der Build Planner sind PC-only; macOS/Linux später)
-- [Claude Code](https://code.claude.com) installiert und einmal mit deinem
-  Claude-Abo eingeloggt
+- Windows-PC (PoE2 und der Build Planner sind PC-only)
+- [Claude Desktop](https://claude.ai/download) mit deinem eigenen Claude-Abo
+  (oder Claude Code)
 - Path of Exile 2 ab Patch 0.5 für den `.build`-Import
 
 ## Nächste Schritte
 
 1. Proof of Concept: Path of Building PoE2 headless rechnen lassen
-2. Proof of Concept: `claude -p` mit ExileForge-MCP-Werkzeug
+2. Proof of Concept: ExileForge-Werkzeug als Erweiterung in Claude Desktop
 3. JSON Schema und Übersetzung ins PoB-Format
 4. `.build`-Export im Spiel testen
 5. App-Gerüst mit Design-System
