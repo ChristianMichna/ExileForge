@@ -7,7 +7,9 @@ import {
   CatalogManifest,
   CatalogShard,
   DataRelease,
+  GemLevel,
   Mod,
+  PassiveNode,
   StatRange,
   UniqueModLine,
   StatTranslation,
@@ -133,6 +135,31 @@ describe("entities", () => {
     expect(UniqueModLine.parse(line).unresolved).toHaveLength(1);
     const bad = { stats: [], unresolved: [{ text: "Fixture line", reason: "guessed" }] };
     expect(UniqueModLine.safeParse(bad).success).toBe(false);
+  });
+
+  it("passive nodes keep unresolved stat lines", () => {
+    const node = {
+      id: "fixture_node_1",
+      name: "Fixture Node",
+      kind: "fixture_kind",
+      stats: [{ text: "Fixture line" }],
+      position: { groupId: "g1", orbit: 0, orbitIndex: 0 },
+      connections: [],
+    };
+    expect(PassiveNode.parse(node).unresolved).toEqual([]);
+    const withLine = { ...node, unresolved: [{ text: "Fixture line", reason: "unmatched" }] };
+    expect(PassiveNode.parse(withLine).unresolved).toHaveLength(1);
+  });
+
+  it("gem levels carry values without stat id separately", () => {
+    const level = { level: 1, requirements: {}, stats: { fixture_stat: 1 } };
+    expect(GemLevel.parse(level).values).toEqual({});
+    const withValues = { ...level, values: { "fixture.cost": 2, fixture_multiplier: 1.5 } };
+    expect(GemLevel.parse(withValues).values).toEqual({
+      "fixture.cost": 2,
+      fixture_multiplier: 1.5,
+    });
+    expect(GemLevel.safeParse({ ...level, values: { x: "2" } }).success).toBe(false);
   });
 
   it("ascendancy point unlocks may be absent", () => {
