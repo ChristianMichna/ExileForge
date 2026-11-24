@@ -85,14 +85,20 @@ export async function readShard(
   const shard = manifest.shards.find((s) => s.kind === kind);
   if (!shard) throw new Error(`snapshot ${manifest.releaseId} has no kind ${kind}`);
   const path = join(dir, shard.path);
-  let text: string;
+  let bytes: Buffer;
   try {
-    text = await readFile(path, "utf8");
+    bytes = await readFile(path);
   } catch (cause) {
     throw new Error(`cannot read shard ${path}`, { cause });
   }
-  if (sha256(text) !== shard.sha256) {
+  if (sha256(bytes) !== shard.sha256) {
     throw new Error(`shard ${path} does not match its manifest hash`);
+  }
+  let text: string;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch (cause) {
+    throw new Error(`shard ${path} is not valid UTF-8`, { cause });
   }
   const parsed = shardFileSchema.parse(JSON.parse(text));
   if (parsed.kind !== kind)

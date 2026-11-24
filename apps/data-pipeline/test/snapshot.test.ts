@@ -86,6 +86,12 @@ describe("snapshots", () => {
     await expect(diffSnapshots(a, b)).rejects.toThrow(/different kinds/);
   });
 
+  it("refuses to diff a release against itself", async () => {
+    const a = await fakeSnapshot("poe2-9.1+r1", { widgets: { W1: {} } });
+    const b = await fakeSnapshot("poe2-9.1+r1", { widgets: { W1: {} } });
+    await expect(diffSnapshots(a, b)).rejects.toThrow(/two different releases/);
+  });
+
   it("detects a shard that does not match its manifest hash", async () => {
     const dir = await fakeSnapshot("poe2-9.1+r1", { widgets: { W1: {} } });
     await writeFile(

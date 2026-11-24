@@ -13,6 +13,9 @@ import { extractRaw, pobInstallFromHome } from "../src/pob/extract.ts";
 const POB_HOME = fileURLToPath(new URL("../../../.pob", import.meta.url));
 const pob = pobInstallFromHome(POB_HOME);
 const hasPob = existsSync(pob.luajit) && existsSync(join(pob.srcDir, "HeadlessWrapper.lua"));
+if (!hasPob && process.env.REQUIRE_POB === "1") {
+  throw new Error(`REQUIRE_POB=1 but no PoB install at ${POB_HOME}`);
+}
 
 describe("extractRaw (missing PoB)", () => {
   it("fails with a hint to the setup script", async () => {

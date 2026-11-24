@@ -36,6 +36,8 @@ jobs:
       GAME_VERSION: ${{ inputs.game-version || '0.0' }}
       REVISION: ${{ inputs.revision || '0' }}
       COMPARE_REF: ${{ inputs.compare-pob-ref }}
+      # the integration test must not be skipped here
+      REQUIRE_POB: "1"
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -70,7 +72,7 @@ jobs:
             cp .pob/luajit .pob-old/ && cp -r .pob/lib .pob-old/
           '
           node apps/data-pipeline/dist/cli.js snapshot \
-            --game-version "$GAME_VERSION" --revision 0 --pob-home .pob-old --out data-snapshots/previous
+            --game-version 0.0 --revision 0 --pob-home .pob-old --out data-snapshots/previous
           node apps/data-pipeline/dist/cli.js diff data-snapshots/previous data-snapshots/current
           cat data-snapshots/current/diff.md >> "$GITHUB_STEP_SUMMARY"
 

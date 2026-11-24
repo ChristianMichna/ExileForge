@@ -15,6 +15,11 @@ export interface SnapshotDiff {
  */
 export async function diffSnapshots(fromDir: string, toDir: string): Promise<SnapshotDiff> {
   const [from, to] = await Promise.all([readManifest(fromDir), readManifest(toDir)]);
+  if (from.releaseId === to.releaseId) {
+    throw new Error(
+      `both snapshots have release id ${from.releaseId}; a diff needs two different releases`,
+    );
+  }
   const fromKinds = from.shards.map((s) => s.kind).sort();
   const toKinds = to.shards.map((s) => s.kind).sort();
   const missing = [

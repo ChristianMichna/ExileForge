@@ -37,7 +37,7 @@ per „Run workflow" mit Spielversion und optionalem Vergleich gegen einen
 | Art | Quelle in PoB | ID |
 | --- | --- | --- |
 | `itemBases` | `Data/Bases/*.lua` | Basis-Name (PoB führt keine Metadata-ID für Basen) |
-| `mods` | `Data/Mod*.lua`, Feld `domains` = Herkunftsdatei | Mod-ID des Spiels |
+| `mods` | `Data/Mod*.lua`, Feld `domains` = Herkunftsdatei (Dateiname ohne `Mod`) | Mod-ID des Spiels |
 | `runes` | `Data/ModRunes.lua` | Name |
 | `essences` | `Data/Essence.lua` | Metadata-ID |
 | `gems` | `Data/Gems.lua` | Metadata-ID |
@@ -54,6 +54,10 @@ Regeln des Extraktors:
   `"$lua-function"`.
 - Dieselbe ID aus zwei Quellen ist nur erlaubt, wenn der Inhalt identisch ist
   (z. B. ein Mod für Flasks und Charms); sonst Fehler.
+- `uniques` und `passiveTree` übernehmen eine feste Feldauswahl (siehe
+  Loader in `lua/extract.lua`); neue PoB-Felder dort erscheinen erst nach
+  Anpassung des Loaders im Snapshot und im Diff. Alle anderen Arten werden
+  vollständig übernommen.
 - `SkillType`-Werte werden als Namen ausgegeben, nicht als PoB-interne Zahlen.
 - Eine leere Art, ein Glob ohne Treffer oder ein Snapshot mit falschem Hash ist
   ein Fehler, nie ein leeres Ergebnis.

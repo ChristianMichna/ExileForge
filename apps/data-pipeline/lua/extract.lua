@@ -120,7 +120,11 @@ encode = function(v, path, stack, out)
 			local lookup = {}
 			for k in pairs(v) do
 				local kt = type(k)
-				lookup[kt == "number" and encodeNumber(k, path) or tostring(k)] = k
+				local ks = kt == "number" and encodeNumber(k, path) or tostring(k)
+				if lookup[ks] ~= nil then
+					error("keys " .. tostring(lookup[ks]) .. " and " .. tostring(k) .. " collide as JSON key at " .. path)
+				end
+				lookup[ks] = k
 			end
 			out[#out + 1] = "{"
 			for i, ks in ipairs(keys) do

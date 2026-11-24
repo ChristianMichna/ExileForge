@@ -9,13 +9,13 @@
         { "loader": "return", "file": "Data/ModFlask.lua", "tag": { "domains": "Flask" } },
         { "loader": "return", "file": "Data/ModCharm.lua", "tag": { "domains": "Charm" } },
         { "loader": "return", "file": "Data/ModJewel.lua", "tag": { "domains": "Jewel" } },
-        { "loader": "return", "file": "Data/ModCorrupted.lua", "tag": { "domains": "Corruption" } },
+        { "loader": "return", "file": "Data/ModCorrupted.lua", "tag": { "domains": "Corrupted" } },
         {
           "loader": "return",
           "file": "Data/ModItemExclusive.lua",
-          "tag": { "domains": "Exclusive" }
+          "tag": { "domains": "ItemExclusive" }
         },
-        { "loader": "return", "file": "Data/ModVeiled.lua", "tag": { "domains": "Desecrated" } },
+        { "loader": "return", "file": "Data/ModVeiled.lua", "tag": { "domains": "Veiled" } },
         {
           "loader": "return",
           "file": "Data/ModIncursionLimb.lua",
