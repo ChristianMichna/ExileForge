@@ -14,4 +14,4 @@ python3 -m pob_bridge stats <build-code>   # oder Link (pobb.in, poe.ninja, …)
 python3 -m unittest discover tests
 ```
 
-Voraussetzungen: Python 3.9+, git, make, C-Compiler (Linux/macOS). Windows ohne WSL: siehe Abschnitt „Windows ohne WSL“ in der Doku (wahrscheinlich machbar, noch nicht ausgeführt).
+Voraussetzungen: Python 3.9+, git, make, C-Compiler (Linux/macOS). Windows ohne WSL: siehe Abschnitt „Windows ohne WSL“ in der Doku (läuft nativ, in GitHub Actions getestet).

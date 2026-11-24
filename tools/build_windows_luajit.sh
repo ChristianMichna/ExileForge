@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cross-compiles a tiny luajit.exe for Windows that uses PoB's own lua51.dll.
-# EXPERIMENTAL: builds cleanly, but has NOT been run on Windows yet (see docs/pob-headless.md).
+# Verified on GitHub Actions windows-latest (see .github/workflows/windows-pob.yml); MSVC build preferred.
 #
 # PoB's Windows runtime (PathOfBuilding-PoE2/runtime/) already ships the exact
 # LuaJIT it needs as lua51.dll plus lua-utf8.dll. Only the small command line

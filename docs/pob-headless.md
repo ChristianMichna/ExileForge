@@ -100,7 +100,7 @@ python3 -m unittest discover tests
 4. **Ca. 2,5–3 s pro Aufruf**, fast alles davon PoB-Start (Baum + Item-Datenbank laden). Für viele
    Varianten hintereinander (Leveling-Stufen, Item-Vergleiche) sollte später ein dauerhaft laufender
    PoB-Prozess mehrere Builds nacheinander rechnen. Vermutung: dann deutlich unter 0,5 s pro Build.
-5. **Windows nativ: sehr wahrscheinlich machbar, aber noch nicht ausgeführt.** Details im Abschnitt
+5. **Windows nativ läuft (in GitHub Actions getestet), auf einem normalen Spieler-PC noch nicht.** Details im Abschnitt
    „Windows ohne WSL“ unten.
 6. **„missing node …“-Meldungen** beim Start kommen von PoB selbst (Baumdaten), sie beeinflussen die
    Rechnung nach bisherigem Stand nicht. Ungeprüft im Detail.
@@ -125,9 +125,21 @@ Ziel: Freunde sollen die App unter Windows einfach installieren können, ohne WS
   importiert nur `KERNEL32`, `msvcrt` und `lua51.dll`).
 - Der Lua-Runner (`pob_bridge/lua/runner.lua`) nutzt nichts Linux-Spezifisches.
 
-**Was nicht geprüft ist:** Ausgeführt habe ich das unter Windows noch nicht. Wine stürzt in der
-Cloud-Umgebung schon beim Start ab, ein echtes Windows hatte ich nicht. Nächster Schritt ist ein Lauf auf
-einem Windows-Rechner oder in einem GitHub-Actions-Windows-Runner.
+**Ergebnis GitHub Actions (windows-latest, 2026-11-24): läuft nativ, ohne WSL.**
+Workflow `.github/workflows/windows-pob.yml`, zwei Varianten von `luajit.exe`, beide grün:
+
+| Variante | Unit-Tests | Umlaut-/Leerzeichen-Pfad (`Jörg Ü test`) | Laufzeit pro Build |
+|---|---|---|---|
+| MSVC (`msvcbuild.bat`, UCRT) | 5/5 | ok | 2,4 s |
+| MinGW gcc gegen PoBs `lua51.dll` | 5/5 | ok | ca. 2,5 s |
+
+Der Testbuild liefert unter Windows exakt dieselben Zahlen wie unter Linux (Leben 1124, ES 294,
+Resistenzen -20/-25/-15/20 %, DPS 117,9). Empfehlung für die App: die MSVC-Variante, weil sie dieselbe
+C-Laufzeit wie PoBs DLLs nutzt.
+
+Noch offen: ein echter Rechner ohne Visual-Studio-Runtime (der Runner hat alles vorinstalliert; PoB
+liefert `vcruntime140.dll` u. a. aber selbst im `runtime/`-Ordner mit) und Windows-Pfade, die nicht
+UTF-8-tauglich sind (z. B. kyrillische Benutzernamen).
 
 **Bekannte Risiken (Vermutungen):**
 
