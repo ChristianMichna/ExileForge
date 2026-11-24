@@ -11,3 +11,4 @@ evals/golden/builds/
 # Existing files kept as written; format when they are next changed.
 .claude/hooks/
 examples/
+packages/contracts/schemas/
