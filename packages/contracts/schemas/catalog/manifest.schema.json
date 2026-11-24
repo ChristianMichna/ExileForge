@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "release": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "gameVersion": {
+          "type": "string",
+          "pattern": "^\\d+(?:\\.\\d+){1,3}$",
+          "description": "Game version as reported by the data source"
+        },
+        "pobVersion": {
+          "type": "string",
+          "pattern": "^v?\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$",
+          "description": "Path of Building PoE2 release tag"
+        },
+        "pipelineRevision": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "sourceHashes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "SHA-256 as lowercase hex"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+          "description": "ISO 8601 timestamp"
+        },
+        "previousReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "diffPath": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+          "description": "Path relative to the data release root"
+        }
+      },
+      "required": [
+        "id",
+        "gameVersion",
+        "pobVersion",
+        "pipelineRevision",
+        "sourceHashes",
+        "createdAt"
+      ]
+    },
+    "shards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "baseItem",
+              "mod",
+              "uniqueItem",
+              "gem",
+              "passiveNode",
+              "characterClass",
+              "ascendancy",
+              "craftingAction",
+              "statTranslation"
+            ],
+            "description": "Kind of catalog entity (ExileForge's own grouping, not a game concept)"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+            "description": "Path relative to the data release root"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "SHA-256 as lowercase hex"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "kind",
+          "path",
+          "sha256",
+          "count"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "release",
+    "shards"
+  ]
+}

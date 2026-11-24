@@ -1,0 +1,43 @@
+{
+  "$comment": "Which PoB-PoE2 data modules form which raw catalog kind. Paths are relative to PoB's src/ directory. A new data file in a PoB release is a change here, not in code. Loaders: see apps/data-pipeline/lua/extract.lua.",
+  "kinds": [
+    { "kind": "itemBases", "sources": [{ "loader": "fill", "glob": "Data/Bases/*.lua" }] },
+    {
+      "kind": "mods",
+      "sources": [
+        { "loader": "return", "file": "Data/ModItem.lua", "tag": { "domains": "Item" } },
+        { "loader": "return", "file": "Data/ModFlask.lua", "tag": { "domains": "Flask" } },
+        { "loader": "return", "file": "Data/ModCharm.lua", "tag": { "domains": "Charm" } },
+        { "loader": "return", "file": "Data/ModJewel.lua", "tag": { "domains": "Jewel" } },
+        { "loader": "return", "file": "Data/ModCorrupted.lua", "tag": { "domains": "Corrupted" } },
+        {
+          "loader": "return",
+          "file": "Data/ModItemExclusive.lua",
+          "tag": { "domains": "ItemExclusive" }
+        },
+        { "loader": "return", "file": "Data/ModVeiled.lua", "tag": { "domains": "Veiled" } },
+        {
+          "loader": "return",
+          "file": "Data/ModIncursionLimb.lua",
+          "tag": { "domains": "IncursionLimb" }
+        }
+      ]
+    },
+    { "kind": "runes", "sources": [{ "loader": "return", "file": "Data/ModRunes.lua" }] },
+    { "kind": "essences", "sources": [{ "loader": "return", "file": "Data/Essence.lua" }] },
+    { "kind": "gems", "sources": [{ "loader": "return", "file": "Data/Gems.lua" }] },
+    {
+      "kind": "skills",
+      "functions": "marker",
+      "sources": [
+        {
+          "loader": "skills",
+          "glob": "Data/Skills/*.lua",
+          "exclude": ["Data/Skills/SkillAssets.lua"]
+        }
+      ]
+    },
+    { "kind": "uniques", "sources": [{ "loader": "uniqueDB" }] },
+    { "kind": "passiveTree", "sources": [{ "loader": "tree", "treeVersion": "latest" }] }
+  ]
+}

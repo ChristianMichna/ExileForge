@@ -1,0 +1,1179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "baseItem"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Base item type id – internal game id from the data release"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Display name in the release's default language"
+              },
+              "itemClass": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Classification id defined by the data release (not a fixed enum)"
+                }
+              },
+              "requirements": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "attributes": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    },
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                }
+              },
+              "implicitModIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "description": "Mod id – internal game id from the data release"
+                }
+              },
+              "properties": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "min": {
+                          "type": "number"
+                        },
+                        "max": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "min",
+                        "max"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "socketCapacity": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "dropLevel": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "icon": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+                "description": "Path relative to the data release root"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "itemClass",
+              "tags",
+              "requirements",
+              "implicitModIds",
+              "properties",
+              "dropLevel"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "mod"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Mod id – internal game id from the data release"
+              },
+              "groups": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Classification id defined by the data release (not a fixed enum)"
+                }
+              },
+              "generationType": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              },
+              "domain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              },
+              "tier": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "requiredLevel": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "stats": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "statId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Stat id – internal game id from the data release"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "statId",
+                    "min",
+                    "max"
+                  ]
+                }
+              },
+              "spawnWeights": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "tag": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    },
+                    "weight": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "tag",
+                    "weight"
+                  ]
+                }
+              },
+              "tags": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Classification id defined by the data release (not a fixed enum)"
+                }
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "groups",
+              "generationType",
+              "domain",
+              "requiredLevel",
+              "stats",
+              "spawnWeights"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "uniqueItem"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Unique item id – internal game id from the data release"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Display name in the release's default language"
+              },
+              "baseItemId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Base item type id – internal game id from the data release"
+              },
+              "mods": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "modId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Mod id – internal game id from the data release"
+                    },
+                    "stats": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "statId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 512,
+                            "description": "Stat id – internal game id from the data release"
+                          },
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "statId",
+                          "min",
+                          "max"
+                        ]
+                      }
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "variantIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "stats"
+                  ]
+                }
+              },
+              "variants": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Display name in the release's default language"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                }
+              },
+              "introducedIn": {
+                "type": "string",
+                "pattern": "^\\d+(?:\\.\\d+){1,3}$",
+                "description": "Game version as reported by the data source"
+              },
+              "dropSources": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "icon": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+                "description": "Path relative to the data release root"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "baseItemId",
+              "mods"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "gem"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Gem id – internal game id from the data release"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Display name in the release's default language"
+              },
+              "kind": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Classification id defined by the data release (not a fixed enum)"
+                }
+              },
+              "levels": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "level": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "requirements": {
+                      "type": "object",
+                      "properties": {
+                        "level": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "attributes": {
+                          "default": {},
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256,
+                            "description": "Classification id defined by the data release (not a fixed enum)"
+                          },
+                          "additionalProperties": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        }
+                      }
+                    },
+                    "stats": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "required": [
+                    "level",
+                    "requirements",
+                    "stats"
+                  ]
+                }
+              },
+              "qualityStats": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "statId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Stat id – internal game id from the data release"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "statId",
+                    "min",
+                    "max"
+                  ]
+                }
+              },
+              "supportRules": {
+                "type": "object",
+                "properties": {
+                  "requiredTags": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    }
+                  },
+                  "excludedTags": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    }
+                  }
+                }
+              },
+              "icon": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+                "description": "Path relative to the data release root"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "tags",
+              "levels"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "passiveNode"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Passive skill id – internal game id from the data release"
+              },
+              "pobNodeId": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Display name in the release's default language"
+              },
+              "kind": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              },
+              "stats": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "statId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Stat id – internal game id from the data release"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ]
+                }
+              },
+              "position": {
+                "type": "object",
+                "properties": {
+                  "groupId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "orbit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "orbitIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "groupId",
+                  "orbit",
+                  "orbitIndex"
+                ]
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "description": "Passive skill id – internal game id from the data release"
+                }
+              },
+              "classStartFor": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "description": "Character class id – internal game id from the data release"
+                }
+              },
+              "ascendancyId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Ascendancy id – internal game id from the data release"
+              },
+              "icon": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+                "description": "Path relative to the data release root"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "stats",
+              "position",
+              "connections"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "characterClass"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Character class id – internal game id from the data release"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Display name in the release's default language"
+              },
+              "baseAttributes": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Classification id defined by the data release (not a fixed enum)"
+                },
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "startNodeId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Passive skill id – internal game id from the data release"
+              },
+              "ascendancyIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "description": "Ascendancy id – internal game id from the data release"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "baseAttributes",
+              "startNodeId",
+              "ascendancyIds"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "ascendancy"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Ascendancy id – internal game id from the data release"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Display name in the release's default language"
+              },
+              "classId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Character class id – internal game id from the data release"
+              },
+              "startNodeId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Passive skill id – internal game id from the data release"
+              },
+              "nodeIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "description": "Passive skill id – internal game id from the data release"
+                }
+              },
+              "pointUnlocks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    },
+                    "points": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "points"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "classId",
+              "nodeIds",
+              "pointUnlocks"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "craftingAction"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Crafting action id – internal game id from the data release"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Display name in the release's default language"
+              },
+              "kind": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              },
+              "itemId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Base item type id – internal game id from the data release"
+              },
+              "preconditions": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "params": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    }
+                  },
+                  "required": [
+                    "op"
+                  ]
+                }
+              },
+              "effects": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "params": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    }
+                  },
+                  "required": [
+                    "op"
+                  ]
+                }
+              },
+              "icon": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!\\/)(?!.*\\.\\.)[\\w./-]+$",
+                "description": "Path relative to the data release root"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "effects"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "dataReleaseId": {
+          "type": "string",
+          "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+          "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+        },
+        "kind": {
+          "type": "string",
+          "const": "statTranslation"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Stat translation id – internal game id from the data release"
+              },
+              "statIds": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "description": "Stat id – internal game id from the data release"
+                }
+              },
+              "lang": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 35
+              },
+              "variants": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "conditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          },
+                          "negated": {
+                            "default": false,
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "template": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "formatters": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "conditions",
+                    "template"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "statIds",
+              "lang",
+              "variants"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "dataReleaseId",
+        "kind",
+        "entities"
+      ]
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      ]
+    }
+  }
+}
