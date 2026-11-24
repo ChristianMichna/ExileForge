@@ -1,0 +1,86 @@
+{
+  "manifest": {
+    "schemaVersion": 1,
+    "release": {
+      "id": "poe2-9.8.7+r3",
+      "gameVersion": "9.8.7",
+      "pobVersion": "v9.9.9",
+      "pipelineRevision": 3,
+      "sourceHashes": {
+        "fixture-source": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "createdAt": "2026-01-01T00:00:00Z",
+      "previousReleaseId": "poe2-9.8.7+r2",
+      "diffPath": "diff.json"
+    },
+    "shards": [
+      {
+        "kind": "baseItem",
+        "path": "baseItem.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "count": 1
+      },
+      {
+        "kind": "mod",
+        "path": "mod.json",
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "count": 1
+      }
+    ]
+  },
+  "shards": [
+    {
+      "schemaVersion": 1,
+      "dataReleaseId": "poe2-9.8.7+r3",
+      "kind": "baseItem",
+      "entities": [
+        {
+          "id": "Fixture/Items/BaseAlpha",
+          "name": "Fixture Base Alpha",
+          "itemClass": "fixture_class",
+          "tags": ["fixture_tag_a"],
+          "requirements": { "level": 3, "attributes": { "fixture_attr": 5 } },
+          "implicitModIds": ["FixtureImplicit1"],
+          "properties": { "fixture_prop": 10, "fixture_range": { "min": 1, "max": 2 } },
+          "dropLevel": 1,
+          "icon": "icons/fixture/base-alpha.webp"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "dataReleaseId": "poe2-9.8.7+r3",
+      "kind": "mod",
+      "entities": [
+        {
+          "id": "FixtureMod1",
+          "groups": ["fixture_group"],
+          "generationType": "fixture_gen",
+          "domain": "fixture_domain",
+          "tier": 1,
+          "requiredLevel": 1,
+          "stats": [{ "statId": "fixture_stat", "min": 1, "max": 4 }],
+          "spawnWeights": [{ "tag": "fixture_tag_a", "weight": 100 }],
+          "text": "Fixture text {0}"
+        }
+      ]
+    }
+  ],
+  "diff": {
+    "schemaVersion": 1,
+    "from": "poe2-9.8.7+r2",
+    "to": "poe2-9.8.7+r3",
+    "kinds": {
+      "mod": {
+        "added": ["FixtureMod1"],
+        "removed": ["FixtureModOld"],
+        "changed": [
+          {
+            "id": "FixtureMod2",
+            "fields": [{ "path": "/stats/0/max", "before": 3, "after": 4 }]
+          }
+        ]
+      }
+    }
+  }
+}
