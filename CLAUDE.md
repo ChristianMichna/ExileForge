@@ -18,13 +18,13 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
 - `docs/adr/` – Architekturentscheidungen (sobald vorhanden)
 - `docs/agent-setup.md` – welche Agents/Skills/Hooks es hier gibt und warum
 
-> **Stack:** maßgeblich sind die angenommenen ADRs in `docs/adr/` (Stand
-> 24.11.: Hybrid nach ADR-0003 – eigenes Frontend, KI-Schritte im Claude-Chat
-> des Nutzers über den ExileForge-MCP-Connector). Christians Vorgabe dazu:
-> **muss bei ihm lokal laufen und sich einfach an einen Freund weitergeben
-> lassen.** Wie das mit dem Betrieb zusammenpasst, wird gerade in der
-> Architektur geklärt. Bis eine ADR es festlegt: keine Stack- oder
-> Betriebsentscheidung selbst treffen, sondern nachfragen.
+> **Betrieb: lokal, nicht in der Cloud** (Christian, 24.11.2026). ExileForge
+> läuft als lokale Anwendung auf dem Rechner des Nutzers und muss sich einfach
+> an einen Freund weitergeben lassen. Kein gehosteter Server. Die
+> Claude-Anbindung läuft lokal (z. B. MCP über stdio mit Claude Desktop/Claude
+> Code). Der Betriebsteil von ADR-0003 (gehostet, Remote-Connector) ist damit
+> überholt; die Details legt die nächste ADR fest. Bis dahin keine weitere
+> Stack-Entscheidung selbst treffen, sondern nachfragen.
 
 ## Leitprinzipien (nicht verhandelbar)
 
@@ -61,8 +61,8 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
   je eigenem Antwortschema zerlegt; jede Abgabe wird sofort mit PoB und den
   Gates geprüft und bei Fehlern gezielt zurückgegeben (ADR-0003). Was
   deterministisch geht, rechnet der Server ohne KI.
-- **Lokal lauffähig, einfach weitergebbar.** Ein Start auf Christians Rechner
-  und die Weitergabe an einen Freund dürfen keine Entwicklerwerkzeuge beim
+- **Lokal, einfach weitergebbar.** Kein Cloud-Betrieb. Die Weitergabe an einen
+  Freund darf keine Entwicklerwerkzeuge (Python, WSL, Compiler, git) beim
   Freund voraussetzen.
 - **Kein stiller Ersatzwert.** Fehlgeschlagene Rechnung, Preisabruf oder
   Import wird als Fehler sichtbar, nie `0`, `[]` oder alter Wert ohne

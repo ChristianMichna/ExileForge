@@ -16,8 +16,9 @@ hier fehlt oder schlecht beschrieben ist, erfindet das Modell sonst selbst.
 
 ## Grundsätze
 
-- **Transport nach ADR**: Streamable HTTP für den Connector in claude.ai
-  (ADR-0003), stdio für einen lokalen Betrieb mit Claude Desktop/Claude Code.
+- **Transport: lokal.** Kein Cloud-Betrieb (Christian, 24.11.); stdio mit
+  Claude Desktop/Claude Code bzw. was die nächste ADR für den lokalen Betrieb
+  festlegt. Kein öffentlich erreichbarer Endpunkt.
   Tool-Logik vom Transport trennen (`createServer()` vs. Einstiegspunkte), damit
   beide Transporte dieselben Tools nutzen und Tools ohne Transport testbar sind.
 - **Kleine Aufgaben statt Single-Shot** (ADR-0003): Führung über
