@@ -9,7 +9,8 @@
 
 > **Hinweis:** Abschnitte 1 und 2 (gehosteter Betrieb, Remote-Connector mit OAuth)
 > sind durch [ADR-0004](0004-lokal-first.md) ersetzt: ExileForge läuft lokal, Claude
-> verbindet sich über eine Claude-Desktop-Erweiterung. Abschnitte 3–4 gelten weiter.
+> verbindet sich über eine Claude-Desktop-Erweiterung. Abschnitte 3–4 gelten weiter
+> (Start und PoC-Liste sind auf lokal angepasst).
 
 **⚠ Annahme** markiert ungeprüfte Punkte, die der Proof of Concept klären muss.
 
@@ -67,13 +68,14 @@ nur Connectors erreichen, die im Internet erreichbar sind. Ein lokaler Modus
    **„Mit Claude planen"**.
 2. Der Server legt einen Pipeline-Lauf an (`runId`) und erzeugt einen kurzen
    **Sitzungscode** (z. B. `7F3K-QX`), 30 Minuten gültig.
-3. Das Frontend öffnet Claude in einem neuen Tab mit einem vorausgefüllten
-   Startsatz: „Starte ExileForge-Sitzung 7F3K-QX." und zeigt daneben einen
-   Kopieren-Knopf.
-   **⚠ Annahme:** claude.ai nimmt einen vorausgefüllten Prompt per URL an
-   (`claude.ai/new?q=…`). Falls nicht: nur Kopieren-Knopf.
-4. Claude ruft `forge.attach(code)` auf. Der Server prüft, dass Code und
-   angemeldeter Connector-Nutzer zusammenpassen, und gibt die erste Aufgabe.
+3. Das Frontend öffnet **Claude Desktop** (Deep Link, falls vorhanden) und zeigt
+   den Startsatz „Starte ExileForge-Sitzung 7F3K-QX." mit Kopieren-Knopf. Für
+   Claude Code zeigt es den passenden Befehl bzw. Startsatz. claude.ai im Browser
+   geht lokal nicht, weil es den Server auf `127.0.0.1` nicht erreicht (ADR-0004).
+   **⚠ Annahme:** Claude Desktop lässt sich per Deep Link mit vorausgefülltem
+   Text öffnen. Falls nicht: nur Kopieren-Knopf.
+4. Claude ruft `forge.attach(code)` auf. Der lokale Server prüft den Code
+   (kein Konto, kein OAuth), und gibt die erste Aufgabe.
    Ein mitgelieferter MCP-Prompt (`/exileforge`) und die Werkzeugbeschreibungen
    sagen Claude, dass es die Schleife bis `done` fortsetzen soll.
 
@@ -172,9 +174,10 @@ Aufgaben serverseitig aus. Die Pipeline merkt keinen Unterschied (ADR-0002).
 
 ## Proof of Concept (klärt alle ⚠)
 
-1. Remote-MCP mit OAuth als Custom Connector in claude.ai eintragen.
+1. `.mcpb`-Erweiterung als stdio-Brücke zur laufenden App in Claude Desktop
+   (statt Remote-MCP mit OAuth, ADR-0004).
 2. `forge.attach` / `forge.next` / `forge.submit` mit einer Dummy-Pipeline aus
    20 Aufgaben: Wie weit kommt Claude in einer Antwort? Hält es sich ans Schema?
-3. Vorausgefüllter Prompt per URL.
+3. Claude Desktop per Deep Link mit vorausgefülltem Text öffnen.
 4. Blockierendes `forge.next` (Warten auf Nutzer): Wie lange toleriert der
    Client einen Werkzeugaufruf?
