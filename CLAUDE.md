@@ -119,7 +119,7 @@ getrennt. Weitere Stack-Änderungen nur per ADR.
 | Schnittstelle oder Datenform ändern | Skill `contract-first` |
 | Kernlogik, Bugfix | Skill `tdd-workflow` |
 | MCP-Tools/Prompts | Skill `mcp-server-patterns` |
-| UI | Skill `poe-ui-design` |
+| UI | Skill `poe-ui-design`; Ergebnis im Browser ansehen mit MCP `playwright` (`.mcp.json`), Screenshots per `pnpm e2e` |
 | Architekturentscheidung | Skill `architecture-decision-records` |
 | Vor jedem PR | Skill `verification-loop`, dann Agent `pr-acceptance-reviewer` |
 | Zahlen, Calc, Guide-Inhalt | Agent `pob-number-auditor` |
@@ -130,16 +130,26 @@ getrennt. Weitere Stack-Änderungen nur per ADR.
 
 ## Befehle
 
-Solange es noch keinen Code gibt, existieren sie noch nicht. Lege sie mit
-diesen Namen an, wenn das jeweilige Paket entsteht:
+Einrichtung und Werkzeuge im Detail: `docs/dev-tooling.md`.
 
 ```bash
-pnpm install
-pnpm typecheck      # tsc --noEmit über alle Pakete
-pnpm lint
+tools/dev-setup.sh  # einmalig/idempotent: pnpm, Abhängigkeiten, Chromium, PoB headless
+pnpm typecheck      # tsc über alle Pakete (Turborepo)
+pnpm lint           # ESLint, 0 Warnungen
+pnpm format:check   # Prettier
 pnpm test           # Vitest
 pnpm build
+pnpm check          # alles oben in einem
+pnpm e2e            # Playwright inkl. Screenshot-Vergleich
+tools/update-screenshots.sh                  # Screenshot-Baselines neu (Docker)
+python tools/golden_builds.py check          # Golden Builds gegen PoB
 ```
+
+CI (`.github/workflows/ci.yml`) führt Typcheck, Lint, Tests und Build auf
+Linux und Windows aus, dazu Screenshots im Playwright-Container; Golden Builds
+laufen in `golden-builds.yml`. Ein PR ist erst fertig, wenn beide grün sind.
+Neue Pakete legen die Skripte `typecheck`, `test` und `build` an, damit
+Turborepo sie findet.
 
 ## Stil
 

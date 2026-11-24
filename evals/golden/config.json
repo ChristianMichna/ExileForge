@@ -1,0 +1,27 @@
+{
+  "$comment": "Settings for tools/golden_builds.py. Stat keys are PoB's own output names (pob_bridge/lua/runner.lua). Changing this file changes what counts as a regression; see evals/golden/README.md.",
+  "compareStats": [
+    "CombinedDPS",
+    "TotalDPS",
+    "TotalDot",
+    "Life",
+    "EnergyShield",
+    "Mana",
+    "Spirit",
+    "FireResist",
+    "ColdResist",
+    "LightningResist",
+    "ChaosResist",
+    "Armour",
+    "Evasion",
+    "TotalEHP"
+  ],
+  "tolerance": {
+    "relative": 0.0001,
+    "absolute": 0.01
+  },
+  "guiTolerance": {
+    "relative": 0.005,
+    "absolute": 1
+  }
+}

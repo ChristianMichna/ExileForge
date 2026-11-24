@@ -1,0 +1,107 @@
+# Golden builds: calculates every build in evals/golden/manifest.json with the
+# pinned headless PoB and compares against the recorded expected values.
+# A regression fails the run. Builds without expected values are listed,
+# not failed; they are recorded
+# here and uploaded as artifact "golden-recorded" to review and commit.
+# Details: evals/golden/README.md
+name: Golden builds
+
+# Only runs when something that can change a calculated number changes. The
+# frozen builds and the pinned PoB do not drift on their own, so there is no
+# schedule; the weekly look at live public builds is real-builds.yml (PR #2).
+on:
+  pull_request:
+    paths:
+      - "pob_bridge/**"
+      - "tools/setup_pob.sh"
+      - "tools/golden_builds.py"
+      - "tools/test_golden_builds.py"
+      - "evals/golden/**"
+      - "apps/calc/**"
+      - "packages/calc-client/**"
+      - "packages/contracts/**"
+      - ".github/workflows/golden-builds.yml"
+  push:
+    branches: [main]
+    paths:
+      - "pob_bridge/**"
+      - "tools/setup_pob.sh"
+      - "tools/golden_builds.py"
+      - "tools/test_golden_builds.py"
+      - "evals/golden/**"
+      - "apps/calc/**"
+      - "packages/calc-client/**"
+      - "packages/contracts/**"
+      - ".github/workflows/golden-builds.yml"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check = compare; record = re-record ALL expected values (e.g. after a PoB update)"
+        type: choice
+        options: [check, record]
+        default: check
+
+permissions:
+  contents: read
+
+jobs:
+  golden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Unit tests for the golden tool
+        run: python -m unittest discover -s tools -p "test_*.py" -v
+
+      - name: Is the PoB bridge present?
+        id: bridge
+        run: |
+          if [ -f pob_bridge/pob.py ] && [ -f tools/setup_pob.sh ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::PoB bridge (pob_bridge/, tools/setup_pob.sh) not in this checkout yet; golden check skipped."
+          fi
+
+      - name: Set up headless PoB
+        if: steps.bridge.outputs.present == 'true'
+        run: tools/setup_pob.sh
+
+      - name: Fetch missing builds
+        if: steps.bridge.outputs.present == 'true'
+        run: python tools/golden_builds.py fetch
+
+      - name: Record expected values
+        id: record
+        if: steps.bridge.outputs.present == 'true'
+        run: |
+          if [ "${{ inputs.mode }}" = "record" ]; then
+            python tools/golden_builds.py record
+          else
+            python tools/golden_builds.py record --missing
+          fi
+          if [ -n "$(git status --porcelain -- evals/golden)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::New golden data recorded. Review artifact 'golden-recorded' and commit it (see evals/golden/README.md)."
+            git status --short -- evals/golden
+          fi
+
+      - name: Upload recorded golden data
+        if: steps.record.outputs.changed == 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: golden-recorded
+          path: evals/golden/
+          retention-days: 30
+
+      - name: Check against expected values
+        if: steps.bridge.outputs.present == 'true'
+        run: |
+          # Freshly recorded data must be reviewed and committed before it counts.
+          git stash push --include-untracked --quiet -- evals/golden
+          python tools/golden_builds.py check

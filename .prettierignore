@@ -1,0 +1,13 @@
+pnpm-lock.yaml
+vendor/
+.pob/
+dist/
+test-results/
+playwright-report/
+evals/golden/builds/
+**/__screenshots__/
+# Prose is wrapped by hand; Prettier would reflow German tables and lists.
+*.md
+# Existing files kept as written; format when they are next changed.
+.claude/hooks/
+examples/

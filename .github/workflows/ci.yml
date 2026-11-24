@@ -1,0 +1,106 @@
+# Typecheck, lint, unit tests and build on Linux and Windows for every PR,
+# plus Playwright screenshot tests in the pinned Playwright container.
+# Details: docs/dev-tooling.md
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Checks (${{ matrix.os }})
+    if: github.event.action != 'labeled'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - name: Format check
+        if: runner.os == 'Linux'
+        run: pnpm format:check
+      - run: pnpm test
+      - run: pnpm build
+
+  screenshots:
+    name: Playwright screenshots
+    # Normal runs compare against the committed baselines. Adding the label
+    # "screenshots-update" to a PR re-renders the baselines and commits them
+    # to the PR branch (same-repo branches only).
+    if: >-
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'screenshots-update'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      # Keep in sync with @playwright/test in apps/web/package.json.
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    permissions:
+      contents: write
+    env:
+      UPDATE: ${{ github.event.action == 'labeled' && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Compare screenshots
+        if: env.UPDATE != 'true'
+        run: pnpm --filter @exileforge/web e2e
+      - name: Re-render baselines
+        if: env.UPDATE == 'true'
+        run: pnpm --filter @exileforge/web e2e --update-snapshots=all
+      - name: Commit new baselines
+        if: >-
+          env.UPDATE == 'true' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- 'apps/*/e2e/__screenshots__'
+          if git diff --cached --quiet; then
+            echo "Baselines unchanged."
+          else
+            git commit -m "Screenshot-Baselines neu gerendert (Playwright-Container)"
+            git push
+          fi
+      - name: Upload report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-${{ github.run_attempt }}
+          path: |
+            apps/*/playwright-report/
+            apps/*/test-results/
+            apps/*/e2e/__screenshots__/
+          retention-days: 14
+          if-no-files-found: ignore

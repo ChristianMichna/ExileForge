@@ -1,0 +1,20 @@
+{
+  "$comment": "Golden builds: a fixed corpus every change is calculated against. Add entries here, then run `python tools/golden_builds.py fetch` and `record` (or the 'Golden builds' workflow) to store the build and PoB's expected values. Never write expected values by hand.",
+  "builds": [
+    {
+      "id": "pr2-synthetic-fixture",
+      "source": "tests/fixtures/witch_spark_lvl60.xml",
+      "note": "Synthetic build from the PoB bridge tests (PR #2)."
+    },
+    {
+      "id": "pobb-ljOBlCON5WGB",
+      "source": "https://pobb.in/ljOBlCON5WGB",
+      "note": "Public build (tree 0.5). Headless PoB v0.23.1 matched the values the PoB GUI saved exactly in the PR #2 check of 2026-11-24."
+    },
+    {
+      "id": "pobb-fFCc0Ca4ROzt",
+      "source": "https://pobb.in/fFCc0Ca4ROzt",
+      "note": "Public build (tree 0.4). Headless PoB v0.23.1 matched the values the PoB GUI saved exactly in the PR #2 check of 2026-11-24."
+    }
+  ]
+}
