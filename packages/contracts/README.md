@@ -17,6 +17,12 @@ Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
 | `@exileforge/contracts/forge` | MCP-Werkzeuge `forge.attach/next/submit/ask_user/status`, `ForgeTask`, `ForgeStep`, `UserIntervention` | server, mcp-bridge, llm-gateway |
 | `@exileforge/contracts/events` | `RunEvent` (Live-Status per SSE, `seq` je Lauf) | server, web |
 
+Fehlende Quelldaten werden nicht erfunden: `BaseItem.dropLevel` und
+`Ascendancy.pointUnlocks` sind optional; Mod-Zeilen, deren Werte sich nicht
+eindeutig bestimmen lassen, stehen in `unresolved` (Grund `unmatched`,
+`ambiguous`, `lossy` oder `hidden`). Support-Kompatibilität bekommt ein
+eigenes Ausdrucksschema (UND/ODER über Skill-Typen).
+
 Bekannte Lücken: Der Katalog kennt noch keine Bosse und keine
 Atlas-Passives; `bossMechanics` und die Atlas-Strategie sind deshalb vorerst
 `RichText` mit optionalem `EntityRef`. Kommen diese Entitäten ins Daten-Release,

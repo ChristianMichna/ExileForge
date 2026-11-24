@@ -56,7 +56,7 @@
           "id": "FixtureMod1",
           "groups": ["fixture_group"],
           "generationType": "fixture_gen",
-          "domain": "fixture_domain",
+          "domains": ["fixture_domain"],
           "tier": 1,
           "requiredLevel": 1,
           "stats": [{ "statId": "fixture_stat", "min": 1, "max": 4 }],
