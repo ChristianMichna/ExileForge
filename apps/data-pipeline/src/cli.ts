@@ -114,16 +114,18 @@ async function main(argv: string[]): Promise<void> {
     const [dir] = positionals;
     if (!dir || positionals.length !== 1) fail(USAGE);
     const out = values.out ?? fail("--out is required");
-    const cfgPath = resolve(values.config);
-    const { manifest, warnings } = await buildCatalog(
+    const { manifest, warnings, summary } = await buildCatalog(
       dir,
       out,
-      await loadNormalizeConfig(cfgPath),
-      cfgPath,
+      await loadNormalizeConfig(resolve(values.config)),
     );
     console.warn(
-      `catalog ${manifest.release.id}: ${String(warnings.length)} warnings (findings.json)`,
+      `catalog ${manifest.release.id}: 0 errors, ${String(warnings.length)} warnings (findings.json)`,
     );
+    for (const [kind, byReason] of Object.entries(summary.unresolved)) {
+      const parts = Object.entries(byReason).map(([r, n]) => `${String(n)} ${r}`);
+      console.warn(`  unresolved ${kind} lines: ${parts.join(", ")}`);
+    }
     for (const s of manifest.shards) console.warn(`  ${s.kind}: ${String(s.count)}`);
     return;
   }

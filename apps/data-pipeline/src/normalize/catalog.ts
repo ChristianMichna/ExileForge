@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import type { Json } from "../json.ts";
@@ -9,10 +10,12 @@ import type { MatchResult, StatMatcher } from "./stat-matcher.ts";
  * Rules (Christian, 2026-11-24): ids only from PoB data. Bases and uniques use
  * PoB's names as ids, gems PoB's gameId, mods the game mod id, passive nodes
  * PoB's numeric skill id, ascendancies PoB's internalId.
- * Nothing is invented: values PoB does not have are left out (optional
- * fields) and every line whose stats cannot be determined is kept in
- * `unresolved` together with the reason. Validation against the contract and
- * referential integrity run afterwards (validate.ts).
+ * Nothing is invented: optional values PoB does not have are left out, a
+ * missing required value is an error, and every line whose stats cannot be
+ * determined stays visible with its reason (in the entity where the contract
+ * has room for it, otherwise in the findings). Whatever is dropped is counted
+ * in the summary. Validation against the contract and referential integrity
+ * run afterwards (validate.ts).
  */
 
 export const normalizeConfigSchema = z
@@ -36,22 +39,30 @@ export const normalizeConfigSchema = z
   .strict();
 export type NormalizeConfig = z.infer<typeof normalizeConfigSchema>;
 
-export async function loadNormalizeConfig(path: string): Promise<NormalizeConfig> {
+/** The parsed config and the SHA-256 of exactly the bytes it was parsed from. */
+export async function loadNormalizeConfig(
+  path: string,
+): Promise<{ config: NormalizeConfig; sha256: string }> {
+  let bytes: Buffer;
   let raw: unknown;
   try {
-    raw = JSON.parse(await readFile(path, "utf8"));
+    bytes = await readFile(path);
+    raw = JSON.parse(bytes.toString("utf8"));
   } catch (cause) {
     throw new Error(`cannot read normalize config ${path}`, { cause });
   }
   const parsed = normalizeConfigSchema.safeParse(raw);
   if (!parsed.success)
-    throw new Error(`invalid normalize config ${path}: ${z.prettifyError(parsed.error)}`);
-  return parsed.data;
+    throw new Error(`invalid normalize config ${path}: ${z.prettifyError(parsed.error)}`, {
+      cause: parsed.error,
+    });
+  return { config: parsed.data, sha256: createHash("sha256").update(bytes).digest("hex") };
 }
 
+export type UnresolvedReason = "unmatched" | "ambiguous" | "lossy" | "hidden";
 export interface Unresolved {
   text: string;
-  reason: "unmatched" | "ambiguous" | "lossy" | "hidden";
+  reason: UnresolvedReason;
 }
 
 /** Entities per contract kind, as plain JSON objects (validated in validate.ts). */
@@ -67,11 +78,53 @@ export type CatalogEntities = Record<
   Record<string, unknown>[]
 >;
 
-/** A problem found while normalising; the release gate decides what blocks. */
+/** A problem found while normalising. */
 export interface Finding {
   kind: string;
   id: string;
   message: string;
+}
+
+/** A line whose stats stay open and that the contract has no field for. */
+export interface UnresolvedFinding extends Unresolved {
+  kind: string;
+  id: string;
+}
+
+/** Counts of everything that is not fully represented in the entities. */
+export interface NormalizeSummary {
+  /** lines with undetermined stats, per entity kind and reason */
+  unresolved: Record<string, Record<UnresolvedReason, number>>;
+  /** mods without generation type in PoB (written as the configured fallback) */
+  modsWithoutGenerationType: number;
+  /** mods with stats whose description renders no text (see `hiddenStatGroups`) */
+  modsWithHiddenStatGroups: number;
+  /** PoB per-level gem fields the contract has no place for, by field */
+  gemLevelFieldsNotInContract: Record<string, number>;
+  /** per-level gem stat values PoB interpolates at run time (not literal data) */
+  gemInterpolatedStatValues: number;
+  /** gem stat sets after the first (alternate modes), not mapped */
+  gemAdditionalStatSets: number;
+  statTranslations: {
+    descriptions: number;
+    withoutStats: number;
+    withoutVariants: number;
+    gemQualityVariantsSkipped: number;
+    emptyVariantsSkipped: number;
+  };
+}
+
+export interface NormalizeResult {
+  entities: CatalogEntities;
+  /** missing required source values: block the release */
+  errors: Finding[];
+  /** source data PoB does not give unambiguously; visible, non-blocking */
+  warnings: Finding[];
+  /** open lines of kinds whose contract has no `unresolved` field */
+  unresolved: UnresolvedFinding[];
+  /** mod id + trade hash of stat groups that render no text */
+  hiddenStatGroups: { modId: string; tradeHash: string }[];
+  summary: NormalizeSummary;
 }
 
 type Obj = Record<string, Json>;
@@ -102,6 +155,55 @@ function kindOf(raw: RawKinds, kind: string): Readonly<Record<string, Json>> {
   return k;
 }
 
+class Context {
+  readonly errors: Finding[] = [];
+  readonly warnings: Finding[] = [];
+  readonly unresolved: UnresolvedFinding[] = [];
+  readonly hiddenStatGroups: { modId: string; tradeHash: string }[] = [];
+  readonly summary: NormalizeSummary = {
+    unresolved: {},
+    modsWithoutGenerationType: 0,
+    modsWithHiddenStatGroups: 0,
+    gemLevelFieldsNotInContract: {},
+    gemInterpolatedStatValues: 0,
+    gemAdditionalStatSets: 0,
+    statTranslations: {
+      descriptions: 0,
+      withoutStats: 0,
+      withoutVariants: 0,
+      gemQualityVariantsSkipped: 0,
+      emptyVariantsSkipped: 0,
+    },
+  };
+
+  warn(kind: string, id: string, message: string): void {
+    this.warnings.push({ kind, id, message });
+  }
+  error(kind: string, id: string, message: string): void {
+    this.errors.push({ kind, id, message });
+  }
+  /** A required value is missing: error finding; the placeholder never reaches a release. */
+  requireStr(kind: string, id: string, field: string, v: Json | undefined): string {
+    const s = str(v);
+    if (s === undefined) this.error(kind, id, `source has no ${field}`);
+    return s ?? "";
+  }
+  requireNum(kind: string, id: string, field: string, v: Json | undefined): number {
+    const n = num(v);
+    if (n === undefined) this.error(kind, id, `source has no ${field}`);
+    return n ?? -1;
+  }
+  countUnresolved(kind: string, reason: UnresolvedReason): void {
+    const byReason = (this.summary.unresolved[kind] ??= {
+      unmatched: 0,
+      ambiguous: 0,
+      lossy: 0,
+      hidden: 0,
+    });
+    byReason[reason]++;
+  }
+}
+
 function unresolvedOf(res: MatchResult, lines: string[]): Unresolved | undefined {
   if (res.status === "matched") return undefined;
   return { text: lines.join("\n"), reason: res.status };
@@ -113,6 +215,7 @@ function normalizeMods(
   raw: RawKinds,
   matcher: StatMatcher,
   cfg: NormalizeConfig,
+  ctx: Context,
 ): Record<string, unknown>[] {
   const mods = kindOf(raw, "mods");
   const { results } = resolveModStats(mods, matcher, cfg.statScopes.mod);
@@ -123,12 +226,13 @@ function normalizeMods(
   for (const [id, m] of Object.entries(mods)) {
     const o = obj(m);
     const type = str(o.type);
-    if (!type || !cfg.modTiers.generationTypes.includes(type)) continue;
+    const level = num(o.level);
     const group = str(o.group);
-    if (!group) continue;
+    if (!type || !cfg.modTiers.generationTypes.includes(type) || level === undefined || !group)
+      continue;
     const key = JSON.stringify([group, type, list(o.domains)]);
     const fam = families.get(key) ?? [];
-    fam.push({ id, level: num(o.level) ?? 0 });
+    fam.push({ id, level });
     families.set(key, fam);
   }
   const tiers = new Map<string, number>();
@@ -150,26 +254,34 @@ function normalizeMods(
       const text = modLines(o).join("\n");
       const tier = tiers.get(id);
       const group = str(o.group);
+      const type = str(o.type);
+      if (!type) ctx.summary.modsWithoutGenerationType++;
+      if (res.emptyGroupHashes.length > 0) {
+        ctx.summary.modsWithHiddenStatGroups++;
+        for (const tradeHash of res.emptyGroupHashes)
+          ctx.hiddenStatGroups.push({ modId: id, tradeHash });
+      }
+      const unresolved = res.unresolved.map((u) => ({
+        text: u.lines.join("\n"),
+        // a line without trade hash that text matching could not place is simply unmatched
+        reason: u.reason === "no-trade-hash" ? ("unmatched" as const) : u.reason,
+      }));
+      for (const u of unresolved) ctx.countUnresolved("mod", u.reason);
       return {
         id,
         groups: group ? [group] : [],
-        generationType: str(o.type) ?? cfg.modGenerationTypeFallback,
+        generationType: type ?? cfg.modGenerationTypeFallback,
         domains: list(o.domains).filter((d): d is string => typeof d === "string"),
         ...(tier !== undefined ? { tier } : {}),
-        requiredLevel: num(o.level) ?? 0,
+        requiredLevel: ctx.requireNum("mod", id, "level", o.level),
         stats: res.stats,
-        spawnWeights: keys.map((k, i) => ({ tag: String(k), weight: num(vals[i]) ?? -1 })),
+        spawnWeights: keys.map((k, i) => ({
+          tag: String(k),
+          weight: ctx.requireNum("mod", id, `weightVal[${String(i)}]`, vals[i]),
+        })),
         tags: list(o.modTags).filter((t): t is string => typeof t === "string"),
         ...(text ? { text } : {}),
-        ...(res.unresolved.length > 0
-          ? {
-              unresolved: res.unresolved.map((u) => ({
-                text: u.lines.join("\n"),
-                // a line without trade hash that text matching could not place is simply unmatched
-                reason: u.reason === "no-trade-hash" ? "unmatched" : u.reason,
-              })),
-            }
-          : {}),
+        ...(unresolved.length > 0 ? { unresolved } : {}),
       };
     });
 }
@@ -179,7 +291,7 @@ function normalizeMods(
 function normalizeBaseItems(
   raw: RawKinds,
   cfg: NormalizeConfig,
-  findings: Finding[],
+  ctx: Context,
 ): Record<string, unknown>[] {
   const bases = kindOf(raw, "itemBases");
   const mods = kindOf(raw, "mods");
@@ -211,18 +323,18 @@ function normalizeBaseItems(
         const candidates = byText.get(implicit) ?? [];
         if (candidates.length === 1) implicitModIds.push(candidates[0] as string);
         else
-          findings.push({
-            kind: "baseItem",
+          ctx.warn(
+            "baseItem",
             id,
-            message: `implicit "${implicit}" matches ${String(candidates.length)} mods`,
-          });
+            `implicit "${implicit}" matches ${String(candidates.length)} mods`,
+          );
       }
       const level = num(req.level);
       const socketCapacity = num(b.socketLimit);
       return {
         id,
         name: id,
-        itemClass: str(b.type) ?? "",
+        itemClass: ctx.requireStr("baseItem", id, "type", b.type),
         tags: trueKeys(b.tags),
         requirements: { ...(level !== undefined ? { level } : {}), attributes },
         implicitModIds,
@@ -238,78 +350,133 @@ function normalizeUniques(
   raw: RawKinds,
   matcher: StatMatcher,
   cfg: NormalizeConfig,
+  ctx: Context,
 ): Record<string, unknown>[] {
   const uniques = kindOf(raw, "uniques");
   return Object.keys(uniques)
     .sort()
     .map((id) => {
       const u = obj(uniques[id]);
+      const variantNames = list(u.variants).filter((v): v is string => typeof v === "string");
+      const variants = variantNames.map((name, i) => ({ id: String(i + 1), name }));
+      const variantIds = new Set(variants.map((v) => v.id));
       const lines = [...list(u.implicitModLines), ...list(u.explicitModLines)].map(obj);
-      // group consecutive lines with the same variant set, then match
+      // PoB keeps one display line per entry; each is matched on its own
       const mods: Record<string, unknown>[] = [];
       for (const line of lines) {
         const text = str(line.line);
         if (!text) continue;
-        const variants = list(line.variants).map(String);
+        const listed = list(line.variants).map(String);
+        const known = listed.filter((v) => variantIds.has(v));
+        for (const v of listed.filter((x) => !variantIds.has(x)))
+          ctx.warn("uniqueItem", id, `line "${text}": unknown variant ${v} dropped`);
+        if (listed.length > 0 && known.length === 0) {
+          // only for variants the item does not have: PoB never shows it
+          ctx.warn("uniqueItem", id, `line "${text}" dropped: none of its variants exist`);
+          continue;
+        }
         const [res] = matcher.matchLines([text], cfg.statScopes.mod) as [MatchResult];
         const unresolved = unresolvedOf(res, [text]);
+        if (unresolved) ctx.countUnresolved("uniqueItem", unresolved.reason);
         mods.push({
           stats: res.status === "matched" ? res.stats : [],
           text,
-          ...(variants.length > 0 ? { variantIds: variants } : {}),
+          ...(known.length > 0 ? { variantIds: known } : {}),
           ...(unresolved ? { unresolved: [unresolved] } : {}),
         });
       }
-      const variantNames = list(u.variants).filter((v): v is string => typeof v === "string");
       return {
         id,
-        name: str(u.title) ?? id,
-        baseItemId: str(u.baseName) ?? "",
+        name: ctx.requireStr("uniqueItem", id, "title", u.title),
+        baseItemId: ctx.requireStr("uniqueItem", id, "baseName", u.baseName),
         mods,
-        variants: variantNames.map((name, i) => ({ id: String(i + 1), name })),
+        variants,
       };
     });
 }
 
 // ---------------------------------------------------------------- gems
 
-function normalizeGems(raw: RawKinds, findings: Finding[]): Record<string, unknown>[] {
+/** PoB marks a per-level stat value that is stored literally (not interpolated). */
+const LITERAL_INTERPOLATION = 1;
+
+/**
+ * Per-level stats of a gem: the literal values of its first stat set, keyed
+ * by stat id, plus the set's constant stats. Values PoB interpolates at run
+ * time and further stat sets (alternate modes) are counted, not mapped.
+ */
+function gemLevelStats(
+  statSet: Obj | undefined,
+  level: number,
+  gemId: string,
+  ctx: Context,
+): Record<string, number> {
+  const stats: Record<string, number> = {};
+  if (!statSet) return stats;
+  for (const c of list(statSet.constantStats)) {
+    const [statId, value] = list(c);
+    if (typeof statId === "string" && typeof value === "number") stats[statId] = value;
+  }
+  const statIds = list(statSet.stats);
+  if (statIds.length === 0) return stats;
+  const lv = list(statSet.levels)[level - 1];
+  if (lv === undefined) {
+    ctx.warn("gem", gemId, `stat set has no level ${String(level)}`);
+    return stats;
+  }
+  const values = obj(lv);
+  const interpolation = list(values.statInterpolation);
+  statIds.forEach((statId, i) => {
+    const value = num(values[String(i + 1)]);
+    // stats after the valued ones are flags and carry no per-level value
+    if (typeof statId !== "string" || value === undefined) return;
+    if (interpolation[i] === LITERAL_INTERPOLATION) stats[statId] = value;
+    else ctx.summary.gemInterpolatedStatValues++;
+  });
+  return stats;
+}
+
+function normalizeGems(raw: RawKinds, ctx: Context): Record<string, unknown>[] {
   const gems = kindOf(raw, "gems");
   const gemLevels = kindOf(raw, "gemLevels");
+  const skills = kindOf(raw, "skills");
   const out: Record<string, unknown>[] = [];
   const seen = new Set<string>();
   for (const pobId of Object.keys(gems).sort()) {
     const g = obj(gems[pobId]);
-    const id = str(g.gameId) ?? pobId;
+    const id = ctx.requireStr("gem", pobId, "gameId", g.gameId);
     if (seen.has(id)) {
-      findings.push({
-        kind: "gem",
-        id,
-        message: `duplicate gameId (PoB gem ${pobId}); later entry skipped`,
-      });
+      ctx.warn("gem", id, `duplicate gameId (PoB gem ${pobId}); later entry skipped`);
       continue;
     }
     seen.add(id);
     const lv = obj(gemLevels[pobId]);
+    const effectId = str(lv.grantedEffectId);
+    const skill = effectId !== undefined ? skills[effectId] : undefined;
+    if (effectId !== undefined && skill === undefined)
+      ctx.error("gem", id, `granted effect ${effectId} missing from skills`);
+    const [statSet, ...otherSets] = list(obj(skill).statSets).map(obj);
+    ctx.summary.gemAdditionalStatSets += otherSets.length;
     const levels = list(lv.levels).map((l) => {
       const o = obj(l);
-      const values: Record<string, number> = {};
-      for (const [k, v] of Object.entries(obj(o.values))) if (typeof v === "number") values[k] = v;
+      const level = ctx.requireNum("gem", id, "level number", o.level);
+      const fields = ctx.summary.gemLevelFieldsNotInContract;
+      for (const field of Object.keys(obj(o.values))) fields[field] = (fields[field] ?? 0) + 1;
       const attributes: Record<string, number> = {};
       for (const [k, v] of Object.entries(obj(o.attributes)))
         if (typeof v === "number") attributes[k] = v;
+      const reqLevel = num(o.levelRequirement);
       return {
-        level: num(o.level) ?? 0,
-        requirements: { level: num(o.levelRequirement) ?? 0, attributes },
-        stats: values,
+        level,
+        requirements: { ...(reqLevel !== undefined ? { level: reqLevel } : {}), attributes },
+        stats: gemLevelStats(statSet, level, id, ctx),
       };
     });
-    if (levels.length === 0)
-      findings.push({ kind: "gem", id, message: `no level data for PoB gem ${pobId}` });
+    if (levels.length === 0) ctx.error("gem", id, `no level data for PoB gem ${pobId}`);
     out.push({
       id,
-      name: str(g.name) ?? id,
-      kind: str(g.gemType) ?? "",
+      name: ctx.requireStr("gem", id, "name", g.name),
+      kind: ctx.requireStr("gem", id, "gemType", g.gemType),
       tags: trueKeys(g.tags),
       levels,
     });
@@ -328,41 +495,44 @@ function normalizeTree(
   raw: RawKinds,
   matcher: StatMatcher,
   cfg: NormalizeConfig,
-  findings: Finding[],
+  ctx: Context,
 ): Pick<CatalogEntities, "passiveNode" | "characterClass" | "ascendancy"> {
   const tree = kindOf(raw, "passiveTree");
   const nodes: RawNode[] = [];
   const classes: { name: string; data: Obj }[] = [];
-  for (const entry of Object.values(tree)) {
+  for (const [key, entry] of Object.entries(tree)) {
     const e = obj(entry);
     const data = obj(e.data);
     if (e.kind === "node") {
       const skill = num(data.skill);
-      if (skill === undefined)
-        throw new Error(`passive node without skill id: ${JSON.stringify(data).slice(0, 80)}`);
+      if (skill === undefined) throw new Error(`passive tree entry ${key}: node without skill id`);
       nodes.push({ skill, data });
     } else if (e.kind === "class") {
-      classes.push({ name: str(data.name) ?? "", data });
+      classes.push({ name: ctx.requireStr("characterClass", key, "name", data.name), data });
     }
   }
   nodes.sort((a, b) => a.skill - b.skill);
   const nodeIds = new Set(nodes.map((n) => n.skill));
   const classNames = new Set(classes.map((c) => c.name));
 
+  // nodes name their ascendancy by display name, so names must be unique
   const ascByName = new Map<string, { id: string; classId: string; name: string }>();
   for (const c of classes) {
     for (const a of list(c.data.ascendancies).map(obj)) {
-      const id = str(a.internalId) ?? str(a.id);
-      const name = str(a.name);
-      if (id && name) ascByName.set(name, { id, classId: c.name, name });
+      const id = ctx.requireStr("ascendancy", c.name, "internalId", a.internalId);
+      const name = ctx.requireStr("ascendancy", id, "name", a.name);
+      const other = ascByName.get(name);
+      if (other)
+        ctx.error("ascendancy", id, `name "${name}" also used by ${other.id}; nodes are ambiguous`);
+      else ascByName.set(name, { id, classId: c.name, name });
     }
   }
 
   const passiveNode = nodes.map(({ skill, data }) => {
+    const id = String(skill);
     const flags = cfg.passiveNodeKinds.flags.find(([flag]) => data[flag] === true);
     const statLines = list(data.stats).filter((s): s is string => typeof s === "string");
     const stats: { statId?: string; text: string }[] = [];
-    const unresolved: Unresolved[] = [];
     for (const group of matcher.matchLineGroups(statLines, cfg.statScopes.passiveNode)) {
       const text = group.lines.join("\n");
       const res = group.result;
@@ -371,7 +541,11 @@ function normalizeTree(
       } else {
         stats.push({ text });
         const u = unresolvedOf(res, group.lines);
-        if (u) unresolved.push(u);
+        if (u) {
+          // PassiveNode has no `unresolved` field: the reason goes to the findings
+          ctx.unresolved.push({ kind: "passiveNode", id, ...u });
+          ctx.countUnresolved("passiveNode", u.reason);
+        }
       }
     }
     // PoB itself skips connections to nodes missing from the tree data
@@ -381,48 +555,35 @@ function normalizeTree(
       const target = num(obj(c).id);
       if (target === undefined) continue;
       if (nodeIds.has(target)) connections.push(String(target));
-      else
-        findings.push({
-          kind: "passiveNode",
-          id: String(skill),
-          message: `connection to missing node ${String(target)} dropped`,
-        });
+      else ctx.warn("passiveNode", id, `connection to missing node ${String(target)} dropped`);
     }
     const classStartFor: string[] = [];
     for (const c of list(data.classesStart)) {
       if (typeof c !== "string") continue;
       if (classNames.has(c)) classStartFor.push(c);
-      else
-        findings.push({
-          kind: "passiveNode",
-          id: String(skill),
-          message: `start node for unknown class "${c}" dropped`,
-        });
+      else ctx.warn("passiveNode", id, `start node for unknown class "${c}" dropped`);
     }
     const asc = str(data.ascendancyName);
     const ascendancy = asc ? ascByName.get(asc) : undefined;
-    if (asc && !ascendancy) {
-      findings.push({
-        kind: "passiveNode",
-        id: String(skill),
-        message: `unknown ascendancy "${asc}"`,
-      });
-    }
+    if (asc && !ascendancy) ctx.warn("passiveNode", id, `unknown ascendancy "${asc}"`);
+    const group = num(data.group);
     return {
-      id: String(skill),
+      id,
       pobNodeId: skill,
-      name: str(data.name) ?? String(skill),
+      name: ctx.requireStr("passiveNode", id, "name", data.name),
       kind: flags ? flags[1] : cfg.passiveNodeKinds.default,
       stats,
       position: {
-        groupId: String(num(data.group) ?? ""),
-        orbit: num(data.orbit) ?? 0,
-        orbitIndex: num(data.orbitIndex) ?? 0,
+        groupId:
+          group !== undefined
+            ? String(group)
+            : ctx.requireStr("passiveNode", id, "group", undefined),
+        orbit: ctx.requireNum("passiveNode", id, "orbit", data.orbit),
+        orbitIndex: ctx.requireNum("passiveNode", id, "orbitIndex", data.orbitIndex),
       },
       connections,
       classStartFor,
       ...(ascendancy ? { ascendancyId: ascendancy.id } : {}),
-      ...(unresolved.length > 0 ? { unresolved } : {}),
     };
   });
 
@@ -435,14 +596,21 @@ function normalizeTree(
           baseAttributes[k.slice(cfg.classAttributePrefix.length)] = v;
         }
       }
-      const start = nodes.find((n) => list(n.data.classesStart).includes(c.name));
+      const starts = nodes.filter((n) => list(n.data.classesStart).includes(c.name));
+      if (starts.length === 0) ctx.error("characterClass", c.name, "no start node");
+      if (starts.length > 1)
+        ctx.warn(
+          "characterClass",
+          c.name,
+          `${String(starts.length)} start nodes; the lowest id is used`,
+        );
       return {
         id: c.name,
         name: c.name,
         baseAttributes,
-        startNodeId: start ? String(start.skill) : "",
+        startNodeId: starts[0] ? String(starts[0].skill) : "",
         ascendancyIds: list(c.data.ascendancies)
-          .map((a) => str(obj(a).internalId) ?? str(obj(a).id))
+          .map((a) => str(obj(a).internalId))
           .filter((x): x is string => x !== undefined),
       };
     });
@@ -452,6 +620,7 @@ function normalizeTree(
     .map((a) => {
       const own = nodes.filter((n) => n.data.ascendancyName === a.name);
       const start = own.find((n) => n.data.isAscendancyStart === true);
+      if (own.length === 0) ctx.warn("ascendancy", a.id, "no passive nodes in the tree");
       return {
         id: a.id,
         name: a.name,
@@ -466,22 +635,32 @@ function normalizeTree(
 
 // ---------------------------------------------------------------- stat translations
 
-const PLACEHOLDER = /\{(\d*)(?::([+]?d))?\}/g;
+/** {n} or {n:format}; the format code is kept as the placeholder's formatter. */
+const PLACEHOLDER = /\{(\d*)(?::([^{}]*))?\}/g;
+const DEFAULT_FORMAT = "d";
 
-function normalizeStatTranslations(raw: RawKinds, cfg: NormalizeConfig): Record<string, unknown>[] {
+function normalizeStatTranslations(
+  raw: RawKinds,
+  cfg: NormalizeConfig,
+  ctx: Context,
+): Record<string, unknown>[] {
   const descriptions = kindOf(raw, "statDescriptions");
+  const counts = ctx.summary.statTranslations;
   return Object.keys(descriptions)
     .sort()
     .flatMap((id) => {
+      counts.descriptions++;
       const d = obj(descriptions[id]);
       const statIds = list(d.stats).filter((s): s is string => typeof s === "string");
-      const variants = list(d.variants)
-        .map(obj)
-        .filter((v) => v.gemQuality !== true)
+      const all = list(d.variants).map(obj);
+      const own = all.filter((v) => v.gemQuality !== true);
+      counts.gemQualityVariantsSkipped += all.length - own.length;
+      const variants = own
         .map((v) => {
           const limits = list(v.limit).map(list);
           const conditions = statIds.map((_, i) => {
-            const [lo, hi] = limits[i] ?? ["#", "#"];
+            // PoB: a stat without limit entry accepts any value
+            const [lo, hi] = limits[i] ?? [];
             if (lo === "!")
               return { ...(typeof hi === "number" ? { min: hi, max: hi } : {}), negated: true };
             return {
@@ -501,13 +680,25 @@ function normalizeStatTranslations(raw: RawKinds, cfg: NormalizeConfig): Record<
           const text = str(v.text) ?? "";
           const template = text.replace(PLACEHOLDER, (_m, n: string, fmt: string | undefined) => {
             const statIndex = n === "" ? 0 : Number(n);
-            formatters.push([fmt ?? "d", ...(handlersByStat.get(statIndex) ?? [])].join("|"));
+            const format = fmt !== undefined && fmt.length > 0 ? fmt : DEFAULT_FORMAT;
+            formatters.push([format, ...(handlersByStat.get(statIndex) ?? [])].join("|"));
             return `{${String(statIndex)}}`;
           });
           return { conditions, template, formatters };
         })
-        .filter((v) => v.template.length > 0);
-      if (statIds.length === 0 || variants.length === 0) return [];
+        .filter((v) => {
+          if (v.template.length > 0) return true;
+          counts.emptyVariantsSkipped++;
+          return false;
+        });
+      if (statIds.length === 0) {
+        counts.withoutStats++;
+        return [];
+      }
+      if (variants.length === 0) {
+        counts.withoutVariants++;
+        return [];
+      }
       return [{ id, statIds, lang: cfg.lang, variants }];
     });
 }
@@ -518,18 +709,23 @@ export function normalizeCatalog(
   raw: RawKinds,
   matchers: { mod: StatMatcher; passiveNode: StatMatcher },
   cfg: NormalizeConfig,
-): { entities: CatalogEntities; findings: Finding[] } {
-  const findings: Finding[] = [];
-  const tree = normalizeTree(raw, matchers.passiveNode, cfg, findings);
+): NormalizeResult {
+  const ctx = new Context();
+  const tree = normalizeTree(raw, matchers.passiveNode, cfg, ctx);
+  const entities: CatalogEntities = {
+    baseItem: normalizeBaseItems(raw, cfg, ctx),
+    mod: normalizeMods(raw, matchers.mod, cfg, ctx),
+    uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx),
+    gem: normalizeGems(raw, ctx),
+    ...tree,
+    statTranslation: normalizeStatTranslations(raw, cfg, ctx),
+  };
   return {
-    entities: {
-      baseItem: normalizeBaseItems(raw, cfg, findings),
-      mod: normalizeMods(raw, matchers.mod, cfg),
-      uniqueItem: normalizeUniques(raw, matchers.mod, cfg),
-      gem: normalizeGems(raw, findings),
-      ...tree,
-      statTranslation: normalizeStatTranslations(raw, cfg),
-    },
-    findings,
+    entities,
+    errors: ctx.errors,
+    warnings: ctx.warnings,
+    unresolved: ctx.unresolved,
+    hiddenStatGroups: ctx.hiddenStatGroups,
+    summary: ctx.summary,
   };
 }

@@ -34,17 +34,17 @@ per „Run workflow" mit Spielversion und optionalem Vergleich gegen einen
 
 ## Arten im Roh-Snapshot
 
-| Art | Quelle in PoB | ID |
-| --- | --- | --- |
-| `itemBases` | `Data/Bases/*.lua` | Basis-Name (PoB führt keine Metadata-ID für Basen) |
-| `mods` | `Data/Mod*.lua`, Feld `domains` = Herkunftsdatei (Dateiname ohne `Mod`) | Mod-ID des Spiels |
-| `runes` | `Data/ModRunes.lua` | Name |
-| `essences` | `Data/Essence.lua` | Metadata-ID |
-| `gems` | `Data/Gems.lua` | Metadata-ID |
-| `skills` | `Data/Skills/*.lua` (ohne `SkillAssets.lua`) | Granted-Effect-ID |
-| `statDescriptions` | `Data/StatDescriptions/*.lua` (Auswahl in der Konfig) | `<scope>:<index>`, mit `tradeHash` (PoBs `HashStats`) |
-| `uniques` | `main.uniqueDB` (von PoBs Item-Parser gelesen) | `Titel, Basis` |
-| `passiveTree` | `TreeData/<version>/tree.lua` | Knoten-ID; `group:<id>`, `class:<name>`, `constants` |
+| Art                | Quelle in PoB                                                           | ID                                                    |
+| ------------------ | ----------------------------------------------------------------------- | ----------------------------------------------------- |
+| `itemBases`        | `Data/Bases/*.lua`                                                      | Basis-Name (PoB führt keine Metadata-ID für Basen)    |
+| `mods`             | `Data/Mod*.lua`, Feld `domains` = Herkunftsdatei (Dateiname ohne `Mod`) | Mod-ID des Spiels                                     |
+| `runes`            | `Data/ModRunes.lua`                                                     | Name                                                  |
+| `essences`         | `Data/Essence.lua`                                                      | Metadata-ID                                           |
+| `gems`             | `Data/Gems.lua`                                                         | Metadata-ID                                           |
+| `skills`           | `Data/Skills/*.lua` (ohne `SkillAssets.lua`)                            | Granted-Effect-ID                                     |
+| `statDescriptions` | `Data/StatDescriptions/*.lua` (Auswahl in der Konfig)                   | `<scope>:<index>`, mit `tradeHash` (PoBs `HashStats`) |
+| `uniques`          | `main.uniqueDB` (von PoBs Item-Parser gelesen)                          | `Titel, Basis`                                        |
+| `passiveTree`      | `TreeData/<version>/tree.lua`                                           | Knoten-ID; `group:<id>`, `class:<name>`, `constants`  |
 
 Regeln des Extraktors:
 
@@ -103,22 +103,47 @@ gebunden.
 
 IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
 
-| Art | ID |
-|---|---|
-| Mod | PoB-Mod-ID |
-| Basis | Name der Basis |
-| Unique | `Titel, Basis` |
-| Gem | Spiel-ID des Gems |
-| Passive | numerische Knoten-ID (als Text) |
-| Klasse / Aufstieg | Name bzw. PoB-interne Aufstiegs-ID |
-| Stat-Text | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
+| Art               | ID                                            |
+| ----------------- | --------------------------------------------- |
+| Mod               | PoB-Mod-ID                                    |
+| Basis             | Name der Basis                                |
+| Unique            | `Titel, Basis`                                |
+| Gem               | Spiel-ID des Gems                             |
+| Passive           | numerische Knoten-ID (als Text)               |
+| Klasse / Aufstieg | Name bzw. PoB-interne Aufstiegs-ID            |
+| Stat-Text         | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
 
-`findings.json` trennt `errors` (Vertragsverstoß, doppelte ID, kaputte
-Referenz: der Lauf bricht ab, es wird kein Katalog geschrieben) von `warnings`.
-Warnungen sind Daten, die PoB nicht eindeutig hergibt, und bleiben sichtbar
-statt geraten: Basis-Implicits ohne passenden Mod (z. B. „Grants Skill"-Zeilen),
-Baum-Verbindungen zu fehlenden Knoten, Startknoten unbekannter Klassen, nicht
-aufgelöste Stat-Zeilen. Stand PoB 0.23.1: 0 Fehler, 450 Warnungen, rund 2 s.
+`findings.json` enthält:
+
+- `errors`: fehlender Pflichtwert in PoB (nie durch `0` oder `""` ersetzt),
+  Vertragsverstoß, doppelte ID, kaputte Referenz (auch Unique-Varianten). Der
+  Lauf bricht ab; es werden keine Katalogdateien und kein Manifest geschrieben.
+- `warnings`: Daten, die PoB nicht eindeutig hergibt, sichtbar statt geraten:
+  Basis-Implicits ohne genau einen passenden Mod (z. B. „Grants Skill"-Zeilen),
+  Baum-Verbindungen zu fehlenden Knoten, Startknoten unbekannter Klassen,
+  Unique-Zeilen mit nicht vorhandenen Varianten, Aufstiege ohne Knoten.
+- `unresolved`: offene Stat-Zeilen von Passiven mit Grund (der Vertrag hat bei
+  `PassiveNode` dafür kein Feld; Mods und Uniques tragen `unresolved` selbst).
+- `hiddenStatGroups`: Mods mit Stats, deren Beschreibung keinen Text erzeugt.
+- `summary`: Zählung aller offenen Zeilen je Art und Grund und von allem, was
+  nicht in den Katalog übernommen wird (Mods ohne Generierungsart, von PoB zur
+  Laufzeit interpolierte Gem-Werte, weitere Stat-Sets, Gem-Stufenfelder ohne
+  Platz im Vertrag wie Kosten, übersprungene Stat-Text-Varianten).
+
+Gem-Stufen enthalten unter `stats` nur Stat-IDs mit wörtlichen Werten aus dem
+ersten Stat-Set von PoB plus dessen konstante Stats.
+
+Stand PoB 0.23.1: 0 Fehler, 479 Warnungen, rund 2,5 s. Offene Stat-Zeilen:
+
+| Art | unmatched | ambiguous | lossy | hidden |
+|---|---|---|---|---|
+| Mod | 411 | 14 | 138 | 741 |
+| Unique (von 4167 Zeilen) | 1476 | 492 | 54 | 335 |
+| Passive | 131 | 555 | 25 | 467 |
+
+Bei Uniques fehlen PoB Trade-Hashes; mehrdeutig ist vor allem lokal gegen
+global (gleicher Text), nicht passend sind v. a. PoB-eigene Zeilen wie
+„Allocates …", „Grants Skill: …" und Radius-Zeilen von Juwelen.
 
 ## Rechtliches
 

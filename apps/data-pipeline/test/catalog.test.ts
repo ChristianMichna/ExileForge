@@ -1,197 +1,29 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { normalizeCatalog, normalizeConfigSchema } from "../src/normalize/catalog.ts";
+import { normalizeCatalog } from "../src/normalize/catalog.ts";
 import { StatMatcher } from "../src/normalize/stat-matcher.ts";
 import { validateCatalog } from "../src/normalize/validate.ts";
+import { cfg, rawSnapshot, type RawFixture } from "./fixtures/raw-catalog.ts";
 
-// Synthetic raw snapshot in PoB's shape. All names, ids and texts are invented.
-const cfg = normalizeConfigSchema.parse(
-  JSON.parse(
-    readFileSync(
-      fileURLToPath(new URL("../../../config/data-pipeline/normalize.json", import.meta.url)),
-      "utf8",
-    ),
-  ),
-);
 const scope = cfg.statScopes.mod;
 
-const statDescriptions = {
-  [`${scope}:1`]: {
-    scope,
-    order: 1,
-    stats: ["fake_alpha"],
-    tradeHash: 11,
-    variants: [{ limit: [["#", "#"]], text: "{0:+d} to Alpha", handlers: [] }],
-  },
-  [`${cfg.statScopes.passiveNode}:1`]: {
-    scope: cfg.statScopes.passiveNode,
-    order: 1,
-    parent: scope,
-    stats: ["fake_node_stat"],
-    tradeHash: 21,
-    variants: [{ limit: [["#", "#"]], text: "{0}% more Node Power", handlers: [] }],
-  },
-};
-
-function rawSnapshot() {
-  return {
-    statDescriptions,
-    mods: {
-      AlphaLow: {
-        "1": "+(1-2) to Alpha",
-        type: "Prefix",
-        group: "Alpha",
-        level: 1,
-        domains: ["Item"],
-        weightKey: ["thing", "default"],
-        weightVal: [1, 0],
-        modTags: ["fake"],
-        tradeHashes: { "11": ["+(1-2) to Alpha"] },
-      },
-      AlphaHigh: {
-        "1": "+(3-4) to Alpha",
-        type: "Prefix",
-        group: "Alpha",
-        level: 30,
-        domains: ["Item"],
-        weightKey: ["thing"],
-        weightVal: [1],
-        modTags: {},
-        tradeHashes: { "11": ["+(3-4) to Alpha"] },
-      },
-      Mystery: {
-        "1": "Does Something Odd",
-        domains: ["Exclusive"],
-        weightKey: {},
-        weightVal: {},
-        modTags: {},
-      },
-      ImplicitAlpha: {
-        "1": "+5 to Alpha",
-        type: "Implicit",
-        group: "AlphaImp",
-        level: 1,
-        domains: ["Item"],
-        weightKey: {},
-        weightVal: {},
-        modTags: {},
-      },
-    },
-    itemBases: {
-      "Fake Ring": {
-        type: "Ring",
-        tags: { ring: true, default: true, unused: false },
-        implicit: "+5 to Alpha",
-        req: { level: 4, str: 7 },
-      },
-      "Fake Blade": {
-        type: "Sword",
-        tags: {},
-        req: {},
-        weapon: { PhysicalMin: 1, PhysicalMax: 3 },
-        socketLimit: 2,
-      },
-      "Odd Charm": { type: "Charm", tags: {}, req: {}, implicit: "Grants Nothing Known" },
-    },
-    uniques: {
-      "Fakebrand, Fake Ring": {
-        title: "Fakebrand",
-        baseName: "Fake Ring",
-        variants: ["Old", "New"],
-        implicitModLines: {},
-        explicitModLines: [
-          { line: "+(7-9) to Alpha", variants: [2] },
-          { line: "Grants the Unknowable" },
-        ],
-      },
-      "Lostbrand, Missing Base": {
-        title: "Lostbrand",
-        baseName: "Missing Base",
-        implicitModLines: {},
-        explicitModLines: {},
-      },
-    },
-    gems: {
-      "Metadata/Fake/GemA": {
-        name: "Gem A",
-        gameId: "Metadata/Fake/Game/GemA",
-        gemType: "Spell",
-        tags: { spell: true },
-      },
-    },
-    gemLevels: {
-      "Metadata/Fake/GemA": {
-        levels: [
-          { level: 1, levelRequirement: 0, attributes: { int: 0 }, values: { "cost.Mana": 5 } },
-          { level: 2, levelRequirement: 3, attributes: { int: 9 }, values: { "cost.Mana": 6 } },
-        ],
-      },
-    },
-    passiveTree: {
-      "1": {
-        kind: "node",
-        data: {
-          skill: 1,
-          name: "Start",
-          group: 1,
-          orbit: 0,
-          orbitIndex: 0,
-          stats: {},
-          classesStart: ["Fakeclass", "Ghostclass"],
-          connections: [{ id: 2 }, { id: 99 }],
-        },
-      },
-      "2": {
-        kind: "node",
-        data: {
-          skill: 2,
-          name: "Big",
-          isNotable: true,
-          group: 1,
-          orbit: 1,
-          orbitIndex: 2,
-          stats: ["10% more Node Power", "Something unknowable"],
-          connections: [{ id: 1 }],
-        },
-      },
-      "3": {
-        kind: "node",
-        data: {
-          skill: 3,
-          name: "Asc Start",
-          isAscendancyStart: true,
-          ascendancyName: "Fake Ascent",
-          group: 2,
-          orbit: 0,
-          orbitIndex: 0,
-          stats: {},
-          connections: {},
-        },
-      },
-      "class:Fakeclass": {
-        kind: "class",
-        index: 1,
-        data: {
-          name: "Fakeclass",
-          base_str: 7,
-          base_dex: 9,
-          ascendancies: [{ id: "FakeAscent", internalId: "Fakeclass1", name: "Fake Ascent" }],
-        },
-      },
-    },
-  };
-}
-
-function run(raw = rawSnapshot()) {
+function run(raw: RawFixture = rawSnapshot()) {
   const matcher = new StatMatcher(raw.statDescriptions);
-  return normalizeCatalog(raw, { mod: matcher, passiveNode: matcher }, cfg);
+  return normalizeCatalog(
+    raw as unknown as Parameters<typeof normalizeCatalog>[0],
+    { mod: matcher, passiveNode: matcher },
+    cfg,
+  );
 }
+
+const byId = <T extends { id: string }>(list: unknown[], id: string) =>
+  (list as T[]).find((e) => e.id === id);
 
 describe("normalizeCatalog", () => {
-  const { entities, findings } = run();
-  const byId = <T extends { id: string }>(list: unknown[], id: string) =>
-    (list as T[]).find((e) => e.id === id);
+  const { entities, warnings, errors, unresolved, hiddenStatGroups, summary } = run();
+
+  it("has no errors on complete source data", () => {
+    expect(errors).toEqual([]);
+  });
 
   it("maps mods with stats, tiers, weights and visible unresolved lines", () => {
     expect(byId(entities.mod, "AlphaHigh")).toMatchObject({
@@ -215,6 +47,12 @@ describe("normalizeCatalog", () => {
     expect(byId(entities.mod, "ImplicitAlpha")).not.toHaveProperty("tier");
   });
 
+  it("lists stat groups that render no text instead of hiding them", () => {
+    expect(hiddenStatGroups).toEqual([{ modId: "AlphaLow", tradeHash: "13" }]);
+    expect(summary.modsWithHiddenStatGroups).toBe(1);
+    expect(summary.modsWithoutGenerationType).toBe(1);
+  });
+
   it("maps bases with name ids, true tags, properties and the implicit mod", () => {
     expect(byId(entities.baseItem, "Fake Ring")).toEqual({
       id: "Fake Ring",
@@ -229,14 +67,26 @@ describe("normalizeCatalog", () => {
       properties: { "weapon.PhysicalMin": 1, "weapon.PhysicalMax": 3 },
       socketCapacity: 2,
     });
-    expect(findings).toContainEqual({
+    expect(warnings).toContainEqual({
       kind: "baseItem",
       id: "Odd Charm",
       message: 'implicit "Grants Nothing Known" matches 0 mods',
     });
   });
 
-  it("maps uniques with variants and keeps unknown lines visible", () => {
+  it("reports an implicit whose text fits several mods", () => {
+    const raw = rawSnapshot();
+    raw.mods.ImplicitAlphaTwin = { ...raw.mods.ImplicitAlpha };
+    const res = run(raw);
+    expect(byId(res.entities.baseItem, "Fake Ring")).toMatchObject({ implicitModIds: [] });
+    expect(res.warnings).toContainEqual({
+      kind: "baseItem",
+      id: "Fake Ring",
+      message: 'implicit "+5 to Alpha" matches 2 mods',
+    });
+  });
+
+  it("maps uniques, drops unknown variants and keeps unknown lines visible", () => {
     expect(byId(entities.uniqueItem, "Fakebrand, Fake Ring")).toEqual({
       id: "Fakebrand, Fake Ring",
       name: "Fakebrand",
@@ -258,9 +108,29 @@ describe("normalizeCatalog", () => {
         },
       ],
     });
+    expect(warnings).toEqual(
+      expect.arrayContaining([
+        {
+          kind: "uniqueItem",
+          id: "Fakebrand, Fake Ring",
+          message: 'line "+(7-9) to Alpha": unknown variant 5 dropped',
+        },
+        {
+          kind: "uniqueItem",
+          id: "Fakebrand, Fake Ring",
+          message: 'line "+1 to Alpha" dropped: none of its variants exist',
+        },
+      ]),
+    );
+    expect(summary.unresolved.uniqueItem).toEqual({
+      unmatched: 1,
+      ambiguous: 0,
+      lossy: 0,
+      hidden: 0,
+    });
   });
 
-  it("maps gems by game id with PoB-computed levels", () => {
+  it("maps gems with literal stat-set values keyed by stat id", () => {
     expect(entities.gem).toEqual([
       {
         id: "Metadata/Fake/Game/GemA",
@@ -270,17 +140,32 @@ describe("normalizeCatalog", () => {
         levels: [
           {
             level: 1,
-            requirements: { level: 0, attributes: { int: 0 } },
-            stats: { "cost.Mana": 5 },
+            requirements: { attributes: {} },
+            stats: { fake_constant: 4, fake_alpha: 10 },
           },
           {
             level: 2,
             requirements: { level: 3, attributes: { int: 9 } },
-            stats: { "cost.Mana": 6 },
+            stats: { fake_constant: 4, fake_alpha: 12 },
           },
         ],
       },
     ]);
+    expect(summary.gemInterpolatedStatValues).toBe(2);
+    expect(summary.gemAdditionalStatSets).toBe(1);
+    expect(summary.gemLevelFieldsNotInContract).toEqual({ "cost.Mana": 2 });
+  });
+
+  it("skips a duplicate gem game id with a warning", () => {
+    const raw = rawSnapshot();
+    raw.gems["Metadata/Fake/GemACopy"] = { ...raw.gems["Metadata/Fake/GemA"] };
+    const res = run(raw);
+    expect(res.entities.gem).toHaveLength(1);
+    expect(res.warnings).toContainEqual({
+      kind: "gem",
+      id: "Metadata/Fake/Game/GemA",
+      message: "duplicate gameId (PoB gem Metadata/Fake/GemACopy); later entry skipped",
+    });
   });
 
   it("maps the tree, drops dangling references and reports them", () => {
@@ -296,6 +181,10 @@ describe("normalizeCatalog", () => {
         { text: "Something unknowable" },
       ],
     });
+    expect(byId(entities.passiveNode, "2")).not.toHaveProperty("unresolved");
+    expect(unresolved).toEqual([
+      { kind: "passiveNode", id: "2", text: "Something unknowable", reason: "unmatched" },
+    ]);
     expect(byId(entities.passiveNode, "3")).toMatchObject({
       kind: "ascendancyStart",
       ascendancyId: "Fakeclass1",
@@ -306,31 +195,30 @@ describe("normalizeCatalog", () => {
         name: "Fakeclass",
         baseAttributes: { str: 7, dex: 9 },
         startNodeId: "1",
-        ascendancyIds: ["Fakeclass1"],
+        ascendancyIds: ["Fakeclass1", "Fakeclass2"],
       },
     ]);
-    expect(entities.ascendancy).toEqual([
-      {
-        id: "Fakeclass1",
-        name: "Fake Ascent",
-        classId: "Fakeclass",
-        startNodeId: "3",
-        nodeIds: ["3"],
-      },
-    ]);
-    expect(findings).toContainEqual({
-      kind: "passiveNode",
-      id: "1",
-      message: "connection to missing node 99 dropped",
+    expect(byId(entities.ascendancy, "Fakeclass1")).toEqual({
+      id: "Fakeclass1",
+      name: "Fake Ascent",
+      classId: "Fakeclass",
+      startNodeId: "3",
+      nodeIds: ["3"],
     });
-    expect(findings).toContainEqual({
-      kind: "passiveNode",
-      id: "1",
-      message: 'start node for unknown class "Ghostclass" dropped',
-    });
+    expect(warnings).toEqual(
+      expect.arrayContaining([
+        { kind: "passiveNode", id: "1", message: "connection to missing node 99 dropped" },
+        {
+          kind: "passiveNode",
+          id: "1",
+          message: 'start node for unknown class "Ghostclass" dropped',
+        },
+        { kind: "ascendancy", id: "Fakeclass2", message: "no passive nodes in the tree" },
+      ]),
+    );
   });
 
-  it("builds stat translations with conditions and formatters", () => {
+  it("builds stat translations, keeps every format code and counts what is skipped", () => {
     expect(byId(entities.statTranslation, `${scope}:1`)).toEqual({
       id: `${scope}:1`,
       statIds: ["fake_alpha"],
@@ -339,23 +227,63 @@ describe("normalizeCatalog", () => {
         { conditions: [{ negated: false }], template: "{0} to Alpha", formatters: ["+d"] },
       ],
     });
+    expect(byId(entities.statTranslation, `${scope}:2`)).toMatchObject({
+      variants: [{ template: "{0} Beta", formatters: ["-d"] }],
+    });
+    expect(byId(entities.statTranslation, `${scope}:3`)).toBeUndefined();
+    expect(summary.statTranslations).toEqual({
+      descriptions: 4,
+      withoutStats: 0,
+      withoutVariants: 1,
+      gemQualityVariantsSkipped: 1,
+      emptyVariantsSkipped: 1,
+    });
+  });
+
+  it("reports missing required source values as errors, never as 0", () => {
+    const raw = rawSnapshot();
+    delete raw.mods.AlphaHigh?.level;
+    delete raw.itemBases["Fake Blade"]?.type;
+    const res = run(raw);
+    expect(res.errors).toEqual(
+      expect.arrayContaining([
+        { kind: "mod", id: "AlphaHigh", message: "source has no level" },
+        { kind: "baseItem", id: "Fake Blade", message: "source has no type" },
+      ]),
+    );
   });
 
   it("rejects mismatched weight lists", () => {
     const raw = rawSnapshot();
-    raw.mods.AlphaLow.weightVal = [1];
+    raw.mods.AlphaLow = { ...raw.mods.AlphaLow, weightVal: [1] };
     expect(() => run(raw)).toThrow(/weightKey and weightVal/);
   });
 });
 
 describe("validateCatalog", () => {
-  it("passes the synthetic catalog except the unique with a missing base", () => {
-    const { errors } = validateCatalog(run().entities);
-    expect(errors).toEqual([
+  it("passes the synthetic catalog", () => {
+    expect(validateCatalog(run().entities).errors).toEqual([]);
+  });
+
+  it("reports a unique with a missing base and unknown variant ids", () => {
+    const { entities } = run();
+    entities.uniqueItem.push({
+      id: "Lostbrand, Missing Base",
+      name: "Lostbrand",
+      baseItemId: "Missing Base",
+      mods: [{ stats: [], text: "x", variantIds: ["3"] }],
+      variants: [],
+    });
+    expect(validateCatalog(entities).errors).toEqual([
       {
         kind: "uniqueItem",
         id: "Lostbrand, Missing Base",
         message: 'baseItemId → unknown baseItem "Missing Base"',
+      },
+      {
+        kind: "uniqueItem",
+        id: "Lostbrand, Missing Base",
+        message: 'variantIds → unknown variant "3"',
       },
     ]);
   });
@@ -368,5 +296,12 @@ describe("validateCatalog", () => {
     expect(errors.map((e) => e.message)).toEqual(
       expect.arrayContaining(["duplicate id", expect.stringMatching(/^contract: stats\.0\.max/)]),
     );
+  });
+
+  it("does not resolve references to an entity that violates its contract", () => {
+    const { entities } = run();
+    (byId(entities.baseItem, "Fake Ring") as unknown as { itemClass: string }).itemClass = "";
+    const messages = validateCatalog(entities).errors.map((e) => e.message);
+    expect(messages).toContain('baseItemId → unknown baseItem "Fake Ring"');
   });
 });

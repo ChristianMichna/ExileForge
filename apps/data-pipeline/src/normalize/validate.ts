@@ -49,6 +49,8 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
     const schema = SCHEMAS[kind];
     const parsed: unknown[] = [];
     const seen = new Set<string>();
+    // references resolve only to entities that passed their contract
+    const valid = new Set<string>();
     for (const e of input[kind]) {
       const id = idOf(e);
       if (seen.has(id)) errors.push({ kind, id, message: "duplicate id" });
@@ -62,9 +64,10 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
         continue;
       }
       parsed.push(res.data);
+      valid.add(id);
     }
     entities[kind] = parsed;
-    ids[kind] = seen;
+    ids[kind] = valid;
   }
 
   const ref = (
@@ -81,8 +84,24 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
   for (const b of input.baseItem as { id: string; implicitModIds?: string[] }[]) {
     for (const m of b.implicitModIds ?? []) ref("baseItem", b.id, "implicitModIds", "mod", m);
   }
-  for (const u of input.uniqueItem as { id: string; baseItemId?: string }[]) {
+  for (const u of input.uniqueItem as {
+    id: string;
+    baseItemId?: string;
+    variants?: { id?: string }[];
+    mods?: { variantIds?: string[] }[];
+  }[]) {
     ref("uniqueItem", u.id, "baseItemId", "baseItem", u.baseItemId ?? "");
+    const variants = new Set((u.variants ?? []).map((v) => v.id));
+    for (const m of u.mods ?? []) {
+      for (const v of m.variantIds ?? []) {
+        if (!variants.has(v))
+          errors.push({
+            kind: "uniqueItem",
+            id: u.id,
+            message: `variantIds → unknown variant "${v}"`,
+          });
+      }
+    }
   }
   for (const n of input.passiveNode as {
     id: string;

@@ -314,12 +314,16 @@ loaders["gemLevels"] = function()
 						end
 					end
 				end
-				local req = lv.levelRequirement or 0
+				-- no level requirement in PoB: left out, and so are the attribute
+				-- requirements PoB derives from it (never computed from a guess)
+				local req = lv.levelRequirement
 				local attributes = {}
-				for _, attr in ipairs({ "Str", "Dex", "Int" }) do
-					local weight = gem["req" .. attr]
-					if weight then
-						attributes[attr:lower()] = calcLib.getGemStatRequirement(req, weight, effect.support)
+				if req then
+					for _, attr in ipairs({ "Str", "Dex", "Int" }) do
+						local weight = gem["req" .. attr]
+						if weight then
+							attributes[attr:lower()] = calcLib.getGemStatRequirement(req, weight, effect.support)
+						end
 					end
 				end
 				levels[#levels + 1] = { level = level, levelRequirement = req, attributes = attributes, values = values }

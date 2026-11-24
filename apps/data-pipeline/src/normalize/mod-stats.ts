@@ -19,6 +19,8 @@ export interface ModStatResult {
     lines: string[];
     reason: "unmatched" | "ambiguous" | "lossy" | "hidden" | "no-trade-hash";
   }[];
+  /** trade hashes whose description renders no text: stats exist but are not shown */
+  emptyGroupHashes: string[];
 }
 
 export interface ModStatSummary {
@@ -62,7 +64,7 @@ export function resolveModStats(
     }
     const parsed = rawModSchema.safeParse(raw);
     if (!parsed.success) throw new Error(`mod ${modId}: ${z.prettifyError(parsed.error)}`);
-    const result: ModStatResult = { modId, stats: [], unresolved: [] };
+    const result: ModStatResult = { modId, stats: [], unresolved: [], emptyGroupHashes: [] };
     const covered = new Set<string>();
     const record = (res: MatchResult, lines: string[], fallbackReason?: "no-trade-hash") => {
       summary.lineGroups++;
@@ -83,9 +85,10 @@ export function resolveModStats(
       }
       const lines = value;
       // PoB lists stats whose description renders no text with a single "";
-      // there is nothing shown to resolve, so the group is skipped (counted)
+      // there is nothing shown to resolve, so the group is skipped and listed
       if (lines.every((l) => l === "")) {
         summary.emptyGroups++;
+        result.emptyGroupHashes.push(hash);
         continue;
       }
       lines.forEach((l) => covered.add(l));

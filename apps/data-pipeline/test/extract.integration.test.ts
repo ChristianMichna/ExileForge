@@ -60,6 +60,37 @@ describe.skipIf(!hasPob)("extractRaw (real PoB)", () => {
     }
   });
 
+  it("extracts gem levels sorted, with attributes only where PoB has a level requirement", async () => {
+    const out = await mkdtemp(join(tmpdir(), "ef-gl-"));
+    const gl = pobSourcesSchema.parse({
+      kinds: [{ kind: "gemLevels", sources: [{ loader: "gemLevels" }] }],
+    });
+    const meta = await extractRaw(pob, gl, out);
+    expect(meta.kinds.gemLevels).toBeGreaterThan(0);
+    const shard = JSON.parse(await readFile(join(out, "gemLevels.json"), "utf8")) as {
+      entities: Record<
+        string,
+        {
+          grantedEffectId: string;
+          levels: {
+            level: number;
+            levelRequirement?: number;
+            attributes: Record<string, number> | unknown[];
+          }[];
+        }
+      >;
+    };
+    for (const [id, g] of Object.entries(shard.entities)) {
+      expect(g.grantedEffectId, id).toEqual(expect.any(String));
+      const levels = g.levels.map((l) => l.level);
+      expect(levels, id).toEqual([...levels].sort((x, y) => x - y));
+      for (const l of g.levels) {
+        if (l.levelRequirement === undefined)
+          expect(Object.keys(l.attributes), `${id} level ${String(l.level)}`).toEqual([]);
+      }
+    }
+  });
+
   it("reports PoB errors instead of writing partial output", async () => {
     const out = await mkdtemp(join(tmpdir(), "ef-err-"));
     const broken = pobSourcesSchema.parse({
