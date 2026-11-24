@@ -1,6 +1,6 @@
 # ADR-0001: Gehostete Web-App mit Remote-MCP statt Desktop-App
 
-- Status: **vorgeschlagen**, wartet auf Christians Entscheidung
+- Status: **angenommen in Hybrid-Form**, siehe [ADR-0003](0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)
 - Datum: 2026-11-24
 - Ersetzt: Entscheidung „Electron-App + `.mcpb`-Erweiterung" aus Architektur v0.2
 
@@ -20,9 +20,9 @@ Connector verbinden.
 1. ExileForge ist eine **Web-App** (Next.js) mit API und Calc-Service auf einem
    Server in der EU, wie im Projektplan beschrieben.
 2. Die Abo-Nutzung läuft über einen **Remote-MCP-Server** (Streamable HTTP), den
-   jeder Freund einmal als Connector in claude.ai einträgt. Claude plant im Chat
-   des Freundes, ExileForge liefert Katalog, Rechnungen, Optimierer, Gates und
-   speichert den Guide, der dann als Link in der Web-App erscheint.
+   jeder Freund einmal als Connector in claude.ai einträgt. Das eigene Frontend
+   ist die Oberfläche; im Chat laufen nur die KI-Schritte, iterativ und in kleinen
+   Aufgaben (Details in ADR-0003).
 3. Der Server ruft Claude **nie** mit Abo-Zugangsdaten auf. Serverseitige
    KI-Läufe gibt es nur mit einem API-Key, den der Nutzer selbst hinterlegt (BYOK).
 

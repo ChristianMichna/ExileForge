@@ -16,8 +16,9 @@ und Crafting mit Kosten.
 
 - **Jede Zahl kommt aus Path of Building.** Die KI schlägt vor, PoB rechnet.
   Keine geschätzten DPS- oder Lebenswerte.
-- **Läuft mit deinem Claude-Abo.** Du verbindest ExileForge einmal als Connector
-  in claude.ai und planst im Chat mit deinem eigenen Abo (Web, Desktop oder Handy).
+- **Läuft mit deinem Claude-Abo.** Du arbeitest im ExileForge-Frontend; die
+  KI-Schritte erledigt Claude in deinem eigenen Claude-Chat über den
+  ExileForge-Connector, Schritt für Schritt und sofort mit PoB geprüft.
   ExileForge sieht deine Claude-Zugangsdaten nie. Wer lieber einen API-Key nutzt,
   kann das auch, mit Claude oder anderen Modellen.
 - **Für Freunde gemacht.** Nichts installieren: Browser auf, Guide-Link teilen,

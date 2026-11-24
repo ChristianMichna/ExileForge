@@ -19,8 +19,9 @@ einem regulären Claude-Abo laufen.
   solange die Bedingungen für „Claude Code in Produkten" nicht geprüft sind.
 - **Modus D** bleibt aus.
 - Die Build-Pipeline (S0–S11) ist eine **Zustandsmaschine bei ExileForge**. Jede
-  LLM-Stufe wird entweder vom Gateway (A) ausgeführt oder dem Claude-Client über
-  `forge.start` / `forge.submit` (B) als Aufgabe gegeben. Schema-Validierung,
+  LLM-Stufe wird in kleine Aufgaben zerlegt und entweder vom Gateway (A) ausgeführt
+  oder dem Claude-Client über `forge.next` / `forge.submit` (B) gegeben
+  ([ADR-0003](0003-hybrid-eigenes-frontend-iterativer-claude-chat.md)). Schema-Validierung,
   Gates G1–G8, Rechnungen und Speicherung laufen in beiden Fällen gleich.
 
 ## Folgen
