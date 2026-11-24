@@ -12,3 +12,4 @@ evals/golden/builds/
 .claude/hooks/
 examples/
 packages/contracts/schemas/
+apps/mcp-bridge/server/

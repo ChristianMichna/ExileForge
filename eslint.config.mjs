@@ -15,6 +15,7 @@ export default tseslint.config(
       "**/playwright-report/**",
       "vendor/**",
       ".pob/**",
+      "apps/mcp-bridge/server/**",
     ],
   },
   js.configs.recommended,

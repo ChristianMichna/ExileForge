@@ -1,0 +1,61 @@
+{
+  "$schema": "./node_modules/@anthropic-ai/mcpb/dist/mcpb-manifest-v0.3.schema.json",
+  "manifest_version": "0.3",
+  "name": "exileforge",
+  "display_name": "ExileForge",
+  "version": "0.1.0",
+  "description": "Connects Claude to the ExileForge app on this computer to plan Path of Exile 2 builds step by step.",
+  "long_description": "ExileForge is a fan-made, unofficial tool and is not affiliated with or endorsed by Grinding Gear Games. This extension only forwards messages between Claude and the ExileForge app running on this computer (127.0.0.1). It has no logic or data of its own and never sends anything elsewhere. Start the ExileForge app first.",
+  "author": { "name": "ExileForge" },
+  "repository": { "type": "git", "url": "https://github.com/ChristianMichna/ExileForge" },
+  "license": "UNLICENSED",
+  "keywords": ["path of exile 2", "build planner"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": { "EXILEFORGE_PORT": "${user_config.port}" }
+    }
+  },
+  "user_config": {
+    "port": {
+      "type": "number",
+      "title": "ExileForge port",
+      "description": "Local port of the ExileForge app. Only change it if you changed it in the app.",
+      "default": 47615,
+      "min": 1024,
+      "max": 65535,
+      "required": false
+    }
+  },
+  "tools": [
+    {
+      "name": "forge_attach",
+      "description": "Attach to an ExileForge run with the session code shown in the app."
+    },
+    { "name": "forge_next", "description": "Get the next task of the run (or wait/done)." },
+    {
+      "name": "forge_submit",
+      "description": "Hand in the result of a task; checked at once by the app."
+    },
+    { "name": "forge_ask_user", "description": "Ask the user a question in the ExileForge app." },
+    { "name": "forge_status", "description": "Current state of the run." },
+    {
+      "name": "catalog_search",
+      "description": "Search the game catalog of the loaded data release."
+    },
+    { "name": "catalog_get", "description": "Full catalog entries for ids." },
+    { "name": "calc_evaluate", "description": "Calculate a build state with the engine." }
+  ],
+  "prompts": [
+    {
+      "name": "exileforge",
+      "description": "Start or continue an ExileForge planning session.",
+      "arguments": ["code"],
+      "text": "Start ExileForge session ${arguments.code}. Call forge_attach with this code and work through all tasks with forge_submit and forge_next until the run is done. Keep going without waiting for me unless the app needs me."
+    }
+  ],
+  "compatibility": { "platforms": ["win32", "darwin", "linux"], "runtimes": { "node": ">=20.0.0" } }
+}
