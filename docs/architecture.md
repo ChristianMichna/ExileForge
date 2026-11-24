@@ -1,4 +1,4 @@
-# ExileForge – Architektur (Entwurf v0.3)
+# ExileForge – Architektur (Entwurf v0.3, lokal zuerst)
 
 Stand: 2026-11-24. Grundlage ist der [Projektplan 1.0](projektplan.md); dieses
 Dokument hält fest, **wie** wir ihn umsetzen und was aus den bisherigen Arbeiten
@@ -7,10 +7,9 @@ steht im [Abgleich](plan-abgleich.md). Annahmen sind mit **⚠ Annahme** markier
 
 ## 0. Harte Vorgaben
 
-1. Web- oder Desktop-App → **Web-App mit eigenem Frontend** ([ADR-0001](adr/0001-web-app-und-remote-mcp.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
-2. KI läuft mit **regulärem Claude-Abo** → KI-Schritte im Claude-Chat des Freundes über den Remote-Connector, iterativ, keine Single-Shot-Prompts ([ADR-0002](adr/0002-claude-abo-nur-ueber-connector.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
-3. **Leicht zugänglich für alle Freunde**: Browser + Claude-Konto, nichts installieren.
-   Das ExileForge-Frontend ist die Oberfläche, nicht die Claude-App.
+1. **Läuft lokal auf Christians PC** und lässt sich **einfach an Freunde schicken** ([ADR-0004](adr/0004-lokal-first.md)).
+2. **Eigenes Frontend**, nicht die Claude-App als Oberfläche ([ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
+3. KI läuft mit **regulärem Claude-Abo**: KI-Schritte im Claude-Chat (Claude Desktop/Code) des Nutzers über die ExileForge-Werkzeuge, iterativ in kleinen Aufgaben, keine Single-Shot-Prompts ([ADR-0002](adr/0002-claude-abo-nur-ueber-connector.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
 4. **Optisch ansprechend für PoE-Spieler**, eigene Gestaltung, kein Anschein offizieller Herkunft.
 5. **Keine Zahl ohne Engine**, **keine Entität ohne Katalog-ID**, **patch-agnostisch**, **Verträge zuerst** (Leitprinzipien des Plans).
 6. Export als **`.build`**-Datei; **Neuprüfung nach jedem Patch**.
@@ -18,35 +17,38 @@ steht im [Abgleich](plan-abgleich.md). Annahmen sind mit **⚠ Annahme** markier
 
 ## 1. Entscheidung in einem Satz
 
-ExileForge ist eine **gehostete Web-App** (Next.js) mit **Calc-Service** aus
-unverändertem Path of Building PoE2 und **eigenem Frontend** für alles. Nur die
-KI-Schritte laufen im Claude-Chat des Freundes (eigenes Abo) über den
-ExileForge-Remote-Connector, in vielen kleinen, sofort mit PoB geprüften Aufgaben.
-Das Frontend zeigt live, was passiert, und der Freund greift dort ein.
+ExileForge ist eine **lokale Windows-App** (Electron) mit eigenem Frontend,
+lokalem Calc-Service aus unverändertem Path of Building PoE2 und einer
+**Claude-Desktop-Erweiterung**: Der Nutzer arbeitet in der App, Claude erledigt im
+eigenen Chat (eigenes Abo) die KI-Schritte in vielen kleinen, sofort mit PoB
+geprüften Aufgaben. Weitergabe per Installer, kein Server.
 
 ## 2. Bausteine
 
 ```
- Freund (Browser / Handy)                 Freund in claude.ai / Claude Desktop / Handy-App
-        │ HTTPS                                    │ eigenes Claude-Abo
-        ▼                                          │ MCP (Streamable HTTP)
- ┌──────────────┐   REST    ┌────────────┐         ▼
- │ apps/web     │─────────▶ │ apps/api   │◀── apps/mcp  (forge.attach / forge.next / forge.submit,
- │ Next.js      │           │ Fastify    │              catalog.*, calc.*, optimize.*, …)
- └──────────────┘           └─────┬──────┘
-                                  │
-        ┌───────────────┬─────────┼──────────────┬──────────────────┐
-        ▼               ▼         ▼              ▼                  ▼
- apps/worker      apps/calc    Postgres     Daten-Releases     llm-gateway
- Pipeline S0–S11  Node-Super-  Katalog,     (JSON, Icons)      nur BYOK (Modus A)
- (Temporal)       visor +      Guides,      aus apps/
-                  LuaJIT-PoB   Nutzer       data-pipeline
+ PC des Nutzers
+┌──────────────────────────────────────────────────────────────────────────┐
+│  ExileForge-App (Electron)                                               │
+│  ┌──────────────┐  ┌────────────────────────────────────────────────┐    │
+│  │ Frontend     │◀─│ lokaler Server 127.0.0.1 (Fastify)             │    │
+│  │ React + Vite │  │  API · Live-Status (SSE) · MCP-Endpunkt /mcp   │    │
+│  └──────────────┘  │  Pipeline-Zustandsmaschine (S0–S11)            │    │
+│                    │  Katalog (Daten-Release) · SQLite              │    │
+│                    │  Calc: Node-Supervisor + LuaJIT/PoB-Worker     │    │
+│                    └───────────────▲────────────────────────────────┘    │
+│                                    │ forge.attach / next / submit,       │
+│                                    │ catalog.*, calc.*, optimize.*       │
+│  Claude Desktop (eigenes Abo) ── ExileForge-Erweiterung (.mcpb, stdio-Brücke)
+│  oder Claude Code ───────────── claude mcp add --transport http …/mcp     │
+└──────────────────────────────────────────────────────────────────────────┘
+        ▲ Installer, App-Updates, Daten-Releases, PoB-Versionen
+        │ (GitHub Releases, gebaut in GitHub Actions)
 ```
 
-Web und MCP sind zwei gleichwertige Eingänge in dieselbe Pipeline. Katalog und
-Calc-Service nutzen dieselbe gepinnte PoB-Version. Einzelheiten zu jedem Baustein
-stehen im Plan (Abschnitte Systemarchitektur, Datenplattform, Rechenkern,
-KI-Schicht, Build-Pipeline, Optimierer, Frontend).
+Frontend und Claude sind zwei Eingänge in dieselbe Pipeline. Katalog und
+Calc-Service nutzen dieselbe gepinnte PoB-Version. Fachliche Einzelheiten
+(Datenplattform, Rechenkern, Build-Pipeline, Optimierer, Frontend) stehen im Plan;
+was lokal anders läuft, steht in [ADR-0004](adr/0004-lokal-first.md).
 
 ## 3. Konkretisierungen gegenüber dem Plan
 
@@ -57,48 +59,48 @@ KI-Schicht, Build-Pipeline, Optimierer, Frontend).
   (PoB nutzt `+=` und `?.`) und `lua-utf8` mitkompiliert ist. Build-Codes müssen
   außerhalb von Lua dekodiert werden (zlib + Base64), weil PoBs Headless-Modus
   `Inflate/Deflate` nur als Platzhalter hat.
-- Umbau für `apps/calc`:
+- Umbau für `apps/calc` (läuft im App-Prozess):
   - `runner.lua` wird zum **langlebigen Worker** (PoB einmal laden, dann
     zeilenweises JSON-RPC über stdin/stdout). Ergebniszeilen behalten einen
     Marker, weil PoB selbst auf stdout loggt.
   - Python-Wrapper wird durch einen **Node-Supervisor** (TypeScript) ersetzt:
     Pool, Timeouts, Neustart, Recycling, Code-Dekodierung, Link-Auflösung.
-  - PoB als Git-Submodul `vendor/PathOfBuilding-PoE2`; LuaJIT-Build aus
-    `tools/setup_pob.sh` wandert ins Docker-Image des Calc-Service.
+    Nutzer brauchen kein Python.
+  - PoB als Git-Submodul `vendor/PathOfBuilding-PoE2`; LuaJIT + `lua-utf8` werden
+    in GitHub Actions **für Windows** gebaut (Windows-Workflow aus PR #2) und in
+    den Installer gepackt.
   - Erste RPC-Methoden: `meta.version`, `build.load`, `calc.stats`; danach
     `build.applyPatch`, `calc.evalBatch`, `calc.nodePower`, `calc.validate`.
-- **⚠ Annahme:** Speicherbedarf und Kaltstart je Worker sind noch nicht gemessen;
-  sie bestimmen Servergröße und Kosten (Phase 0).
+- **⚠ Annahme:** Kaltstart und Speicher je Worker sind noch nicht gemessen; sie
+  bestimmen die Pool-Größe auf einem normalen Spiele-PC (Phase 0).
 
-### 3.2 Zugang für Freunde
+### 3.2 Einrichtung und Weitergabe
 
-- **Einmalig:** Connector-URL in claude.ai eintragen
-  (Einstellungen → Connectors → eigenen Connector hinzufügen). Gilt danach auch in
-  Claude Desktop und der Handy-App. Anmeldung am ExileForge-Konto per OAuth des
-  eigenen Dienstes, damit Guides dem richtigen Nutzer gehören.
-- **Planen:** Im ExileForge-Frontend Skill und Vorlieben wählen, „Mit Claude
-  planen" drücken, Sitzungscode im Claude-Chat nennen (`forge.attach`). Claude arbeitet die
-  Aufgaben über `forge.next`/`forge.submit` ab; Frontend zeigt Schritt, PoB-Zahlen
-  und Tree live. Rückfragen (Aufgaben vom Typ `ask_user`) und Eingriffe (Variante wählen,
-  Knoten/Items sperren, Schritt neu) passieren im Frontend.
-  Ablauf im Detail: [ADR-0003](adr/0003-hybrid-frontend-und-chat.md).
-- **Lesen:** Guide-Link im Browser, mobil zuerst.
-- **Konto:** anfangs nur auf Einladung (z. B. Discord-Login). Öffentliche Website
-  ist eine spätere Entscheidung (Plan, offene Entscheidung „Betriebsform").
-- **⚠ Annahme, prüfen:** Welche Claude-Pläne eigene Remote-Connectors erlauben
-  (Pro/Max ja, Free eingeschränkt) und wie viel Abo-Kontingent ein Guide kostet.
+- **Installieren:** `ExileForge-Setup.exe` von der GitHub-Releases-Seite,
+  Auto-Update über `electron-updater`. Ohne Code-Signing erscheint einmal die
+  SmartScreen-Warnung.
+- **Mit Claude verbinden:** Knopf in der App öffnet die `.mcpb`-Erweiterung, in
+  Claude Desktop bestätigen. Für Claude Code zeigt die App den `claude mcp add`-Befehl.
+  Voraussetzung: Claude Desktop oder Claude Code mit eigenem Abo.
+- **Planen:** Im Frontend Skill und Vorlieben wählen, „Mit Claude planen"
+  drücken, Startsatz mit Sitzungscode in Claude einfügen (`forge.attach`). Claude
+  arbeitet die Aufgaben über `forge.next`/`forge.submit` ab; das Frontend zeigt
+  Schritt, PoB-Zahlen und Tree live. Rückfragen (Aufgaben vom Typ `ask_user`) und
+  Eingriffe (Variante wählen, Knoten/Items sperren, Schritt neu) passieren im
+  Frontend. Ablauf im Detail: [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)
+  Abschnitte 3–4.
+- **Teilen:** Guide als `.exileforge.json` an Freunde schicken (die importieren
+  und rechnen ihn lokal nach), `.build` fürs Spiel, PoB-Codes je Stufe.
+- **⚠ Annahme, prüfen:** Abo-Verbrauch pro Guide; ob ein Claude-Free-Konto
+  lokale Erweiterungen nutzen kann.
 
-### 3.3 Gestaffeltes Hochfahren der Infrastruktur
+### 3.3 Vereinfachter Stack für lokal
 
-Der Tech-Stack des Plans gilt. Hochgefahren wird er nach Bedarf:
-
-| Ab | Dienst |
-| --- | --- |
-| Phase 0 | Postgres, Calc-Service, Daten-Releases als Dateien, CI |
-| WS6 (Pipeline) | Temporal |
-| Calc-Cache / Rate Limits | Redis |
-| Icons über CDN | S3-kompatibler Speicher |
-| vor dem ersten Freunde-Test | Sentry, Langfuse, OpenTelemetry |
+Der gehostete Stack des Plans (Next.js, Temporal, Postgres, Redis, S3, Langfuse)
+wird lokal durch React + Vite, eine persistierte Zustandsmaschine und SQLite
+ersetzt. Tabelle und Begründung: [ADR-0004](adr/0004-lokal-first.md). Der Kern
+bleibt vom Electron-Teil getrennt, damit eine gehostete Variante später möglich
+bleibt.
 
 ### 3.4 Oberfläche – „optisch ansprechend für PoE-Spieler"
 
@@ -111,7 +113,7 @@ Vorschlag für die Design-Tokens in `packages/ui` (aus v0.2 übernommen):
 - Schrift: Cinzel (OFL) für Überschriften, gut lesbare Sans für Text.
 - Eigene SVG-Ornamente und Rahmen, keine kopierten Spielgrafiken, keine Logos,
   die offizielle Plattformen nachahmen. Footer-Hinweis laut GGG.
-- Kontrast nach WCAG AA, Guide-Leser mobil zuerst.
+- Kontrast nach WCAG AA. Guide-Leser so gebaut, dass er auch schmal (zweiter Bildschirm) gut lesbar ist.
 - **⚠ Annahme:** Icons aus PoB bzw. der Spieldaten dürfen in einem
   nicht-kommerziellen Fan-Tool gezeigt werden; sonst eigene abstrakte Formen.
 
@@ -126,8 +128,8 @@ Vorschlag für die Design-Tokens in `packages/ui` (aus v0.2 übernommen):
 - Weil der Katalog die internen Spiel-IDs als kanonische IDs nutzt, entfällt die
   in v0.2 geplante eigene Zuordnungstabelle weitgehend. **⚠ Annahme:** PoB-Daten
   enthalten diese String-IDs; sonst ergänzt sie die Daten-Pipeline.
-- Der Nutzer lädt die Datei herunter und legt sie selbst in den
-  BuildPlanner-Ordner. **⚠ Annahme:** `level_interval` meint das Charakterlevel;
+- Die App bietet an, die Datei in den BuildPlanner-Ordner zu speichern; der
+  Nutzer bestätigt den Speicherort selbst. **⚠ Annahme:** `level_interval` meint das Charakterlevel;
   im Spiel testen.
 
 ### 3.6 Datenmodell
@@ -137,15 +139,20 @@ Verträge des Plans verteilt werden, steht in [data-model.md](data-model.md).
 
 ## 4. Repo-Struktur
 
-Wie im Plan (Abschnitt Repository-Struktur): `apps/{web,api,worker,calc,mcp,data-pipeline}`,
+Wie im Plan (Abschnitt Repository-Struktur), mit lokalen Anpassungen:
+`apps/desktop` (Electron-Hülle, Installer, Updates), `apps/web` (React + Vite),
+`apps/server` (lokaler Fastify-Server mit API, Pipeline und MCP-Endpunkt),
+`apps/calc`, `apps/mcp-bridge` (`.mcpb`-Erweiterung), `apps/data-pipeline` (läuft in CI);
 `packages/{contracts,catalog-sdk,calc-client,llm-gateway,agents,optimizer,crafting-sim,exporters,ui}`,
 `vendor/PathOfBuilding-PoE2`, `config/`, `evals/`, `docs/adr/`.
 
-## 5. Was aus v0.2 entfällt
+## 5. Verhältnis zu v0.2 und zum Plan
 
-Electron, electron-builder/NSIS, electron-updater, `.mcpb`-Paket, lokales SQLite,
-Schreiben in den Spielordner, Windows-only. Der lokale Modus (F-21, Docker
-Compose) bleibt als spätere Option im Plan.
+v0.2 (PR #1) war bereits lokal mit Electron und Claude-Desktop-Erweiterung.
+v0.3 übernimmt das, ergänzt aber aus dem Plan: Katalog und Daten-Releases,
+Pipeline S0–S11 mit Gates und Score, kleine iterative Aufgaben statt eines großen
+Planungs-Prompts, Optimierer und Crafting-Simulator. Vom gehosteten Plan-Stack
+weicht v0.3 bewusst ab (ADR-0004).
 
 ## 6. Day-0-Readiness bis 11.12.2026
 
@@ -156,24 +163,28 @@ einspielen. Reihenfolge nach der Ersten Welle des Plans:
 | # | Aufgabe | WS | Grundlage |
 | --- | --- | --- | --- |
 | 1 | Monorepo-Gerüst (pnpm + Turborepo), CI, `contracts` v1: Catalog, CalcRPC, BuildRequest, GuideDocument | WS0 | dieses Dokument, data-model.md |
-| 2 | Calc-Service: langlebiger LuaJIT-Worker + Node-Supervisor, `build.load`, `calc.stats`; Messung Kaltstart/Laufzeit/Speicher | WS2 | PR #2 |
-| 3 | Daten-Pipeline: PoB-Daten per LuaJIT nach JSON, Abbildung auf das kanonische Schema, Validierung, Diff, Release | WS1 | Plan |
+| 2 | Calc-Service: langlebiger LuaJIT-Worker + Node-Supervisor, `build.load`, `calc.stats`, unter Windows und Linux; Messung Kaltstart/Laufzeit/Speicher | WS2 | PR #2 |
+| 3 | Daten-Pipeline (in GitHub Actions): PoB-Daten per LuaJIT nach JSON, Abbildung auf das kanonische Schema, Validierung, Diff, Daten-Release als Release-Datei | WS1 | Plan |
 | 4 | Golden Builds (Ziel 20) mit Referenzwerten aus der PoB-Oberfläche | WS2/WS9 | Fixture aus PR #2 |
 | 5 | Patch-Watcher: neues PoB-Release → Submodul-Bump-PR → Golden-Vergleich | WS1/WS2 | Plan |
 | 6 | `.build`-Exporter mit Schema-Tests | WS8 | Recherche |
 | 7 | ItemTooltip und Tree-Renderer gegen Fixture-Daten | WS7 | Design-Tokens 3.4 |
-| 8 | Gateway (Anthropic + OpenAI-kompatibel), Eval-Gerüst | WS5/WS9 | Plan |
+| 8 | PoC Claude-Anbindung: `.mcpb`-Brücke + `forge.attach/next/submit` mit Dummy-Pipeline | WS8 | ADR-0003/0004 |
+| 9 | Gateway (BYOK), Eval-Gerüst | WS5/WS9 | Plan |
 
-1–5 sind für Day-0 Pflicht, 6–8 können parallel laufen und dürfen über den
+1–5 sind für Day-0 Pflicht, 6–9 können parallel laufen und dürfen über den
 11.12. hinausgehen.
 
 ## 7. Offene Fragen
 
-- PoC Hybrid-Ablauf: Werkzeugaufrufe pro Claude-Antwort, vorausgefüllter Prompt per URL ([ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
-- Offene Entscheidungen des Plans (Monetarisierung, eigene Datenextraktion,
-  Betreiber-Key, Sprache, Name/Domain, Kooperationen, Hosting-Budget).
-- Remote-Connectors je Claude-Plan und Abo-Verbrauch pro Guide.
-- Speicherbedarf je PoB-Worker → Servergröße.
+- PoC Claude-Anbindung: `.mcpb`-Brücke, Werkzeugaufrufe pro Antwort,
+  vorausgefüllter Start ([ADR-0004](adr/0004-lokal-first.md)).
+- Offene Entscheidungen des Plans, soweit lokal noch relevant (eigene
+  Datenextraktion, Sprache, Name, Kooperationen). Hosting-Budget und Betreiber-Key
+  entfallen.
+- Abo-Verbrauch pro Guide.
+- Speicherbedarf je PoB-Worker → Pool-Größe auf dem PC.
+- Code-Signing ja/nein.
 - Lizenz für ExileForge selbst (PoB: MIT).
 
 ## Quellen

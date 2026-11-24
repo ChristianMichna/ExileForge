@@ -7,6 +7,10 @@
   [ADR-0002](0002-claude-abo-nur-ueber-connector.md) (Abo nur über Connector,
   Pipeline S0–S10 als Zustandsmaschine)
 
+> **Hinweis:** Abschnitte 1 und 2 (gehosteter Betrieb, Remote-Connector mit OAuth)
+> sind durch [ADR-0004](0004-lokal-first.md) ersetzt: ExileForge läuft lokal, Claude
+> verbindet sich über eine Claude-Desktop-Erweiterung. Abschnitte 3–4 gelten weiter.
+
 **⚠ Annahme** markiert ungeprüfte Punkte, die der Proof of Concept klären muss.
 
 ## Kontext

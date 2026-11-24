@@ -12,7 +12,7 @@ einem regulären Claude-Abo laufen.
 ## Entscheidung
 
 - **Modus B ist der Hauptweg für Freunde.** Jeder nutzt sein eigenes Claude-Abo
-  in Anthropics Clients.
+  in Anthropics Clients (lokal: Claude Desktop oder Claude Code, [ADR-0004](0004-lokal-first.md)).
 - **Modus A** (BYOK über `llm-gateway`) wird gleichwertig gebaut, ist aber kein
   Muss für Freunde.
 - **Modus C** nur für Christians eigenen Gebrauch, nicht für Freunde verteilt,

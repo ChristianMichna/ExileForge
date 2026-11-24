@@ -17,12 +17,12 @@ und Crafting mit Kosten.
 - **Jede Zahl kommt aus Path of Building.** Die KI schlägt vor, PoB rechnet.
   Keine geschätzten DPS- oder Lebenswerte.
 - **Läuft mit deinem Claude-Abo.** Du arbeitest im ExileForge-Frontend; die
-  KI-Schritte erledigt Claude in deinem eigenen Claude-Chat über den
-  ExileForge-Connector, Schritt für Schritt und sofort mit PoB geprüft.
+  KI-Schritte erledigt Claude in deinem eigenen Claude Desktop (oder Claude Code)
+  über die ExileForge-Erweiterung, Schritt für Schritt und sofort mit PoB geprüft.
   ExileForge sieht deine Claude-Zugangsdaten nie. Wer lieber einen API-Key nutzt,
   kann das auch, mit Claude oder anderen Modellen.
-- **Für Freunde gemacht.** Nichts installieren: Browser auf, Guide-Link teilen,
-  Guide beim Spielen auf dem Handy lesen.
+- **Läuft bei dir lokal.** Eine Windows-App, kein Server, keine Cloud. Freunden
+  schickst du einfach den Installer; Guides lassen sich als Datei teilen.
 - **Für Spieler gemacht.** Dunkler Dark-Fantasy-Look, Passive Tree mit
   Level-Zeitleiste, Item-Tooltips und Crafting-Abläufe grafisch.
 - **Direkt im Spiel nutzbar.** Export als `.build`-Datei für den Build Planner
@@ -32,8 +32,8 @@ und Crafting mit Kosten.
 
 ## Wie es funktioniert (kurz)
 
-1. Du wählst auf der ExileForge-Website einen Skill oder sagst Claude im Chat,
-   was du spielen willst und wie.
+1. Du installierst ExileForge (Windows) und verbindest es per Klick mit
+   Claude Desktop. In der App wählst du Skill und Vorlieben.
 2. ExileForge analysiert den Skill, Claude entwirft 3–6 Varianten, jede wird in
    **Path of Building PoE2** gerechnet. Du wählst eine.
 3. Daraus entsteht ein vollständiger Guide von Akt 1 bis Endgame, der erst

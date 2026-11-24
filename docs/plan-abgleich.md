@@ -27,7 +27,10 @@ Werkzeuge und Rechnungen vom Server, und niemand muss etwas installieren. Damit
 fällt der Grund weg, aus dem v0.2 einen Server abgelehnt hatte (dort hätte der
 Server Claude selbst aufrufen müssen, also API-Key statt Abo).
 
-**Entscheidung (Christian, 2026-11-24):** Hybrid. ExileForge hat ein **eigenes
+**Entscheidungen (Christian, 2026-11-24):** **Lokal, nicht in der Cloud**
+([ADR-0004](adr/0004-lokal-first.md)): ExileForge läuft als Windows-App auf dem
+eigenen PC und wird per Installer an Freunde weitergegeben; der gehostete Server
+aus dem Plan entfällt. Dazu Hybrid. ExileForge hat ein **eigenes
 Frontend** für alles; nur die KI-Schritte laufen im Claude-Chat des Freundes über
 den Remote-Connector, iterativ in kleinen Aufgaben statt Single-Shot-Prompts
 ([ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
@@ -58,7 +61,10 @@ Kern, wird aber umgebaut.
 - **Bewertung für „leicht zugänglich für Freunde":** Web gewinnt. Kein Installer,
   keine Windows-Abhängigkeit, Guide auf dem Handy, Builds sind Links statt Dateien,
   Updates ohne Zutun. Kosten: ein Server, den Christian betreibt und bezahlt.
-- **Auflösung:** Web-App mit eigenem Frontend laut Plan
+- **Auflösung (überholt):** Christian hat lokal gewählt, siehe
+  [ADR-0004](adr/0004-lokal-first.md). Damit gilt im Kern wieder die Desktop-Variante
+  aus PR #1, ergänzt um Katalog, Pipeline und Gates aus dem Plan. Ursprünglich
+  vorgeschlagen war: Web-App mit eigenem Frontend laut Plan
   ([ADR-0001](adr/0001-web-app-und-remote-mcp.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)). Electron, `.mcpb`,
   electron-updater, NSIS und SQLite entfallen. Der lokale Modus (F-21, R2) bleibt
   als spätere Option.
@@ -114,15 +120,14 @@ Kern, wird aber umgebaut.
 | `tools/setup_pob.sh`, LuaJIT-Build-Wissen | **Behalten.** Wird Teil des Calc-Docker-Images; PoB als Git-Submodul `vendor/PathOfBuilding-PoE2` gepinnt. |
 | `tests/fixtures/witch_spark_lvl60.xml`, `tools/make_fixture.lua` | **Behalten**, erster Golden Build. |
 | Python-Wrapper (`pob.py`, `__main__.py`) | **Ersetzen** durch Node-Supervisor in `apps/calc` (Plan: alles TypeScript außer Lua). Link-Auflösung und Code-Dekodierung nach TS portieren. |
-| Windows-Workflow | **Nicht mehr nötig** für die Web-App (Server läuft unter Linux). Aufheben für den lokalen Modus oder entfernen. |
+| Windows-Workflow | **Behalten.** Die App läuft lokal unter Windows ([ADR-0004](adr/0004-lokal-first.md)); LuaJIT/PoB werden in CI für Windows gebaut. |
 
 Vorschlag: PR #2 mergen wie er ist (er ist ein funktionierender, getesteter
 Machbarkeitsnachweis) und den Umbau als ersten WS2-PR auf `main` machen.
 
 ### 7. Agent-/Skill-Setup
 
-- `electron-security-reviewer` passt nur zur Desktop-Variante; für die Web-App
-  eher ein Web-/API-Security-Reviewer (Auth, Rate Limits, Key-Speicherung).
+- `electron-security-reviewer` passt wieder, weil die App lokal mit Electron läuft.
 - Die Arbeitsregeln des Plans (Ticket-Format mit F-IDs, ein Paket pro PR,
   Reviewer-Agent, „kein Spielwissen aus dem Modellgedächtnis", Konfiguration statt
   Konstanten) sollten in `CLAUDE.md`.
