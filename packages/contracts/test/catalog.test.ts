@@ -253,6 +253,13 @@ describe("entities", () => {
     expect(UniqueModLine.safeParse(bad).success).toBe(false);
   });
 
+  it("a unique mod line may name the passive node it allocates", () => {
+    const line = { stats: [], text: "Allocates Fixture Node", allocatesNodeId: "4711" };
+    expect(UniqueModLine.parse(line).allocatesNodeId).toBe("4711");
+    expect(UniqueModLine.parse({ stats: [] }).allocatesNodeId).toBeUndefined();
+    expect(UniqueModLine.safeParse({ stats: [], allocatesNodeId: "" }).success).toBe(false);
+  });
+
   it("ascendancy point unlocks may be absent", () => {
     const asc = {
       id: "fixture_asc",
