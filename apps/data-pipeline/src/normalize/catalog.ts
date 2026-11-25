@@ -190,7 +190,7 @@ export interface NormalizeResult {
   errors: Finding[];
   /** source data PoB does not give unambiguously; visible, non-blocking */
   warnings: Finding[];
-  /** open lines of kinds whose contract has no `unresolved` field */
+  /** every open line of all kinds, for findings.json (entities with the field carry theirs too) */
   unresolved: UnresolvedFinding[];
   /** mod id + trade hash of stat groups that render no text */
   hiddenStatGroups: { modId: string; tradeHash: string }[];
@@ -717,6 +717,7 @@ function normalizeTree(
     const flags = cfg.passiveNodeKinds.flags.find(([flag]) => data[flag] === true);
     const statLines = list(data.stats).filter((s): s is string => typeof s === "string");
     const stats: { statId?: string; text: string }[] = [];
+    const unresolvedLines: NonNullable<ReturnType<typeof unresolvedOf>>[] = [];
     for (const group of matcher.matchLineGroups(statLines, cfg.statScopes.passiveNode)) {
       const text = group.lines.join("\n");
       const res = group.result;
@@ -726,7 +727,7 @@ function normalizeTree(
         stats.push({ text });
         const u = unresolvedOf(res, group.lines);
         if (u) {
-          // PassiveNode has no `unresolved` field: the reason goes to the findings
+          unresolvedLines.push(u);
           ctx.unresolved.push({ kind: "passiveNode", id, ...u });
           ctx.countUnresolved("passiveNode", u.reason);
         }
@@ -776,6 +777,7 @@ function normalizeTree(
       name: ctx.requireStr("passiveNode", id, "name", data.name),
       kind: flags ? flags[1] : cfg.passiveNodeKinds.default,
       stats,
+      unresolved: unresolvedLines,
       position: {
         groupId:
           group !== undefined
