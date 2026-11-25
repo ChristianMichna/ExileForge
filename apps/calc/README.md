@@ -133,9 +133,9 @@ Detail), und es entsteht kein halber Zustand.
 | `setLevel` | Charakterstufe, schaltet die automatische Stufe ab | – |
 | `setClass` | `PassiveSpec:SelectClass`; nicht verbundene Passives verwirft PoB, das steht dann in `warnings` | Klassenname (`characterClass.id`) |
 | `setAscendancy` | `PassiveSpec:SelectAscendClass` | `internalId` der Ascendancy (`ascendancy.id`) |
-| `allocateNodes` | `PassiveSpec:AllocNode` mit PoBs Pfadsuche; optional `weaponSet` (PoBs `allocMode`, nur 1 oder 2). Nicht erreichbar = Fehler; schon vergebene Knoten bleiben unverändert (Warnung bei anderem Set) | Knoten-ID (`passiveNode.id`) |
+| `allocateNodes` | `PassiveSpec:AllocNode` mit PoBs Pfadsuche; optional `weaponSet` (PoBs `allocMode`, 0 = gemeinsam, 1 oder 2). Nicht erreichbar = Fehler; schon vergebene Knoten bleiben unverändert (Warnung bei anderem Set) | Knoten-ID (`passiveNode.id`) |
 | `deallocateNodes` | `PassiveSpec:DeallocNode`, inklusive abhängiger Knoten | Knoten-ID |
-| `setSkill` | ersetzt oder ergänzt die Skill-Gruppe mit dem Label `groupKey` (mehrdeutiges Label = `invalid_params`, Gruppen ohne Label sind nicht ansprechbar); aktive Gem plus Supports, geprüft gegen PoBs Gem-Daten. `weaponSet` kennt PoB für Gruppen nicht, er wird abgelehnt | Gem-Metadata-ID (`gem.id`) |
+| `setSkill` | ersetzt oder ergänzt die Skill-Gruppe mit dem Label `groupKey` (mehrdeutiges Label = `invalid_params`, Gruppen ohne Label heißen nach ihrem Skill-Namen, den PoB als `displayLabel` setzt); aktive Gem plus Supports, geprüft gegen PoBs Gem-Daten. `weaponSet` kennt PoB für Gruppen nicht, er wird abgelehnt | Gem-Metadata-ID (`gem.id`) |
 | `removeSkill` | entfernt die Gruppe mit dem Label `groupKey` | – |
 | `setItem` | liest den Item-Text mit PoBs Item-Parser, prüft den Slot, rüstet aus | PoB-Slotname |
 | `removeItem` | leert den Slot | PoB-Slotname |

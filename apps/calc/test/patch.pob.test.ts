@@ -214,8 +214,21 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     }
   });
 
+  it("accepts weaponSet 0 as the shared tree", async () => {
+    const last = facts.nodes[facts.nodes.length - 1] ?? "";
+    const without = await patch(ops([{ op: "deallocateNodes", nodeIds: [last] }]));
+    // the same ops as without weaponSet, so the result must be the same state
+    const plain = await patch(ops([{ op: "allocateNodes", nodeIds: facts.nodes }]), without.handle);
+    const zero = await patch(
+      ops([{ op: "allocateNodes", nodeIds: facts.nodes, weaponSet: 0 }]),
+      without.handle,
+    );
+    expect((await stats(zero.handle)).calcId).toBe((await stats(plain.handle)).calcId);
+  });
+
   it("keeps profile and main skill out of the patched build", async () => {
-    const viaProfile = await stats(base, "test-override");
+    // run a profile and a main skill on the base first; the patch must not carry them
+    const viaProfile = await stats(base, "test-override", baseResult.mainSkill ?? undefined);
     expect(viaProfile.stats).not.toEqual(baseResult.stats);
     const { handle } = await patch(ops([{ op: "setLevel", level: 61 }]));
     const plain = await patch(ops([{ op: "setLevel", level: 61 }]), base);

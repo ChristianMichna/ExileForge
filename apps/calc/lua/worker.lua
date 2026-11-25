@@ -575,8 +575,8 @@ end
 
 patchOps.allocateNodes = function(op, warnings)
 	local spec = build.spec
-	-- PoB knows the weapon sets 1 and 2 (PassiveSpec allocMode); 0 is the plain tree.
-	if op.weaponSet ~= nil and op.weaponSet ~= 1 and op.weaponSet ~= 2 then
+	-- PoB knows the weapon sets 1 and 2 (PassiveSpec allocMode); 0 is the shared tree.
+	if op.weaponSet ~= nil and op.weaponSet ~= 0 and op.weaponSet ~= 1 and op.weaponSet ~= 2 then
 		fail("invalid_params", "Path of Building only knows weapon sets 1 and 2", tostring(op.weaponSet))
 	end
 	spec.allocMode = op.weaponSet or 0
@@ -593,6 +593,9 @@ patchOps.allocateNodes = function(op, warnings)
 			if not node.alloc then
 				spec.allocMode = 0
 				fail("invalid_params", "Passive node cannot be connected to the tree", tostring(id))
+			end
+			if (node.allocMode or 0) ~= spec.allocMode then
+				warnings[#warnings + 1] = "Passive node " .. tostring(id) .. " cannot belong to a weapon set (keystone, socket or ascendancy); allocated without one"
 			end
 		end
 	end
