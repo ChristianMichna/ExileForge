@@ -184,7 +184,7 @@ interface TreeState {
 
 interface AllocatedNode {
   nodeId: number;                // PoB-Knoten-ID (numerisch)
-  ggId?: string;                 // GGG-PassiveSkills-ID für .build, z. B. "strength89"; stammt aus PassiveNode.gameId des Katalogs
+  ggId?: string;                 // GGG-PassiveSkills-ID für .build, z. B. "strength89"; stammt aus PassiveNode.gameId des Katalogs (Slots: ItemSlot.gameId; Herkunft: DataRelease.gameIds.origin)
   weaponSet?: 0 | 1 | 2;         // 0 = beide, 1/2 = Waffenset
   reason?: string;               // kurzer Grund, ohne Zahlen
 }

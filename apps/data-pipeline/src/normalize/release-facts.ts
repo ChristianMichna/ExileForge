@@ -6,7 +6,7 @@ import type { Finding, NormalizeConfig } from "./catalog.ts";
 
 type ReleaseFacts = Pick<
   DataRelease,
-  "maxCharacterLevel" | "passivePoints" | "itemSlots" | "classifications"
+  "maxCharacterLevel" | "passivePoints" | "itemSlots" | "classifications" | "gameIds"
 >;
 
 /** PoB's CamelCase name as a classification id ("EnergyShield" -> "energy_shield"). */

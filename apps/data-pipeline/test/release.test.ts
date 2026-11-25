@@ -120,6 +120,17 @@ describe("release facts", () => {
     const gameDataDir = await writeGameData([1, 2, 7, 5]);
     const { manifest } = await buildCatalog(snap, out, factsConfig, NOW, { gameDataDir });
     expect(manifest.release.maxCharacterLevel).toEqual({ value: 7, origin: "game-data" });
+    expect(manifest.release.gameIds).toEqual({ origin: "game-data" });
+    const nodes = CatalogShard.parse(
+      JSON.parse(await readFile(join(out, "passiveNode.json"), "utf8")),
+    ).entities as { pobNodeId?: number; gameId?: string }[];
+    expect(Object.fromEntries(nodes.map((n) => [n.pobNodeId, n.gameId]))).toEqual({
+      1: "fixture_start",
+      2: "fixture_big",
+      3: undefined,
+      5: undefined,
+    });
+    expect(manifest.release.itemSlots?.slots.map((s) => s.gameId)).toContain("FixtureHand2");
     const shard = CatalogShard.parse(
       JSON.parse(await readFile(join(out, "baseItem.json"), "utf8")),
     );
@@ -166,6 +177,8 @@ describe("release facts", () => {
     const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
     const { manifest, warnings } = await buildCatalog(snap, out, factsConfig, NOW);
     expect(manifest.release.maxCharacterLevel).toBeUndefined();
+    expect(manifest.release.gameIds).toBeUndefined();
+    expect(warnings).toContainEqual(expect.objectContaining({ kind: "gameId", id: "all" }));
     expect(warnings).toContainEqual(
       expect.objectContaining({ kind: "release", id: "maxCharacterLevel" }),
     );

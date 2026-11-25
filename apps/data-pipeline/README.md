@@ -234,6 +234,23 @@ Zusammenfassung von `findings.json` jede so getroffene Entscheidung. Die Zahlen 
 Tabelle oben sind der Stand von Release r6 (Disambiguierung seit r4: 401 von 492 mehrdeutigen Zeilen
 aufgelöst; vorher 492).
 
+## Spiel-IDs für den `.build`-Export
+
+Mit `--game-data` setzt `catalog` `PassiveNode.gameId` (`PassiveSkills.Id`) und
+`itemSlots.slots[].gameId` (`Inventories.Id`); `DataRelease.gameIds.origin` ist
+dann `game-data`. Konfiguration: Block `gameIds` in `config/data-pipeline/normalize.json`,
+Tabellen in `game-data.json` (Pflichttabellen, fehlen sie, bricht der Lauf ab).
+
+- **Passive:** Tabellenzeile mit gleicher Knoten-ID (`PassiveSkillGraphId`, bei PoB
+  `PassiveSkillNodeId`) und gleichem Namen (ohne Markup `[a|b]`, Groß-/Kleinschreibung und
+  Leerraum egal). Keine Zeile, mehrere Zeilen oder anderer Name: kein Feld, gezählt in
+  `summary.gameIds.passivesWithoutGameId` und in den Findings. Zeilen ohne PoB-Knoten sind kein Fehler.
+- **Slots:** feste Zuordnung PoB-Slot-Name → Inventory-Id in der Konfiguration (`slots.map`).
+  Ein Eintrag mit unbekannter Inventory-Id ist ein Fehler; nicht zugeordnete Slots (Flasks,
+  Charms, Arme, Beine) bekommen keine ID und stehen in den Findings. Zugeordnet sind nur Slots, deren Inventory-Zeile
+  gleich heißt; `Weapon 2` und die Swap-Slots bleiben offen, bis die Zuordnung im Spiel geprüft ist.
+- Eine `gameId` darf in einem Release nur einmal vorkommen (Fehler sonst).
+
 ## Crafting-Daten aus den Update-Servern
 
 PoB kennt Währungen und Omens nicht und Essences nur zum Teil. Christian hat am

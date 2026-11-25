@@ -31,6 +31,16 @@ export function tables(): Rows {
       { Item: 4, Category: 0 },
     ],
     CurrencyExchangeCategories: [{ Id: "Currency" }],
+    // invented game ids; one row per fixture passive node (PoB node ids 1, 2, 3, 5)
+    PassiveSkills: [
+      { Id: "fixture_start", Name: "Start", PassiveSkillGraphId: 1 },
+      { Id: "fixture_big", Name: "[Big|Big]", PassiveSkillGraphId: 2 },
+      { Id: "fixture_other_name", Name: "Something else", PassiveSkillGraphId: 3 },
+      { Id: "fixture_dup_a", Name: "Ring", PassiveSkillGraphId: 5 },
+      { Id: "fixture_dup_b", Name: "Ring", PassiveSkillGraphId: 5 },
+      { Id: "fixture_unused", Name: "", PassiveSkillGraphId: 99 },
+    ],
+    Inventories: [{ Id: "FixtureHand2" }, { Id: "FixtureFinger" }],
   };
 }
 
