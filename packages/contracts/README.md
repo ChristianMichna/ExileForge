@@ -5,7 +5,7 @@ Einzige maßgebliche Quelle für die Datenformen von ExileForge (Leitprinzip
 TS-Typen (`z.infer`) und generierte JSON-Schema-Dateien unter `schemas/`.
 Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
 
-## Inhalt (v0.2)
+## Inhalt (v0.3)
 
 | Export | Inhalt | Konsumenten |
 | --- | --- | --- |
@@ -15,6 +15,8 @@ Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
 | `@exileforge/contracts/build` | `BuildRequest` (S0), `BuildState`, `ItemSpec`, `RichText`, Stufen-Ergebnisse `SkillProfile` (S1), `ArchetypeCandidate`/`ArchetypeEvaluation` (S2/S3), `TargetBuild` (S5), `ProgressionPlan` (S6), `GearPlan` (S7), `CraftingPlan` (S8), `Finding` (mit `returnTo` für den gezielten Rücksprung), `ValidationReport` (S10) | agents, optimizer, crafting-sim, ui |
 | `@exileforge/contracts/guide` | `GuideDocument` mit den 11 Pflichtbausteinen des Plans, `PublishedGuide` (S11, nur mit bestandenem Prüfbericht) | agents, exporters, ui |
 | `@exileforge/contracts/forge` | MCP-Werkzeuge `forge.attach/next/submit/ask_user/status`, `ForgeTask`, `ForgeStep`, `UserIntervention` | server, mcp-bridge, llm-gateway |
+| `@exileforge/contracts/economy` | `PriceBook`, `PriceQuote`, Werkzeug `economy.price` (Preise als `measured`: `market`, bei Umrechnung `derived`; Items per `PricedItemRef` (Basis oder Unique)) | economy, server, crafting-sim |
+| `@exileforge/contracts/craft` | `CraftSimRequest`/`CraftSimResult`, `CraftStrategy`, `CraftGoal`, Werkzeug `craft.simulate` | crafting-sim, server, agents |
 | `@exileforge/contracts/events` | `RunEvent` (Live-Status per SSE, `seq` je Lauf) | server, web |
 
 Fehlende Quelldaten werden nicht erfunden: `BaseItem.dropLevel` und

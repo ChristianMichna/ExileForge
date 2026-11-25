@@ -5,6 +5,8 @@ import { CalcMethods } from "./calc/rpc.js";
 import { BuildRequest } from "./build/request.js";
 import { GuideDocument } from "./guide/document.js";
 import { ForgeTools } from "./forge/tools.js";
+import { EconomyTools, PriceBook } from "./economy/price.js";
+import { CraftTools } from "./craft/sim.js";
 import { RunEvent } from "./events/run-events.js";
 
 /**
@@ -26,6 +28,19 @@ export const jsonSchemas: Readonly<Record<string, z.ZodType>> = {
   "build/request": BuildRequest,
   "guide/document": GuideDocument,
   "events/run-event": RunEvent,
+  "economy/price-book": PriceBook,
+  ...Object.fromEntries(
+    Object.entries(EconomyTools).flatMap(([name, t]) => [
+      [`economy/${name}.input`, t.input],
+      [`economy/${name}.output`, t.output],
+    ]),
+  ),
+  ...Object.fromEntries(
+    Object.entries(CraftTools).flatMap(([name, t]) => [
+      [`craft/${name}.input`, t.input],
+      [`craft/${name}.output`, t.output],
+    ]),
+  ),
   ...Object.fromEntries(
     Object.entries(ForgeTools).flatMap(([name, t]) => [
       [`forge/${name}.input`, t.input],

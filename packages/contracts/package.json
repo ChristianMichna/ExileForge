@@ -1,7 +1,7 @@
 {
   "name": "@exileforge/contracts",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Single source of truth for ExileForge data shapes: Zod schemas, inferred TS types and generated JSON Schema.",
   "exports": {
@@ -32,6 +32,14 @@
     "./forge": {
       "types": "./dist/forge/index.d.ts",
       "import": "./dist/forge/index.js"
+    },
+    "./economy": {
+      "types": "./dist/economy/index.d.ts",
+      "import": "./dist/economy/index.js"
+    },
+    "./craft": {
+      "types": "./dist/craft/index.d.ts",
+      "import": "./dist/craft/index.js"
     },
     "./events": {
       "types": "./dist/events/index.d.ts",

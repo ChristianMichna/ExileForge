@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "minLength": 1
+    },
+    "league": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "dataReleaseId": {
+      "type": "string",
+      "pattern": "^poe2-(\\d+(?:\\.\\d+){1,3})\\+r(\\d+)$",
+      "description": "Data release id, e.g. poe2-<gameVersion>+r<revision>"
+    },
+    "fetchedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "ISO 8601 timestamp"
+    },
+    "referenceCurrencyItemId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Base item type id – internal game id from the data release"
+    },
+    "quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "baseItem"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Base item type id – internal game id from the data release"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "uniqueItem"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Unique item id – internal game id from the data release"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id"
+                ]
+              }
+            ]
+          },
+          "providerItemId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "volume": {
+            "type": "number",
+            "minimum": 0
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          }
+        },
+        "required": [
+          "item",
+          "providerItemId",
+          "amount",
+          "confidence"
+        ]
+      }
+    },
+    "unmappedProviderItemIds": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "provider",
+    "league",
+    "dataReleaseId",
+    "fetchedAt",
+    "referenceCurrencyItemId",
+    "quotes"
+  ]
+}
