@@ -98,6 +98,12 @@ export const ItemSlot = z
     id: z.string().min(1),
     /** Position in PoB's slot list (1-based), for display order. */
     order: z.int().positive(),
+    /**
+     * The game's inventory id of this slot (`Inventories.Id`, e.g. for the
+     * `.build` export). Set from the release's slot mapping; absent when the
+     * slot has no counterpart there, never guessed. Unique within the release.
+     */
+    gameId: z.string().min(1).optional(),
     /** Display name from PoB; several slots may share one (e.g. a weapon slot and its swap slot). */
     label: z.string().min(1),
     /** Weapon set the slot belongs to (1 = main set, 2 = swap set); absent for non-weapon slots. */
@@ -129,11 +135,21 @@ export const ItemSlots = z
   .object({ slots: z.array(ItemSlot).min(1), origin: ReleaseFactOrigin })
   .superRefine((v, ctx) => {
     const seen = new Set<string>();
+    const seenGame = new Set<string>();
     v.slots.forEach((slot, i) => {
       if (seen.has(slot.id)) {
         ctx.addIssue({ code: "custom", path: ["slots", i, "id"], message: "duplicate slot" });
       }
       seen.add(slot.id);
+      if (slot.gameId !== undefined) {
+        if (seenGame.has(slot.gameId))
+          ctx.addIssue({
+            code: "custom",
+            path: ["slots", i, "gameId"],
+            message: "duplicate gameId",
+          });
+        seenGame.add(slot.gameId);
+      }
     });
   });
 export type ItemSlots = z.infer<typeof ItemSlots>;
@@ -172,6 +188,11 @@ export const DataRelease = z
     passivePoints: PassivePoints.optional(),
     /** Equipment slots and the item classes each accepts; absent when PoB could not be asked. */
     itemSlots: ItemSlots.optional(),
+    /**
+     * Where `PassiveNode.gameId` and `ItemSlot.gameId` come from. Present when
+     * the pipeline read them; `game-data` means the game's tables read in CI.
+     */
+    gameIds: z.object({ origin: ReleaseFactOrigin }).optional(),
     /** Damage types and defence layers of the release; absent when the pipeline could not derive them. */
     classifications: ReleaseClassifications.optional(),
     createdAt: IsoDateTime,
