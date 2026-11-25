@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import type { z } from "zod";
-import type { BaseItem, CraftingAction, Mod, PriceBook } from "@astrolabe/contracts";
+import type { BaseItem, CraftingAction, Mod, PriceBook, UniqueItem } from "@astrolabe/contracts";
 import type { CraftSimRequest, CraftSimResult, EconomyTools } from "@astrolabe/contracts";
 import {
   createSimCatalog,
@@ -47,6 +47,38 @@ async function readJson(path: string, what: string): Promise<unknown> {
   }
 }
 
+/**
+ * Resolves the provider's unique item (name and base type name) to a catalog
+ * unique by name and the name of its base item (the provider lists one line per
+ * base). If the base differs from the catalog's, or several or no unique match,
+ * the result is undefined and the line stays unmapped; without a base type only
+ * a unique name resolves.
+ */
+export function createUniqueResolver(
+  catalog: CatalogPort,
+): (name: string, baseType: string | undefined) => string | undefined {
+  const baseNames = new Map(
+    catalog
+      .list("baseItem")
+      .map((e) => [String((e.entity as BaseItem).id), (e.entity as BaseItem).name]),
+  );
+  const byName = new Map<string, UniqueItem[]>();
+  for (const e of catalog.list("uniqueItem")) {
+    const unique = e.entity as UniqueItem;
+    byName.set(unique.name, [...(byName.get(unique.name) ?? []), unique]);
+  }
+  return (name, baseType) => {
+    const matches = byName.get(name) ?? [];
+    // The provider lists one line per base type. A line whose base differs from the
+    // catalog's (e.g. another base of the same name) is a different item: unmapped.
+    const narrowed =
+      baseType === undefined
+        ? matches
+        : matches.filter((u) => baseNames.get(String(u.baseItemId)) === baseType);
+    return narrowed.length === 1 ? String(narrowed[0]?.id) : undefined;
+  };
+}
+
 export interface PriceSource {
   price: EconomyPort;
   /** The league's price book for crafting costs, and whether it is older than a failed refresh allows. */
@@ -75,6 +107,7 @@ export async function createEconomy(
     books: new FileBookStore(settings.cacheDir, warn),
     dataReleaseId: catalog.dataReleaseId,
     catalogHas: (kind, id) => catalog.get({ kind, id }) !== undefined,
+    resolveUnique: createUniqueResolver(catalog),
   });
   const wrap = async <T>(fn: () => Promise<T>): Promise<T> => {
     try {

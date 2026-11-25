@@ -2,7 +2,7 @@ import { PriceBook } from "@astrolabe/contracts";
 import type { PriceQuote } from "@astrolabe/contracts";
 import type { EconomyConfig, ItemMap } from "./config.js";
 import { EconomyError } from "./errors.js";
-import type { ExchangeOverviewResponse } from "./provider.js";
+import type { ExchangeOverviewResponse, UniqueOverviewResponse } from "./provider.js";
 
 export interface BuildBookInput {
   config: EconomyConfig;
@@ -14,6 +14,13 @@ export interface BuildBookInput {
   fetchedAt: string;
   /** One response per requested exchange type. */
   responses: readonly ExchangeOverviewResponse[];
+  /** One response per requested unique type. */
+  uniqueResponses?: readonly UniqueOverviewResponse[] | undefined;
+  /**
+   * Catalog id of a unique item by name and base type name, or undefined if the
+   * catalog has none or the pair is ambiguous.
+   */
+  resolveUnique?: ((name: string, baseType: string | undefined) => string | undefined) | undefined;
 }
 
 function confidenceOf(
@@ -76,6 +83,59 @@ export function buildPriceBook(input: BuildBookInput): PriceBook {
         confidence: confidenceOf(line.volumePrimaryValue, config.confidence),
       } as PriceQuote);
     }
+  }
+  // Unique prices are quoted in the league's primary reference currency, which is the
+  // reference of this book (docs: "Estimated value in the league's primary reference currency").
+  // Lines of a variant or a corrupted copy price a different item than the catalog entry
+  // and stay unmapped; so do names the catalog does not resolve to exactly one unique.
+  const candidates = new Map<
+    string,
+    { line: UniqueOverviewResponse["lines"][number]; id: string }[]
+  >();
+  for (const response of input.uniqueResponses ?? []) {
+    const own = (response.core as { primary?: unknown } | null | undefined)?.primary;
+    if (typeof own === "string" && own !== primary) {
+      throw new EconomyError(
+        "invalid_response",
+        `unique prices are quoted in "${own}", the exchange reference is "${primary}"`,
+      );
+    }
+    for (const line of response.lines) {
+      const key = `unique:${line.id}`;
+      const id =
+        line.variant || line.corrupted
+          ? undefined
+          : input.resolveUnique?.(line.name, line.baseType ?? undefined);
+      if (
+        id === undefined ||
+        !catalogHas("uniqueItem", id) ||
+        !Number.isFinite(line.primaryValue) ||
+        line.primaryValue <= 0
+      ) {
+        unmapped.add(key);
+        continue;
+      }
+      candidates.set(id, [...(candidates.get(id) ?? []), { line, id }]);
+    }
+  }
+  // Two lines for one catalog unique cannot be told apart: no price, both listed, none picked.
+  for (const [id, entries] of candidates) {
+    const [only] = entries;
+    if (only === undefined || entries.length > 1) {
+      for (const e of entries) unmapped.add(`unique:${e.line.id}`);
+      continue;
+    }
+    const { line } = only;
+    quotes.set(`uniqueItem:${id}`, {
+      item: { kind: "uniqueItem", id },
+      providerItemId: `unique:${line.id}`,
+      amount: line.primaryValue,
+      ...(line.listingCount != null ? { volume: line.listingCount } : {}),
+      confidence: confidenceOf(
+        line.listingCount ?? undefined,
+        config.uniqueConfidence ?? config.confidence,
+      ),
+    } as PriceQuote);
   }
   // The reference currency has no quote of its own; it is the unit.
   quotes.delete(`baseItem:${reference.id}`);

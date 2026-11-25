@@ -8,7 +8,8 @@
   "userAgent": "{appName}/{appVersion} (unofficial local desktop app, not affiliated with Grinding Gear Games; contact: lemonfreshx3@hotmail.de)",
   "paths": {
     "leagues": "/{game}/api/economy/leagues",
-    "exchangeOverview": "/{game}/api/economy/exchange/current/overview"
+    "exchangeOverview": "/{game}/api/economy/exchange/current/overview",
+    "uniqueOverview": "/{game}/api/economy/stash/current/item/overview"
   },
   "exchangeTypes": [
     "Currency",
@@ -26,7 +27,17 @@
     "Breach",
     "Verisium"
   ],
-  "$commentUniques": "Unique item prices (stash overview) are not used yet: the docs do not name the currency of their primaryValue.",
+  "$commentUniques": "Unique prices come from the stash overview. The provider documents primaryValue there as 'Estimated value in the league's primary reference currency'; the book uses the exchange responses' core.primary as that currency. Lines of a variant or a corrupted copy, and names the catalog does not resolve to exactly one unique, stay unmapped.",
+  "uniqueTypes": [
+    "UniqueWeapons",
+    "UniqueArmours",
+    "UniqueAccessories",
+    "UniqueFlasks",
+    "UniqueCharms",
+    "UniqueJewels",
+    "UniqueSanctumRelics",
+    "UniqueTablets"
+  ],
   "cacheTtlMinutes": 60,
   "minRequestIntervalMs": 1500,
   "requestTimeoutMs": 15000,
@@ -40,5 +51,10 @@
   "rateLimitBackoffMs": 900000,
   "minQuotes": 1,
   "$commentConfidence": "Provisional: the volume thresholds are not calibrated against real data yet.",
-  "maxRateLimitBackoffMs": 3600000
+  "maxRateLimitBackoffMs": 3600000,
+  "uniqueConfidence": {
+    "high": 20,
+    "medium": 5
+  },
+  "$commentUniqueConfidence": "Provisional thresholds on the number of listings of a unique item; to be calibrated against real data."
 }
