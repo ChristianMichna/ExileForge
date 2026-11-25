@@ -133,6 +133,29 @@ describe("CalcPool with the fake worker", () => {
     );
   });
 
+  it("serves patched states on every worker", async () => {
+    const { pool } = await fakePool({}, { size: 2 });
+    const { handle } = await pool.request("build.load", { format: "xml", payload: XML });
+    const patched = await pool.request("build.applyPatch", {
+      handle,
+      ops: [{ op: "setLevel", level: 2 }],
+    });
+    expect(patched.handle).not.toBe(handle);
+    const results = await Promise.all(
+      Array.from({ length: 8 }, () =>
+        pool.request("calc.stats", { handle: patched.handle, profile: "as-saved" }),
+      ),
+    );
+    expect(new Set(results.map((r) => r.stats.FakePid)).size).toBe(2);
+    expect(new Set(results.map((r) => r.inputHash)).size).toBe(1);
+    const base = await pool.request("calc.stats", { handle, profile: "as-saved" });
+    expect(results[0]?.inputHash).not.toBe(base.inputHash);
+    await expectKind(
+      pool.request("build.applyPatch", { handle, ops: [{ op: "setLevel", level: 101 }] }),
+      "invalid_params",
+    );
+  });
+
   it("forgets released builds", async () => {
     const { pool } = await fakePool();
     const { handle } = await pool.request("build.load", { format: "xml", payload: XML });
