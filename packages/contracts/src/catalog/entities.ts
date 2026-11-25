@@ -122,6 +122,12 @@ export const UniqueModLine = z.object({
    * the field is absent and the line stays in `unresolved`.
    */
   allocatesNodeId: PassiveNodeId.optional(),
+  /**
+   * For a line that grants a skill ("Grants Skill: <name>"): the gem of that
+   * skill. `stats` is empty for such a line. If the name matches no gem (or
+   * several), the field is absent and the line stays in `unresolved`.
+   */
+  grantsGemId: GemId.optional(),
   /** Restrict this line to some variants; absent = all variants. */
   variantIds: z.array(z.string().min(1)).optional(),
 });

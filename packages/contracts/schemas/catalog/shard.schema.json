@@ -425,6 +425,12 @@
                       "maxLength": 512,
                       "description": "Passive skill id – internal game id from the data release"
                     },
+                    "grantsGemId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Gem id – internal game id from the data release"
+                    },
                     "variantIds": {
                       "type": "array",
                       "items": {
