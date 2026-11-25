@@ -111,6 +111,7 @@ export async function currencyBaseItems(
 
   const selected = new Map<number, BaseItem>();
   const skippedByClass = new Map<string, number>();
+  let unnamed = 0;
   for (const row of currency) {
     const base = bases.get(row.BaseItemType);
     if (base === undefined) {
@@ -122,11 +123,7 @@ export async function currencyBaseItems(
       continue;
     }
     if (base.Id === "" || base.Name === "") {
-      errors.push({
-        kind: "currency",
-        id: String(base._index),
-        message: "CurrencyItems row names a base item without id or name",
-      });
+      unnamed += 1; // placeholder rows of the table; counted in a finding below
       continue;
     }
     const cls = classes.get(base.ItemClass);
@@ -156,6 +153,12 @@ export async function currencyBaseItems(
       ...(base.DropLevel != null ? { dropLevel: base.DropLevel } : {}),
     } as unknown as BaseItem);
   }
+  if (unnamed > 0)
+    findings.push({
+      kind: "currency",
+      id: "unnamed",
+      message: `${String(unnamed)} CurrencyItems rows name a base item without id or name and are left out`,
+    });
   for (const [cls, n] of [...skippedByClass].sort())
     findings.push({
       kind: "currency",

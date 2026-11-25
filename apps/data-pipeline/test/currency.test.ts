@@ -61,7 +61,7 @@ describe("currencyBaseItems", () => {
     expect(text).toMatch(/97: CurrencyItems row points to a missing BaseItemTypes row/);
   });
 
-  it("tolerates unused base rows but not a selected one without a name", async () => {
+  it("leaves out placeholder rows without id or name and says so", async () => {
     const t = tables();
     t.BaseItemTypes = [
       ...(t.BaseItemTypes ?? []),
@@ -70,8 +70,12 @@ describe("currencyBaseItems", () => {
     const ok = await currencyBaseItems(await write(t), cfg.currency, new Set());
     expect(ok.errors).toEqual([]);
     t.CurrencyItems = [...(t.CurrencyItems ?? []), { BaseItemType: 5, StackSize: 1 }];
-    const bad = await currencyBaseItems(await write(t), cfg.currency, new Set());
-    expect(bad.errors.map((e) => e.message).join()).toMatch(/without id or name/);
+    const res = await currencyBaseItems(await write(t), cfg.currency, new Set());
+    expect(res.errors).toEqual([]);
+    expect(res.baseItems).toHaveLength(4);
+    expect(res.findings.map((f) => f.message).join()).toMatch(
+      /1 CurrencyItems rows name a base item without id or name/,
+    );
   });
 
   it("treats an empty action as none", async () => {
