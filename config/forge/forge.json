@@ -12,7 +12,7 @@
       "candidateCount": 3,
       "skeletonLevel": 1,
       "skeletonGemLevel": 1,
-      "calcProfiles": ["default"],
+      "calcProfiles": ["as-saved"],
       "promptVersion": "poc-1"
     }
   }
