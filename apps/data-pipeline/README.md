@@ -211,11 +211,14 @@ Bei Uniques fehlen PoB Trade-Hashes; mehrdeutig ist vor allem lokal gegen
 global (gleicher Text), nicht passend sind v. a. PoB-eigene Zeilen wie
 „Allocates …", „Grants Skill: …" und Radius-Zeilen von Juwelen.
 
-Eine mehrdeutige Unique-Zeile wird nach Beleg aus den Daten aufgelöst: Es zählt eine
-Beschreibung, wenn ein Mod mit einem ihrer Stats auf einem Tag der Basis des Uniques
-erscheinen kann (Spawn-Gewicht über 0, ohne `default`). Genau ein Treffer entscheidet,
-kein oder mehrere Treffer lassen die Zeile mehrdeutig. Die Zahlen oben sind der Stand
-vor dieser Regel.
+Eine mehrdeutige Unique-Zeile wird nach Beleg aus den Daten aufgelöst: Eine Beschreibung
+zählt, wenn ein Mod mit einem ihrer Stats auf der Basis des Uniques spawnen kann. Dabei
+gilt PoBs Regel (`Item.lua`, `GetModSpawnWeight`): der erste Tag der Gewichtsliste, den die
+Basis hat, bestimmt das Gewicht; 0 heißt kein Spawn. Genau ein Treffer entscheidet, kein
+oder mehrere Treffer lassen die Zeile mehrdeutig. Der Beleg ist indirekt (ein Stat, den es
+nur auf Uniques gibt, hat keinen), deshalb zählt `uniqueLinesDisambiguated` in der
+Zusammenfassung von `findings.json` jede so getroffene Entscheidung. Die Zahlen in der
+Tabelle oben sind der Stand vor dieser Regel.
 
 ## Crafting-Daten aus den Update-Servern
 

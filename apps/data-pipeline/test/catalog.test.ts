@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { disambiguate, normalizeCatalog } from "../src/normalize/catalog.ts";
+import { disambiguate, normalizeCatalog, spawnIndexOf } from "../src/normalize/catalog.ts";
 import { StatMatcher } from "../src/normalize/stat-matcher.ts";
 import { validateCatalog } from "../src/normalize/validate.ts";
 import { cfg, rawSnapshot, type RawFixture } from "./fixtures/raw-catalog.ts";
@@ -436,29 +436,100 @@ describe("disambiguate", () => {
       { descriptionId: "d:2", stats: [{ statId: "local_glow", min: 5, max: 10 }] },
     ],
   };
-  const spawn = new Map([
-    ["glow", new Set(["gloves"])],
-    ["local_glow", new Set(["weapon", "bow"])],
+  const mod = (statId: string, weights: [string, number][]) => ({
+    stats: [{ statId }],
+    spawnWeights: weights.map(([tag, weight]) => ({ tag, weight })),
+  });
+  const spawn = spawnIndexOf([
+    mod("glow", [["gloves", 1000]]),
+    mod("local_glow", [
+      ["bow", 0],
+      ["weapon", 1000],
+    ]),
   ]);
 
   it("takes the one candidate whose stat can spawn on the base", () => {
-    expect(disambiguate(res, new Set(["bow", "weapon"]), spawn)).toEqual({
+    expect(disambiguate(res, new Set(["weapon", "sword"]), spawn)).toEqual({
       status: "matched",
       descriptionId: "d:2",
       stats: [{ statId: "local_glow", min: 5, max: 10 }],
     });
+    expect(disambiguate(res, new Set(["gloves"]), spawn)).toMatchObject({
+      descriptionId: "d:1",
+    });
   });
 
-  it("stays ambiguous without evidence, with evidence for both, or without a base", () => {
-    expect(disambiguate(res, new Set(["amulet"]), spawn)).toBeUndefined();
-    expect(disambiguate(res, new Set(["gloves", "bow"]), spawn)).toBeUndefined();
+  it("lets the first listed tag the base has decide, so a weight of 0 cancels", () => {
+    expect(disambiguate(res, new Set(["bow", "weapon"]), spawn)).toBeUndefined();
+  });
+
+  it("stays ambiguous with evidence for both, without a base or without candidates", () => {
+    expect(disambiguate(res, new Set(["gloves", "weapon"]), spawn)).toBeUndefined();
     expect(disambiguate(res, undefined, spawn)).toBeUndefined();
     expect(
       disambiguate(
         { status: "ambiguous", line: res.line, descriptionIds: res.descriptionIds },
-        new Set(["bow"]),
+        new Set(["weapon"]),
         spawn,
       ),
     ).toBeUndefined();
+  });
+
+  it("is wired through normalizeCatalog and counted", () => {
+    const raw = rawSnapshot();
+    const text = "{0}% increased Glow";
+    raw.statDescriptions[`${scope}:91`] = {
+      scope,
+      order: 91,
+      stats: ["fake_glow"],
+      tradeHash: 91,
+      variants: [{ limit: [["#", "#"]], text, handlers: [] }],
+    };
+    raw.statDescriptions[`${scope}:92`] = {
+      scope,
+      order: 92,
+      stats: ["fake_local_glow"],
+      tradeHash: 92,
+      variants: [{ limit: [["#", "#"]], text, handlers: [] }],
+    };
+    const glowMod = (hash: string, weightKey: string[], weightVal: number[]) => ({
+      "1": "(5-10)% increased Glow",
+      type: "Prefix",
+      group: `G${hash}`,
+      level: 1,
+      domains: ["Item"],
+      weightKey,
+      weightVal,
+      modTags: [],
+      tradeHashes: { [hash]: ["(5-10)% increased Glow"] },
+    });
+    raw.mods.GlobalGlow = glowMod("91", ["ring", "default"], [1000, 0]);
+    raw.mods.LocalGlow = glowMod("92", ["sword", "default"], [1000, 0]);
+    raw.uniques["Glowing Ring, Fake Ring"] = {
+      title: "Glowing Ring",
+      baseName: "Fake Ring",
+      variants: [],
+      implicitModLines: {},
+      explicitModLines: [{ line: "(5-10)% increased Glow" }],
+    };
+    raw.uniques["Glowing Charm, Odd Charm"] = {
+      title: "Glowing Charm",
+      baseName: "Odd Charm",
+      variants: [],
+      implicitModLines: {},
+      explicitModLines: [{ line: "(5-10)% increased Glow" }],
+    };
+    const { entities, summary } = run(raw);
+    const ring = byId<{
+      id: string;
+      mods: { stats: { statId: string }[]; unresolved?: unknown[] }[];
+    }>(entities.uniqueItem, "Glowing Ring, Fake Ring");
+    expect(ring?.mods[0]?.stats.map((st) => st.statId)).toEqual(["fake_glow"]);
+    const charm = byId<{ id: string; mods: { unresolved?: { reason: string }[] }[] }>(
+      entities.uniqueItem,
+      "Glowing Charm, Odd Charm",
+    );
+    expect(charm?.mods[0]?.unresolved?.[0]?.reason).toBe("ambiguous");
+    expect(summary.uniqueLinesDisambiguated).toBe(1);
   });
 });
