@@ -138,6 +138,27 @@ export const ItemSlots = z
   });
 export type ItemSlots = z.infer<typeof ItemSlots>;
 
+/**
+ * Which of the release's classification ids are damage types and which are
+ * defence layers, so guide text and summaries can be checked against the
+ * release instead of free strings. Absent when the pipeline could not derive
+ * them; consumers then say so instead of guessing.
+ */
+export const ReleaseClassifications = z
+  .object({
+    damageTypes: z.array(ClassificationId).min(1),
+    defenceLayers: z.array(ClassificationId).min(1),
+    origin: ReleaseFactOrigin,
+  })
+  .superRefine((v, ctx) => {
+    for (const key of ["damageTypes", "defenceLayers"] as const) {
+      if (new Set(v[key]).size !== v[key].length) {
+        ctx.addIssue({ code: "custom", path: [key], message: "duplicate id" });
+      }
+    }
+  });
+export type ReleaseClassifications = z.infer<typeof ReleaseClassifications>;
+
 export const DataRelease = z
   .object({
     id: DataReleaseId,
@@ -151,6 +172,8 @@ export const DataRelease = z
     passivePoints: PassivePoints.optional(),
     /** Equipment slots and the item classes each accepts; absent when PoB could not be asked. */
     itemSlots: ItemSlots.optional(),
+    /** Damage types and defence layers of the release; absent when the pipeline could not derive them. */
+    classifications: ReleaseClassifications.optional(),
     createdAt: IsoDateTime,
     previousReleaseId: DataReleaseId.optional(),
     /** Path of the CatalogDiff against previousReleaseId, inside the release. */

@@ -226,6 +226,44 @@
             "origin"
           ]
         },
+        "classifications": {
+          "type": "object",
+          "properties": {
+            "damageTypes": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              }
+            },
+            "defenceLayers": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              }
+            },
+            "origin": {
+              "type": "string",
+              "enum": [
+                "game-data",
+                "pob-data",
+                "pob-code"
+              ]
+            }
+          },
+          "required": [
+            "damageTypes",
+            "defenceLayers",
+            "origin"
+          ]
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

@@ -83,6 +83,13 @@ sie nicht lesen konnte, nie als `0`. Jeder Wert nennt seinen Ursprung (`game-dat
 `EquippedItem.slot`) und den Basis-Klassen (`BaseItem.itemClass`), die PoB je Slot
 annimmt. Juwelen-Sockel gehören zum Passivbaum und stehen nicht darin.
 
+`DataRelease.classifications` nennt, welche Klassifikations-Ids des Release
+Schadensarten und Verteidigungsschichten sind (`damageTypes`, `defenceLayers`).
+Der Guide prüft seine Angaben dagegen. Das Feld ist optional und fehlt, wenn die
+Pipeline es nicht ableiten konnte; Prüfer melden das dann sichtbar, statt zu raten.
+Befüllen muss es die Daten-Pipeline aus den Spieldaten oder PoB, nie aus dem
+Gedächtnis.
+
 ## Calc-RPC
 
 JSON-RPC 2.0, eine Zeile JSON je Nachricht über stdin/stdout des
