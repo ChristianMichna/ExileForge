@@ -70,6 +70,7 @@ describe("S9 summary check", () => {
   const run = async (mode: object, suitability: object) => {
     const ctx = {
       run: { request: { mode }, interventions: [] },
+      catalog: { dataReleaseId: "poe2-1.0.0+r1" },
       result: () => undefined,
     } as never as PipelineContext;
     const spec = sectionTask(ctx, { promptVersion: "t" } as StageConfig, "summary", {
@@ -77,7 +78,9 @@ describe("S9 summary check", () => {
       target: { calcs: {} } as never,
       plans: { progression: null, gear: null, crafting: null },
     }) as never as { check: (p: unknown, c: PipelineContext) => Promise<{ code: string }[]> };
-    return (await spec.check({ suitability }, ctx)).map((f) => f.code);
+    return (await spec.check({ damageTypes: ["X"], defenceLayers: ["Y"], suitability }, ctx))
+      .filter((f) => f.code !== "classifications_unchecked")
+      .map((f) => f.code);
   };
 
   it("accepts a suitability that covers the requested mode", async () => {
@@ -90,6 +93,53 @@ describe("S9 summary check", () => {
     expect(
       await run({ ssf: true, hardcore: true }, { softcore: true, hardcore: false, ssf: false }),
     ).toEqual(["suitability_contradicts_request", "suitability_contradicts_request"]);
+  });
+
+  it("checks damage types and defence layers against the release lists", async () => {
+    const ctx = {
+      run: { request: { mode: { ssf: false, hardcore: false } }, interventions: [] },
+      catalog: {
+        dataReleaseId: "poe2-1.0.0+r1",
+        release: { classifications: { damageTypes: ["DmgA"], defenceLayers: ["DefA"] } },
+      },
+      result: () => undefined,
+    } as never as PipelineContext;
+    const spec = sectionTask(ctx, { promptVersion: "t" } as StageConfig, "summary", {
+      chosen: {} as never,
+      target: { calcs: {} } as never,
+      plans: { progression: null, gear: null, crafting: null },
+    }) as never as { check: (p: unknown, c: PipelineContext) => Promise<{ code: string }[]> };
+    const summary = (d: string, f: string) => ({
+      damageTypes: [d],
+      defenceLayers: [f],
+      suitability: { softcore: true, hardcore: false, ssf: false },
+    });
+    expect((await spec.check(summary("DmgA", "DefA"), ctx)).map((f) => f.code)).toEqual([]);
+    expect((await spec.check(summary("Nope", "DefA"), ctx)).map((f) => f.code)).toEqual([
+      "unknown_classification",
+    ]);
+  });
+
+  it("warns that classifications are unchecked when the release has none", async () => {
+    const ctx = {
+      run: { request: { mode: { ssf: false, hardcore: false } }, interventions: [] },
+      catalog: { dataReleaseId: "poe2-1.0.0+r1" },
+      result: () => undefined,
+    } as never as PipelineContext;
+    const spec = sectionTask(ctx, { promptVersion: "t" } as StageConfig, "summary", {
+      chosen: {} as never,
+      target: { calcs: {} } as never,
+      plans: { progression: null, gear: null, crafting: null },
+    }) as never as { check: (p: unknown, c: PipelineContext) => Promise<{ code: string }[]> };
+    const out = await spec.check(
+      {
+        damageTypes: ["X"],
+        defenceLayers: ["Y"],
+        suitability: { softcore: true, hardcore: false, ssf: false },
+      },
+      ctx,
+    );
+    expect(out.map((f) => f.code)).toEqual(["classifications_unchecked"]);
   });
 
   it("fails loudly when an earlier section is missing", () => {
