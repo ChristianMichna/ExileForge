@@ -74,15 +74,17 @@ Aus dem vom Provider gemeldeten Handelsvolumen mit Schwellen aus der Config
 
 ## Unique-Preise
 
-Aus dem Stash-Overview (`paths.uniqueOverview`, `uniqueTypes`). Die Doku nennt `primaryValue`
+Aus dem Stash-Overview (`paths.uniqueOverview`, `uniqueTypes`). Die Zeilen tragen `id` (Zahl), `name`, `baseType`, `corrupted`, `primaryValue` und `listingCount`; `variant` fehlt, wenn es keine gibt (am 25.11.2026 einmal gegen eine echte Antwort der Liga Forbidden Rites gelesen). Die Doku nennt `primaryValue`
 dort „Estimated value in the league's primary reference currency“; das Preisbuch nimmt dafür
 `core.primary` der Exchange-Antworten, also die eigene Referenzwährung, und zeigt die Preise
 als `market`. Der Server löst Name und Basis-Typ der Zeile über den Katalog zu einer
-Unique-ID auf (`createUniqueResolver` in `apps/server`): erst über den Namen, bei
-mehreren Treffern zusätzlich über den Namen der Basis. Zeilen einer Variante oder eines
+Unique-ID auf (`createUniqueResolver` in `apps/server`): über den Namen und den Namen
+der Basis (der Provider führt eine Zeile je Basis; eine andere Basis gleichen Namens ist
+ein anderes Item und bleibt unmapped). Ohne Basis-Typ löst nur ein eindeutiger Name auf. Zeilen einer Variante oder eines
 korrumpierten Exemplars, unbekannte und mehrdeutige Namen sowie unbrauchbare Preise stehen
 mit `unique:<id>` in `unmappedProviderItemIds`. Die Konfidenz kommt aus der Anzahl
-Listings (`uniqueConfidence`, vorläufig). Schlägt der Abruf eines Unique-Typs fehl, schlägt
+Listings (`uniqueConfidence`, vorläufig). Eine leere Antwort (z. B. in einer Liga ohne Unique-Daten) ergibt keine Unique-Quotes; abgefragte Uniques
+sind dann `uncalibrated` mit Grund. Schlägt der Abruf eines Unique-Typs fehl, schlägt
 der ganze Refresh sichtbar fehl (stale-Fallback wie sonst), es gibt kein Buch ohne Uniques.
 
 ## Noch nicht enthalten

@@ -49,8 +49,10 @@ async function readJson(path: string, what: string): Promise<unknown> {
 
 /**
  * Resolves the provider's unique item (name and base type name) to a catalog
- * unique: by name if that is unique, else by name plus the base item's name.
- * Several or no match gives undefined, so the line stays unmapped.
+ * unique by name and the name of its base item (the provider lists one line per
+ * base). If the base differs from the catalog's, or several or no unique match,
+ * the result is undefined and the line stays unmapped; without a base type only
+ * a unique name resolves.
  */
 export function createUniqueResolver(
   catalog: CatalogPort,
@@ -67,10 +69,11 @@ export function createUniqueResolver(
   }
   return (name, baseType) => {
     const matches = byName.get(name) ?? [];
-    if (matches.length === 1) return String(matches[0]?.id);
+    // The provider lists one line per base type. A line whose base differs from the
+    // catalog's (e.g. another base of the same name) is a different item: unmapped.
     const narrowed =
       baseType === undefined
-        ? []
+        ? matches
         : matches.filter((u) => baseNames.get(String(u.baseItemId)) === baseType);
     return narrowed.length === 1 ? String(narrowed[0]?.id) : undefined;
   };

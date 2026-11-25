@@ -21,8 +21,14 @@ const catalog = { list: (kind: string) => entities[kind] ?? [] } as unknown as C
 describe("createUniqueResolver", () => {
   const resolve = createUniqueResolver(catalog);
 
-  it("resolves a unique name", () => {
+  it("resolves a unique name, with or without the base type", () => {
     expect(resolve("Alpha Piece", undefined)).toBe("uniq-1");
+    expect(resolve("Alpha Piece", "Base One")).toBe("uniq-1");
+  });
+
+  it("does not resolve a line whose base differs from the catalog's, even for a unique name", () => {
+    expect(resolve("Alpha Piece", "Base Two")).toBeUndefined();
+    expect(resolve("Alpha Piece", "Runemastered Base One")).toBeUndefined();
   });
 
   it("narrows a repeated name by the base type's name", () => {
