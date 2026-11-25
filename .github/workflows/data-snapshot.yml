@@ -84,7 +84,7 @@ jobs:
           node -e '
             const fs = require("fs");
             const shard = JSON.parse(fs.readFileSync("data-snapshots/current/catalog/baseItem.json", "utf8"));
-            const rows = shard.entities.filter((b) => b.itemClass === "StackableCurrency" || b.itemClass === "Omen");
+            const rows = shard.entities.filter((b) => b.id.startsWith("Metadata/"));
             console.log("currency-like base items: " + rows.length);
             for (const b of rows) console.log(["ITEM", b.id, b.name, b.itemClass, b.tags.join(",")].join(" | "));
             const actions = JSON.parse(fs.readFileSync("data-snapshots/current/catalog/craftingAction.json", "utf8")).entities;

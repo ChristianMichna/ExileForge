@@ -51,10 +51,11 @@ function parseRows<T extends z.ZodType>(table: string, rows: readonly unknown[],
 }
 
 /**
- * Currency-like base items (currency, essences, omens …) from the game-data
- * tables. Which CurrencyItems rows count is decided by the item classes in the
- * config; rows of other classes (soul cores, map fragments, incubators …) are
- * left out and counted in the findings. Foreign keys are row indexes; a key
+ * Currency-like base items (currency, essences, omens, and with
+ * `includeExchangeItems` everything the game's exchange lists) from the
+ * game-data tables. Which CurrencyItems rows count is decided by the item
+ * classes in the config; items of other classes that the exchange does not
+ * list are left out and counted in the findings. Foreign keys are row indexes; a key
  * that points nowhere is an error, an optional key that is not set is simply
  * absent. Ids are BaseItemTypes.Id (the game's metadata path), unlike the
  * name-based ids PoB gives equipment bases.
@@ -110,8 +111,9 @@ export async function currencyBaseItems(
   };
 
   const selected = new Map<number, BaseItem>();
-  const skippedByClass = new Map<string, number>();
-  let unnamed = 0;
+  const skippedByClass = new Map<string, Set<number>>();
+  const unnamedCurrency = new Set<number>();
+  const unnamedExchange = new Set<number>();
   for (const row of currency) {
     const base = bases.get(row.BaseItemType);
     if (base === undefined) {
@@ -123,7 +125,7 @@ export async function currencyBaseItems(
       continue;
     }
     if (base.Id === "" || base.Name === "") {
-      unnamed += 1; // placeholder rows of the table; counted in a finding below
+      unnamedCurrency.add(base._index); // placeholder rows of the table; counted in a finding below
       continue;
     }
     const cls = classes.get(base.ItemClass);
@@ -132,7 +134,7 @@ export async function currencyBaseItems(
       continue;
     }
     if (!include.has(cls)) {
-      skippedByClass.set(cls, (skippedByClass.get(cls) ?? 0) + 1);
+      skippedByClass.set(cls, (skippedByClass.get(cls) ?? new Set()).add(base._index));
       continue;
     }
     if (selected.has(base._index) || takenIds.has(base.Id)) {
@@ -153,18 +155,55 @@ export async function currencyBaseItems(
       ...(base.DropLevel != null ? { dropLevel: base.DropLevel } : {}),
     } as unknown as BaseItem);
   }
-  if (unnamed > 0)
-    findings.push({
-      kind: "currency",
-      id: "unnamed",
-      message: `${String(unnamed)} CurrencyItems rows name a base item without id or name and are left out`,
-    });
-  for (const [cls, n] of [...skippedByClass].sort())
+  // Everything the game's own exchange lists is wanted for pricing, whatever its class.
+  if (cfg.includeExchangeItems) {
+    for (const row of exchange) {
+      const base = bases.get(row.Item);
+      if (base === undefined || selected.has(base._index)) continue; // missing base: error below
+      if (base.Id === "" || base.Name === "") {
+        unnamedExchange.add(base._index);
+        continue;
+      }
+      const cls = classes.get(base.ItemClass);
+      if (cls === undefined) {
+        errors.push({ kind: "currency", id: base.Id, message: "item class row is missing" });
+        continue;
+      }
+      if (takenIds.has(base.Id)) {
+        errors.push({ kind: "currency", id: base.Id, message: "id is not unique in the catalog" });
+        continue;
+      }
+      selected.set(base._index, {
+        id: base.Id,
+        name: base.Name,
+        itemClass: cls,
+        tags: [],
+        requirements: {},
+        implicitModIds: [],
+        properties: {},
+        ...(base.DropLevel != null ? { dropLevel: base.DropLevel } : {}),
+      } as unknown as BaseItem);
+    }
+  }
+  for (const [table, indexes] of [
+    ["CurrencyItems", unnamedCurrency],
+    ["CurrencyExchange", unnamedExchange],
+  ] as const)
+    if (indexes.size > 0)
+      findings.push({
+        kind: "currency",
+        id: `unnamed-${table}`,
+        message: `${String(indexes.size)} base items named by ${table} have no id or name and are left out`,
+      });
+  for (const [cls, indexes] of [...skippedByClass].sort()) {
+    const n = [...indexes].filter((i) => !selected.has(i)).length;
+    if (n === 0) continue;
     findings.push({
       kind: "currency",
       id: cls,
-      message: `${String(n)} CurrencyItems rows of item class ${cls} are not in config currency.itemClasses and are left out`,
+      message: `${String(n)} items of class ${cls} in CurrencyItems are not in config currency.itemClasses nor in the exchange list and are left out`,
     });
+  }
 
   const target = (idx: number, table: string): BaseItem | undefined => {
     const base = bases.get(idx);
