@@ -34,7 +34,7 @@ describe("currencyBaseItems", () => {
     expect(byId["Test/Essence"]?.properties).toMatchObject({ essenceTier: 1 });
     expect(byId["Test/Omen"]?.tags).toEqual(["omen"]);
     expect(findings.map((f) => f.message).join("\n")).toMatch(
-      /1 CurrencyItems rows of item class SoulCore/,
+      /1 items of class SoulCore in CurrencyItems/,
     );
   });
 
@@ -78,7 +78,7 @@ describe("currencyBaseItems", () => {
     expect(res.errors).toEqual([]);
     expect(res.baseItems).toHaveLength(4);
     expect(res.findings.map((f) => f.message).join()).toMatch(
-      /1 CurrencyItems rows name a base item without id or name/,
+      /1 base items named by CurrencyItems have no id or name/,
     );
   });
 
@@ -112,5 +112,50 @@ describe("currencyBaseItems", () => {
       properties: {},
     });
     expect(findings.map((f) => f.message).join()).not.toMatch(/SoulCore/);
+  });
+
+  it("takes exchange-only items, counts placeholders once and keeps the left-out count exact", async () => {
+    const t = tables();
+    t.BaseItemTypes = [
+      ...(t.BaseItemTypes ?? []),
+      { Id: "Test/Rune", Name: "Test Rune", ItemClass: 3, DropLevel: 2 }, // 5: only in the exchange
+      { Id: "", Name: "", ItemClass: 3, DropLevel: 0 }, // 6: placeholder
+      { Id: "Test/Core2", Name: "Test Core 2", ItemClass: 2, DropLevel: 1 }, // 7: soul core, not listed
+    ];
+    t.ItemClasses = [...(t.ItemClasses ?? []), { Id: "Rune" }];
+    t.CurrencyItems = [...(t.CurrencyItems ?? []), { BaseItemType: 7, StackSize: 1 }];
+    t.CurrencyExchange = [
+      { Item: 0, Category: 0 },
+      { Item: 4, Category: 0 },
+      { Item: 5, Category: 0 },
+      { Item: 5, Category: 0 }, // listed twice
+      { Item: 6, Category: 0 },
+      { Item: 6, Category: 0 },
+    ];
+    const { baseItems, findings, errors } = await currencyBaseItems(await write(t), on, new Set());
+    expect(errors).toEqual([]);
+    expect(baseItems.map((b) => b.id)).toContain("Test/Rune");
+    expect(baseItems.filter((b) => b.id === "Test/Rune")).toHaveLength(1);
+    expect(baseItems.find((b) => b.id === "Test/Rune")).toMatchObject({
+      itemClass: "Rune",
+      tags: ["exchange_category:Currency"],
+    });
+    const text = findings.map((f) => f.message).join("\n");
+    expect(text).toMatch(/1 base items named by CurrencyExchange have no id or name/);
+    // soul core 4 came in through the exchange, 7 did not: exactly one is left out
+    expect(text).toMatch(/1 items of class SoulCore in CurrencyItems/);
+  });
+
+  it("is an error when an exchange-only item's id is already taken", async () => {
+    const t = tables();
+    t.BaseItemTypes = [
+      ...(t.BaseItemTypes ?? []),
+      { Id: "Test/Rune", Name: "Test Rune", ItemClass: 0, DropLevel: 2 },
+    ];
+    t.CurrencyExchange = [{ Item: 5, Category: 0 }];
+    const { errors } = await currencyBaseItems(await write(t), on, new Set(["Test/Rune"]));
+    expect(errors.map((e) => `${e.id}: ${e.message}`).join()).toMatch(
+      /Test\/Rune: id is not unique/,
+    );
   });
 });
