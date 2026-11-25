@@ -260,6 +260,39 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     expect(broken).toMatchObject({ ok: false, error: { kind: "invalid_params" } });
   });
 
+  it("values a reachable passive like a separate allocation", async () => {
+    const last = facts.nodes[facts.nodes.length - 1] ?? "";
+    const without = (await patch(ops([{ op: "deallocateNodes", nodeIds: [last] }]))).handle;
+    const metrics = ["Life", "CombinedDPS"];
+    const power = await pool.request("calc.nodePower", {
+      handle: without,
+      profile: "as-saved",
+      metrics,
+      candidates: [last as never],
+    });
+    const [entry] = power.results;
+    const direct = await stats(
+      (await patch(ops([{ op: "allocateNodes", nodeIds: [last] }]), without)).handle,
+    );
+    const before = await stats(without);
+    expect(power.results).toHaveLength(1);
+    expect(entry?.nodeId).toBe(last);
+    expect(entry?.pathCost).toBeGreaterThanOrEqual(1);
+    expect(entry?.calcId).toBe(direct.calcId);
+    for (const m of metrics) {
+      expect(entry?.deltas[m]).toBe((direct.stats[m] ?? NaN) - (before.stats[m] ?? NaN));
+    }
+    // an allocated passive is not a candidate
+    await expect(
+      pool.request("calc.nodePower", {
+        handle: base,
+        profile: "as-saved",
+        metrics,
+        candidates: [last as never],
+      }),
+    ).rejects.toMatchObject({ kind: "invalid_params" });
+  });
+
   it("rejects bad ops with the op index and leaves no half-patched state", async () => {
     const bad: [unknown[], RegExp][] = [
       [

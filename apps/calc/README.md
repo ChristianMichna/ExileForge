@@ -21,7 +21,8 @@ den Vertrag.
 | `calc.stats` | fertig, mit Calc-Profil und optional `mainSkill` |
 | `build.applyPatch` | fertig (alle Ops aus `PatchOp`, siehe unten) |
 | `calc.evalBatch` | fertig: Kandidaten (Patch-Ops) gegen einen Basis-Zustand, nur Deltas der gewünschten Metriken |
-| `calc.nodePower`, `calc.itemPower`, `calc.validate` | folgen in eigenen PRs; bis dahin Fehler `unknown_method` |
+| `calc.nodePower` | fertig: Wert jedes erreichbaren Passives (Deltas, Pfadkosten); der Worker kennt dafür intern `tree.reachable` |
+| `calc.itemPower`, `calc.validate` | folgen in eigenen PRs; bis dahin Fehler `unknown_method` |
 
 ## Benutzung
 
@@ -116,6 +117,24 @@ CalcPool (Node)                         PobWorker × N (LuaJIT, cwd = PoB/src)
   `poe2-<Spielversion laut PoB>+r0`; Revision 0 vergibt die Daten-Pipeline nie.
 - `meta.version.dataHash`: SHA-256 über alle `.lua`/`.json`-Dateien in PoBs
   `src/Data` und `src/TreeData` (Bilder ausgenommen), beim Pool-Start berechnet.
+
+## `calc.nodePower`
+
+Der Worker liefert intern (`tree.reachable`, nicht Teil des Vertrags) die
+Passives, die PoB mit dem Baum verbinden kann, mit ihren Pfadkosten (Zahl der
+noch nicht vergebenen Knoten auf PoBs kürzestem Pfad, der Knoten selbst
+eingeschlossen). Jedes Passive wird wie ein `calc.evalBatch`-Kandidat mit
+`allocateNodes` (gemeinsamer Baum) gerechnet, `pathCost` und `calcId` kommen aus
+PoB. Ohne `candidates` sind es alle erreichbaren Passives; eine Liste mit
+einem vergebenen, unbekannten oder nicht erreichbaren Knoten ist
+`invalid_params`. Scheitert PoB bei einem Passive, scheitert die ganze Anfrage
+(kein Ersatzeintrag).
+
+Kosten (Golden `pr2-synthetic-fixture`, 2 Worker): 3883 Passives sind
+erreichbar, `tree.reachable` braucht ~30 ms, 12 Kandidaten ~5 s, also ~0,43 s je
+Passive. Ein Vollsweep ohne `candidates` dauert damit bei 2 Workern etwa 28
+Minuten, bei 4 etwa die Hälfte. Der Aufrufer sollte `candidates` auf eine
+Vorauswahl begrenzen oder den Sweep als Hintergrundauftrag einplanen.
 
 ## `build.applyPatch`
 
