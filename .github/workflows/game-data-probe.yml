@@ -53,10 +53,15 @@ jobs:
           sock.on("close", () => {
             const buf = Buffer.concat(chunks);
             console.log(`patch server answered ${buf.length} bytes`);
-            const text = buf.toString("utf16le");
-            const m = /https:\/\/[^\s\u0000]+/.exec(text);
-            console.log(`url: ${m ? m[0] : "(none found)"}`);
-            const v = m ? /\/(\d+(?:\.\d+)+)\/?$/.exec(m[0].replace(/\/+$/, "/")) : null;
+            console.log(`hex: ${buf.toString("hex")}`);
+            // the url is UTF-16LE text at an unknown byte offset: try both alignments
+            let found = null;
+            for (const off of [0, 1]) {
+              const text = buf.subarray(off, off + ((buf.length - off) & ~1)).toString("utf16le");
+              found ??= /https:\/\/[^\s\u0000]+/.exec(text);
+            }
+            console.log(`url: ${found ? found[0] : "(none found)"}`);
+            const v = found ? /\/(\d+(?:\.\d+)+)\/?$/.exec(found[0]) : null;
             if (v) appendFileSync(process.env.GITHUB_ENV, `PATCH=${v[1]}\n`);
           });
           EOF
