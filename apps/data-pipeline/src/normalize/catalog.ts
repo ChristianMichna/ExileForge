@@ -35,6 +35,15 @@ export const normalizeConfigSchema = z
             return false;
           }
         }, "must be a valid regular expression with a capture group"),
+        /** Regular expression with one capture group: the name of the granted skill. */
+        grantsPattern: z.string().refine((p) => {
+          try {
+            // "|" adds an empty alternative, so exec("") succeeds and shows the group count
+            return (new RegExp(`${p}|`).exec("")?.length ?? 0) >= 2;
+          } catch {
+            return false;
+          }
+        }, "must be a valid regular expression with a capture group"),
       })
       .strict(),
     passiveNodeKinds: z
@@ -169,6 +178,8 @@ export interface NormalizeSummary {
   uniqueLinesDisambiguated: number;
   /** unique lines resolved to one passive node by its name ("Allocates <node>") */
   uniqueLinesAllocatingNode: number;
+  /** unique lines resolved to one gem by the skill name ("Grants Skill: <skill>") */
+  uniqueLinesGrantingSkill: number;
   /** PoB per-level gem fields the contract has no place for, by field */
   gemLevelFieldsNotInContract: Record<string, number>;
   /** per-level gem stat values PoB interpolates at run time (not literal data) */
@@ -236,6 +247,7 @@ class Context {
     modsWithHiddenStatGroups: 0,
     uniqueLinesDisambiguated: 0,
     uniqueLinesAllocatingNode: 0,
+    uniqueLinesGrantingSkill: 0,
     gemLevelFieldsNotInContract: {},
     gemInterpolatedStatValues: 0,
     gemAdditionalStatSets: 0,
@@ -488,8 +500,25 @@ function normalizeUniques(
   bases: ReadonlyMap<string, ReadonlySet<string>>,
   spawn: SpawnIndex,
   nodeIdsByName: ReadonlyMap<string, readonly string[]>,
+  gemIdsByName: ReadonlyMap<string, readonly string[]>,
 ): Record<string, unknown>[] {
-  const allocates = new RegExp(cfg.uniqueLines.allocatesPattern);
+  // lines that name another catalog entity; they never go through the stat matcher
+  const named = [
+    {
+      pattern: new RegExp(cfg.uniqueLines.allocatesPattern),
+      ids: nodeIdsByName,
+      field: "allocatesNodeId",
+      what: "nodes",
+      count: () => ctx.summary.uniqueLinesAllocatingNode++,
+    },
+    {
+      pattern: new RegExp(cfg.uniqueLines.grantsPattern),
+      ids: gemIdsByName,
+      field: "grantsGemId",
+      what: "gems",
+      count: () => ctx.summary.uniqueLinesGrantingSkill++,
+    },
+  ] as const;
   const uniques = kindOf(raw, "uniques");
   return Object.keys(uniques)
     .sort()
@@ -513,15 +542,18 @@ function normalizeUniques(
           ctx.warn("uniqueItem", id, `line "${text}" dropped: none of its variants exist`);
           continue;
         }
-        // an "Allocates <node>" line never goes through the stat matcher: the node is the fact
-        const allocated = allocates.exec(text)?.[1];
-        const nodeIds = allocated === undefined ? undefined : nodeIdsByName.get(allocated.trim());
-        if (allocated !== undefined && nodeIds !== undefined && nodeIds.length > 1) {
-          // several nodes share the name: say so, never pick one
+        const hit = named
+          .map((n) => ({ n, name: n.pattern.exec(text)?.[1] }))
+          .find((h) => h.name !== undefined);
+        const reference = hit?.n;
+        const refName = hit?.name?.trim();
+        const refIds = reference && refName !== undefined ? reference.ids.get(refName) : undefined;
+        if (reference && refName !== undefined && refIds && refIds.length > 1) {
+          // several entities share the name: say so, never pick one
           ctx.warn(
             "uniqueItem",
             id,
-            `line "${text}": ${nodeIds.length} nodes named "${allocated.trim()}" (${nodeIds.join(", ")})`,
+            `line "${text}": ${refIds.length} ${reference.what} named "${refName}" (${refIds.join(", ")})`,
           );
           ctx.countUnresolved("uniqueItem", "ambiguous");
           mods.push({
@@ -532,13 +564,13 @@ function normalizeUniques(
           });
           continue;
         }
-        if (nodeIds?.length === 1) {
-          // names a passive node: nothing to measure, the node is the fact
-          ctx.summary.uniqueLinesAllocatingNode++;
+        if (reference && refIds?.length === 1) {
+          // names one entity: nothing to measure, the entity is the fact
+          reference.count();
           mods.push({
             stats: [],
             text,
-            allocatesNodeId: nodeIds[0],
+            [reference.field]: refIds[0],
             ...(known.length > 0 ? { variantIds: known } : {}),
           });
           continue;
@@ -1056,12 +1088,29 @@ export function normalizeCatalog(
     ids.push(String(n.id));
     nodeIdsByName.set(String(n.name), ids);
   }
+  const gem = normalizeGems(raw, ctx);
+  const gemIdsByName = new Map<string, string[]>();
+  for (const g of gem) {
+    if (typeof g.name !== "string") continue; // requireStr already reported it
+    const ids = gemIdsByName.get(g.name) ?? [];
+    ids.push(String(g.id));
+    gemIdsByName.set(g.name, ids);
+  }
   const entities: CatalogEntities = {
     baseItem,
     mod,
     craftingAction: [],
-    uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx, bases, spawn, nodeIdsByName),
-    gem: normalizeGems(raw, ctx),
+    uniqueItem: normalizeUniques(
+      raw,
+      matchers.mod,
+      cfg,
+      ctx,
+      bases,
+      spawn,
+      nodeIdsByName,
+      gemIdsByName,
+    ),
+    gem,
     ...tree,
     statTranslation: normalizeStatTranslations(raw, cfg, ctx),
   };
