@@ -49,7 +49,7 @@
     },
     {
       "name": "PassiveSkills",
-      "columns": ["Id", "PassiveSkillNodeId", "Name"]
+      "columns": ["Id", "Name"]
     },
     {
       "name": "Inventories",
