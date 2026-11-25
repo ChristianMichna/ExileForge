@@ -34,5 +34,16 @@
       },
       "floors": {}
     }
+  },
+  "s6": {
+    "$comment": "Calc profiles and tree objective of the progression, same as the skeleton's until the product owner sets other ones. The stage table (acts, level bands, passive points) is derived from the data release; a `stages` list here would override it.",
+    "calcProfiles": ["mapping", "pinnacle"],
+    "objective": {
+      "weights": {
+        "FullDPS": 1,
+        "TotalEHP": 0.4
+      },
+      "floors": {}
+    }
   }
 }

@@ -27,12 +27,14 @@ import {
   ProgressionNotes,
   S6_NOTES_KEY,
   S6_PLAN_KEY,
+  type S6Config,
   S6_STAGES_KEY,
   StoredStages,
   stagesJob,
 } from "./stages/s6-progression.js";
 import { TargetBuild } from "@astrolabe/contracts/build";
 import type { ProgressionStageTree } from "./ports.js";
+import { releaseStageTable } from "./stages/s6-table.js";
 import { gearKey, gearTask, tiersOf } from "./stages/s7-gear.js";
 
 export const FORGE_PIPELINE_ID = "forge";
@@ -218,17 +220,22 @@ function planProgression(
   chosen: ArchetypeCandidate,
   targetResult: JsonValue,
 ): PlanStep {
-  const s6 = config.s6;
-  if (s6 === undefined) {
+  const s6Base = config.s6;
+  if (s6Base === undefined) {
     return {
       kind: "blocked",
       error: {
         code: "s6_not_configured",
         message:
-          "S6 needs the stage table of the progression: level bands and passive points per stage (config/agents/stages.json, block s6). They have not been set yet. S0 to S5 are done; their results are stored with the run.",
+          "S6 needs the calc profiles and the tree objective of the progression (config/agents/stages.json, block s6). They have not been set yet. S0 to S5 are done; their results are stored with the run.",
       },
     };
   }
+  const table = s6Base.stages ?? releaseStageTable(ctx.catalog.release);
+  if (typeof table === "string") {
+    return { kind: "blocked", error: { code: "release_facts_missing", message: table } };
+  }
+  const s6: S6Config = { ...s6Base, stages: table };
   const target = TargetBuild.safeParse(targetResult);
   if (!target.success) {
     return {

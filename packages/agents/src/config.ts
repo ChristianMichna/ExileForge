@@ -50,9 +50,10 @@ export const StageConfig = z.object({
     })
     .optional(),
   /**
-   * S6 progression. Optional on purpose, like s5: the level bands and passive
-   * points of each stage come from game data. Without this block the run
-   * stops at S6 with an explicit error.
+   * S6 progression: calc profiles and tree objective. The stage table is
+   * derived from the data release (acts, level bands, passive points); an
+   * explicit `stages` list overrides that. Without this block the run stops at
+   * S6 with an explicit error.
    */
   s6: z
     .object({
@@ -103,7 +104,8 @@ export const StageConfig = z.object({
               });
             }
           });
-        }),
+        })
+        .optional(),
       calcProfiles: z.array(CalcProfileId).min(1),
       objective: z.object({
         weights: z.record(z.string().min(1), z.number()),
