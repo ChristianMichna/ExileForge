@@ -140,7 +140,7 @@ export async function applyGameIds(opts: {
   const slotIds = new Set(opts.slots.map((s) => s.id));
   for (const [pobSlot, invId] of Object.entries(config.slots.map)) {
     if (!slotIds.has(pobSlot))
-      errors.push({
+      findings.push({
         kind: "gameId",
         id: pobSlot,
         message: "mapped slot is not a slot of the release",
