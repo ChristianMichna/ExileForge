@@ -34,7 +34,7 @@ Frontend (Frage „Retry the task" / „Abort the run"). Deterministische Schrit
 | `forge_submit` | `forge.submit` | Abgabe; Antwort enthält Befunde und immer den nächsten Schritt |
 | `forge_ask_user` | `forge.ask_user` | Rückfrage als Karte im Frontend |
 | `forge_status` | `forge.status` | Zustand des Laufs |
-| `catalog_search`, `catalog_get` | – | IDs und Katalogdaten (als Daten gekennzeichnet) |
+| `catalog_search`, `catalog_get` | – | IDs und Katalogdaten (als Daten gekennzeichnet); `catalog_search` filtert nach Text, Art und `tags` (mindestens eines von beiden nötig ist nicht gefordert, ohne Filter kommen Einträge in Katalogreihenfolge) |
 | `calc_evaluate` | – | Build-Zustand rechnen, Ergebnis mit `calcId`, Engine und PoB-Version |
 
 Werkzeugnamen nutzen `_` statt `.`, weil Claude-Werkzeugnamen nur
@@ -148,3 +148,11 @@ Quellen: [startdebugging.net](https://startdebugging.net/2026/05/fix-claude-reac
 - Ereignis-Nachlieferung per SSE seitenweise statt auf einmal; Grenzen für
   Anzahl und Größe gespeicherter Läufe; Log-Schwärzung (Pfade, später Keys).
 - Einbindung in `apps/desktop` (Port, Pfade im App-Datenordner, Origin des Fensters)
+
+## Pipelines
+
+- `poc`: Proof of Concept (S2 → S3 → S4 → S5.gems) zum Prüfen der Schleife.
+- `forge`: echte Planungsstufen aus `packages/agents` (S0 bis S2). Danach endet
+  der Lauf mit dem `PlanStep` `blocked` und dem Fehler `stage_not_implemented`,
+  bis S3 ff. gebaut sind. Einstellungen: `config/agents/stages.json`
+  (Option `--stages`, Standard `config/agents/stages.json`).
