@@ -19,7 +19,7 @@ import { createPocPipeline } from "./pipelines/poc-pipeline.js";
 import { RunStore } from "./store/run-store.js";
 
 /** The PoB worker pool as the server uses it (`CalcPool` from apps/calc fits). */
-export type PobPool = CalcRequester & BaseBuildSource;
+export type PobPool = CalcRequester & BaseBuildSource & { close(): Promise<void> };
 
 /** Default local port; the .mcpb bridge uses the same default. */
 export const DEFAULT_PORT = 47615;
@@ -47,8 +47,31 @@ export interface StartOptions {
   logger: Logger;
 }
 
-/** Loads config and catalog, opens the store and listens on 127.0.0.1. */
+/**
+ * Loads config and catalog, opens the store and listens on 127.0.0.1. The
+ * server owns the PoB pool it is given: it closes it on shutdown and when
+ * startup fails.
+ */
 export async function startServer(
+  options: StartOptions,
+): Promise<{ app: FastifyInstance; store: RunStore; url: string }> {
+  try {
+    return await startServerOwningPool(options);
+  } catch (error) {
+    if (options.calc !== "fake") {
+      try {
+        await options.calc.pool.close();
+      } catch (closeError) {
+        options.logger.error("could not close the calc pool after a failed start", {
+          error: closeError,
+        });
+      }
+    }
+    throw error;
+  }
+}
+
+async function startServerOwningPool(
   options: StartOptions,
 ): Promise<{ app: FastifyInstance; store: RunStore; url: string }> {
   const config = await loadForgeConfig(options.configPath);
@@ -106,10 +129,19 @@ export async function startServer(
     accessToken,
   });
   app.addHook("onClose", async () => {
-    await pobCalc?.close();
-    store.close();
+    try {
+      await pobCalc?.close();
+      if (options.calc !== "fake") await options.calc.pool.close();
+    } finally {
+      store.close();
+    }
   });
-  await app.listen({ host: LOOPBACK_HOST, port: options.port });
+  try {
+    await app.listen({ host: LOOPBACK_HOST, port: options.port });
+  } catch (error) {
+    store.close();
+    throw error;
+  }
   const url = `http://${LOOPBACK_HOST}:${options.port}`;
   options.logger.info("listening", { url, mcp: `${url}/mcp`, tokenFile: options.tokenFile });
   return { app, store, url };

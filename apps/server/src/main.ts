@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { startCalcPool } from "@exileforge/calc";
-import { DataReleaseId } from "@exileforge/contracts/common";
+import { loadCatalogRelease } from "./catalog/memory-catalog.js";
 import { defaultTokenFile } from "./access-token.js";
 import { createStderrLogger } from "./logger.js";
 import { DEFAULT_PORT, startServer } from "./start.js";
@@ -53,14 +52,26 @@ if (badOrigin !== undefined) {
 
 async function chooseCalc(catalogDir: string): Promise<Parameters<typeof startServer>[0]["calc"]> {
   if (values.calc === "fake") return "fake";
-  const manifest = JSON.parse(await readFile(`${catalogDir}/manifest.json`, "utf8")) as {
-    release: { id: string };
-  };
   // The pool stamps every result with the data release of the catalog the server uses.
+  const { dataReleaseId } = await loadCatalogRelease(catalogDir);
   const pool = await startCalcPool({
     root: values["pob-root"],
-    dataReleaseId: DataReleaseId.parse(manifest.release.id),
-    onEvent: (event) => logger.info("calc pool", { event }),
+    dataReleaseId,
+    onEvent: (event) => {
+      // Problems with workers are errors; the nested error would not survive logging as is.
+      const problem = "error" in event ? { error: event.error } : {};
+      const level =
+        event.type === "release-failed" ||
+        event.type === "slot-disabled" ||
+        event.type === "worker-start-failed"
+          ? "error"
+          : "info";
+      logger[level]("calc pool", {
+        event: event.type,
+        slot: "slot" in event ? event.slot : undefined,
+        ...problem,
+      });
+    },
   });
   return { engine: "pob", pool, optimizerConfigPath: values.optimizer };
 }
@@ -81,6 +92,20 @@ chooseCalc(catalogDir)
       logger,
     }),
   )
+  .then(({ app }) => {
+    // Closing the app closes the PoB pool, so no worker processes are left behind.
+    for (const signal of ["SIGINT", "SIGTERM"] as const) {
+      process.once(signal, () => {
+        app.close().then(
+          () => process.exit(0),
+          (error: unknown) => {
+            logger.error("shutdown failed", { error });
+            process.exit(1);
+          },
+        );
+      });
+    }
+  })
   .catch((error: unknown) => {
     logger.error("server failed to start", { error });
     process.exit(1);
