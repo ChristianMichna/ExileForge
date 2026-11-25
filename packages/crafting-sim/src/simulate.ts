@@ -49,7 +49,7 @@ interface CompiledAction {
 }
 
 type Derived = Extract<Source, { kind: "derived" }>;
-type Outcomes = CraftSimResult["outcomes"];
+type Outcomes = NonNullable<CraftSimResult["outcomes"]>;
 const noOutcomes = (): Outcomes => ({
   succeeded: 0,
   finishedWithoutGoal: 0,
@@ -84,7 +84,6 @@ function uncalibratedResult(
     seed,
     successChance: uncal(reason),
     successInterval: uncal(reason),
-    outcomes: noOutcomes(),
     expectedAttempts: uncal(reason),
     actions: [],
     steps: [],
@@ -176,9 +175,7 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
         seen.add(cur);
         bump(reached, cur);
       }
-      bump(executed, cur);
       for (const actionId of step.actionIds) {
-        uses.set(actionId, (uses.get(actionId) ?? 0) + 1);
         const c = must(compiled.get(actionId), "compiled action");
         if (!c.check.every((f) => f(state))) {
           outcomes.blocked++;
@@ -190,7 +187,10 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
             break attempt;
           }
         }
+        // Only an applied action is consumed; a blocked one costs nothing.
+        uses.set(actionId, (uses.get(actionId) ?? 0) + 1);
       }
+      bump(executed, cur);
       if (!step.until || holds(state, step.until.clauses)) {
         bump(passedCount, cur);
         if (cur + 1 >= steps.length) {
@@ -241,7 +241,6 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
       seed,
       successChance: { status: "failed", error },
       successInterval: { status: "failed", error },
-      outcomes: noOutcomes(),
       expectedAttempts: { status: "failed", error },
       actions: [],
       steps: [],
@@ -329,9 +328,8 @@ function cost(
   if (!target) return uncal("no cost currency requested");
   if (!request.startCost)
     return uncal("start cost missing; pass startCost (0 if the item is free)");
-  if (request.startCost.status !== "ok") {
-    return uncal(`start cost is ${request.startCost.status}`);
-  }
+  if (request.startCost.status === "failed") return request.startCost;
+  if (request.startCost.status !== "ok") return uncal(`start cost is ${request.startCost.status}`);
   if (!book) return uncal("no price book for the requested league");
   if (book.dataReleaseId !== request.dataReleaseId) {
     return uncal(

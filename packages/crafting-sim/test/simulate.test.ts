@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CraftSimRequest } from "@exileforge/contracts";
+import { readFileSync } from "node:fs";
+import { CraftSimRequest, CraftSimResult, Mod as ModSchema } from "@exileforge/contracts";
 import {
   CraftSimInputError,
   createSimCatalog,
@@ -49,6 +50,11 @@ function request(over: Partial<Record<string, unknown>> = {}): CraftSimRequest {
   });
 }
 
+const outcomesOf = (r: ReturnType<typeof simulate>) => {
+  if (!r.outcomes) throw new Error("expected outcomes");
+  return r.outcomes;
+};
+
 describe("simulate", () => {
   it("matches the closed-form chance of a weighted draw and is reproducible", () => {
     const first = simulate(request(), { catalog: catalog(), config });
@@ -58,7 +64,7 @@ describe("simulate", () => {
     expect(first.successChance.value).toBeGreaterThan(0.23);
     expect(first.successChance.value).toBeLessThan(0.27); // weights 1:3 -> 0.25
     expect(first.successChance.source.kind).toBe("derived");
-    const o = first.outcomes;
+    const o = outcomesOf(first);
     expect(o.succeeded + o.finishedWithoutGoal + o.abandoned + o.blocked).toBe(first.runs);
   });
 
@@ -104,8 +110,8 @@ describe("simulate", () => {
       }),
       { catalog: catalog(), config },
     );
-    expect(result.outcomes.blocked).toBe(1000);
-    expect(result.outcomes.succeeded).toBe(0);
+    expect(outcomesOf(result).blocked).toBe(1000);
+    expect(outcomesOf(result).succeeded).toBe(0);
     expect(result.expectedAttempts.status).toBe("uncalibrated");
   });
 
@@ -122,8 +128,8 @@ describe("simulate", () => {
       }),
       { catalog: catalog(mods, [two]), config },
     );
-    expect(result.outcomes.succeeded).toBe(0);
-    expect(result.outcomes.blocked).toBe(500);
+    expect(outcomesOf(result).succeeded).toBe(0);
+    expect(outcomesOf(result).blocked).toBe(500);
   });
 
   it("filters candidates by item level and spawn weight", () => {
@@ -139,7 +145,7 @@ describe("simulate", () => {
         config,
       },
     );
-    expect(result.outcomes.succeeded).toBe(200);
+    expect(outcomesOf(result).succeeded).toBe(200);
   });
 
   it("is uncalibrated, with the reason, when no mod has a spawn weight", () => {
@@ -296,7 +302,7 @@ describe("cost", () => {
       prices: book,
       now: clock,
     });
-    expect(result.expectedCost.status).toBe("uncalibrated");
+    expect(result.expectedCost.status).toBe("failed");
   });
 
   it("refuses a price book of another league, another release or too old", () => {
@@ -333,5 +339,217 @@ describe("derived sources", () => {
       i.kind === "gamedata" && i.entity.kind === "mod" ? [i.entity.id] : [],
     );
     expect(mods).toEqual(["mod-a", "mod-b"]);
+  });
+});
+
+const step = (order: number, actionIds: string[], extra: Record<string, unknown> = {}) => ({
+  order,
+  actionIds,
+  onFail: { action: "accept" },
+  ...extra,
+});
+const run = (
+  over: Record<string, unknown>,
+  mods?: ReturnType<typeof mod>[],
+  extra: ReturnType<typeof action>[] = [],
+) => simulate(request({ runs: 2000, ...over }), { catalog: catalog(mods, extra), config });
+const oneMod = [mod("mod-a", 1), mod("mod-c", 1, { gen: "gen-q" })];
+describe("ops and preconditions", () => {
+  const setRarity = action("act-rarity", [{ op: "set-rarity", params: { rarity: "rarity-y" } }]);
+  const needRarity = action("act-needs-rarity", [addOne()], {
+    itemId: "cur-add",
+    preconditions: [{ op: "require-rarity", params: { rarities: ["rarity-y"] } }],
+  });
+  const setFlag = action("act-flag", [{ op: "set-flag", params: { flag: "flag-f" } }]);
+  const noFlag = action("act-no-flag", [addOne()], {
+    itemId: "cur-add",
+    preconditions: [{ op: "forbid-flag", params: { flag: "flag-f" } }],
+  });
+  const emptyOnly = action("act-empty-only", [addOne(2)], {
+    itemId: "cur-add",
+    preconditions: [{ op: "require-mod-count", params: { max: 0 } }],
+  });
+  const remove = action("act-remove", [{ op: "remove-random-mod", params: {} }]);
+  const clearP = action("act-clear-p", [
+    { op: "clear-mods", params: { generationTypes: ["gen-p"] } },
+  ]);
+  const addTwo = action("act-add-two", [
+    {
+      op: "add-random-mod",
+      params: {
+        generationTypes: ["gen-p"],
+        limits: { "gen-p": 2 },
+        domain: "domain-item",
+        count: 2,
+      },
+    },
+  ]);
+  const extra = [setRarity, needRarity, setFlag, noFlag, emptyOnly, remove, clearP, addTwo];
+  const goalA = { clauses: [{ anyOfModIds: ["mod-a"] }] };
+  const only = (mods = [mod("mod-a", 1)]) => mods;
+
+  it("set-rarity satisfies require-rarity, without it the action is blocked", () => {
+    const ok = run(
+      { strategy: { steps: [step(0, ["act-rarity", "act-needs-rarity"])] }, goal: goalA },
+      only(),
+      extra,
+    );
+    expect(outcomesOf(ok).succeeded).toBe(2000);
+    const blocked = run(
+      { strategy: { steps: [step(0, ["act-needs-rarity"])] }, goal: goalA },
+      only(),
+      extra,
+    );
+    expect(outcomesOf(blocked).blocked).toBe(2000);
+  });
+
+  it("set-flag makes forbid-flag block", () => {
+    const ok = run(
+      { strategy: { steps: [step(0, ["act-no-flag", "act-flag"])] }, goal: goalA },
+      only(),
+      extra,
+    );
+    expect(outcomesOf(ok).succeeded).toBe(2000);
+    const blocked = run(
+      { strategy: { steps: [step(0, ["act-flag", "act-no-flag"])] }, goal: goalA },
+      only(),
+      extra,
+    );
+    expect(outcomesOf(blocked).blocked).toBe(2000);
+  });
+
+  it("require-mod-count max 0 only allows an empty item", () => {
+    const twice = run(
+      { strategy: { steps: [step(0, ["act-empty-only", "act-empty-only"])] }, goal: goalA },
+      only(),
+      extra,
+    );
+    expect(outcomesOf(twice).blocked).toBe(2000);
+  });
+
+  it("remove-random-mod removes a mod and is blocked on an empty item", () => {
+    const removed = run(
+      {
+        start: { ...start, modIds: ["mod-a"] },
+        strategy: { steps: [step(0, ["act-remove"])] },
+        goal: goalA,
+      },
+      only(),
+      extra,
+    );
+    expect(outcomesOf(removed).finishedWithoutGoal).toBe(2000);
+    const empty = run(
+      { strategy: { steps: [step(0, ["act-remove"])] }, goal: goalA },
+      only(),
+      extra,
+    );
+    expect(outcomesOf(empty).blocked).toBe(2000);
+  });
+
+  it("clear-mods with generation types keeps the other types", () => {
+    const base = {
+      start: { ...start, modIds: ["mod-a", "mod-c"] },
+      strategy: { steps: [step(0, ["act-clear-p"])] },
+    };
+    const keepsQ = run({ ...base, goal: { clauses: [{ anyOfModIds: ["mod-c"] }] } }, oneMod, extra);
+    expect(outcomesOf(keepsQ).succeeded).toBe(2000);
+    const dropsP = run({ ...base, goal: goalA }, oneMod, extra);
+    expect(outcomesOf(dropsP).succeeded).toBe(0);
+  });
+
+  it("add-random-mod with count draws that many distinct mods", () => {
+    const both = { clauses: [{ anyOfModIds: ["mod-a"] }, { anyOfModIds: ["mod-b"] }] };
+    const r = run(
+      { strategy: { steps: [step(0, ["act-add-two"])] }, goal: both },
+      [mod("mod-a", 1), mod("mod-b", 5)],
+      extra,
+    );
+    expect(outcomesOf(r).succeeded).toBe(2000);
+  });
+
+  it("uses the first matching spawn weight: an earlier 0 beats a later positive entry", () => {
+    const shadowed = ModSchema.parse({
+      id: "mod-x",
+      groups: ["group-x"],
+      generationType: "gen-p",
+      domains: ["domain-item"],
+      requiredLevel: 1,
+      stats: [],
+      spawnWeights: [
+        { tag: "tag-alpha", weight: 0 },
+        { tag: "tag-any", weight: 100 },
+      ],
+    });
+    const r = run({ goal: { clauses: [{ anyOfModIds: ["mod-x"] }] } }, [mod("mod-a", 1), shadowed]);
+    expect(outcomesOf(r).succeeded).toBe(0);
+  });
+});
+
+describe("onFail", () => {
+  const until = { clauses: [{ anyOfModIds: ["mod-a"] }] };
+  const twoStep = (onFail: Record<string, unknown>) => ({
+    steps: [step(0, ["act-add"], { until, onFail })],
+  });
+
+  it("restart and abort end the attempt as abandoned", () => {
+    for (const action of ["restart", "abort"]) {
+      const onFail =
+        action === "abort" ? { action, reason: [{ type: "text", text: "x" }] } : { action };
+      const r = run({ strategy: twoStep(onFail), runs: 20000 });
+      const o = outcomesOf(r);
+      expect(o.abandoned + o.succeeded).toBe(20000);
+      expect(o.abandoned / 20000).toBeGreaterThan(0.72);
+      expect(o.abandoned / 20000).toBeLessThan(0.78);
+    }
+  });
+
+  it("goto continues at the named step", () => {
+    const r = run({
+      strategy: {
+        steps: [
+          step(0, ["act-reroll"]),
+          step(1, ["act-add"], { until, onFail: { action: "goto", order: 0 } }),
+        ],
+      },
+      runs: 5000,
+    });
+    // act-add on a full item (limit 1) is blocked, so only first-draw successes pass
+    const o = outcomesOf(r);
+    expect(o.succeeded + o.blocked + o.finishedWithoutGoal + o.abandoned).toBe(5000);
+  });
+
+  it("accept ends the attempt without the goal", () => {
+    const r = run({ strategy: twoStep({ action: "accept" }), runs: 20000 });
+    const o = outcomesOf(r);
+    expect(o.finishedWithoutGoal + o.succeeded).toBe(20000);
+  });
+});
+
+describe("result shape", () => {
+  it("matches the contract and has no outcomes when uncalibrated", () => {
+    const ok = run({});
+    expect(CraftSimResult.safeParse(ok).success).toBe(true);
+    const o = outcomesOf(ok);
+    expect(o.succeeded + o.finishedWithoutGoal + o.abandoned + o.blocked).toBe(ok.runs);
+    const unc = simulate(request(), {
+      catalog: catalog([mod("mod-a", 0), mod("mod-b", 0)]),
+      config,
+    });
+    expect(CraftSimResult.safeParse(unc).success).toBe(true);
+    expect(unc.outcomes).toBeUndefined();
+  });
+
+  it("a blocked action is not counted as used", () => {
+    const r = run({ strategy: { steps: [step(0, ["act-add", "act-add"])] }, runs: 100 });
+    const use = r.actions[0]?.perAttempt;
+    if (use?.status !== "ok") throw new Error("expected ok");
+    expect(use.value).toBe(1);
+  });
+
+  it("the shipped config/crafting/sim.json is valid", () => {
+    const raw = JSON.parse(
+      readFileSync(new URL("../../../config/crafting/sim.json", import.meta.url), "utf8"),
+    );
+    expect(() => parseCraftSimConfig(raw)).not.toThrow();
   });
 });

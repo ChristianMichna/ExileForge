@@ -60,10 +60,12 @@ bereits vorhandenen Gruppe und volle Generierungstypen sind ausgeschlossen.
   `formulaVersion`.
 - Begriffe: Ein *Versuch* geht vom Startitem bis zum Ende; `restart` und `abort`
   beenden ihn als `abandoned`, der nächste Versuch beginnt mit einem frischen
-  Startitem (Startkosten fallen erneut an). Verbrauch zählt eine Aktion, sobald
-  ihr Schritt sie anwenden will, auch wenn sie dann blockiert ist.
-- `outcomes` sind nur bei `ok`-Ergebnissen eine Messung; bei `uncalibrated` und
-  `failed` stehen Nullen, die nicht angezeigt werden dürfen.
+  Startitem (Startkosten fallen erneut an). Verbrauch zählt nur
+  angewendete Aktionen; eine blockierte kostet nichts.
+- `outcomes` fehlt bei `uncalibrated` und `failed`; Nullen würden wie eine
+  Messung aussehen.
+- Ausnahme vom Determinismus: Die Altersprüfung des Preisbuchs nutzt die Uhr
+  (`options.now`, injizierbar); Chancen und Verbrauch hängen nur vom Seed ab.
 - Unbekannte Katalog-IDs in der Anfrage werfen `CraftSimInputError`.
 
 ## Grenzen
