@@ -134,6 +134,27 @@ describe("release facts", () => {
       JSON.parse(await readFile(join(out, "baseItem.json"), "utf8")),
     );
     expect(shard.entities.map((e) => (e as { id: string }).id)).toContain("Test/Orb");
+    const actions = CatalogShard.parse(
+      JSON.parse(await readFile(join(out, "craftingAction.json"), "utf8")),
+    );
+    expect(actions.entities).toEqual([
+      expect.objectContaining({
+        id: "Test/Essence",
+        kind: "essence",
+        itemId: "Test/Essence",
+        effects: [{ op: "add-specific-mod", params: { modByItemClass: { Ring: "AlphaLow" } } }],
+      }),
+    ]);
+    const findings = JSON.parse(await readFile(join(out, "findings.json"), "utf8")) as {
+      warnings: { kind: string; message: string }[];
+    };
+    const text = findings.warnings
+      .filter((w) => w.kind === "essence")
+      .map((w) => w.message)
+      .join("\n");
+    expect(text).toMatch(/item class "Wand" is not in the catalog/);
+    expect(text).toMatch(/mod "NoSuchMod" for Sword is not in the catalog/);
+    expect(text).toMatch(/Other Essence: no currency base item/);
     expect(manifest.release.passivePoints).toEqual({
       mainTree: {
         perLevel: cfg.releaseFacts.mainTree.perLevel,

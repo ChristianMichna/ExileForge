@@ -1,6 +1,7 @@
 import {
   Ascendancy,
   BaseItem,
+  CraftingAction,
   CharacterClass,
   Gem,
   Mod,
@@ -14,6 +15,7 @@ import type { CatalogEntities, Finding } from "./catalog.ts";
 
 const SCHEMAS: Record<keyof CatalogEntities, z.ZodType> = {
   baseItem: BaseItem,
+  craftingAction: CraftingAction,
   mod: Mod,
   uniqueItem: UniqueItem,
   gem: Gem,
@@ -85,6 +87,9 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
 
   for (const b of input.baseItem as { id: string; implicitModIds?: string[] }[]) {
     for (const m of b.implicitModIds ?? []) ref("baseItem", b.id, "implicitModIds", "mod", m);
+  }
+  for (const a of input.craftingAction as { id: string; itemId?: string }[]) {
+    if (a.itemId !== undefined) ref("craftingAction", a.id, "itemId", "baseItem", a.itemId);
   }
   for (const u of input.uniqueItem as {
     id: string;

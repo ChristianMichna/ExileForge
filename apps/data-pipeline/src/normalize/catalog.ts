@@ -35,6 +35,15 @@ export const normalizeConfigSchema = z
     modGenerationTypeFallback: z.string().min(1),
     baseItemPropertyGroups: z.array(z.string().min(1)),
     classAttributePrefix: z.string().min(1),
+    essence: z
+      .object({
+        $comment: z.string().optional(),
+        /** CraftingAction.kind of an essence. */
+        kind: z.string().min(1),
+        /** Op of crafting-sim that sets the mod belonging to the item's class (its vocabulary is owned there). */
+        op: z.string().min(1),
+      })
+      .strict(),
     currency: z
       .object({
         $comment: z.string().optional(),
@@ -97,6 +106,7 @@ export interface Unresolved {
 /** Entities per contract kind, as plain JSON objects (validated in validate.ts). */
 export type CatalogEntities = Record<
   | "baseItem"
+  | "craftingAction"
   | "mod"
   | "uniqueItem"
   | "gem"
@@ -899,6 +909,7 @@ export function normalizeCatalog(
   const entities: CatalogEntities = {
     baseItem: normalizeBaseItems(raw, cfg, ctx),
     mod: normalizeMods(raw, matchers.mod, cfg, ctx),
+    craftingAction: [],
     uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx),
     gem: normalizeGems(raw, ctx),
     ...tree,

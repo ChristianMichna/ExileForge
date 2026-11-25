@@ -23,6 +23,11 @@
   "modGenerationTypeFallback": "unspecified",
   "baseItemPropertyGroups": ["weapon", "armour", "flask", "charm"],
   "classAttributePrefix": "base_",
+  "essence": {
+    "$comment": "Essences become crafting actions from PoB's per-class mod table (Data/Essence.lua). op is defined by packages/crafting-sim (add-specific-mod: modByItemClass). PoB gives no rarity rule for essences, so none is set.",
+    "kind": "essence",
+    "op": "add-specific-mod"
+  },
   "currency": {
     "$comment": "Currency-like base items from the game-data tables (docs/adr/0005). itemClasses decides which CurrencyItems rows count; other classes (soul cores, map fragments, incubators ...) are reported as left out. Ids are BaseItemTypes.Id (metadata path), not PoB's name-based equipment ids.",
     "itemClasses": ["StackableCurrency", "Omen"],

@@ -17,6 +17,7 @@ import {
   type NormalizeSummary,
 } from "./catalog.ts";
 import { currencyBaseItems } from "./currency.ts";
+import { essenceActions } from "./essence.ts";
 import { buildReleaseFacts } from "./release-facts.ts";
 import { StatMatcher } from "./stat-matcher.ts";
 import { validateCatalog } from "./validate.ts";
@@ -33,6 +34,7 @@ const RAW_KINDS = [
   "statDescriptions",
   "questRewards",
   "itemSlots",
+  "essences",
 ] as const;
 
 /** Written first, so a directory holding it is a previous catalog output. */
@@ -117,6 +119,22 @@ export async function buildCatalog(
       message: "no game data given, currency items are left out",
     });
   }
+  const essenceFindings: Finding[] = [];
+  if (extra.gameDataDir !== undefined) {
+    const rawEssences = raw.essences;
+    if (!rawEssences) throw new Error(`snapshot ${snap.releaseId} has no essences shard`);
+    const res = essenceActions(
+      rawEssences,
+      {
+        baseItemIds: new Set(norm.entities.baseItem.map((b) => String(b.id))),
+        itemClasses: new Set(norm.entities.baseItem.map((b) => String(b.itemClass))),
+        modIds: new Set(norm.entities.mod.map((m) => String(m.id))),
+      },
+      cfg.config.essence,
+    );
+    norm.entities.craftingAction.push(...res.actions);
+    essenceFindings.push(...res.findings);
+  }
   const validation = validateCatalog(norm.entities);
   const errors = [...norm.errors, ...validation.errors, ...factErrors, ...currencyErrors];
 
@@ -136,7 +154,7 @@ export async function buildCatalog(
         releaseId: snap.releaseId,
         summary: norm.summary,
         errors,
-        warnings: [...norm.warnings, ...factFindings, ...currencyFindings],
+        warnings: [...norm.warnings, ...factFindings, ...currencyFindings, ...essenceFindings],
         unresolved: norm.unresolved,
         hiddenStatGroups: norm.hiddenStatGroups,
       },
@@ -196,7 +214,7 @@ export async function buildCatalog(
   await writeFile(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   return {
     manifest,
-    warnings: [...norm.warnings, ...factFindings, ...currencyFindings],
+    warnings: [...norm.warnings, ...factFindings, ...currencyFindings, ...essenceFindings],
     summary: norm.summary,
   };
 }

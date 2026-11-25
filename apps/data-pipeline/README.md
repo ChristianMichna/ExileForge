@@ -131,6 +131,15 @@ Leere oder eine doppelte ID ist ein Fehler. Offen: was eine Essenz bewirkt
 (`Essences.UpgradeResult`) ist nicht abgebildet, bis die Crafting-Operation dafür
 festgelegt ist.
 
+Essenzen als Crafting-Aktionen (`src/normalize/essence.ts`, nur mit `--game-data`):
+Je PoB-Essenz (Schlüssel = Metadaten-Pfad = ID der Währungs-Basis) entsteht eine
+`craftingAction` (`kind` und Op aus `normalize.json` `essence`; Op `add-specific-mod`
+mit `modByItemClass`, definiert in `packages/crafting-sim`). Aufgenommen werden nur
+Einträge, deren Basis, Item-Klasse und Mod im Release existieren; alles andere steht
+als Befund (`kind: essence`) in `findings.json`. Eine Essenz ohne brauchbaren Eintrag
+erzeugt keine Aktion. Rarität: PoB nennt keine Regel, deshalb setzt die Pipeline keine
+(Simulator meldet die Aktion dann als unkalibriert statt geraten).
+
 IDs (Ausrüstung, Uniques, Gems, Mods aus PoB-Daten; Währungen aus den Game-Data-Tabellen, siehe ADR-0005):
 
 | Art               | ID                                            |
