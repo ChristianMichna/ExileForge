@@ -14,6 +14,8 @@ const execFileAsync = promisify(execFile);
 
 export const GAME_DATA_FORMAT = "exileforge-game-data/1";
 const MANIFEST_FILE = "manifest.json";
+/** Written first, so an interrupted export is still recognised as an earlier output; other stages also write a manifest.json. */
+const MARKER_FILE = "game-data.marker";
 const SHA256 = z.string().regex(/^[0-9a-f]{64}$/);
 
 export const gameDataManifestSchema = z
@@ -71,7 +73,7 @@ export interface DatTool {
 
 const TOOL_NAME = "pathofexile-dat";
 
-/** The pinned dat tool (devDependency), run as a child process with an argument array. */
+/** The pinned dat tool (dependency), run as a child process with an argument array. */
 export async function resolveDatTool(): Promise<DatTool> {
   let entry: string;
   try {
@@ -155,7 +157,8 @@ export interface ExportOptions {
 export async function exportGameData(opts: ExportOptions): Promise<GameDataManifest> {
   const { config, patch, tool } = opts;
   const out = resolve(opts.outDir);
-  await prepareOutDir(out, [{ what: "the working directory", dir: process.cwd() }], MANIFEST_FILE);
+  await prepareOutDir(out, [{ what: "the working directory", dir: process.cwd() }], MARKER_FILE);
+  await writeFile(join(out, MARKER_FILE), `${GAME_DATA_FORMAT}\n`);
   const workDir = await mkdtemp(join(tmpdir(), "exileforge-gamedata-"));
   const tables: GameDataManifest["tables"] = [];
   const missing: GameDataManifest["missing"] = [];

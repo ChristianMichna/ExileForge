@@ -1,5 +1,5 @@
 {
-  "$comment": "Game-data tables read from the update servers in CI (F-01, approved by Christian 2026-11-25 for crafting data only: currencies, essences, omens). Table and column names follow the community dat schema (pathofexile-dat). A table with required=false may be absent from a patch; that is recorded in the manifest, never filled in.",
+  "$comment": "Game-data tables read from the update servers in CI (F-01, approved by Christian 2026-11-25 for crafting data - currencies, essences, omens - and, per later decision the same day, the level table for the maximum character level; see docs/adr/0005). Table and column names follow the community dat schema (pathofexile-dat). A table with required=false may be absent from a patch; that is recorded in the manifest, never filled in.",
   "patchServer": {
     "host": "patch.pathofexile2.com",
     "port": 13060,

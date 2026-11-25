@@ -249,4 +249,35 @@ describe("exportGameData", () => {
     ).rejects.toThrow(/not an earlier output/);
     expect(existsSync(join(foreign, "keep.txt"))).toBe(true);
   });
+
+  it("does not take a snapshot or catalog manifest for an earlier export", async () => {
+    const other = await mkdtemp(join(tmpdir(), "ef-other-"));
+    await writeFile(join(other, "manifest.json"), "{}");
+    await expect(
+      exportGameData({ config, patch, outDir: other, tool: fakeTool({}), schema }),
+    ).rejects.toThrow(/not an earlier output/);
+    expect(existsSync(join(other, "manifest.json"))).toBe(true);
+  });
+
+  it("can be repeated after an export was interrupted", async () => {
+    const dir = await out();
+    await expect(
+      exportGameData({
+        config,
+        patch,
+        outDir: dir,
+        tool: fakeTool({ Things: things, Extras: "broken" }),
+        schema,
+      }),
+    ).rejects.toThrow(/tool failed/);
+    expect(existsSync(join(dir, "manifest.json"))).toBe(false);
+    const manifest = await exportGameData({
+      config,
+      patch,
+      outDir: dir,
+      tool: fakeTool({ Things: things, Extras: extras }),
+      schema,
+    });
+    expect(manifest.tables).toHaveLength(2);
+  });
 });

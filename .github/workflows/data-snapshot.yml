@@ -90,7 +90,7 @@ jobs:
             cp .pob/luajit .pob-old/ && cp -r .pob/lib .pob-old/
           '
           node apps/data-pipeline/dist/cli.js snapshot \
-            --game-version 0.0 --revision 0 --pob-home .pob-old --out data-snapshots/previous
+            --game-version 0.0 --revision 1 --pob-home .pob-old --out data-snapshots/previous
           node apps/data-pipeline/dist/cli.js diff data-snapshots/previous data-snapshots/current
           cat data-snapshots/current/diff.md >> "$GITHUB_STEP_SUMMARY"
 
