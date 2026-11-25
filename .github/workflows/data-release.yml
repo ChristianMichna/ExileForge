@@ -17,6 +17,10 @@ on:
         description: "Pipeline revision for this game version (whole number, no leading zero)"
         required: true
         default: "1"
+      previous-tag:
+        description: "Tag of the previous data release to diff against, e.g. data-poe2-0.5.5.10-r1 (empty: no diff)"
+        required: false
+        default: ""
       prerelease:
         description: "Mark the GitHub release as a pre-release"
         type: boolean
@@ -37,6 +41,7 @@ jobs:
     env:
       GAME_VERSION: ${{ inputs.game-version }}
       REVISION: ${{ inputs.revision }}
+      PREVIOUS_TAG: ${{ inputs.previous-tag }}
       # the integration test must not be skipped here
       REQUIRE_POB: "1"
     steps:
@@ -96,6 +101,20 @@ jobs:
           node apps/data-pipeline/dist/cli.js catalog data-snapshots/current \
             --out data-snapshots/current/catalog \
             --game-data data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Diff against the previous data release
+        if: env.PREVIOUS_TAG != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$PREVIOUS_TAG" =~ ^data-poe2-[0-9.]+-r[1-9][0-9]*$ ]] || { echo "previous-tag '$PREVIOUS_TAG' is not a data release tag" >&2; exit 1; }
+          mkdir -p previous
+          gh release download "$PREVIOUS_TAG" --repo "$GITHUB_REPOSITORY" --dir previous --pattern 'catalog-*.tar.gz*'
+          (cd previous && sha256sum --check catalog-*.sha256)
+          mkdir previous/catalog
+          tar -C previous/catalog -xzf previous/catalog-*.tar.gz
+          node apps/data-pipeline/dist/cli.js catalog-diff previous/catalog data-snapshots/current/catalog 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Pack the catalog
         run: |
