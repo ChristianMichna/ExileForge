@@ -55,3 +55,10 @@ export const S8_CRAFT = [
   "The goal of the whole craft is fixed: the mods the target item requires. Use craft_simulate (always with the runId) to try strategies before you submit; explain the choices in rationale without typing numbers.",
   NO_MEMORY_RULES,
 ].join(" ");
+
+export const S9_SECTION = [
+  "Write one section of the player's build guide from the plans already made. The guide is read by a player who wants to build and play this character.",
+  "The context holds the request, the chosen archetype, the validated target, progression, gear and crafting plans, and the sections written so far. Describe and justify them; never change them. Be concrete about what to do, in which order and why.",
+  "Reference measured values with calc segments using the calc ids given in the context; never type a number. Mention catalog entities as entity segments.",
+  NO_MEMORY_RULES,
+].join(" ");

@@ -38,6 +38,7 @@ import { releaseStageTable } from "./stages/s6-table.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 import { GearPlan } from "@astrolabe/contracts/build";
+import { S9_SECTIONS, sectionKey, sectionTask } from "./stages/s9-guide.js";
 import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
 
 export const FORGE_PIPELINE_ID = "forge";
@@ -318,7 +319,7 @@ function planGear(
     return { kind: "task", spec: gearTask(ctx, config, s7, open, chosen, target, earlier) };
   }
   if (ctx.result(S7_PLAN_KEY) === undefined) return planJob(ctx, s7, tiers, chosen, target);
-  return planCraft(ctx, config, chosen);
+  return planCraft(ctx, config, chosen, target);
 }
 
 /** S8: a craft strategy per rare of the endgame gear (Claude, simulated at once), then the priced plans. */
@@ -326,6 +327,7 @@ function planCraft(
   ctx: PipelineContext,
   config: StageConfig,
   chosen: ArchetypeCandidate,
+  target: TargetBuild,
 ): PlanStep {
   const gear = GearPlan.safeParse(ctx.result(S7_PLAN_KEY));
   if (!gear.success) {
@@ -354,12 +356,31 @@ function planCraft(
   const open = slots.find((s) => ctx.result(s.key) === undefined);
   if (open !== undefined) return { kind: "task", spec: craftTask(ctx, config, open, chosen) };
   if (ctx.result(S8_PLAN_KEY) === undefined) return craftPlanJob(ctx, slots, chosen);
+  return planGuide(ctx, config, chosen, target);
+}
+
+/** S9: the prose sections of the guide, one task each (Claude); the document is assembled after validation. */
+function planGuide(
+  ctx: PipelineContext,
+  config: StageConfig,
+  chosen: ArchetypeCandidate,
+  target: TargetBuild,
+): PlanStep {
+  const open = S9_SECTIONS.find((s) => ctx.result(sectionKey(s)) === undefined);
+  if (open !== undefined) {
+    const plans = {
+      progression: ctx.result(S6_PLAN_KEY) as JsonValue,
+      gear: ctx.result(S7_PLAN_KEY) as JsonValue,
+      crafting: ctx.result(S8_PLAN_KEY) as JsonValue,
+    };
+    return { kind: "task", spec: sectionTask(ctx, config, open, { chosen, target, plans }) };
+  }
   return {
     kind: "blocked",
     error: {
       code: "stage_not_implemented",
       message:
-        "S9 (guide) and the later stages are not built yet. S0 to S8 are done; their results are stored with the run.",
+        "S10 (validation) and S11 (publishing) are not built yet. S0 to S9 are done; their results are stored with the run.",
     },
   };
 }
