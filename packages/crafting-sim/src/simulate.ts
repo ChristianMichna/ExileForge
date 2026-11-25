@@ -24,8 +24,10 @@ export const CRAFT_SIM_FORMULA_VERSION = "1";
 export interface SimulateOptions {
   catalog: SimCatalog;
   config: CraftSimConfig;
-  /** Prices of the league the request names; absent = no costs. */
+  /** Prices; must be of the request's data release and league, else costs are uncalibrated. Absent = no costs. */
   prices?: PriceBook | undefined;
+  /** Clock for the price book's age check; injectable for tests. */
+  now?: () => Date;
 }
 
 interface State {
@@ -36,17 +38,28 @@ interface State {
 
 /** An action cannot be applied (precondition not met or no mod can be added). */
 const BLOCKED = Symbol("blocked");
-type Apply = (state: State, rng: Rng, drawn: Set<string>) => typeof BLOCKED | undefined;
+type Apply = (state: State, rng: Rng) => typeof BLOCKED | undefined;
 
 interface CompiledAction {
   action: CraftingAction;
   check: ((state: State) => boolean)[];
   effects: Apply[];
+  /** Ids of all mods an add-random-mod effect of this action can draw from (the chance depends on their weights). */
+  poolModIds: string[];
 }
 
 type Derived = Extract<Source, { kind: "derived" }>;
 type Outcomes = CraftSimResult["outcomes"];
-const noOutcomes: Outcomes = { succeeded: 0, finishedWithoutGoal: 0, abandoned: 0, blocked: 0 };
+const noOutcomes = (): Outcomes => ({
+  succeeded: 0,
+  finishedWithoutGoal: 0,
+  abandoned: 0,
+  blocked: 0,
+});
+
+function assertNever(value: never): never {
+  throw new Error(`internal error: unhandled case ${JSON.stringify(value)}`);
+}
 
 function must<T>(value: T | undefined, what: string): T {
   if (value === undefined) throw new Error(`internal error: missing ${what}`);
@@ -71,7 +84,7 @@ function uncalibratedResult(
     seed,
     successChance: uncal(reason),
     successInterval: uncal(reason),
-    outcomes: noOutcomes,
+    outcomes: noOutcomes(),
     expectedAttempts: uncal(reason),
     actions: [],
     steps: [],
@@ -80,7 +93,13 @@ function uncalibratedResult(
 }
 
 export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions): CraftSimResult {
-  const request = CraftSimRequestSchema.parse(rawRequest);
+  const parsed = CraftSimRequestSchema.safeParse(rawRequest);
+  if (!parsed.success) {
+    throw new CraftSimInputError(`invalid craft.simulate request: ${parsed.error.message}`, {
+      cause: parsed.error,
+    });
+  }
+  const request = parsed.data;
   const { catalog, config } = options;
   const runs = request.runs ?? config.defaultRuns;
   if (runs > config.maxRuns) {
@@ -127,13 +146,12 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
 
   const byOrder = new Map(steps.map((s, i) => [s.order, i]));
   const rng = new Rng(seed);
-  const drawn = new Set<string>();
   const uses = new Map<string, number>();
   const reached = new Array<number>(steps.length).fill(0);
   const executed = new Array<number>(steps.length).fill(0);
   const passedCount = new Array<number>(steps.length).fill(0);
   let successes = 0;
-  const outcomes: Outcomes = { ...noOutcomes };
+  const outcomes: Outcomes = noOutcomes();
   let limitHits = 0;
 
   const holds = (state: State, clauses: { anyOfModIds: readonly string[] }[]) =>
@@ -167,7 +185,7 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
           break attempt;
         }
         for (const effect of c.effects) {
-          if (effect(state, rng, drawn) === BLOCKED) {
+          if (effect(state, rng) === BLOCKED) {
             outcomes.blocked++;
             break attempt;
           }
@@ -197,15 +215,17 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
         case "abort":
           outcomes.abandoned++;
           break attempt;
+        default:
+          return assertNever(step.onFail);
       }
     }
   }
 
-  const gamedata = gamedataInputs(request.dataReleaseId, request.start, compiled, drawn);
+  const gamedata = gamedataInputs(request.dataReleaseId, request.start, compiled);
   const derived = (formula: string, extra: PrimarySource[] = []): Derived => ({
     kind: "derived" as const,
     formula,
-    formulaVersion: CRAFT_SIM_FORMULA_VERSION,
+    formulaVersion: `${CRAFT_SIM_FORMULA_VERSION}; runs=${runs}`,
     inputs: [...gamedata, ...extra] as [PrimarySource, ...PrimarySource[]],
     seed,
   });
@@ -221,7 +241,7 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
       seed,
       successChance: { status: "failed", error },
       successInterval: { status: "failed", error },
-      outcomes: noOutcomes,
+      outcomes: noOutcomes(),
       expectedAttempts: { status: "failed", error },
       actions: [],
       steps: [],
@@ -243,7 +263,7 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
     successInterval: {
       status: "ok",
       value: wilson(successes, runs),
-      source: derived("crafting.monte-carlo.success-interval"),
+      source: derived("crafting.monte-carlo.success-interval.wilson-95"),
     },
     outcomes: { ...outcomes, succeeded: successes },
     expectedAttempts:
@@ -280,7 +300,17 @@ export function simulate(rawRequest: CraftSimRequest, options: SimulateOptions):
             }
           : uncal("step was never executed"),
     })),
-    expectedCost: cost(request, runs, successes, uses, compiled, options.prices, derived),
+    expectedCost: cost(
+      request,
+      runs,
+      successes,
+      uses,
+      compiled,
+      options.prices,
+      options.now ?? (() => new Date()),
+      config.maxPriceBookAgeMinutes,
+      derived,
+    ),
   };
 }
 
@@ -291,6 +321,8 @@ function cost(
   uses: Map<string, number>,
   compiled: Map<string, CompiledAction>,
   book: PriceBook | undefined,
+  now: () => Date,
+  maxAgeMinutes: number,
   derived: (formula: string, extra?: PrimarySource[]) => Derived,
 ): CraftSimResult["expectedCost"] {
   const target = request.costCurrencyItemId;
@@ -301,6 +333,19 @@ function cost(
     return uncal(`start cost is ${request.startCost.status}`);
   }
   if (!book) return uncal("no price book for the requested league");
+  if (book.dataReleaseId !== request.dataReleaseId) {
+    return uncal(
+      `price book maps provider ids to release ${book.dataReleaseId}, request is for ${request.dataReleaseId}`,
+    );
+  }
+  if (request.league !== undefined && book.league !== request.league) {
+    return uncal(`price book is for league ${book.league}, request names ${request.league}`);
+  }
+  const ageMinutes = (now().getTime() - Date.parse(book.fetchedAt)) / 60_000;
+  if (!Number.isFinite(ageMinutes)) return uncal(`price book has no usable fetch time`);
+  if (ageMinutes > maxAgeMinutes) {
+    return uncal(`price book is stale (fetched ${book.fetchedAt}, limit ${maxAgeMinutes} minutes)`);
+  }
   if (successes === 0) return uncal(`no attempt out of ${runs} reached the goal`);
 
   const prices = new PriceLookup(book);
@@ -333,6 +378,7 @@ function cost(
   if (market) extra.push(market);
   if (startSource.kind === "market") extra.push(startSource);
   else if (startSource.kind === "derived") extra.push(...startSource.inputs);
+  else assertNever(startSource);
   return {
     status: "ok",
     value: { amount: total / successes / targetUnit, currencyItemId: target },
@@ -349,6 +395,7 @@ function compileAction(
   const problems: string[] = [];
   const check: CompiledAction["check"] = [];
   const effects: Apply[] = [];
+  const poolModIds: string[] = [];
   const where = `action ${action.id}`;
 
   for (const rule of action.preconditions) {
@@ -425,7 +472,8 @@ function compileAction(
           );
           break;
         }
-        effects.push((s, rng, drawn) => {
+        for (const c of candidates) poolModIds.push(c.mod.id);
+        effects.push((s, rng) => {
           for (let n = 0; n < r.params.count; n++) {
             const counts = new Map<string, number>();
             const groups = new Set<string>();
@@ -446,7 +494,6 @@ function compileAction(
             if (pick < 0) return BLOCKED;
             const chosen = must(pool[pick], "pool entry").mod;
             s.mods.push(chosen.id);
-            drawn.add(chosen.id);
           }
           return undefined;
         });
@@ -454,7 +501,7 @@ function compileAction(
       }
     }
   }
-  return { compiled: { action, check, effects }, problems };
+  return { compiled: { action, check, effects, poolModIds }, problems };
 }
 
 function countMods(s: State, catalog: SimCatalog, gens: readonly string[] | undefined): number {
@@ -486,8 +533,9 @@ function gamedataInputs(
   dataReleaseId: DataReleaseId,
   start: CraftItemState,
   compiled: Map<string, CompiledAction>,
-  drawn: Set<string>,
 ): PrimarySource[] {
+  const pool = new Set<string>();
+  for (const c of compiled.values()) for (const id of c.poolModIds) pool.add(id);
   const src = (entity: EntityRef, field: string): PrimarySource => ({
     kind: "gamedata",
     dataReleaseId,
@@ -497,7 +545,7 @@ function gamedataInputs(
   return [
     src({ kind: "baseItem", id: start.baseItemId }, "/tags"),
     ...[...compiled.keys()].map((id) => src({ kind: "craftingAction", id }, "/effects")),
-    ...[...drawn].sort().map((id) => src({ kind: "mod", id }, "/spawnWeights")),
+    ...[...pool].sort().map((id) => src({ kind: "mod", id }, "/spawnWeights")),
   ];
 }
 

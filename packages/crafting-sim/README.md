@@ -52,6 +52,18 @@ bereits vorhandenen Gruppe und volle Generierungstypen sind ausgeschlossen.
   Preisbuch oder Preis einer verbrauchten Aktion ist `expectedCost`
   `uncalibrated` und nennt die fehlenden Items. Die Referenzwährung des
   Preisbuchs kostet exakt 1 ihrer selbst, alles andere braucht eine Quote.
+- Preisbuch: andere Release-ID oder (bei genannter `league`) andere Liga, älter
+  als `maxPriceBookAgeMinutes` oder Quote ohne endlichen positiven Betrag →
+  `uncalibrated` mit Grund. Das Alter prüft gegen `options.now` (Standard: Uhr).
+- Herkunft der Chance: alle Mods der Pools aller `add-random-mod`-Effekte als
+  `gamedata`-Eingaben (sortiert, unabhängig vom Seed); die Läufe stehen in
+  `formulaVersion`.
+- Begriffe: Ein *Versuch* geht vom Startitem bis zum Ende; `restart` und `abort`
+  beenden ihn als `abandoned`, der nächste Versuch beginnt mit einem frischen
+  Startitem (Startkosten fallen erneut an). Verbrauch zählt eine Aktion, sobald
+  ihr Schritt sie anwenden will, auch wenn sie dann blockiert ist.
+- `outcomes` sind nur bei `ok`-Ergebnissen eine Messung; bei `uncalibrated` und
+  `failed` stehen Nullen, die nicht angezeigt werden dürfen.
 - Unbekannte Katalog-IDs in der Anfrage werfen `CraftSimInputError`.
 
 ## Grenzen

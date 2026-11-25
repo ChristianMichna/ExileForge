@@ -14,6 +14,7 @@ const config = parseCraftSimConfig({
   maxRuns: 100000,
   defaultSeed: 7,
   maxStepExecutionsPerAttempt: 50,
+  maxPriceBookAgeMinutes: 60,
 });
 
 const catalog = (
@@ -207,6 +208,8 @@ describe("simulate", () => {
   });
 });
 
+const clock = () => new Date("2026-11-25T00:30:00Z");
+
 describe("cost", () => {
   const startCost = {
     status: "ok",
@@ -225,6 +228,7 @@ describe("cost", () => {
       catalog: catalog(),
       config,
       prices: book,
+      now: clock,
     });
     // per attempt: start 3 + one act-add at 2 = 5; success 0.25 -> 20 reference units
     if (result.expectedCost.status !== "ok") throw new Error(JSON.stringify(result.expectedCost));
@@ -244,11 +248,13 @@ describe("cost", () => {
       catalog: catalog(),
       config,
       prices: book,
+      now: clock,
     });
     const big = simulate(request({ costCurrencyItemId: "cur-big", startCost }), {
       catalog: catalog(),
       config,
       prices: book,
+      now: clock,
     });
     if (ref.expectedCost.status !== "ok" || big.expectedCost.status !== "ok")
       throw new Error("expected ok");
@@ -256,10 +262,14 @@ describe("cost", () => {
   });
 
   it("is uncalibrated without start cost, prices or a cost currency, never 0", () => {
-    const base = { catalog: catalog(), config };
-    const noStart = simulate(request({ costCurrencyItemId: "cur-ref" }), { ...base, prices: book });
+    const base = { catalog: catalog(), config, now: clock };
+    const noStart = simulate(request({ costCurrencyItemId: "cur-ref" }), {
+      ...base,
+      prices: book,
+      now: clock,
+    });
     const noBook = simulate(request({ costCurrencyItemId: "cur-ref", startCost }), base);
-    const noCurrency = simulate(request({ startCost }), { ...base, prices: book });
+    const noCurrency = simulate(request({ startCost }), { ...base, prices: book, now: clock });
     for (const r of [noStart, noBook, noCurrency])
       expect(r.expectedCost.status).toBe("uncalibrated");
   });
@@ -270,6 +280,7 @@ describe("cost", () => {
       catalog: catalog(),
       config,
       prices: unpriced,
+      now: clock,
     });
     expect(result.expectedCost.status).toBe("uncalibrated");
     if (result.expectedCost.status === "uncalibrated") {
@@ -283,7 +294,44 @@ describe("cost", () => {
       catalog: catalog(),
       config,
       prices: book,
+      now: clock,
     });
     expect(result.expectedCost.status).toBe("uncalibrated");
+  });
+
+  it("refuses a price book of another league, another release or too old", () => {
+    const run = (prices: typeof book, over: Record<string, unknown> = {}) =>
+      simulate(request({ costCurrencyItemId: "cur-ref", startCost, ...over }), {
+        catalog: catalog(),
+        config,
+        prices,
+        now: clock,
+      }).expectedCost;
+    const wrongLeague = run(book, { league: "OtherLeague" });
+    const wrongRelease = run({
+      ...book,
+      dataReleaseId: "poe2-9.9.9+r1" as typeof book.dataReleaseId,
+    });
+    const stale = run({ ...book, fetchedAt: "2026-11-24T00:00:00Z" });
+    for (const r of [wrongLeague, wrongRelease, stale]) expect(r.status).toBe("uncalibrated");
+    if (stale.status === "uncalibrated") expect(stale.reason).toContain("stale");
+    expect(run(book, { league: "TestLeague" }).status).toBe("ok");
+  });
+});
+
+describe("derived sources", () => {
+  it("list the whole mod pool, independent of the seed", () => {
+    const inputs = (seed: number) => {
+      const r = simulate(request({ seed, runs: 5 }), { catalog: catalog(), config });
+      if (r.successChance.status !== "ok" || r.successChance.source.kind !== "derived")
+        throw new Error("x");
+      return r.successChance.source.inputs;
+    };
+    const a = inputs(1);
+    expect(a).toEqual(inputs(2));
+    const mods = a.flatMap((i) =>
+      i.kind === "gamedata" && i.entity.kind === "mod" ? [i.entity.id] : [],
+    );
+    expect(mods).toEqual(["mod-a", "mod-b"]);
   });
 });

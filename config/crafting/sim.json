@@ -4,5 +4,6 @@
   "defaultRuns": 20000,
   "maxRuns": 200000,
   "defaultSeed": 20261125,
-  "maxStepExecutionsPerAttempt": 10000
+  "maxStepExecutionsPerAttempt": 10000,
+  "maxPriceBookAgeMinutes": 720
 }

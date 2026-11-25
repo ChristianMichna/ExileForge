@@ -20,7 +20,10 @@ export class PriceLookup {
 
   constructor(readonly book: PriceBook) {
     for (const q of book.quotes) {
-      if (q.item.kind === "baseItem") this.quotes.set(q.item.id, q);
+      // A quote that is not a finite positive amount is as good as no quote.
+      if (q.item.kind === "baseItem" && Number.isFinite(q.amount) && q.amount > 0) {
+        this.quotes.set(q.item.id, q);
+      }
     }
   }
 

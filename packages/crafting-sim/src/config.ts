@@ -10,6 +10,8 @@ export const CraftSimConfig = z
     defaultSeed: z.int(),
     /** Guards against strategies that never end; hitting it is reported as failure, not hidden. */
     maxStepExecutionsPerAttempt: z.int().positive(),
+    /** Older price books give uncalibrated costs. */
+    maxPriceBookAgeMinutes: z.int().positive(),
   })
   .refine((c) => c.defaultRuns <= c.maxRuns, { message: "defaultRuns must be <= maxRuns" });
 export type CraftSimConfig = z.infer<typeof CraftSimConfig>;
