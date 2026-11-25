@@ -78,11 +78,7 @@
       "spiritFree": "SpiritUnreserved",
       "ehp": "TotalEHP",
       "dps": "CombinedDPS",
-      "resistMissing": [
-        "MissingFireResist",
-        "MissingColdResist",
-        "MissingLightningResist"
-      ]
+      "resistMissing": ["MissingFireResist", "MissingColdResist", "MissingLightningResist"]
     },
     "resistanceCapStageKinds": ["endgame"],
     "thresholds": [],
