@@ -41,6 +41,111 @@
             "description": "SHA-256 as lowercase hex"
           }
         },
+        "maxCharacterLevel": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "origin": {
+              "type": "string",
+              "enum": [
+                "game-data",
+                "pob-data",
+                "pob-code"
+              ]
+            }
+          },
+          "required": [
+            "value",
+            "origin"
+          ]
+        },
+        "passivePoints": {
+          "type": "object",
+          "properties": {
+            "mainTree": {
+              "type": "object",
+              "properties": {
+                "perLevel": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "fromLevel": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "origin": {
+                  "type": "string",
+                  "enum": [
+                    "game-data",
+                    "pob-data",
+                    "pob-code"
+                  ]
+                }
+              },
+              "required": [
+                "perLevel",
+                "fromLevel",
+                "origin"
+              ]
+            },
+            "weaponSetByAct": {
+              "type": "object",
+              "properties": {
+                "acts": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "act": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "areaLevel": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "act",
+                      "areaLevel",
+                      "points"
+                    ]
+                  }
+                },
+                "origin": {
+                  "type": "string",
+                  "enum": [
+                    "game-data",
+                    "pob-data",
+                    "pob-code"
+                  ]
+                }
+              },
+              "required": [
+                "acts",
+                "origin"
+              ]
+            }
+          },
+          "required": [
+            "mainTree",
+            "weaponSetByAct"
+          ]
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

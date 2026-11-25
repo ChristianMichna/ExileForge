@@ -5,7 +5,7 @@ import type { PobSources } from "../config.ts";
 
 /** One resolved module the Lua extractor loads (see lua/extract.lua). */
 export type JobSource =
-  | { loader: "return" | "fill" | "skills"; file: string; tag?: Record<string, string> }
+  | { loader: "return" | "list" | "fill" | "skills"; file: string; tag?: Record<string, string> }
   | { loader: "uniqueDB" }
   | { loader: "gemLevels" }
   | { loader: "statDescriptions"; file: string }
@@ -65,7 +65,7 @@ export async function buildExtractJob(
             s.tag ? { loader: s.loader, file, tag: s.tag } : { loader: s.loader, file },
           );
         }
-      } else if (s.loader === "return") {
+      } else if (s.loader === "return" || s.loader === "list") {
         resolved.push(
           s.tag
             ? { loader: s.loader, file: s.file, tag: s.tag }

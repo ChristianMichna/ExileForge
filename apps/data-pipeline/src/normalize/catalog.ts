@@ -35,6 +35,17 @@ export const normalizeConfigSchema = z
     modGenerationTypeFallback: z.string().min(1),
     baseItemPropertyGroups: z.array(z.string().min(1)),
     classAttributePrefix: z.string().min(1),
+    releaseFacts: z
+      .object({
+        $comment: z.string().optional(),
+        /** Game-data table whose highest Level is the maximum character level. */
+        maxLevelTable: z.string().min(1),
+        /** A rule PoB hard-codes in its code, not a data value (origin pob-code). */
+        mainTree: z
+          .object({ perLevel: z.int().positive(), fromLevel: z.int().positive() })
+          .strict(),
+      })
+      .strict(),
   })
   .strict();
 export type NormalizeConfig = z.infer<typeof normalizeConfigSchema>;

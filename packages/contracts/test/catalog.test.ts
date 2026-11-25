@@ -47,6 +47,72 @@ describe("catalog fixture release", () => {
   });
 });
 
+describe("DataRelease progression facts", () => {
+  const facts = {
+    maxCharacterLevel: { value: 50, origin: "game-data" },
+    passivePoints: {
+      mainTree: { perLevel: 1, fromLevel: 2, origin: "pob-code" },
+      weaponSetByAct: {
+        acts: [
+          { act: 1, areaLevel: 5, points: 2 },
+          { act: 2, areaLevel: 9, points: 2 },
+        ],
+        origin: "pob-data",
+      },
+    },
+  };
+
+  it("accepts a release without the facts (older pipelines)", () => {
+    expect(DataRelease.safeParse(validRelease).success).toBe(true);
+  });
+
+  it("accepts the facts with their origin", () => {
+    expect(DataRelease.safeParse({ ...validRelease, ...facts }).success).toBe(true);
+  });
+
+  it("rejects a zero level or zero points instead of treating them as data", () => {
+    expect(
+      DataRelease.safeParse({
+        ...validRelease,
+        maxCharacterLevel: { value: 0, origin: "game-data" },
+      }).success,
+    ).toBe(false);
+    const zero = {
+      ...facts.passivePoints,
+      mainTree: { ...facts.passivePoints.mainTree, perLevel: 0 },
+    };
+    expect(DataRelease.safeParse({ ...validRelease, passivePoints: zero }).success).toBe(false);
+  });
+
+  it("rejects an unknown origin, duplicate acts and a start level above the maximum", () => {
+    expect(
+      DataRelease.safeParse({ ...validRelease, maxCharacterLevel: { value: 50, origin: "memory" } })
+        .success,
+    ).toBe(false);
+    const dup = {
+      ...facts.passivePoints,
+      weaponSetByAct: {
+        ...facts.passivePoints.weaponSetByAct,
+        acts: [
+          { act: 1, areaLevel: 5, points: 2 },
+          { act: 1, areaLevel: 6, points: 2 },
+        ],
+      },
+    };
+    expect(DataRelease.safeParse({ ...validRelease, ...facts, passivePoints: dup }).success).toBe(
+      false,
+    );
+    const late = {
+      ...facts.passivePoints,
+      mainTree: { ...facts.passivePoints.mainTree, fromLevel: 60 },
+    };
+    const r = DataRelease.safeParse({ ...validRelease, ...facts, passivePoints: late });
+    expect(r.error?.issues.map((i) => i.path.join("."))).toContain(
+      "passivePoints.mainTree.fromLevel",
+    );
+  });
+});
+
 describe("DataRelease", () => {
   it("rejects a gameVersion that does not match the id", () => {
     const r = DataRelease.safeParse({ ...validRelease, gameVersion: "9.8.6" });

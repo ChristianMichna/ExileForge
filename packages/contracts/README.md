@@ -7,17 +7,17 @@ Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
 
 ## Inhalt (v0.3)
 
-| Export | Inhalt | Konsumenten |
-| --- | --- | --- |
-| `@astrolabe/contracts/common` | Katalog-IDs (gebrandet je Art), `DataReleaseId`, `PobVersion`, `CalcProfileId`, `CalcId`, Herkunft `Source`, `sourced()`, `measured()`, `CalcRef` | alle |
-| `@astrolabe/contracts/catalog` | `BaseItem`, `Mod`, `UniqueItem`, `Gem`, `PassiveNode` (mit `position.point` und `arcs`), `PassiveGroup`, `CharacterClass`, `Ascendancy`, `CraftingAction`, `StatTranslation`, `DataRelease`, `CatalogManifest`, `CatalogShard`, `CatalogDiff` | data-pipeline, catalog-sdk, ui |
-| `@astrolabe/contracts/calc` | `CalcResult`, `PatchOp`, `CalcMethods` (JSON-RPC: `meta.version`, `build.*`, `calc.*`), `parseCalcParams`, `parseCalcResult` | calc, calc-client, optimizer |
-| `@astrolabe/contracts/build` | `BuildRequest` (S0), `BuildState`, `ItemSpec`, `RichText`, Stufen-Ergebnisse `SkillProfile` (S1), `ArchetypeCandidate`/`ArchetypeEvaluation` (S2/S3), `TargetBuild` (S5), `ProgressionPlan` (S6), `GearPlan` (S7), `CraftingPlan` (S8), `Finding` (mit `returnTo` für den gezielten Rücksprung), `ValidationReport` (S10) | agents, optimizer, crafting-sim, ui |
-| `@astrolabe/contracts/guide` | `GuideDocument` mit den 11 Pflichtbausteinen des Plans, `PublishedGuide` (S11, nur mit bestandenem Prüfbericht) | agents, exporters, ui |
-| `@astrolabe/contracts/forge` | MCP-Werkzeuge `forge.attach/next/submit/ask_user/status`, `ForgeTask`, `ForgeStep`, `UserIntervention` | server, mcp-bridge, llm-gateway |
-| `@astrolabe/contracts/economy` | `PriceBook`, `PriceQuote`, Werkzeug `economy.price` (liefert auch `fetchedAt`, `freshness` fresh/stale und bei stale `refreshError`; Preise als `measured`: `market`, bei Umrechnung `derived`; Items per `PricedItemRef` (Basis oder Unique)) | economy, server, crafting-sim |
-| `@astrolabe/contracts/craft` | `CraftSimRequest`/`CraftSimResult`, `CraftStrategy`, `CraftGoal`, Werkzeug `craft.simulate` | crafting-sim, server, agents |
-| `@astrolabe/contracts/events` | `RunEvent` (Live-Status per SSE, `seq` je Lauf) | server, web |
+| Export                         | Inhalt                                                                                                                                                                                                                                                                                                                    | Konsumenten                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `@astrolabe/contracts/common`  | Katalog-IDs (gebrandet je Art), `DataReleaseId`, `PobVersion`, `CalcProfileId`, `CalcId`, Herkunft `Source`, `sourced()`, `measured()`, `CalcRef`                                                                                                                                                                         | alle                                |
+| `@astrolabe/contracts/catalog` | `BaseItem`, `Mod`, `UniqueItem`, `Gem`, `PassiveNode` (mit `position.point` und `arcs`), `PassiveGroup`, `CharacterClass`, `Ascendancy`, `CraftingAction`, `StatTranslation`, `DataRelease`, `CatalogManifest`, `CatalogShard`, `CatalogDiff`                                                                             | data-pipeline, catalog-sdk, ui      |
+| `@astrolabe/contracts/calc`    | `CalcResult`, `PatchOp`, `CalcMethods` (JSON-RPC: `meta.version`, `build.*`, `calc.*`), `parseCalcParams`, `parseCalcResult`                                                                                                                                                                                              | calc, calc-client, optimizer        |
+| `@astrolabe/contracts/build`   | `BuildRequest` (S0), `BuildState`, `ItemSpec`, `RichText`, Stufen-Ergebnisse `SkillProfile` (S1), `ArchetypeCandidate`/`ArchetypeEvaluation` (S2/S3), `TargetBuild` (S5), `ProgressionPlan` (S6), `GearPlan` (S7), `CraftingPlan` (S8), `Finding` (mit `returnTo` für den gezielten Rücksprung), `ValidationReport` (S10) | agents, optimizer, crafting-sim, ui |
+| `@astrolabe/contracts/guide`   | `GuideDocument` mit den 11 Pflichtbausteinen des Plans, `PublishedGuide` (S11, nur mit bestandenem Prüfbericht)                                                                                                                                                                                                           | agents, exporters, ui               |
+| `@astrolabe/contracts/forge`   | MCP-Werkzeuge `forge.attach/next/submit/ask_user/status`, `ForgeTask`, `ForgeStep`, `UserIntervention`                                                                                                                                                                                                                    | server, mcp-bridge, llm-gateway     |
+| `@astrolabe/contracts/economy` | `PriceBook`, `PriceQuote`, Werkzeug `economy.price` (liefert auch `fetchedAt`, `freshness` fresh/stale und bei stale `refreshError`; Preise als `measured`: `market`, bei Umrechnung `derived`; Items per `PricedItemRef` (Basis oder Unique))                                                                            | economy, server, crafting-sim       |
+| `@astrolabe/contracts/craft`   | `CraftSimRequest`/`CraftSimResult`, `CraftStrategy`, `CraftGoal`, Werkzeug `craft.simulate`                                                                                                                                                                                                                               | crafting-sim, server, agents        |
+| `@astrolabe/contracts/events`  | `RunEvent` (Live-Status per SSE, `seq` je Lauf)                                                                                                                                                                                                                                                                           | server, web                         |
 
 Fehlende Quelldaten werden nicht erfunden: `BaseItem.dropLevel` und
 `Ascendancy.pointUnlocks` sind optional; Mod-Zeilen, deren Werte sich nicht
@@ -73,6 +73,11 @@ Entitätsart eine Datei (`CatalogShard`) mit SHA-256. Die ID hat die Form
 `poe2-<spielversion>+r<revision>`; Spielversion und Revision im Objekt müssen
 zur ID passen. `CatalogDiff` beschreibt Änderungen zur Vorversion mit
 JSON-Pointer-Pfaden (Grundlage für F-19).
+
+`DataRelease.maxCharacterLevel` und `passivePoints` (Hauptbaum-Punkte je Stufe ab
+`fromLevel`, Waffensatz-Punkte je Akt) sind optional und fehlen, wenn die Pipeline
+sie nicht lesen konnte, nie als `0`. Jeder Wert nennt seinen Ursprung (`game-data`,
+`pob-data`, `pob-code`). Punkte aus Items oder Knoten gehören nicht ins Release.
 
 ## Calc-RPC
 
