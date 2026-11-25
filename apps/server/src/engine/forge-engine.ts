@@ -638,15 +638,17 @@ export class ForgeEngine {
               at: this.now().toISOString(),
             };
           }),
-        (error: unknown) =>
-          finish((tx) => {
+        (error: unknown) => {
+          this.options.logger?.error("background job failed", { runId, job: step.key, error });
+          return finish((tx) => {
             tx.record.error = {
               code: "job_failed",
               message: `${step.label} failed: ${error instanceof Error ? error.message : String(error)}`,
             };
             tx.record.current = null;
             tx.setPhase("failed");
-          }),
+          });
+        },
       )
       .catch((error: unknown) => {
         this.options.logger?.error("could not store a background job result", { runId, error });

@@ -128,7 +128,9 @@ export async function optimizeTree(input: TreeOptimizeInput): Promise<TreeOptimi
 
   let priorSource: TreeOptimizeResult["priorSource"] = "exploration";
   const nodePowerFn = evaluator.nodePower?.bind(evaluator);
-  if (nodePowerFn !== undefined) {
+  // An empty priority list means "measure nothing in advance" (explore); only an
+  // absent list asks for the full sweep, which takes about half an hour.
+  if (nodePowerFn !== undefined && input.priorityNodeIds?.length !== 0) {
     let power;
     try {
       power = await nodePowerFn(
