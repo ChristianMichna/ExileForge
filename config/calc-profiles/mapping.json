@@ -1,0 +1,6 @@
+{
+  "$comment": "Standard profile for mapping numbers. enemyIsBoss and its values come from PoB's Modules/ConfigOptions.lua; the player can override single options per build (calc overrides).",
+  "id": "mapping",
+  "description": "Mapping: the enemy is a normal monster, everything else as saved in the build.",
+  "config": [{ "key": "enemyIsBoss", "value": "None" }]
+}

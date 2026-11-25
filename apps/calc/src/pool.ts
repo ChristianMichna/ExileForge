@@ -8,6 +8,7 @@ import {
   type BuildHandle,
   type CalcResultOf,
   type CharacterClassId,
+  type ConfigOverrides,
   type DataReleaseId,
   PassiveNodeId,
 } from "@exileforge/contracts";
@@ -325,7 +326,11 @@ export class CalcPool {
     if (dup.length > 0) {
       throw new CalcServiceError("invalid_params", "Candidate keys must be unique", dup.join(", "));
     }
-    const base = await this.request("calc.stats", { handle: p.handle, profile: p.profile });
+    const base = await this.request("calc.stats", {
+      handle: p.handle,
+      profile: p.profile,
+      ...overridesOf(p),
+    });
     const missing = p.metrics.filter((m) => !Object.hasOwn(base.stats, m));
     if (missing.length > 0) {
       throw new CalcServiceError(
@@ -385,7 +390,11 @@ export class CalcPool {
       }
     }
     if (ids.length === 0) {
-      const base = await this.request("calc.stats", { handle: p.handle, profile: p.profile });
+      const base = await this.request("calc.stats", {
+        handle: p.handle,
+        profile: p.profile,
+        ...overridesOf(p),
+      });
       const missing = p.metrics.filter((m) => !Object.hasOwn(base.stats, m));
       if (missing.length > 0) {
         throw new CalcServiceError(
@@ -399,6 +408,7 @@ export class CalcPool {
     const batch = await this.request("calc.evalBatch", {
       handle: p.handle,
       profile: p.profile,
+      ...overridesOf(p),
       metrics: p.metrics,
       candidates: ids.map((id) => ({
         key: id,
@@ -469,7 +479,11 @@ export class CalcPool {
     try {
       handle = (await this.request("build.applyPatch", { handle: p.handle, ops: candidate.ops }))
         .handle;
-      const result = await this.request("calc.stats", { handle, profile: p.profile });
+      const result = await this.request("calc.stats", {
+        handle,
+        profile: p.profile,
+        ...overridesOf(p),
+      });
       const deltas: Record<string, number> = {};
       for (const metric of p.metrics) {
         const value = result.stats[metric];
@@ -743,4 +757,11 @@ export class CalcPool {
     await Promise.all(this.slots.map((s) => s.worker?.stop()));
     await rm(this.initDir, { recursive: true, force: true });
   }
+}
+
+/** Passes the optional overrides on without an `undefined` key (exactOptionalPropertyTypes). */
+function overridesOf(p: { overrides?: ConfigOverrides | undefined }): {
+  overrides?: ConfigOverrides;
+} {
+  return p.overrides === undefined ? {} : { overrides: p.overrides };
 }

@@ -167,6 +167,27 @@ describe("CalcPool with the fake worker", () => {
     );
   });
 
+  it("passes overrides on to the base and candidate calculations", async () => {
+    const { pool } = await fakePool({}, { size: 2 });
+    const { handle } = await pool.request("build.load", { format: "xml", payload: XML });
+    const run = (overrides?: Record<string, boolean | number | string>) =>
+      pool.request("calc.evalBatch", {
+        handle,
+        profile: "as-saved",
+        ...(overrides === undefined ? {} : { overrides }),
+        metrics: ["FakeLength"],
+        candidates: [{ key: "lvl2", ops: [{ op: "setLevel", level: 2 }] }],
+      });
+    const plain = await run();
+    const changed = await run({ enemyIsBoss: "Uber" });
+    expect(plain.base.overrides).toBeUndefined();
+    expect(changed.base.overrides).toEqual({ enemyIsBoss: "Uber" });
+    expect(changed.base.calcId).not.toBe(plain.base.calcId);
+    const first = plain.results[0];
+    const second = changed.results[0];
+    expect(first?.ok && second?.ok && first.calcId !== second.calcId).toBe(true);
+  });
+
   it("evaluates candidates against a base and reports failures one by one", async () => {
     const { pool } = await fakePool({}, { size: 2 });
     const { handle } = await pool.request("build.load", { format: "xml", payload: XML });
