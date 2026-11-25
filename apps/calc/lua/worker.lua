@@ -727,6 +727,43 @@ methods["build.applyPatch"] = function(params)
 	return { handle = handle, warnings = setmetatable(warnings, { __jsontype = "array" }) }
 end
 
+-- Worker-internal (not part of the contract): a fresh build of one class as
+-- Path of Building creates it (empty tree, no items, no skills), exported as
+-- XML. The supervisor offers it as the starting point for BuildState diffs.
+methods["build.template"] = function(params)
+	if type(params.classId) ~= "string" then
+		fail("invalid_params", "classId is required")
+	end
+	current = nil
+	takePrompt()
+	local ok, err = pcall(function()
+		newBuild() -- runs its own frame
+	end)
+	if not ok then
+		fail("calc_failed", "Path of Building could not start a new build", tostring(err))
+	end
+	local classId = build.spec.tree.classNameMap[params.classId]
+	if not classId then
+		fail("invalid_params", "Class not in this tree version", params.classId)
+	end
+	build.spec:SelectClass(classId)
+	-- A new build levels with its passive points (auto mode); the state says
+	-- level 1, so pin it, as the setLevel patch op does.
+	build.characterLevel = 1
+	build.characterLevelAutoMode = false
+	build.controls.characterLevel:SetText(build.characterLevel)
+	build.configTab:BuildModList()
+	build.buildFlag = true
+	runCallback("OnFrame")
+	local prompt = takePrompt()
+	if prompt then
+		fail("calc_failed", "Path of Building reported an error for the new build", prompt)
+	end
+	local xmlText = build:SaveDB("ExileForge")
+	current = nil
+	return { payload = xmlText }
+end
+
 -- Worker-internal (not part of the contract): the passives PoB can connect to
 -- the current tree, with the number of unallocated nodes on the shortest path
 -- (the node itself included). The supervisor builds calc.nodePower on it.
