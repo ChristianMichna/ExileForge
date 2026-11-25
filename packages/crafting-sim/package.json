@@ -1,0 +1,30 @@
+{
+  "name": "@exileforge/crafting-sim",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Crafting simulator (F-15): Monte Carlo over the data release's declarative crafting rules and mod weights, with cost from market prices.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@exileforge/contracts": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}

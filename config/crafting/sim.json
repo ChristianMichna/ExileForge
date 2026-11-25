@@ -1,0 +1,8 @@
+{
+  "$comment": "Settings of the crafting simulator (packages/crafting-sim). Run counts and limits only; no game values.",
+  "version": "crafting-sim-1",
+  "defaultRuns": 20000,
+  "maxRuns": 200000,
+  "defaultSeed": 20261125,
+  "maxStepExecutionsPerAttempt": 10000
+}
