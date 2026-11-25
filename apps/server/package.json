@@ -23,9 +23,11 @@
   },
   "dependencies": {
     "@exileforge/agents": "workspace:*",
-    "@exileforge/calc-client": "workspace:*",
     "@exileforge/calc": "workspace:*",
+    "@exileforge/calc-client": "workspace:*",
     "@exileforge/contracts": "workspace:*",
+    "@exileforge/crafting-sim": "workspace:*",
+    "@exileforge/economy": "workspace:*",
     "@exileforge/optimizer": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "fastify": "5.12.8",

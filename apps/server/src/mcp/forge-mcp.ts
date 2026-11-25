@@ -3,6 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BuildState } from "@exileforge/contracts/build";
 import { type CalcProfileId, EntityKind, EntityRef } from "@exileforge/contracts/common";
+import { CraftTools, EconomyTools } from "@exileforge/contracts";
 import { ForgeTools, RunId, SessionCode } from "@exileforge/contracts/forge";
 import { entityFindings, stateEntities } from "../engine/checks.js";
 import { ForgeError } from "../engine/errors.js";
@@ -10,6 +11,7 @@ import type { ForgeEngine } from "../engine/forge-engine.js";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { Logger } from "../logger.js";
+import type { CraftPort, EconomyPort } from "../tools/craft-economy.js";
 
 /** Name of the MCP server as Claude shows it. */
 export const MCP_SERVER_NAME = "exileforge";
@@ -41,6 +43,10 @@ export interface ForgeMcpDeps {
   /** Long-poll time of forge_next, named in its description. */
   waitLongPollSeconds: number;
   logger: Logger;
+  /** craft.simulate; the tool exists only when this is set. */
+  craft?: CraftPort;
+  /** economy.price; the tool exists only when this is set. */
+  economy?: EconomyPort;
 }
 
 /** Builds a fresh MCP server (one per HTTP request in stateless mode). */
@@ -185,6 +191,30 @@ export function createForgeMcpServer(deps: ForgeMcpDeps): McpServer {
         return { status: "calculated", results };
       }),
   );
+
+  const { craft, economy } = deps;
+  if (craft !== undefined) {
+    server.registerTool(
+      mcpToolName("craft.simulate"),
+      {
+        description: `${CraftTools["craft.simulate"].description} Numbers in the result are measured; reference them, never type them.`,
+        inputSchema: CraftTools["craft.simulate"].input,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      (input) => run(() => craft(input)),
+    );
+  }
+  if (economy !== undefined) {
+    server.registerTool(
+      mcpToolName("economy.price"),
+      {
+        description: EconomyTools["economy.price"].description,
+        inputSchema: EconomyTools["economy.price"].input,
+        annotations: { readOnlyHint: true, openWorldHint: true },
+      },
+      (input) => run(() => economy(input)),
+    );
+  }
 
   server.registerPrompt(
     MCP_SERVER_NAME,

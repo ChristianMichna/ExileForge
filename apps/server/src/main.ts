@@ -20,6 +20,8 @@ const { values } = parseArgs({
     calc: { type: "string" },
     "pob-root": { type: "string", default: "." },
     optimizer: { type: "string", default: "config/optimizer/tree.json" },
+    "craft-config": { type: "string", default: "config/crafting/sim.json" },
+    economy: { type: "string" },
     origin: { type: "string", multiple: true, default: [] },
     "token-file": { type: "string", default: defaultTokenFile() },
   },
@@ -87,6 +89,17 @@ chooseCalc(catalogDir)
       configPath: values.config,
       stagesConfigPath: values.stages,
       calc,
+      craftConfigPath: values["craft-config"],
+      ...(values.economy === undefined
+        ? {}
+        : {
+            economy: {
+              configPath: "config/economy/economy.json",
+              itemMapPath: "config/economy/item-map.json",
+              cacheDir: values.economy,
+              appVersion: "dev",
+            },
+          }),
       allowedOrigins: values.origin,
       tokenFile: values["token-file"],
       logger,
