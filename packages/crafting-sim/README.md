@@ -45,7 +45,9 @@ Item-Klasse der Basis nennt: `params: { modByItemClass: { <Item-Klasse>: <Mod-ID
 Steht die Klasse der Basis nicht in der Liste oder fehlt der Mod im Katalog, ist
 das Ergebnis `uncalibrated` mit Grund. Ein Mod einer schon vorhandenen Gruppe oder
 ein erreichtes Limit blockiert die Anwendung. Raritätsregeln einer Währung stehen
-als eigene `require-rarity`/`set-rarity`-Einträge in den Daten, nicht im Op.
+als eigene `require-rarity`/`set-rarity`-Einträge in den Daten, nicht im Op. Ohne
+`require-rarity`-Bedingung läuft die Aktion nicht auf beliebiger Rarität, sondern
+wird als `uncalibrated` gemeldet.
 
 ## Ehrlichkeit statt Ersatzwert
 

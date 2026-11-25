@@ -461,6 +461,12 @@ function compileAction(
         });
         break;
       case "add-specific-mod": {
+        if (!action.preconditions.some((c) => c.op === "require-rarity")) {
+          problems.push(
+            `${where}: add-specific-mod needs a require-rarity precondition; the release gives no rarity rule, so the action cannot be simulated`,
+          );
+          break;
+        }
         const itemClass = catalog.baseItem(start.baseItemId)?.itemClass;
         const modId = itemClass === undefined ? undefined : r.params.modByItemClass[itemClass];
         const mod = modId === undefined ? undefined : catalog.mod(modId);

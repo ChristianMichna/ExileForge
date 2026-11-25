@@ -557,10 +557,18 @@ describe("result shape", () => {
 });
 
 describe("add-specific-mod", () => {
-  const fixed = (modByItemClass: Record<string, string>, limits?: Record<string, number>) =>
-    action("act-fixed", [
-      { op: "add-specific-mod", params: { modByItemClass, ...(limits ? { limits } : {}) } },
-    ]);
+  const fixed = (
+    modByItemClass: Record<string, string>,
+    limits?: Record<string, number>,
+    preconditions: { op: string; params: Record<string, unknown> }[] = [
+      { op: "require-rarity", params: { rarities: ["rarity-x"] } },
+    ],
+  ) =>
+    action(
+      "act-fixed",
+      [{ op: "add-specific-mod", params: { modByItemClass, ...(limits ? { limits } : {}) } }],
+      { preconditions },
+    );
   const runFixed = (
     act: ReturnType<typeof action>,
     over: { baseClass?: string; modIds?: string[]; mods?: ReturnType<typeof mod>[] } = {},
@@ -592,6 +600,20 @@ describe("add-specific-mod", () => {
     expect(r.successChance.status).toBe("uncalibrated");
     expect(JSON.stringify(r.successChance)).toContain("item class class-y");
     expect(r.outcomes).toBeUndefined();
+  });
+
+  it("is uncalibrated without a rarity rule instead of running on any rarity", () => {
+    const r = runFixed(fixed({ "class-y": "mod-b" }, undefined, []));
+    expect(r.successChance.status).toBe("uncalibrated");
+    expect(JSON.stringify(r.successChance)).toContain("require-rarity");
+    expect(r.outcomes).toBeUndefined();
+  });
+
+  it("is blocked on a rarity the rule does not allow", () => {
+    const act = fixed({ "class-y": "mod-b" }, undefined, [
+      { op: "require-rarity", params: { rarities: ["rarity-other"] } },
+    ]);
+    expect(outcomesOf(runFixed(act)).succeeded).toBe(0);
   });
 
   it("is uncalibrated when the mod is not in the data release", () => {
