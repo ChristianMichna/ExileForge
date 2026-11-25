@@ -72,7 +72,7 @@
     }
   },
   "s10": {
-    "$comment": "Gate inputs of S10. Stat names are PoB output names (pob_bridge/lua/runner.lua; MissingXResist is PoB's resistance still missing to the cap). CombinedDPS is used because FullDPS is 0 for builds without full-DPS groups. The thresholds are empty until the product owner calibrates them for the patch: with no thresholds, G4 and G5 report the missing check instead of passing.",
+    "$comment": "Gate inputs of S10. Stat names are PoB output names (pob_bridge/lua/runner.lua; MissingXResist is PoB's resistance still missing to the cap; chaos is not listed because a build reaching its cap through gear alone is not a requirement the product owner has set). CombinedDPS is used because FullDPS is 0 for builds without full-DPS groups. The thresholds are empty until the product owner calibrates them for the patch: with no thresholds, G4 and G5 report the missing check instead of passing.",
     "calcProfile": "mapping",
     "stats": {
       "spiritFree": "SpiritUnreserved",
@@ -81,8 +81,7 @@
       "resistMissing": [
         "MissingFireResist",
         "MissingColdResist",
-        "MissingLightningResist",
-        "MissingChaosResist"
+        "MissingLightningResist"
       ]
     },
     "resistanceCapStageKinds": ["endgame"],
