@@ -6,6 +6,7 @@ import {
   type StageConfig,
 } from "@astrolabe/agents";
 import { BuildRequest, BuildState } from "@astrolabe/contracts/build";
+import type { DataRelease } from "@astrolabe/contracts/catalog";
 import type { ForgeStep } from "@astrolabe/contracts/forge";
 import { CalcFake } from "../src/calc/calc-fake.js";
 import { ForgeEngine } from "../src/engine/forge-engine.js";
@@ -28,11 +29,11 @@ const STAGES: StageConfig = {
   },
 };
 
-function setup(pipeline: Pipeline, skeleton?: SkeletonPort) {
+function setup(pipeline: Pipeline, skeleton?: SkeletonPort, release?: DataRelease) {
   return new ForgeEngine({
     ...(skeleton === undefined ? {} : { skeleton }),
     store: new RunStore(":memory:"),
-    catalog: fixtureCatalog(),
+    catalog: release === undefined ? fixtureCatalog() : fixtureCatalog(release),
     calc: new CalcFake({ dataReleaseId: RELEASE }),
     config: CONFIG,
     pipelines: [pipeline],
@@ -300,8 +301,26 @@ describe("forge pipeline (agents)", () => {
 
     it("asks for the gem setup after the choice when S5 is configured", async () => {
       const s5 = {
-        level: 20,
-        passivePoints: 5,
+        calcProfiles: ["default"],
+        objective: { weights: { FakeMetric: 1 }, floors: {} },
+      };
+      const engine = setup(createForgePipeline({ ...STAGES, s5 }), fastSkeleton, {
+        maxCharacterLevel: { value: 20, origin: "pob-code" },
+        passivePoints: {
+          mainTree: { perLevel: 1, fromLevel: 2, origin: "pob-code" },
+          weaponSetByAct: { acts: [{ act: 1, areaLevel: 5, points: 2 }], origin: "pob-code" },
+        },
+      } as never);
+      const { runId } = await driveToS3(engine);
+      await vi.waitFor(async () =>
+        expect(JSON.stringify(await engine.next(runId))).toContain("picks one"),
+      );
+      await engine.intervene(runId, { kind: "chooseVariant", candidateKey: "a" });
+      expect(task(await engine.next(runId)).type).toBe("S5.gems");
+    });
+
+    it("stops visibly when the release has no level and point facts", async () => {
+      const s5 = {
         calcProfiles: ["default"],
         objective: { weights: { FakeMetric: 1 }, floors: {} },
       };
@@ -311,7 +330,10 @@ describe("forge pipeline (agents)", () => {
         expect(JSON.stringify(await engine.next(runId))).toContain("picks one"),
       );
       await engine.intervene(runId, { kind: "chooseVariant", candidateKey: "a" });
-      expect(task(await engine.next(runId)).type).toBe("S5.gems");
+      expect(await engine.next(runId)).toMatchObject({
+        kind: "failed",
+        error: { code: "release_facts_missing" },
+      });
     });
 
     it("drops the choice when S3 is redone", async () => {

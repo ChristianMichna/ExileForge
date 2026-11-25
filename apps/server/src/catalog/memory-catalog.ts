@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { CatalogManifest, CatalogShard } from "@astrolabe/contracts/catalog";
+import { CatalogManifest, CatalogShard, type DataRelease } from "@astrolabe/contracts/catalog";
 import type { DataReleaseId, EntityKind, EntityRef } from "@astrolabe/contracts/common";
 import type { CatalogEntry, CatalogPort, CatalogQuery } from "../ports/catalog.js";
 
@@ -14,6 +14,7 @@ export class MemoryCatalog implements CatalogPort {
   constructor(
     readonly dataReleaseId: DataReleaseId,
     shards: readonly CatalogShard[],
+    readonly release?: DataRelease | undefined,
   ) {
     for (const shard of shards) {
       if (shard.dataReleaseId !== dataReleaseId) {
@@ -115,7 +116,7 @@ export async function loadCatalogRelease(dir: string): Promise<MemoryCatalog> {
     }
     shards.push(shard);
   }
-  return new MemoryCatalog(manifest.release.id, shards);
+  return new MemoryCatalog(manifest.release.id, shards, manifest.release);
 }
 
 function parseJson<T extends z.ZodType>(schema: T, text: string, what: string): z.infer<T> {

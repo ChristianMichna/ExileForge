@@ -14,8 +14,10 @@ import {
   GemSetupSubmission,
   gemTask,
   S5_GEMS_KEY,
+  type S5Config,
   S5_TARGET_KEY,
   S5_TREE_KEY,
+  targetSize,
   targetStep,
   treeJob,
 } from "./stages/s5-target.js";
@@ -146,17 +148,22 @@ function planTarget(
   profile: SkillProfile,
   candidates: readonly ArchetypeCandidate[],
 ): PlanStep {
-  const s5 = config.s5;
-  if (s5 === undefined) {
+  const s5Base = config.s5;
+  if (s5Base === undefined) {
     return {
       kind: "blocked",
       error: {
         code: "s5_not_configured",
         message:
-          "S5 needs the target level and passive points of the endgame (config/agents/stages.json, block s5). They have not been set yet. S0 to S4 are done; their results are stored with the run.",
+          "S5 needs the calc profiles and the tree objective of the target build (config/agents/stages.json, block s5). They have not been set yet. S0 to S4 are done; their results are stored with the run.",
       },
     };
   }
+  const size = targetSize(ctx.catalog.release);
+  if (typeof size === "string") {
+    return { kind: "blocked", error: { code: "release_facts_missing", message: size } };
+  }
+  const s5: S5Config = { ...s5Base, ...size };
   const selected = z.object({ candidateKey: z.string() }).safeParse(ctx.result(S4_KEY));
   if (!selected.success) {
     return {

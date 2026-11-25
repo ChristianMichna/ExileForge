@@ -23,5 +23,16 @@
       "floors": {}
     },
     "gemLevel": 1
+  },
+  "s5": {
+    "$comment": "Calc profiles and tree objective of the endgame build, same as the skeleton's until the product owner sets other ones. Level and passive points come from the data release.",
+    "calcProfiles": ["mapping", "pinnacle"],
+    "objective": {
+      "weights": {
+        "FullDPS": 1,
+        "TotalEHP": 0.4
+      },
+      "floors": {}
+    }
   }
 }

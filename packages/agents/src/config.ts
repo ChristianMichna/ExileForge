@@ -35,16 +35,13 @@ export const StageConfig = z.object({
     }),
   }),
   /**
-   * S5 target build. Optional on purpose: level and passive points of the
-   * endgame come from game data, not from this repository's code. Without
-   * this block the run stops at S5 with an explicit error.
+   * S5 target build. Optional on purpose: calc profiles and the tree objective
+   * are a product decision that is not made yet. Level and passive points come
+   * from the data release, never from here. Without this block the run stops
+   * at S5 with an explicit error.
    */
   s5: z
     .object({
-      /** Character level of the target build. */
-      level: z.int().positive(),
-      /** Passive points the target tree may use. */
-      passivePoints: z.int().positive(),
       calcProfiles: z.array(CalcProfileId).min(1),
       objective: z.object({
         weights: z.record(z.string().min(1), z.number()),
