@@ -136,6 +136,9 @@ importers:
       '@exileforge/agents':
         specifier: workspace:*
         version: link:../../packages/agents
+      '@exileforge/calc-client':
+        specifier: workspace:*
+        version: link:../../packages/calc-client
       '@exileforge/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
