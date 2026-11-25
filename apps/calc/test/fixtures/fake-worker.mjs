@@ -52,6 +52,16 @@ const handlers = {
       return rpcError(id, "unknown_handle", "Unknown build handle", p.handle);
     return { payload: states.get(p.handle) };
   },
+  "build.applyPatch": (p, id) => {
+    const xml = states.get(p.handle);
+    if (xml === undefined) return rpcError(id, "unknown_handle", "Unknown build handle", p.handle);
+    if (p.ops.some((o) => o.op === "setLevel" && o.level > 100)) {
+      return rpcError(id, "invalid_params", "Level above maximum", "op 1 (setLevel)");
+    }
+    const handle = `w${next++}`;
+    states.set(handle, `${xml}<!--${JSON.stringify(p.ops)}-->`);
+    return { handle, warnings: [] };
+  },
   "build.release": (p, id) => {
     if (!states.delete(p.handle))
       return rpcError(id, "unknown_handle", "Unknown build handle", p.handle);

@@ -17,6 +17,10 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # Checks do not start Electron; the installer workflow downloads the binary.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
 jobs:
   quality:
     name: Checks (${{ matrix.os }})

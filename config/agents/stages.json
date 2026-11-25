@@ -1,0 +1,8 @@
+{
+  "$comment": "Settings of the planning stages (packages/agents). Versioned config, no constants in code. Gem kinds are ids from the data release.",
+  "version": "stages-1",
+  "promptVersion": "forge-prompts-1",
+  "supportGemKinds": ["Support"],
+  "s1": { "maxListItems": 12 },
+  "s2": { "candidateCount": 3, "maxKeyEntities": 12 }
+}

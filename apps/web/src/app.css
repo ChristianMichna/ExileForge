@@ -453,3 +453,89 @@ code {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Planning view (desktop app) */
+.intake,
+.connect,
+.run-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-4);
+}
+
+.intake__row,
+.connect__actions,
+.run-status__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ef-space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+  min-width: 12rem;
+}
+
+.field__label {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-muted);
+}
+
+.field textarea,
+.field select {
+  padding: var(--ef-space-2) var(--ef-space-3);
+  border: var(--ef-hairline) solid var(--ef-color-line-strong);
+  background: var(--ef-color-inset);
+  color: var(--ef-color-text);
+  font: inherit;
+}
+
+.field textarea:focus-visible,
+.field select:focus-visible {
+  outline: 2px solid var(--ef-color-focus);
+  outline-offset: 1px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  color: var(--ef-color-text);
+}
+
+.connect__hint {
+  color: var(--ef-color-text-muted);
+}
+
+.run-status__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--ef-space-4);
+}
+
+.run-status__facts dt {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-faint);
+}
+
+.run-status__facts dd {
+  color: var(--ef-color-text-strong);
+}
+
+.update-link {
+  all: unset;
+  cursor: pointer;
+}
+
+.update-link:focus-visible {
+  outline: 2px solid var(--ef-color-focus);
+}

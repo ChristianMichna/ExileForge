@@ -1,0 +1,13 @@
+{
+  "$comment": "Settings of the desktop shell (apps/desktop, ADR-0004). Versioned config, no constants in code.",
+  "version": "desktop-1",
+  "port": 47615,
+  "window": { "width": 1440, "height": 900, "minWidth": 1024, "minHeight": 640 },
+  "claude": {
+    "$comment": "Deep link that brings Claude Desktop to the front. Only the listed schemes may be opened. Not verified against a Claude Desktop install yet: if opening fails, the app says so and keeps the start sentence on the clipboard.",
+    "desktopUrl": "claude://",
+    "allowedSchemes": ["claude:"],
+    "startSentence": "Start ExileForge session {code}. Call forge_attach with this code and work through all tasks with forge_submit and forge_next until the run is done. Keep going without waiting for me unless the app needs me."
+  },
+  "update": { "enabled": true, "firstCheckDelaySeconds": 15, "checkIntervalHours": 6 }
+}

@@ -50,3 +50,16 @@ describe("parseRoute", () => {
     expect(parseRoute("")).toBe("overview");
   });
 });
+
+describe("planning view", () => {
+  it("is hidden from the navigation in a normal browser and explains itself", () => {
+    window.location.hash = "#/plan";
+    render(<App />);
+    expect(screen.queryByRole("link", { name: "Plan" })).toBeNull();
+    expect(screen.getByText("Planning needs the desktop app")).toBeTruthy();
+  });
+
+  it("parses the plan route", () => {
+    expect(parseRoute("#/plan")).toBe("plan");
+  });
+});

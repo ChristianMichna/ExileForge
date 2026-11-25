@@ -1,52 +1,14 @@
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { checkGoldenBuilds } from "../src/golden.ts";
-import {
-  CalcPool,
-  CalcServiceError,
-  encodeBuildCode,
-  loadCalcProfiles,
-  loadPoolConfig,
-  pobInstallFromHome,
-} from "../src/index.ts";
-
-/*
- * Integration tests against the real, pinned Path of Building. They need
- * tools/setup_pob.sh (or the Windows setup in CI). Without PoB they are
- * skipped, unless EXILEFORGE_REQUIRE_POB=1 (CI), where a missing PoB fails.
- */
-
-const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
-const install = pobInstallFromHome(process.env.EXILEFORGE_POB_HOME ?? join(repoRoot, ".pob"));
-const havePob =
-  existsSync(install.luajit) && existsSync(join(install.srcDir, "HeadlessWrapper.lua"));
-const required = process.env.EXILEFORGE_REQUIRE_POB === "1";
-
-if (required && !havePob) {
-  throw new Error(
-    `EXILEFORGE_REQUIRE_POB=1 but no PoB install at ${install.srcDir} / ${install.luajit}`,
-  );
-}
-
-const golden = (id: string): Promise<string> =>
-  readFile(join(repoRoot, "evals", "golden", "builds", `${id}.xml`), "utf8");
+import type { CalcPool } from "../src/index.ts";
+import { CalcServiceError, encodeBuildCode } from "../src/index.ts";
+import { golden, havePob, repoRoot, startPobPool } from "./pob-setup.ts";
 
 describe.skipIf(!havePob)("calc pool with headless Path of Building", () => {
   let pool: CalcPool;
 
   beforeAll(async () => {
-    const config = await loadPoolConfig(join(repoRoot, "config", "calc", "pool.json"));
-    pool = await CalcPool.start({
-      install,
-      profiles: await loadCalcProfiles(
-        fileURLToPath(new URL("./fixtures/calc-profiles", import.meta.url)),
-      ),
-      size: 2,
-      config,
-    });
+    pool = await startPobPool(2);
   });
 
   afterAll(async () => {
@@ -79,7 +41,8 @@ describe.skipIf(!havePob)("calc pool with headless Path of Building", () => {
     expect(rb.calcId).toBe(ra.calcId);
 
     const exported = await pool.request("build.export", { handle: a.handle, format: "xml" });
-    expect(exported.payload).toMatch(/^<\?xml|^<PathOfBuilding2/);
+    // export returns exactly the state that was hashed
+    expect(exported.payload).toBe(xml);
     const c = await pool.request("build.load", { format: "xml", payload: exported.payload });
     const rc = await pool.request("calc.stats", { handle: c.handle, profile: "as-saved" });
     expect(rc.stats.CombinedDPS).toBe(ra.stats.CombinedDPS);
