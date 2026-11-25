@@ -64,6 +64,38 @@ describe.skipIf(!havePob)("calc pool with headless Path of Building", () => {
     await pool.request("build.release", { handle });
   });
 
+  it("applies overrides after the profile and leaves no trace", async () => {
+    const xml = await golden("pobb-ljOBlCON5WGB");
+    const { handle } = await pool.request("build.load", { format: "xml", payload: xml });
+    const saved = await pool.request("calc.stats", { handle, profile: "as-saved" });
+    const profileOnly = await pool.request("calc.stats", { handle, profile: "test-override" });
+    const overridden = await pool.request("calc.stats", {
+      handle,
+      profile: "test-override",
+      overrides: { enemyIsBoss: "Uber" },
+    });
+    const sameAgain = await pool.request("calc.stats", {
+      handle,
+      profile: "test-override",
+      overrides: { enemyIsBoss: "Uber" },
+    });
+    expect(overridden.calcId).not.toBe(profileOnly.calcId);
+    expect(overridden.stats.CombinedDPS).not.toBe(profileOnly.stats.CombinedDPS);
+    expect(sameAgain.calcId).toBe(overridden.calcId);
+    expect(sameAgain.stats).toEqual(overridden.stats);
+    const back = await pool.request("calc.stats", { handle, profile: "as-saved" });
+    expect(back.calcId).toBe(saved.calcId);
+    expect(back.stats).toEqual(saved.stats);
+    await expect(
+      pool.request("calc.stats", {
+        handle,
+        profile: "as-saved",
+        overrides: { enemyIsBoss: "exileforge-no-such-value" },
+      }),
+    ).rejects.toMatchObject({ kind: "invalid_params" });
+    await pool.request("build.release", { handle });
+  });
+
   it("reports the main skill and unsupported lines from PoB", async () => {
     const xml = await golden("pobb-ljOBlCON5WGB");
     const { handle } = await pool.request("build.load", { format: "xml", payload: xml });

@@ -1,0 +1,6 @@
+{
+  "$comment": "Standard profile for boss numbers. enemyIsBoss and its values come from PoB's Modules/ConfigOptions.lua; the player can override single options per build (calc overrides).",
+  "id": "pinnacle",
+  "description": "Pinnacle boss: the enemy is a Guardian/Pinnacle boss, everything else as saved in the build.",
+  "config": [{ "key": "enemyIsBoss", "value": "Pinnacle" }]
+}

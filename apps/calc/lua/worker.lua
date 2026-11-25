@@ -252,12 +252,33 @@ local function configInput()
 	return build.configTab.configSets[build.configTab.activeConfigSetId].input
 end
 
-local function applyProfile(profileId)
+-- Keys of an overrides table in a fixed order, so applying and hashing do not depend on pairs().
+local function sortedOverrides(overrides)
+	local keys = {}
+	for key in pairs(overrides or {}) do
+		keys[#keys + 1] = key
+	end
+	table.sort(keys)
+	return keys
+end
+
+-- Canonical text of the overrides; part of the calc id and of the load cache key.
+local function overridesKey(overrides)
+	local parts = {}
+	for _, key in ipairs(sortedOverrides(overrides)) do
+		parts[#parts + 1] = key .. "=" .. type(overrides[key]) .. ":" .. tostring(overrides[key])
+	end
+	return table.concat(parts, ";")
+end
+
+-- Applies the profile's options, then the player's overrides (which win).
+local function applyProfile(profileId, overrides)
 	local profile = init.profiles and init.profiles[profileId]
 	if not profile then
 		fail("invalid_params", "Unknown calc profile", profileId)
 	end
-	if #profile.config == 0 then
+	local keys = sortedOverrides(overrides)
+	if #profile.config == 0 and #keys == 0 then
 		return profile
 	end
 	local input = configInput()
@@ -267,6 +288,13 @@ local function applyProfile(profileId)
 			fail("invalid_params", "Calc profile does not fit Path of Building", profileId .. ": " .. problem)
 		end
 		input[entry.key] = entry.value
+	end
+	for _, key in ipairs(keys) do
+		local problem = configValueProblem(key, overrides[key])
+		if problem then
+			fail("invalid_params", "Config override does not fit Path of Building", problem)
+		end
+		input[key] = overrides[key]
 	end
 	build.configTab:BuildModList()
 	build.buildFlag = true
@@ -313,19 +341,31 @@ local function getState(handle)
 end
 
 -- Loads a state into PoB with the given profile and main skill (nil = as saved).
-local function ensureLoaded(handle, profileId, mainSkill)
+local function ensureLoaded(handle, profileId, mainSkill, overrides)
 	local state = getState(handle)
-	-- A profile without overrides leaves the build exactly as loaded.
-	if profileId and init.profiles[profileId] and #init.profiles[profileId].config == 0 then
+	local overridesText = overridesKey(overrides)
+	-- A profile without options and no overrides leave the build exactly as loaded.
+	if
+		profileId
+		and init.profiles[profileId]
+		and #init.profiles[profileId].config == 0
+		and overridesText == ""
+	then
 		profileId = nil
 	end
-	if current and current.handle == handle and current.profile == profileId and current.mainSkill == mainSkill then
+	if
+		current
+		and current.handle == handle
+		and current.profile == profileId
+		and current.mainSkill == mainSkill
+		and current.overrides == overridesText
+	then
 		return state
 	end
 	loadIntoPob(state.xml)
 	local ok, err = pcall(function()
 		if profileId then
-			applyProfile(profileId)
+			applyProfile(profileId, overrides)
 		end
 		selectMainSkill(mainSkill)
 		runCallback("OnFrame")
@@ -337,7 +377,7 @@ local function ensureLoaded(handle, profileId, mainSkill)
 	if prompt then
 		fail("calc_failed", "Path of Building reported an error", prompt)
 	end
-	current = { handle = handle, profile = profileId, mainSkill = mainSkill }
+	current = { handle = handle, profile = profileId, mainSkill = mainSkill, overrides = overridesText }
 	return state
 end
 
@@ -809,15 +849,20 @@ methods["calc.stats"] = function(params)
 	if type(profile) ~= "string" then
 		fail("invalid_params", "profile is required")
 	end
-	local state = ensureLoaded(params.handle, profile, params.mainSkill)
+	local state = ensureLoaded(params.handle, profile, params.mainSkill, params.overrides)
 	local warnings = buildWarnings()
 	local stats = collectStats(warnings)
 	local profileHash = init.profiles[profile].hash
 	local pobVersion = tostring(launch.versionNumber)
 	local mainSkill = currentMainSkill()
-	local calcId = "calc-" .. sha2.sha256(table.concat({
+	local idParts = {
 		pobVersion, dataReleaseId, init.dataHash, profile, profileHash, state.inputHash, mainSkill or "",
-	}, "\n")):sub(1, 40)
+	}
+	-- Only builds with overrides get an extra part, so ids of builds without them stay as they were.
+	if overridesKey(params.overrides) ~= "" then
+		idParts[#idParts + 1] = overridesKey(params.overrides)
+	end
+	local calcId = "calc-" .. sha2.sha256(table.concat(idParts, "\n")):sub(1, 40)
 	return {
 		calcId = calcId,
 		pobVersion = pobVersion,

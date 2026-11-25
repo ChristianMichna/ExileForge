@@ -211,10 +211,14 @@ Patch (~0,3 s) plus Neuladen (~0,5 s), verteilt auf die Worker.
   Der Worker lehnt unbekannte Optionen und Werte ab, die nicht zum Typ der
   Option passen (`check` = boolean, Zahlen, `list` = einer der Listenwerte).
   Leeres `config` = genau die im Build gespeicherte Konfiguration.
-  Bisher gibt es nur `as-saved`. Die Profile für Guides (z. B. Mapping,
-  Pinnacle) legen fest, gegen welchen Gegner und unter welchen Bedingungen
-  ExileForge Zahlen zeigt; das ist eine eigene Entscheidung und kommt mit
-  einem eigenen PR.
+  Standardprofile: `as-saved` (Build wie gespeichert), `mapping` (normaler
+  Gegner) und `pinnacle` (Pinnacle-Boss). Jede Stufe rechnet mit festen
+  Standardprofilen (Einstellung in `config/agents/stages.json`).
+- Overrides: `calc.stats`, `calc.evalBatch`, `calc.nodePower` und
+  `calc.itemPower` nehmen optional `overrides` (PoB-Optionsname → Wert) an.
+  Sie gelten nach dem Profil und gewinnen gegen dieses; so passt der Spieler
+  Gegner, Bedingungen und Buffs an. Dieselbe Prüfung wie bei Profilen, und sie
+  gehen in die `calcId` ein (ohne Overrides bleibt die `calcId` wie vorher).
 
 ## Messungen (Phase 0)
 

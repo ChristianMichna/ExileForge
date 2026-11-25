@@ -32,6 +32,16 @@ export type BuildFormat = z.infer<typeof BuildFormat>;
 /** Metric names are PoB output names; the target metric sets come from config. */
 export const MetricList = z.array(z.string().min(1)).min(1);
 
+/**
+ * Player-chosen overrides of PoB's Config tab (enemy, conditions, buffs), keyed
+ * by PoB's option names. They apply after the calc profile, so they win over it,
+ * and they are part of the calcId. Absent or empty = the profile alone.
+ */
+export const ConfigOverrides = z
+  .record(z.string().min(1), z.union([z.boolean(), z.number(), z.string()]))
+  .refine((o) => Object.keys(o).length <= 64, "at most 64 overrides");
+export type ConfigOverrides = z.infer<typeof ConfigOverrides>;
+
 /** Weapon set index as used by the game (0 = shared); range is validated by PoB. */
 const WeaponSet = z.int().nonnegative();
 
@@ -132,6 +142,7 @@ export const CalcMethods = {
     z.object({
       handle: BuildHandle,
       profile: CalcProfileId,
+      overrides: ConfigOverrides.optional(),
       mainSkill: z.string().min(1).optional(),
     }),
     CalcResult,
@@ -140,6 +151,7 @@ export const CalcMethods = {
     z.object({
       handle: BuildHandle,
       profile: CalcProfileId,
+      overrides: ConfigOverrides.optional(),
       metrics: MetricList,
       candidates: z
         .array(z.object({ key: z.string().min(1), ops: z.array(PatchOp).min(1) }))
@@ -159,6 +171,7 @@ export const CalcMethods = {
     z.object({
       handle: BuildHandle,
       profile: CalcProfileId,
+      overrides: ConfigOverrides.optional(),
       metrics: MetricList,
       /** Absent = all nodes reachable from the current tree. */
       candidates: z.array(PassiveNodeId).min(1).optional(),
@@ -180,6 +193,7 @@ export const CalcMethods = {
     z.object({
       handle: BuildHandle,
       profile: CalcProfileId,
+      overrides: ConfigOverrides.optional(),
       metrics: MetricList,
       slot: z.string().min(1),
       /** Mod lines in PoB item-text form to value one by one. */

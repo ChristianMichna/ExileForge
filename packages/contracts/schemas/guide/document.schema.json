@@ -199,6 +199,21 @@
             "complexityTolerance"
           ]
         },
+        "calcOverrides": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": [
+              "boolean",
+              "number",
+              "string"
+            ]
+          }
+        },
         "exclusions": {
           "default": [],
           "type": "array",

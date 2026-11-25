@@ -37,6 +37,9 @@ describe("calc profiles", () => {
     const asSaved = profiles.get("as-saved");
     expect(asSaved?.config).toEqual([]);
     expect(asSaved?.hash).toMatch(/^[0-9a-f]{64}$/);
+    // the standard profiles of the stages differ in the enemy
+    expect(profiles.get("mapping")?.config).toEqual([{ key: "enemyIsBoss", value: "None" }]);
+    expect(profiles.get("pinnacle")?.config).toEqual([{ key: "enemyIsBoss", value: "Pinnacle" }]);
   });
 
   it("rejects a profile whose id differs from its file name, or that sets an option twice", async () => {
