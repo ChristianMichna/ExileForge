@@ -161,6 +161,13 @@ export const StageConfig = z
       .object({
         /** The calc profile of a stage that the gates read. */
         calcProfile: CalcProfileId,
+        /** Fewest progression stages and gear tiers a guide may have (G7). */
+        minProgressionStages: z.int().positive(),
+        minGearTiers: z.int().positive(),
+        /** Profiles every progression stage must have a calculation for (G2). */
+        requiredCalcProfiles: z.array(CalcProfileId),
+        /** Unsupported-mod texts (as PoB reports them) the product owner has accepted as harmless; every other one fails G2. */
+        acceptedUnsupportedMods: z.array(z.string().min(1)),
         /** How often gate findings may send the same stage back before the run fails. */
         maxReturnsPerStage: z.int().min(1).max(10),
         stats: z.object({
