@@ -186,6 +186,29 @@ export const StageConfig = z.object({
         }),
     })
     .optional(),
+  /**
+   * S11 publishing: weights of the guide parts for the completeness score
+   * (share of the weighted parts that are not empty). Without this block the run stops
+   * after validation with an explicit error.
+   */
+  s11: z
+    .object({
+      scoringConfigVersion: z.string().min(1),
+      weights: z
+        .object({
+          summary: z.number().nonnegative(),
+          mechanics: z.number().nonnegative(),
+          progression: z.number().nonnegative(),
+          gear: z.number().nonnegative(),
+          crafting: z.number().nonnegative(),
+          playstyle: z.number().nonnegative(),
+          atlas: z.number().nonnegative(),
+          variants: z.number().nonnegative(),
+          faq: z.number().nonnegative(),
+        })
+        .refine((w) => Object.values(w).some((x) => x > 0), { message: "all weights are zero" }),
+    })
+    .optional(),
   s2: z.object({
     /** Number of archetype candidates (the plan asks for 3–6). */
     candidateCount: z.int().min(1).max(6),
