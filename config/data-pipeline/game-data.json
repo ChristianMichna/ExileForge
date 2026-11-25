@@ -10,20 +10,58 @@
   "language": "English",
   "toolTimeoutMs": 300000,
   "tables": [
-    { "name": "BaseItemTypes", "columns": ["Id", "Name", "ItemClass", "DropLevel"] },
-    { "name": "ItemClasses", "columns": ["Id", "Name"] },
+    {
+      "name": "BaseItemTypes",
+      "columns": ["Id", "Name", "ItemClass", "DropLevel"]
+    },
+    {
+      "name": "ItemClasses",
+      "columns": ["Id", "Name"]
+    },
     {
       "name": "CurrencyItems",
       "columns": ["BaseItemType", "StackSize", "CurrencyUseType", "Action", "Description"]
     },
-    { "name": "Omens", "columns": ["BaseItemType"], "required": false },
-    { "name": "AchievementOmenTypes", "columns": ["BaseItemType"] },
-    { "name": "Essences", "columns": ["BaseItemType", "Tier", "Perfect", "UpgradeResult"] },
+    {
+      "name": "Omens",
+      "columns": ["BaseItemType"],
+      "required": false
+    },
+    {
+      "name": "AchievementOmenTypes",
+      "columns": ["BaseItemType"]
+    },
+    {
+      "name": "Essences",
+      "columns": ["BaseItemType", "Tier", "Perfect", "UpgradeResult"]
+    },
     {
       "name": "TieredCurrency",
       "columns": ["BaseItemType", "Tier", "MinimumModLevel", "LowerTierBaseItemType"]
     },
-    { "name": "CurrencyExchange", "columns": ["Item", "Category", "SubCategory"] },
-    { "name": "CurrencyExchangeCategories", "columns": ["Id", "Name"] }
+    {
+      "name": "CurrencyExchange",
+      "columns": ["Item", "Category", "SubCategory"]
+    },
+    {
+      "name": "CurrencyExchangeCategories",
+      "columns": ["Id", "Name"]
+    },
+    {
+      "name": "ExperienceLevels",
+      "columns": ["Id", "Level", "Experience"]
+    },
+    {
+      "name": "Stats",
+      "columns": ["Id"]
+    },
+    {
+      "name": "Quest",
+      "columns": ["Id", "Act", "Name"]
+    },
+    {
+      "name": "QuestStaticRewards",
+      "columns": ["QuestKey", "RewardStats", "RewardStatsValues"]
+    }
   ]
 }

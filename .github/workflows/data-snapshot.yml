@@ -77,6 +77,22 @@ jobs:
           node apps/data-pipeline/dist/cli.js gamedata \
             --out data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: TEMP probe level and passive point tables
+        run: |
+          cd data-snapshots/current/game-data
+          node -e '
+            const r = (n) => JSON.parse(require("fs").readFileSync(n + ".json", "utf8"));
+            const xp = r("ExperienceLevels");
+            console.log("ExperienceLevels", xp.length, "max level", Math.max(...xp.map((x) => x.Level)));
+            const stats = r("Stats"), quests = r("Quest");
+            const rows = r("QuestStaticRewards");
+            for (const x of rows) {
+              const st = stats[x.RewardStats];
+              const q = quests[x.QuestKey];
+              console.log("reward", q ? q.Id + " act " + q.Act : x.QuestKey, "|", st ? st.Id : x.RewardStats, x.RewardStatsValues);
+            }
+          ' 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Diff against an older PoB release
         if: env.COMPARE_REF != ''
         run: |
