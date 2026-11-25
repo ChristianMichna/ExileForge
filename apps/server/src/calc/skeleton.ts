@@ -1,4 +1,7 @@
 import type {
+  ProgressionPort,
+  ProgressionRequest,
+  ProgressionStageTree,
   SkeletonPort,
   SkeletonRequest,
   TargetPort,
@@ -6,6 +9,7 @@ import type {
   TargetTree,
 } from "@astrolabe/agents";
 import {
+  optimizeProgression,
   optimizeTree,
   TreeGraph,
   createPobTreeEvaluator,
@@ -32,6 +36,12 @@ export interface SkeletonSettings {
   objective: { weights: Record<string, number>; floors: Record<string, number> };
 }
 
+/** Settings of the progression (config/agents/stages.json → s6, without the stage table). */
+export interface ProgressionSettings {
+  calcProfiles: readonly CalcProfileId[];
+  objective: { weights: Record<string, number>; floors: Record<string, number> };
+}
+
 /** Settings of the endgame target tree (config/agents/stages.json → s5, without level and points). */
 export interface TargetSettings {
   calcProfiles: readonly CalcProfileId[];
@@ -49,9 +59,12 @@ export interface PobSkeletonOptions {
   settings: SkeletonSettings;
   /** Present when S5 is configured. */
   target?: TargetSettings;
+  /** Present when S6 is configured. */
+  progression?: ProgressionSettings;
   logger: Logger;
   /** Replaceable in tests. */
   optimize?: typeof optimizeTree;
+  optimizeStages?: typeof optimizeProgression;
 }
 
 /**
@@ -60,7 +73,7 @@ export interface PobSkeletonOptions {
  * the configured point budget, then the full measurement per calc profile.
  * The skeleton has no items; gear comes in later stages.
  */
-export class PobSkeleton implements SkeletonPort, TargetPort {
+export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
   private readonly graphs = new Map<string, TreeGraph>();
 
   constructor(private readonly options: PobSkeletonOptions) {}
@@ -156,6 +169,90 @@ export class PobSkeleton implements SkeletonPort, TargetPort {
       }
     }
     return { state, calcs };
+  }
+
+  /** S6: orders the target tree into nested stages and measures each stage. */
+  async optimizeProgression(input: ProgressionRequest): Promise<ProgressionStageTree[]> {
+    const settings = this.options.progression;
+    if (settings === undefined) {
+      throw new Error("The progression settings (stages.json s6) are not configured");
+    }
+    if (this.options.catalog.dataReleaseId !== input.request.dataReleaseId) {
+      throw new Error(
+        `Request targets ${input.request.dataReleaseId} but the loaded catalog is ${this.options.catalog.dataReleaseId}`,
+      );
+    }
+    const base = BuildState.parse({
+      ...input.target.state,
+      tree: { allocated: [], ascendancy: [] },
+    });
+    const graph = this.graphFor(input.candidate.classId);
+    const targetNodes = input.target.state.tree.allocated.map((n) => n.nodeId as PassiveNodeId);
+    const result = await this.options.pob.withBuild(base, (handle) =>
+      (this.options.optimizeStages ?? optimizeProgression)({
+        graph,
+        target: targetNodes,
+        stages: input.stages.map((s) => ({ key: s.key, budget: s.budget })),
+        objective: settings.objective,
+        evaluator: createPobTreeEvaluator({
+          pool: this.options.pool,
+          handle,
+          profile: settings.calcProfiles[0] as CalcProfileId,
+          baseAllocated: [],
+          overrides: input.request.calcOverrides,
+        }),
+        config: this.options.optimizerConfig,
+        priorityNodeIds: input.profile.relevantNodes.filter((id) => graph.has(id)),
+      }),
+    );
+    if (result.failedEvaluationCount > 0) {
+      this.options.logger.info("progression had failed evaluations", {
+        candidate: input.candidate.key,
+        failedEvaluations: result.failedEvaluationCount,
+      });
+    }
+    const last = result.stages.at(-1);
+    if (last === undefined || last.allocated.length < targetNodes.length) {
+      throw new Error(
+        `The last stage ends with ${last?.allocated.length ?? 0} of ${targetNodes.length} target nodes; raise its passive points`,
+      );
+    }
+    const out: ProgressionStageTree[] = [];
+    for (const stage of result.stages) {
+      const level = input.stages.find((s) => s.key === stage.key)?.level;
+      if (level === undefined) throw new Error(`Stage ${stage.key} has no level`);
+      if (!stage.feasible) {
+        throw new Error(
+          `Stage ${stage.key} could not meet the objective floors: ${JSON.stringify(stage.violations)}`,
+        );
+      }
+      const state = BuildState.parse({
+        ...base,
+        level,
+        tree: { allocated: stage.allocated.map((nodeId) => ({ nodeId })), ascendancy: [] },
+      });
+      const calcs = await this.options.calc.calculate({
+        state,
+        profiles: settings.calcProfiles,
+        overrides: input.request.calcOverrides,
+      });
+      for (const [profileId, outcome] of Object.entries(calcs)) {
+        if (outcome.status === "failed") {
+          throw new Error(
+            `The engine could not measure stage ${stage.key} (profile ${profileId}): ${outcome.error.message}`,
+          );
+        }
+      }
+      out.push({
+        key: stage.key,
+        state,
+        allocationOrder: stage.allocationOrder,
+        respecs: stage.respecs,
+        unspent: stage.unspent,
+        calcs,
+      });
+    }
+    return out;
   }
 
   /** Tree optimisation from an empty tree within a budget; logs when it ends incomplete. */

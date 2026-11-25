@@ -14,6 +14,9 @@ export type {
   CatalogEntry,
   CatalogPort,
   CatalogQuery,
+  ProgressionPort,
+  ProgressionRequest,
+  ProgressionStageTree,
   SkeletonPort,
   SkeletonRequest,
   TargetPort,
@@ -33,3 +36,9 @@ export {
 } from "./stages/s2-candidates.js";
 export { requestContext } from "./stages/context.js";
 export { GemSetupSubmission, S5_GEMS_KEY, S5_TARGET_KEY, S5_TREE_KEY } from "./stages/s5-target.js";
+export {
+  ProgressionNotes,
+  S6_NOTES_KEY,
+  S6_PLAN_KEY,
+  S6_STAGES_KEY,
+} from "./stages/s6-progression.js";

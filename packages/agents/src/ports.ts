@@ -3,6 +3,7 @@ import type {
   ArchetypeEvaluation,
   BuildRequest,
   SkillProfile,
+  TargetBuild,
 } from "@astrolabe/contracts/build";
 import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
 import type { CalcResult, ConfigOverrides } from "@astrolabe/contracts/calc";
@@ -100,4 +101,33 @@ export interface TargetTree {
  */
 export interface TargetPort {
   optimizeTree(input: TargetRequest): Promise<TargetTree>;
+}
+
+/** Input of the progression (S6): the validated target and the stages' point budgets. */
+export interface ProgressionRequest {
+  request: BuildRequest;
+  profile: SkillProfile;
+  candidate: ArchetypeCandidate;
+  target: TargetBuild;
+  /** `level` is the stage's character level; each stage is measured at it. */
+  stages: readonly { key: string; budget: number; level: number }[];
+}
+
+/** One stage of the progression: nested tree, allocation order and a measurement per profile. */
+export interface ProgressionStageTree {
+  key: string;
+  state: BuildState;
+  allocationOrder: string[];
+  respecs: string[];
+  /** Points the stage could not spend because the target tree ran out. */
+  unspent: number;
+  calcs: Record<CalcProfileId, CalcOutcome>;
+}
+
+/**
+ * Orders the target tree into nested stages and measures each one.
+ * Present only with the real engine, like the skeleton port.
+ */
+export interface ProgressionPort {
+  optimizeProgression(input: ProgressionRequest): Promise<ProgressionStageTree[]>;
 }

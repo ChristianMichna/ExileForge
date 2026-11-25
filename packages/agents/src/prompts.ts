@@ -35,3 +35,9 @@ export const S5_GEMS = (mainSkillPreset: boolean): string =>
     "Use calc_evaluate (always with the runId) to compare setups before you submit; explain each choice in rationale without typing numbers.",
     NO_MEMORY_RULES,
   ].join(" ");
+
+export const S6_NOTES = [
+  "For each progression stage, write what the player does in it (tasks), what can go wrong (dangers) and why the stage looks as it does (rationale).",
+  "Use exactly the stage keys given in the context, each once. The passive allocations and their measurements are fixed and come from Path of Building; you only describe them.",
+  NO_MEMORY_RULES,
+].join(" ");

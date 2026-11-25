@@ -14,7 +14,7 @@ import {
   type UserIntervention,
 } from "@astrolabe/contracts/forge";
 import type { ForgeConfig } from "../config/forge-config.js";
-import type { SkeletonPort, TargetPort } from "@astrolabe/agents";
+import type { ProgressionPort, SkeletonPort, TargetPort } from "@astrolabe/agents";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { RunStore } from "../store/run-store.js";
@@ -49,6 +49,8 @@ export interface ForgeEngineOptions {
   skeleton?: SkeletonPort;
   /** Endgame tree optimisation for S5; same condition as the skeleton. */
   target?: TargetPort;
+  /** Stage ordering for S6; same condition as the skeleton. */
+  progression?: ProgressionPort;
   /** Reports background job failures that could not be stored in the run. */
   logger?: Logger;
 }
@@ -202,8 +204,24 @@ export class ForgeEngine {
             type === intervention.stage ||
             type.startsWith(`${intervention.stage}.`) ||
             (from !== undefined && (stageNumber(type) ?? -1) > from);
+          // Parts of a stage build on each other in order (e.g. S6.stages → S6.notes → S6.plan):
+          // redoing one part drops the parts stored after it.
+          let partDropped = false;
           r.results = Object.fromEntries(
-            Object.entries(r.results).filter(([, result]) => !matches(result.type)),
+            Object.entries(r.results).filter(([, result]) => {
+              if (matches(result.type)) {
+                partDropped = partDropped || stageNumber(result.type) === from;
+                return false;
+              }
+              if (
+                partDropped &&
+                intervention.stage.includes(".") &&
+                stageNumber(result.type) === from
+              ) {
+                return false;
+              }
+              return true;
+            }),
           );
           // A variant choice belongs to the candidates it was made on; the player picks again.
           if (from !== undefined && from <= VARIANT_CHOICE_STAGE) {
@@ -574,6 +592,7 @@ export class ForgeEngine {
       calc: runCalc,
       ...(this.options.skeleton === undefined ? {} : { skeleton: this.options.skeleton }),
       ...(this.options.target === undefined ? {} : { target: this.options.target }),
+      ...(this.options.progression === undefined ? {} : { progression: this.options.progression }),
       latest: <K extends UserIntervention["kind"]>(kind: K) => {
         for (let i = r.interventions.length - 1; i >= 0; i -= 1) {
           const entry = r.interventions[i]?.intervention;

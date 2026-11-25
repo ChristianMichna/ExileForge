@@ -51,6 +51,68 @@ export const StageConfig = z.object({
       }),
     })
     .optional(),
+  /**
+   * S6 progression. Optional on purpose, like s5: the level bands and passive
+   * points of each stage come from game data. Without this block the run
+   * stops at S6 with an explicit error.
+   */
+  s6: z
+    .object({
+      stages: z
+        .array(
+          z.object({
+            key: z.string().regex(/^[a-z][a-z0-9-]*$/),
+            label: z.string().min(1).max(120),
+            kind: z.enum(["campaign", "endgame"]),
+            act: z.int().positive().optional(),
+            levelRange: z.tuple([z.int().positive(), z.int().positive()]),
+            /** Main-tree points available at the end of this stage. */
+            passivePoints: z.int().nonnegative(),
+          }),
+        )
+        .min(1)
+        .superRefine((stages, ctx) => {
+          const keys = new Set<string>();
+          stages.forEach((st, i) => {
+            if (keys.has(st.key)) {
+              ctx.addIssue({
+                code: "custom",
+                message: `duplicate stage key ${st.key}`,
+                path: [i, "key"],
+              });
+            }
+            keys.add(st.key);
+            if (st.levelRange[0] > st.levelRange[1]) {
+              ctx.addIssue({
+                code: "custom",
+                message: "levelRange must be ascending",
+                path: [i, "levelRange"],
+              });
+            }
+            const prev = stages[i - 1];
+            if (prev !== undefined && st.passivePoints < prev.passivePoints) {
+              ctx.addIssue({
+                code: "custom",
+                message: "passivePoints must not decrease",
+                path: [i, "passivePoints"],
+              });
+            }
+            if (prev !== undefined && st.levelRange[0] <= prev.levelRange[1]) {
+              ctx.addIssue({
+                code: "custom",
+                message: "level bands must not overlap",
+                path: [i, "levelRange"],
+              });
+            }
+          });
+        }),
+      calcProfiles: z.array(CalcProfileId).min(1),
+      objective: z.object({
+        weights: z.record(z.string().min(1), z.number()),
+        floors: z.record(z.string().min(1), z.number()).default({}),
+      }),
+    })
+    .optional(),
   s2: z.object({
     /** Number of archetype candidates (the plan asks for 3–6). */
     candidateCount: z.int().min(1).max(6),
