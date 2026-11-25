@@ -71,6 +71,28 @@ jobs:
           node apps/data-pipeline/dist/cli.js gamedata \
             --out data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Probe game ids (schema columns and sample rows, log only)
+        run: |
+          set -o pipefail
+          node -e '
+            const fs = require("fs");
+            const dir = "data-snapshots/current/game-data";
+            const manifest = JSON.parse(fs.readFileSync(dir + "/manifest.json", "utf8"));
+            fetch(JSON.parse(fs.readFileSync("config/data-pipeline/game-data.json", "utf8")).schemaUrl)
+              .then((r) => r.json())
+              .then((schema) => {
+                for (const name of ["PassiveSkills", "Inventories"]) {
+                  const t = schema.tables.find((x) => x.name === name);
+                  console.log("SCHEMA " + name + ": " + (t ? t.columns.map((c) => (c.name ?? "?") + ":" + c.type).join(", ") : "not in schema"));
+                  const entry = manifest.tables.find((x) => x.name === name);
+                  if (!entry) { console.log("TABLE " + name + ": not exported"); continue; }
+                  const rows = JSON.parse(fs.readFileSync(dir + "/" + entry.path, "utf8"));
+                  console.log("TABLE " + name + ": " + rows.length + " rows");
+                  for (const row of name === "Inventories" ? rows : rows.slice(0, 8)) console.log("ROW " + name + " " + JSON.stringify(row));
+                }
+              });
+          ' | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Build catalog
         run: |
           set -o pipefail
