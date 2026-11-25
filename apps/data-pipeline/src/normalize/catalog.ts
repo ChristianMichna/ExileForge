@@ -190,7 +190,7 @@ export interface NormalizeResult {
   errors: Finding[];
   /** source data PoB does not give unambiguously; visible, non-blocking */
   warnings: Finding[];
-  /** open lines of kinds whose contract has no `unresolved` field */
+  /** every open line of all kinds, for findings.json (entities with the field carry theirs too) */
   unresolved: UnresolvedFinding[];
   /** mod id + trade hash of stat groups that render no text */
   hiddenStatGroups: { modId: string; tradeHash: string }[];
