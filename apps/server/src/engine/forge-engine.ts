@@ -417,6 +417,11 @@ export class ForgeEngine {
         case "wait_user":
           tx.setPhase("waiting_user");
           return { kind: "wait_user", reason: step.reason, retryAfterSeconds: this.retryAfter() };
+        case "blocked":
+          r.error = step.error;
+          r.current = null;
+          tx.setPhase("failed");
+          return { kind: "failed", error: step.error };
         case "done":
           r.guideId = randomUUID();
           r.current = null;
