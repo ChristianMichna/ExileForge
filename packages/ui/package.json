@@ -17,9 +17,11 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@exileforge/contracts": "workspace:*",
     "@fontsource/alegreya-sans": "5.2.5",
     "@fontsource/ibm-plex-mono": "5.2.5",
-    "@fontsource/marcellus-sc": "5.2.5"
+    "@fontsource/marcellus-sc": "5.2.5",
+    "pixi.js": "8.22.0"
   },
   "peerDependencies": {
     "react": "19.3.1"

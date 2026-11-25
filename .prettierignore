@@ -12,4 +12,5 @@ evals/golden/builds/
 .claude/hooks/
 examples/
 packages/contracts/schemas/
+apps/web/src/fixtures/passive-tree.json
 apps/mcp-bridge/server/
