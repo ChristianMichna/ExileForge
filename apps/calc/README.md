@@ -118,6 +118,15 @@ CalcPool (Node)                         PobWorker × N (LuaJIT, cwd = PoB/src)
 - `meta.version.dataHash`: SHA-256 über alle `.lua`/`.json`-Dateien in PoBs
   `src/Data` und `src/TreeData` (Bilder ausgenommen), beim Pool-Start berechnet.
 
+## `CalcPool.baseBuild(classId)`
+
+Nicht Teil des Vertrags. PoB legt einen neuen Build der Klasse an (Level 1,
+nur der Klassenstart vergeben, keine Items, keine Skills) und exportiert ihn als
+XML: `{ format: "xml", payload }`. Das Ergebnis geht in `build.load` und ist der
+Ausgangszustand für `diffBuildState` (`packages/calc-client`). Eine Klasse, die
+es im Baum nicht gibt, ist `invalid_params`. So liegt keine handgeschriebene
+Vorlage im Repo, und die Vorlage passt immer zur geladenen PoB-Version.
+
 ## `calc.nodePower`
 
 Der Worker liefert intern (`tree.reachable`, nicht Teil des Vertrags) die

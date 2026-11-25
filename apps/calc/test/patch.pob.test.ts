@@ -310,6 +310,26 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     expect(power.results[0]?.pathCost).toBe((await count(after)) - (await count(without)));
   });
 
+  it("creates a fresh build of a class that loads and exports unchanged", async () => {
+    const other = await golden("pobb-ljOBlCON5WGB");
+    const classId = /<Build [^>]*className="([^"]+)"/.exec(other)?.[1] ?? "";
+    expect(classId).not.toBe("");
+    const template = await pool.baseBuild(classId as never);
+    expect(template.payload).toMatch(/<Build [^>]*level="1"/);
+    expect(template.payload).toContain(`className="${classId}"`);
+    // PoB allocates only the class start itself; no items
+    const fresh = readBuild(template.payload);
+    expect(fresh.nodes.length).toBeLessThanOrEqual(1);
+    expect(fresh.slots).toEqual([]);
+    const { handle } = await pool.request("build.load", template);
+    expect((await pool.request("build.export", { handle, format: "xml" })).payload).toBe(
+      template.payload,
+    );
+    await expect(pool.baseBuild("exileforge-no-such-class" as never)).rejects.toMatchObject({
+      kind: "invalid_params",
+    });
+  });
+
   it("rejects bad ops with the op index and leaves no half-patched state", async () => {
     const bad: [unknown[], RegExp][] = [
       [

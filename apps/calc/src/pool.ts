@@ -7,6 +7,7 @@ import {
   type CalcParams,
   type BuildHandle,
   type CalcResultOf,
+  type CharacterClassId,
   type DataReleaseId,
   PassiveNodeId,
 } from "@exileforge/contracts";
@@ -29,6 +30,8 @@ export type PoolEvent =
   | { type: "worker-recycled"; slot: number; requests: number }
   | { type: "slot-disabled"; slot: number; error: CalcServiceError }
   | { type: "release-failed"; slot: number; handle: string; error: unknown };
+
+const TemplateResult = z.object({ payload: z.string().min(1) });
 
 const ReachableNodes = z.object({
   nodes: z.array(z.object({ nodeId: PassiveNodeId, pathCost: z.int().positive() })),
@@ -422,6 +425,25 @@ export class CalcPool {
       return { nodeId, calcId: r.calcId, deltas: r.deltas, pathCost };
     });
     return { base: batch.base, results };
+  }
+
+  /**
+   * A fresh build of one class made by Path of Building itself (empty tree, no
+   * items), to be loaded with `build.load` as the starting point for
+   * `diffBuildState`. Not part of the calc contract.
+   */
+  async baseBuild(classId: CharacterClassId): Promise<{ format: "xml"; payload: string }> {
+    if (this.closed) throw new CalcServiceError("worker_crashed", "Calc pool is closed");
+    const raw = await this.withSlot(undefined, (_slot, worker) =>
+      worker.call("build.template", { classId }, this.opts.config.requestTimeoutMs),
+    );
+    const parsed = TemplateResult.safeParse(raw);
+    if (!parsed.success) {
+      throw new CalcServiceError("calc_failed", "Invalid answer to build.template", undefined, {
+        cause: parsed.error,
+      });
+    }
+    return { format: "xml", payload: parsed.data.payload };
   }
 
   /** Passives PoB can connect to the build's tree, with their path cost. */

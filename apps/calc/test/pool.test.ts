@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { PassiveNodeId, type CalcMethodName, type CalcParams } from "@exileforge/contracts";
+import {
+  CharacterClassId,
+  PassiveNodeId,
+  type CalcMethodName,
+  type CalcParams,
+} from "@exileforge/contracts";
 import {
   CalcPool,
   CalcServiceError,
@@ -264,6 +269,16 @@ describe("CalcPool with the fake worker", () => {
         candidates: [PassiveNodeId.parse("999")],
       }),
       "invalid_params",
+    );
+  });
+
+  it("offers a fresh build of a class as the starting point", async () => {
+    const { pool } = await fakePool();
+    const base = await pool.baseBuild(CharacterClassId.parse("FixtureClass"));
+    expect(base.format).toBe("xml");
+    const { handle } = await pool.request("build.load", base);
+    expect((await pool.request("build.export", { handle, format: "xml" })).payload).toBe(
+      base.payload,
     );
   });
 
