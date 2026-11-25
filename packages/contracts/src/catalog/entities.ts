@@ -202,6 +202,13 @@ export const PassiveNode = z.object({
   id: PassiveNodeId,
   /** Numeric node id used by Path of Building; secondary to `id`. */
   pobNodeId: nonNegInt.optional(),
+  /**
+   * The game's own string id of the node (`PassiveSkills.Id`, e.g. for the
+   * `.build` export). Read from game data and matched to the PoB node by node
+   * id and name; absent when no single table row matched, never guessed.
+   * Unique within a release.
+   */
+  gameId: z.string().min(1).optional(),
   name,
   /** Node kind (small, notable, keystone, jewel socket …) as defined by the release. */
   kind: ClassificationId,

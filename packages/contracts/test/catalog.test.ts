@@ -161,6 +161,36 @@ describe("DataRelease item slots", () => {
     const set3 = { ...slots, slots: [{ ...hand, weaponSet: 3 }] };
     expect(DataRelease.safeParse({ ...validRelease, itemSlots: set3 }).success).toBe(false);
   });
+
+  it("accepts a game id per slot, rejects a duplicate one", () => {
+    const ok = {
+      ...slots,
+      slots: [
+        { ...head, gameId: "Fantasy1" },
+        { ...hand, gameId: "Fantasy2" },
+      ],
+    };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: ok }).success).toBe(true);
+    const dup = {
+      ...slots,
+      slots: [
+        { ...head, gameId: "Fantasy1" },
+        { ...hand, gameId: "Fantasy1" },
+      ],
+    };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: dup }).success).toBe(false);
+    const empty = { ...slots, slots: [{ ...head, gameId: "" }] };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: empty }).success).toBe(false);
+  });
+
+  it("accepts the origin of the game ids", () => {
+    expect(
+      DataRelease.safeParse({ ...validRelease, gameIds: { origin: "game-data" } }).success,
+    ).toBe(true);
+    expect(DataRelease.safeParse({ ...validRelease, gameIds: { origin: "guess" } }).success).toBe(
+      false,
+    );
+  });
 });
 
 describe("DataRelease", () => {
@@ -282,6 +312,20 @@ describe("entities", () => {
     expect(
       PassiveNode.safeParse({ ...node, unresolved: [{ text: "x", reason: "guessed" }] }).success,
     ).toBe(false);
+  });
+
+  it("passive nodes may carry a game id, never an empty one", () => {
+    const node = {
+      id: "passive.fixture",
+      name: "Fixture node",
+      kind: "small",
+      stats: [],
+      position: { groupId: "1", orbit: 0, orbitIndex: 0 },
+      connections: [],
+    };
+    expect(PassiveNode.parse({ ...node, gameId: "fixture1" }).gameId).toBe("fixture1");
+    expect(PassiveNode.parse(node).gameId).toBeUndefined();
+    expect(PassiveNode.safeParse({ ...node, gameId: "" }).success).toBe(false);
   });
 
   it("ascendancy point unlocks may be absent", () => {
