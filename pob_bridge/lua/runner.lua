@@ -51,6 +51,8 @@ local STAT_KEYS = {
 	"FireResistOverCap", "ColdResistOverCap", "LightningResistOverCap", "ChaosResistOverCap",
 	-- resistance still missing to the cap (PoB: max(0, cap - current); 0 means at cap)
 	"MissingFireResist", "MissingColdResist", "MissingLightningResist", "MissingChaosResist",
+	-- attributes and the highest requirement of any equipped item or gem
+	"Str", "Dex", "Int", "ReqStr", "ReqDex", "ReqInt",
 	-- defences
 	"Armour", "Evasion", "EffectiveMovementSpeedMod", "TotalEHP",
 }

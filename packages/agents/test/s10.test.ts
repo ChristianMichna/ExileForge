@@ -191,6 +191,7 @@ describe("S10 measured gates", () => {
     stats: {
       spiritFree: "Sp",
       resistMissing: ["MissFire", "MissCold"],
+      attributes: [{ have: "A", need: "ReqA" }],
       ehp: "Ehp",
       dps: "Dps",
     },
@@ -221,7 +222,7 @@ describe("S10 measured gates", () => {
     (await runGates(withStats(stats), stageAt(level, kind), { ...cfg, ...over } as never)).flatMap(
       (g) => g.findings.map((f) => `${g.gate}:${f.code}`),
     );
-  const good = { Sp: 5, MissFire: 0, MissCold: 0, Ehp: 500, Dps: 5000 };
+  const good = { Sp: 5, MissFire: 0, MissCold: 0, Ehp: 500, Dps: 5000, A: 100, ReqA: 80 };
 
   it("passes G4 and G5 when every measured value meets the configured limits", async () => {
     const gates = await runGates(withStats(good), stageAt(90), cfg as never);
@@ -242,8 +243,69 @@ describe("S10 measured gates", () => {
     );
   });
 
+  it("flags an attribute below the requirement of an item or gem (G3)", async () => {
+    expect(await run({ ...good, A: 70 })).toContain("G3:attribute_requirement_unmet");
+    expect(await run(good)).not.toContain("G3:attribute_requirement_unmet");
+    expect(await run({ ...good, ReqA: undefined as never })).toContain("G3:stat_missing");
+  });
+
+  it("checks the allocated passives against the stage table, as S6 resolves it (G3)", async () => {
+    const table = [
+      { key: "act-1", label: "A", kind: "campaign", levelRange: [1, 5], passivePoints: 5 },
+    ] as never;
+    const nodes = (n: number, sets: number[] = []) => ({
+      ...STATE,
+      level: 5,
+      tree: {
+        allocated: [
+          ...Array.from({ length: n }, (_, i) => ({ nodeId: `N${String(i)}`, weaponSet: 0 })),
+          ...sets.map((weaponSet, i) => ({ nodeId: `W${String(i)}`, weaponSet })),
+        ],
+        ascendancy: [],
+      },
+    });
+    const found = async (state: object, key = "act-1", t = table) =>
+      (
+        await runGates(
+          withStats(good),
+          draft({ progression: { stages: [stage({ key, kind: "campaign", state })] } }),
+          cfg as never,
+          undefined,
+          t,
+        )
+      ).flatMap((g) => g.findings.filter((f) => f.gate === "G3"));
+    expect((await found(nodes(5))).map((f) => f.code)).not.toContain("points_overspent");
+    const over = (await found(nodes(6))).find((f) => f.code === "points_overspent");
+    expect(over?.returnTo).toBe("S6");
+    expect(over?.path).toBe("/progression/stages/0/state/tree");
+    // nodes of both weapon sets share one budget: the smaller set is not counted twice
+    expect((await found(nodes(3, [1, 1, 2, 2]))).map((f) => f.code)).not.toContain(
+      "points_overspent",
+    );
+    expect((await found(nodes(4, [1, 1, 2, 2]))).map((f) => f.code)).toContain("points_overspent");
+    // a stage the table does not know cannot be fixed by S6: no returnTo
+    const unknown = (await found(nodes(1), "other")).find((f) => f.code === "points_unknown");
+    expect(unknown).toBeDefined();
+    expect(unknown?.returnTo).toBeUndefined();
+  });
+
+  it("reports a release without point rules once and without a return (G3)", async () => {
+    const gates = await runGates(withStats(good), stageAt(90), cfg as never);
+    const f = gates.flatMap((g) => g.findings).find((x) => x.code === "points_unknown");
+    expect(f?.returnTo).toBeUndefined();
+  });
+
+  it("accepts an attribute exactly at its requirement and sends a miss to the right part (G3)", async () => {
+    const at = async (stats: Record<string, number>, kind: string) =>
+      (await runGates(withStats(stats), stageAt(90, kind), cfg as never))
+        .flatMap((g) => g.findings)
+        .find((x) => x.code === "attribute_requirement_unmet");
+    expect(await at({ ...good, A: 80 }, "endgame")).toBeUndefined();
+    expect((await at({ ...good, A: 79 }, "campaign"))?.returnTo).toBe("S6");
+  });
+
   it("separates a missing stat from a value below the minimum", async () => {
-    const codes = await run({ Sp: 1, MissFire: 0, MissCold: 0 });
+    const codes = await run({ Sp: 1, MissFire: 0, MissCold: 0, A: 1, ReqA: 1 });
     expect(codes).toEqual(expect.arrayContaining(["G4:stat_missing", "G5:stat_missing"]));
     expect(codes).not.toContain("G4:ehp_below_minimum");
   });

@@ -34,7 +34,7 @@ import {
 } from "./stages/s6-progression.js";
 import { TargetBuild } from "@astrolabe/contracts/build";
 import type { ProgressionStageTree } from "./ports.js";
-import { releaseStageTable } from "./stages/s6-table.js";
+import { stageTableOf } from "./stages/s6-table.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 import { CraftingPlan, GearPlan, ProgressionPlan } from "@astrolabe/contracts/build";
@@ -246,11 +246,11 @@ function planProgression(
       },
     };
   }
-  const table = s6Base.stages ?? releaseStageTable(ctx.catalog.release);
+  const table = stageTableOf(s6Base.stages, ctx.catalog.release);
   if (typeof table === "string") {
     return { kind: "blocked", error: { code: "release_facts_missing", message: table } };
   }
-  const s6: S6Config = { ...s6Base, stages: table };
+  const s6: S6Config = { ...s6Base, stages: [...table] };
   const target = TargetBuild.safeParse(targetResult);
   if (!target.success) {
     return {
@@ -410,7 +410,15 @@ function planGuide(
     return { kind: "task", spec: critic };
   }
   if (!reportIsCurrent(ctx))
-    return validateStep({ chosen, target, mainSkillId: mainSkillOfRun(ctx) }, config.s10);
+    return validateStep(
+      {
+        chosen,
+        target,
+        mainSkillId: mainSkillOfRun(ctx),
+        ...(config.s6?.stages === undefined ? {} : { stageTable: config.s6.stages }),
+      },
+      config.s10,
+    );
   if (config.s10 === undefined) {
     return {
       kind: "blocked",
