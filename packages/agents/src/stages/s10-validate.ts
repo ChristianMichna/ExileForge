@@ -20,7 +20,7 @@ import { S10_CRITIC } from "../prompts.js";
 import { requestContext } from "./context.js";
 import { craftKey, S8_PLAN_KEY } from "./s8-craft.js";
 import { S6_PLAN_KEY } from "./s6-progression.js";
-import { releaseStageTable } from "./s6-table.js";
+import { type S6Row, stageTableOf } from "./s6-table.js";
 import { S7_PLAN_KEY } from "./s7-plan.js";
 import { itemEntities } from "./s7-gear.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
@@ -138,6 +138,8 @@ export const GuideDraft = GuideDocument.omit({ metadata: true, validation: true 
 export type GuideDraft = z.infer<typeof GuideDraft>;
 
 export interface S10Inputs {
+  /** The configured S6 stage table, if any; without it the table comes from the release, as in S6. */
+  stageTable?: readonly S6Row[];
   chosen: ArchetypeCandidate;
   target: TargetBuild;
   /** The skill the run settled on: the player's pick or the S0 choice. */
@@ -395,6 +397,7 @@ async function measuredGates(
   ctx: PipelineContext,
   draft: GuideDraft,
   cfg: S10Config,
+  stageTable?: readonly S6Row[],
 ): Promise<{
   g3: Finding[];
   g4: Finding[];
@@ -411,29 +414,26 @@ async function measuredGates(
       .sort((a, b) => b.fromLevel - a.fromLevel)[0]?.[field];
   const ehpSet = cfg.thresholds.some((t) => t.minEhp !== undefined);
   const dpsSet = cfg.thresholds.some((t) => t.minDps !== undefined);
-  const table = releaseStageTable(ctx.catalog.release);
+  const table = stageTableOf(stageTable, ctx.catalog.release);
   if (typeof table === "string") g3.push(finding("G3", "points_unknown", table));
-  for (const { stage, path, returnTo, stats } of await stageStats(ctx, draft, cfg.calcProfile)) {
+  for (const [index, { stage, path, returnTo, stats }] of (
+    await stageStats(ctx, draft, cfg.calcProfile)
+  ).entries()) {
     if (typeof table !== "string") {
       const row = table.find((r) => r.key === stage.key);
-      const used = stage.state.tree.allocated.length;
+      // PoB counts a node once and takes off the smaller weapon set, as both sets draw on the same points.
+      const inSet = (n: number) =>
+        stage.state.tree.allocated.filter((a) => a.weaponSet === n).length;
+      const used = stage.state.tree.allocated.length - Math.min(inSet(1), inSet(2));
       if (row === undefined) {
-        g3.push(
-          finding(
-            "G3",
-            "points_unknown",
-            `No passive point budget for stage ${stage.key}.`,
-            undefined,
-            "S6",
-          ),
-        );
+        g3.push(finding("G3", "points_unknown", `No passive point budget for stage ${stage.key}.`));
       } else if (used > row.passivePoints) {
         g3.push(
           finding(
             "G3",
             "points_overspent",
             `Stage ${stage.key} allocates more passives than its level grants.`,
-            `/progression/stages/${String(stage.order)}/state/tree`,
+            `/progression/stages/${String(index)}/state/tree`,
             "S6",
           ),
         );
@@ -541,7 +541,7 @@ function gapOf(
   if (cfg === undefined && (gate === "G3" || gate === "G4" || gate === "G5")) {
     return `the whole gate (no "s10" block in config/agents/stages.json)`;
   }
-  if (gate === "G3") return "gem level requirements and tree connectivity";
+  if (gate === "G3") return "gem level requirements, ascendancy points and tree connectivity";
   if (gate === "G4") {
     return thresholds?.ehp === true ? undefined : "the EHP minimum (no threshold configured)";
   }
@@ -557,8 +557,9 @@ export async function runGates(
   draft: GuideDraft,
   cfg?: S10Config,
   critic?: CriticVerdict,
+  stageTable?: readonly S6Row[],
 ): Promise<GateResult[]> {
-  const measured = cfg === undefined ? undefined : await measuredGates(ctx, draft, cfg);
+  const measured = cfg === undefined ? undefined : await measuredGates(ctx, draft, cfg, stageTable);
   const g1 = draftEntities(draft)
     .filter((e) => ctx.catalog.get(e.ref) === undefined)
     .map((e) =>
@@ -652,7 +653,7 @@ export function validateStep(inputs: S10Inputs, cfg?: S10Config): PlanStep {
       const draft = assembleDraft(runCtx, inputs);
       const stored = runCtx.result(S10_CRITIC_KEY);
       const critic = stored === undefined ? undefined : readCritic(stored);
-      const gates = await runGates(runCtx, draft, cfg, critic);
+      const gates = await runGates(runCtx, draft, cfg, critic, inputs.stageTable);
       return JSON.parse(
         JSON.stringify({
           passed: gates.every((g) => g.passed),

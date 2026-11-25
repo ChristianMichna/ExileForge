@@ -56,3 +56,11 @@ export function releaseStageTable(release: DataRelease | undefined): S6Row[] | s
   }
   return rows;
 }
+
+/** The table S6 works with: the configured one if set, else the one derived from the release. */
+export function stageTableOf(
+  configured: readonly S6Row[] | undefined,
+  release: DataRelease | undefined,
+): readonly S6Row[] | string {
+  return configured ?? releaseStageTable(release);
+}
