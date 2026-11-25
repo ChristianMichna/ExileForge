@@ -25,3 +25,7 @@ evals/golden/out/
 
 # Data pipeline: local snapshot output
 data-snapshots/
+
+# Desktop app: installer output and the data release staged for packaging
+apps/desktop/release/
+apps/desktop/data-release/

@@ -2,8 +2,12 @@ import type { ReactNode } from "react";
 import { Badge, Sigil } from "@exileforge/ui";
 import type { RouteId } from "./route";
 import { NAV } from "./route";
+import { getDesktopBridge } from "../desktop/bridge";
+import { useDesktopStatus } from "../desktop/useDesktopStatus";
 
 export function AppShell({ route, children }: { route: RouteId; children: ReactNode }) {
+  const inDesktop = getDesktopBridge() !== undefined;
+  const entries = NAV.filter((entry) => inDesktop || entry.desktopOnly !== true);
   return (
     <div className="shell">
       <svg className="engraving" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
@@ -21,7 +25,7 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
         </a>
         <nav className="nav" aria-label="Main navigation">
           <ul className="nav__list">
-            {NAV.map((entry) => {
+            {entries.map((entry) => {
               const current = entry.id === route;
               return (
                 <li key={entry.id}>
@@ -45,8 +49,7 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
           </ul>
         </nav>
         <div className="topbar__status">
-          <Badge tone="accent">Sample data</Badge>
-          <Badge tone="warning">PoB offline</Badge>
+          <StatusBadges />
         </div>
       </header>
       <main className="content">{children}</main>
@@ -55,5 +58,48 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
         trademark of Grinding Gear Games.
       </footer>
     </div>
+  );
+}
+
+/** Honest connection state: sample data in a browser, real server state in the desktop app. */
+function StatusBadges() {
+  const desktop = useDesktopStatus();
+  if (desktop.kind === "loading") return <Badge tone="neutral">Starting</Badge>;
+  if (desktop.kind === "browser") {
+    return (
+      <>
+        <Badge tone="accent">Sample data</Badge>
+        <Badge tone="warning">PoB offline</Badge>
+      </>
+    );
+  }
+  if (desktop.kind === "unreachable") return <Badge tone="danger">App status unavailable</Badge>;
+  const { server, update } = desktop.status;
+  return (
+    <>
+      <Badge tone="accent">Sample data</Badge>
+      {server.state === "failed" ? <Badge tone="danger">Server error</Badge> : null}
+      {server.state === "starting" ? <Badge tone="neutral">Server starting</Badge> : null}
+      {server.state === "ready" ? (
+        <Badge tone={server.calcEngine === "pob" ? "success" : "warning"}>
+          {server.calcEngine === "pob" ? "PoB ready" : "PoB offline"}
+        </Badge>
+      ) : null}
+      {update.state === "ready" ? <UpdateButton version={update.version} /> : null}
+    </>
+  );
+}
+
+function UpdateButton({ version }: { version: string }) {
+  return (
+    <Badge tone="info">
+      <button
+        type="button"
+        className="update-link"
+        onClick={() => void getDesktopBridge()?.installUpdate()}
+      >
+        Update {version}: restart
+      </button>
+    </Badge>
   );
 }

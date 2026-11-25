@@ -1,3 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Install scripts that must run: Electron downloads its binary, esbuild unpacks its native executable.
+onlyBuiltDependencies:
+  - electron
+  - esbuild

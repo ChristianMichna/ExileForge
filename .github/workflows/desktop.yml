@@ -1,0 +1,138 @@
+# Windows installer of the desktop app (apps/desktop, ADR-0004).
+# - Pull requests that touch the app: build the unsigned installer and attach it
+#   as an artifact, so it can be tried on a real Windows PC.
+# - "Run workflow" with publish=true: build and publish a GitHub release
+#   (ExileForge-Setup-<version>.exe + latest.yml) that installed apps update from.
+# The installer bundles a data release built from PoB in the first job.
+name: Desktop installer
+
+on:
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "apps/web/**"
+      - "apps/server/**"
+      - "apps/mcp-bridge/**"
+      - "config/desktop/**"
+      - "config/forge/**"
+      - ".github/workflows/desktop.yml"
+  workflow_dispatch:
+    inputs:
+      game-version:
+        description: "Game version of the bundled data release, e.g. 0.5 or 1.0.0.3"
+        required: true
+      revision:
+        description: "Pipeline revision for this game version (release id poe2-<game>+r<n>)"
+        required: true
+        default: "1"
+      publish:
+        description: "Publish a GitHub release (version from apps/desktop/package.json)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  catalog:
+    name: Data release for the installer
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Only the installer job needs the Electron binary (any value, even "0", skips it).
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      GAME_VERSION: ${{ inputs.game-version || '0.0' }}
+      REVISION: ${{ inputs.revision || '1' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Set up headless PoB
+        run: tools/setup_pob.sh
+      - name: Build snapshot and catalog
+        run: |
+          pnpm exec turbo run build --filter=@exileforge/data-pipeline
+          node apps/data-pipeline/dist/cli.js snapshot \
+            --game-version "$GAME_VERSION" --revision "$REVISION" --out data-snapshots/current
+          node apps/data-pipeline/dist/cli.js catalog data-snapshots/current \
+            --out data-snapshots/current/catalog
+      - uses: actions/upload-artifact@v5
+        with:
+          name: data-release
+          path: data-snapshots/current/catalog/
+          retention-days: 7
+          if-no-files-found: error
+
+  installer:
+    name: Windows installer
+    needs: catalog
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v5
+        with:
+          name: data-release
+          path: apps/desktop/data-release
+      - run: pnpm build
+      - run: pnpm --filter @exileforge/mcp-bridge pack:mcpb
+      - name: Check the packaged files
+        run: node apps/desktop/scripts/stage.mjs
+      - name: Build installer
+        working-directory: apps/desktop
+        run: pnpm exec electron-builder --win --x64 --publish never
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ExileForge-Setup
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/latest.yml
+          retention-days: 14
+          if-no-files-found: error
+
+  publish:
+    # Only from main and by hand: installed apps update themselves from this release.
+    name: Publish release
+    needs: installer
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v5
+        with:
+          name: data-release
+          path: apps/desktop/data-release
+      - run: pnpm build
+      - run: pnpm --filter @exileforge/mcp-bridge pack:mcpb
+      - run: node apps/desktop/scripts/stage.mjs
+      - name: Build installer and publish release
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-builder --win --x64 --publish always

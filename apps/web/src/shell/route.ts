@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 // Hash routing: the Electron shell loads the build from file://, where
 // path-based routing has no server to fall back on.
 
-export type RouteId = "overview" | "design";
+export type RouteId = "overview" | "design" | "plan";
 
 export interface NavEntry {
   readonly id: RouteId | "guide" | "tree" | "crafting";
@@ -11,10 +11,13 @@ export interface NavEntry {
   readonly href?: string;
   /** Not built yet; shown so the structure of the app is visible. */
   readonly upcoming?: boolean;
+  /** Needs the desktop shell (local server); hidden in a plain browser. */
+  readonly desktopOnly?: boolean;
 }
 
 export const NAV: readonly NavEntry[] = [
   { id: "overview", label: "Build", href: "#/" },
+  { id: "plan", label: "Plan", href: "#/plan", desktopOnly: true },
   { id: "guide", label: "Guide", upcoming: true },
   { id: "tree", label: "Passive Tree", upcoming: true },
   { id: "crafting", label: "Crafting", upcoming: true },
@@ -22,7 +25,9 @@ export const NAV: readonly NavEntry[] = [
 ];
 
 export function parseRoute(hash: string): RouteId {
-  return hash === "#/design" ? "design" : "overview";
+  if (hash === "#/design") return "design";
+  if (hash === "#/plan") return "plan";
+  return "overview";
 }
 
 function subscribe(onChange: () => void): () => void {
