@@ -1,0 +1,105 @@
+name: game-data-probe
+
+# One-off probe (F-01): can CI read the PoE2 crafting tables (currencies,
+# omens, essences) from the update servers, and what do they look like?
+# Prints facts only; nothing is published. Replaced by the real
+# game-data stage once the format is known.
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/game-data-probe.yml
+  workflow_dispatch:
+    inputs:
+      patch:
+        description: Patch version (empty = ask the patch server)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PATCH_INPUT: ${{ inputs.patch }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Ask the patch server for the current version
+        run: |
+          mkdir -p "$RUNNER_TEMP/probe"
+          cat > "$RUNNER_TEMP/probe/patch.mjs" <<'EOF'
+          import net from "node:net";
+          import { appendFileSync } from "node:fs";
+
+          const HOST = "patch.pathofexile2.com";
+          const PORT = 13060;
+          const sock = net.connect({ host: HOST, port: PORT });
+          sock.setTimeout(15000);
+          const chunks = [];
+          sock.on("connect", () => sock.write(Buffer.from([1, 7])));
+          sock.on("data", (d) => chunks.push(d));
+          sock.on("timeout", () => sock.destroy());
+          sock.on("error", (e) => {
+            console.error(`patch server: ${e.message}`);
+          });
+          sock.on("close", () => {
+            const buf = Buffer.concat(chunks);
+            console.log(`patch server answered ${buf.length} bytes`);
+            const text = buf.toString("utf16le");
+            const m = /https:\/\/[^\s\u0000]+/.exec(text);
+            console.log(`url: ${m ? m[0] : "(none found)"}`);
+            const v = m ? /\/(\d+(?:\.\d+)+)\/?$/.exec(m[0].replace(/\/+$/, "/")) : null;
+            if (v) appendFileSync(process.env.GITHUB_ENV, `PATCH=${v[1]}\n`);
+          });
+          EOF
+          node "$RUNNER_TEMP/probe/patch.mjs"
+          if [ -n "$PATCH_INPUT" ]; then echo "PATCH=$PATCH_INPUT" >> "$GITHUB_ENV"; fi
+
+      - name: Export crafting tables with pathofexile-dat
+        run: |
+          test -n "${PATCH:-}" || { echo "no patch version"; exit 1; }
+          echo "patch $PATCH"
+          mkdir -p "$RUNNER_TEMP/export" && cd "$RUNNER_TEMP/export"
+          cat > config.json <<EOF
+          {
+            "patch": "$PATCH",
+            "translations": ["English"],
+            "tables": [
+              { "name": "BaseItemTypes", "columns": ["Id", "Name", "ItemClass", "DropLevel"] },
+              { "name": "ItemClasses", "columns": ["Id", "Name"] },
+              { "name": "CurrencyItems", "columns": ["BaseItemType", "StackSize", "CurrencyUseType", "Action", "Description"] },
+              { "name": "Omens", "columns": ["BaseItemType"] },
+              { "name": "Essences", "columns": ["BaseItemType", "Tier", "Perfect", "UpgradeResult"] },
+              { "name": "TieredCurrency", "columns": ["BaseItemType", "Tier", "MinimumModLevel", "LowerTierBaseItemType"] },
+              { "name": "CurrencyExchange", "columns": ["Item", "Category", "SubCategory"] },
+              { "name": "CurrencyExchangeCategories", "columns": ["Id", "Name"] }
+            ]
+          }
+          EOF
+          npx --yes pathofexile-dat@16.0.1
+
+      - name: Summarise the exported tables
+        run: |
+          cd "$RUNNER_TEMP/export/tables/English"
+          node --input-type=module - <<'EOF'
+          import { readdirSync, readFileSync } from "node:fs";
+          for (const f of readdirSync(".").sort()) {
+            const rows = JSON.parse(readFileSync(f, "utf8"));
+            console.log(`== ${f}: ${rows.length} rows`);
+            for (const r of rows.slice(0, 3)) console.log(JSON.stringify(r).slice(0, 300));
+          }
+          const names = new Map(
+            JSON.parse(readFileSync("BaseItemTypes.json", "utf8")).map((r) => [r._index, r]),
+          );
+          const omens = JSON.parse(readFileSync("Omens.json", "utf8"));
+          console.log("omens resolved:", omens.slice(0, 5).map((o) => names.get(o.BaseItemType)?.Id));
+          const cur = JSON.parse(readFileSync("CurrencyItems.json", "utf8"));
+          console.log("currency resolved:", cur.slice(0, 5).map((o) => names.get(o.BaseItemType)?.Id));
+          EOF
