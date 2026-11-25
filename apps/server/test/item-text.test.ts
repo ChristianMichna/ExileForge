@@ -81,7 +81,7 @@ describe("createItemRenderer", () => {
     ).toThrow(/no variant x/);
   });
 
-  it("renders a crafted item with base implicits and mods rolled at the fraction", () => {
+  it("renders a crafted item with base implicits and mods with PoB-side rolls", () => {
     const text = render(
       ItemSpec.parse({
         kind: "crafted",
@@ -99,9 +99,9 @@ describe("createItemRenderer", () => {
       "Fixture Base",
       "Item Level: 80",
       "Implicits: 1",
-      "+15 to Fixture Stat",
-      "15% increased Fixture Thing",
-      "Adds 1.5 Fixture Damage",
+      "+(10-20) to Fixture Stat",
+      "{range:0.5}(10-20)% increased Fixture Thing",
+      "{range:0.5}Adds (1.0-2.0) Fixture Damage",
     ]);
   });
 
@@ -126,5 +126,54 @@ describe("createItemRenderer", () => {
       render(crafted({ socketables: [{ kind: "baseItem", id: "FixBase" }] }), "Ring 1"),
     ).toThrow(/Socketables/);
     expect(() => render(crafted({ baseItemId: "Nope" }), "Ring 1")).toThrow(/Nope/);
+  });
+
+  it("refuses unique lines it would have to drop silently", () => {
+    const broken = new MemoryCatalog(RELEASE, [
+      shard("baseItem", [
+        {
+          id: "B",
+          name: "Base",
+          itemClass: "C",
+          tags: [],
+          requirements: {},
+          implicitModIds: [],
+          properties: {},
+        },
+      ]),
+      shard("uniqueItem", [
+        { id: "NoText", name: "N", baseItemId: "B", mods: [{ stats: [] }], variants: [] },
+        {
+          id: "StrayVariant",
+          name: "S",
+          baseItemId: "B",
+          mods: [{ stats: [], text: "x", variantIds: ["v1"] }],
+          variants: [],
+        },
+      ]),
+    ]);
+    const r = createItemRenderer(broken);
+    expect(() => r(ItemSpec.parse({ kind: "unique", uniqueId: "NoText" }), "Ring 1")).toThrow(
+      /no text/,
+    );
+    expect(() => r(ItemSpec.parse({ kind: "unique", uniqueId: "StrayVariant" }), "Ring 1")).toThrow(
+      /names variants/,
+    );
+  });
+
+  it("renders NORMAL and MAGIC items with the base name only", () => {
+    const text = (rarity: string) =>
+      render(
+        ItemSpec.parse({
+          kind: "crafted",
+          baseItemId: "FixBase",
+          rarity,
+          mods: [],
+          socketables: [],
+        }),
+        "Ring 1",
+      ).split("\n");
+    expect(text("normal").slice(0, 2)).toEqual(["Rarity: NORMAL", "Fixture Base"]);
+    expect(text("Magic").slice(0, 2)).toEqual(["Rarity: MAGIC", "Fixture Base"]);
   });
 });

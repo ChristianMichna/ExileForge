@@ -3,7 +3,10 @@ import type { BuildFormat } from "@exileforge/contracts/calc";
 import type { CharacterClassId } from "@exileforge/contracts/common";
 import type { BaseBuild, BaseBuildProvider } from "./pob-calc.js";
 
-/** Where fresh class builds come from: PoB itself creates and exports them (CalcPool.baseBuild). */
+/**
+ * Where fresh class builds come from: PoB itself creates and exports them.
+ * `CalcPool.baseBuild` (PoB thread, separate PR) is the intended implementation; open until it lands.
+ */
 export interface BaseBuildSource {
   baseBuild(classId: CharacterClassId): Promise<{ format: BuildFormat; payload: string }>;
 }

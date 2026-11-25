@@ -9,7 +9,6 @@ import type { CatalogPort } from "../ports/catalog.js";
  * are PoB's own rarity keys (Data/Global.lua colorCodes), not game data.
  */
 const POB_RARITIES = ["NORMAL", "MAGIC", "RARE", "UNIQUE"] as const;
-const RANGE = /\((-?\d+(?:\.\d+)?)-(-?\d+(?:\.\d+)?)\)/g;
 
 /** Error with the slot and the missing piece of data, so a failed calculation says what to fix. */
 export class ItemRenderError extends Error {
@@ -17,7 +16,10 @@ export class ItemRenderError extends Error {
 }
 
 /**
- * Renders ItemSpecs as PoB item text from catalog data only. Anything the
+ * Renders ItemSpecs as PoB item text from catalog data only. Value ranges
+ * "(min-max)" stay in the text; the roll goes to PoB as `{range:F}` so PoB
+ * itself computes and rounds the values (no numbers from this code).
+ * Anything the
  * renderer cannot express (unchosen unique variant, socketables, unknown
  * rarity) throws instead of producing an item that differs from the spec.
  */
@@ -49,10 +51,20 @@ export function createItemRenderer(catalog: CatalogPort): ItemTextRenderer {
         if (variants.length > 0 && item.variantId === undefined) {
           throw new ItemRenderError(`Unique ${unique.id} has variants; the spec must pick one`);
         }
-        const lines = unique.mods
-          .filter((m) => m.variantIds === undefined || m.variantIds.includes(item.variantId ?? ""))
-          .flatMap((m) => (m.text ?? "").split("\n"))
-          .filter((l) => l !== "");
+        const lines = unique.mods.flatMap((m, index) => {
+          if (m.variantIds !== undefined) {
+            if (variants.length === 0) {
+              throw new ItemRenderError(
+                `Unique ${unique.id} line ${index} names variants but the unique has none`,
+              );
+            }
+            if (!m.variantIds.includes(item.variantId ?? "")) return [];
+          }
+          if (m.text === undefined || m.text === "") {
+            throw new ItemRenderError(`Unique ${unique.id} line ${index} has no text`);
+          }
+          return m.text.split("\n");
+        });
         return ["Rarity: UNIQUE", unique.name, base.name, "Implicits: 0", ...lines].join("\n");
       }
 
@@ -66,7 +78,7 @@ export function createItemRenderer(catalog: CatalogPort): ItemTextRenderer {
       const base = entity<BaseItem>("baseItem", item.baseItemId, "Base item");
       const implicits = base.implicitModIds.flatMap((id) => modText(id));
       const explicits = item.mods.flatMap((m) =>
-        modText(m.modId).map((line) => roll(line, m.rollFraction)),
+        modText(m.modId).map((line) => `{range:${m.rollFraction}}${line}`),
       );
       return [
         `Rarity: ${rarity}`,
@@ -75,7 +87,7 @@ export function createItemRenderer(catalog: CatalogPort): ItemTextRenderer {
           : [`${base.name} (ExileForge)`, base.name]),
         ...(item.itemLevel === undefined ? [] : [`Item Level: ${item.itemLevel}`]),
         `Implicits: ${implicits.length}`,
-        ...implicits.map((line) => roll(line, 0.5)),
+        ...implicits,
         ...explicits,
       ].join("\n");
     } catch (error) {
@@ -87,17 +99,4 @@ export function createItemRenderer(catalog: CatalogPort): ItemTextRenderer {
       );
     }
   };
-}
-
-/** Replaces each "(min-max)" by the value at `fraction` of the range, keeping the range's decimals. */
-function roll(line: string, fraction: number): string {
-  return line.replace(RANGE, (_all, lo: string, hi: string) => {
-    const decimals = Math.max(decimalsOf(lo), decimalsOf(hi));
-    const value = Number(lo) + (Number(hi) - Number(lo)) * fraction;
-    return value.toFixed(decimals);
-  });
-}
-
-function decimalsOf(text: string): number {
-  return text.split(".")[1]?.length ?? 0;
 }
