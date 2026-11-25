@@ -8,6 +8,7 @@ import type {
   CalcResult,
   CalcResultOf,
 } from "@exileforge/contracts/calc";
+import type { ConfigOverrides } from "@exileforge/contracts/calc";
 import type { CalcId, CalcProfileId } from "@exileforge/contracts/common";
 import type { Logger } from "../logger.js";
 import type { CalcPort } from "../ports/calc.js";
@@ -65,9 +66,12 @@ export class PobCalc implements CalcPort {
   async calculate(input: {
     state: BuildState;
     profiles: readonly CalcProfileId[];
+    overrides?: ConfigOverrides;
   }): Promise<Record<CalcProfileId, CalcOutcome>> {
     if (this.closed) throw new Error("PobCalc is closed");
     const outcomes: Record<CalcProfileId, CalcOutcome> = {};
+    // The player's overrides win over what the state itself carries.
+    const overrides = { ...input.state.config, ...input.overrides };
     let prepared: { handle: BuildHandle; owned: boolean } | { error: CalcOutcome };
     try {
       prepared = await this.prepare(input.state);
@@ -84,6 +88,7 @@ export class PobCalc implements CalcPort {
           const result = await this.options.pool.request("calc.stats", {
             handle: prepared.handle,
             profile,
+            ...(Object.keys(overrides).length === 0 ? {} : { overrides }),
           });
           this.results.set(result.calcId, result);
           outcomes[profile] = { status: "ok", calcId: result.calcId };

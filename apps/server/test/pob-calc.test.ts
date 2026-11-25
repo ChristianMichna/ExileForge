@@ -63,6 +63,25 @@ const bases = {
 };
 
 describe("PobCalc", () => {
+  it("sends the overrides of the state and of the player, the player's winning", async () => {
+    const { pool, calls } = fakePool();
+    const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });
+    const state = { ...wanted, config: { enemyIsBoss: "Boss", enemyLevel: 80 } };
+    await calc.calculate({
+      state,
+      profiles: ["as-saved"],
+      overrides: { enemyIsBoss: "Uber" },
+    });
+    const stats = calls.find((c) => c.method === "calc.stats");
+    expect((stats?.params as { overrides?: unknown }).overrides).toEqual({
+      enemyIsBoss: "Uber",
+      enemyLevel: 80,
+    });
+    calls.length = 0;
+    await calc.calculate({ state: wanted, profiles: ["as-saved"] });
+    expect(JSON.stringify(calls.find((c) => c.method === "calc.stats"))).not.toContain("overrides");
+  });
+
   it("patches the base to the wanted state, calculates per profile and releases the patched handle", async () => {
     const { pool, calls } = fakePool();
     const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });

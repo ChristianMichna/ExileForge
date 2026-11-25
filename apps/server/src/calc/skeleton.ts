@@ -94,6 +94,7 @@ export class PobSkeleton implements SkeletonPort {
           handle,
           profile: settings.calcProfiles[0] as CalcProfileId,
           baseAllocated: [],
+          overrides: input.request.calcOverrides,
         }),
         config: this.options.optimizerConfig,
         priorityNodeIds: profile.relevantNodes.filter((id) => graph.has(id)),
@@ -116,6 +117,7 @@ export class PobSkeleton implements SkeletonPort {
     const calcs = await this.options.calc.calculate({
       state: skeleton,
       profiles: settings.calcProfiles,
+      overrides: input.request.calcOverrides,
     });
     return ArchetypeEvaluation.parse({ candidateKey: candidate.key, skeleton, calcs });
   }

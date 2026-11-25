@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { BuildState, CalcOutcome } from "@exileforge/contracts/build";
-import type { CalcResult } from "@exileforge/contracts/calc";
+import type { CalcResult, ConfigOverrides } from "@exileforge/contracts/calc";
 import { CalcId, type CalcProfileId, type DataReleaseId } from "@exileforge/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 
@@ -28,6 +28,7 @@ export class CalcFake implements CalcPort {
   async calculate(input: {
     state: BuildState;
     profiles: readonly CalcProfileId[];
+    overrides?: ConfigOverrides;
   }): Promise<Record<CalcProfileId, CalcOutcome>> {
     const outcomes: Record<CalcProfileId, CalcOutcome> = {};
     const inputHash = createHash("sha256").update(stableJson(input.state)).digest("hex");

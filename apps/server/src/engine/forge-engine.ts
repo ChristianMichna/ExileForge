@@ -554,10 +554,21 @@ export class ForgeEngine {
   }
 
   private buildContext(r: RunRecord, calc: CalcPort): PipelineContext {
+    // Every number of a run is calculated with the player's overrides of the calc profile.
+    const overrides = r.request.calcOverrides;
+    const runCalc: CalcPort =
+      Object.keys(overrides).length === 0
+        ? calc
+        : {
+            engine: calc.engine,
+            getResult: (id) => calc.getResult(id),
+            calculate: (input) =>
+              calc.calculate({ ...input, overrides: { ...overrides, ...input.overrides } }),
+          };
     return {
       run: r,
       catalog: this.options.catalog,
-      calc,
+      calc: runCalc,
       ...(this.options.skeleton === undefined ? {} : { skeleton: this.options.skeleton }),
       latest: <K extends UserIntervention["kind"]>(kind: K) => {
         for (let i = r.interventions.length - 1; i >= 0; i -= 1) {

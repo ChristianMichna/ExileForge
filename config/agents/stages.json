@@ -14,7 +14,7 @@
     "level": 20,
     "passivePoints": 12,
     "supportCount": 2,
-    "calcProfiles": ["as-saved"],
+    "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
         "FullDPS": 1,

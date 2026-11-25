@@ -95,6 +95,21 @@ describe("PobSkeleton", () => {
     expect(calculate).toHaveBeenCalledOnce();
   });
 
+  it("measures with the player's calc overrides", async () => {
+    const { skeleton, calculate } = setup({
+      allocated: [],
+      feasible: true,
+      violations: [],
+      failedEvaluationCount: 0,
+      stoppedBy: "budget_spent",
+    });
+    const request = BuildRequest.parse({ ...REQUEST, calcOverrides: { enemyIsBoss: "Uber" } });
+    await skeleton.evaluate({ request, profile, candidate: cand });
+    expect(calculate).toHaveBeenCalledWith(
+      expect.objectContaining({ overrides: { enemyIsBoss: "Uber" } }),
+    );
+  });
+
   it("fails for a class without catalog entry and for a request of another release", async () => {
     const { skeleton } = setup({
       allocated: [],

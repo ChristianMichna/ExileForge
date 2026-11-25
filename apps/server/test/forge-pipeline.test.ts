@@ -334,6 +334,53 @@ describe("forge pipeline (agents)", () => {
     expect(step).toMatchObject({ kind: "failed", error: { code: "invalid_main_skill" } });
   });
 
+  it("calculates every stage's numbers with the player's calc overrides", async () => {
+    const seen: unknown[] = [];
+    const calc = new CalcFake({ dataReleaseId: RELEASE });
+    const original = calc.calculate.bind(calc);
+    calc.calculate = (input) => {
+      seen.push(input.overrides);
+      return original(input);
+    };
+    const engine = new ForgeEngine({
+      store: new RunStore(":memory:"),
+      catalog: fixtureCatalog(),
+      calc,
+      config: CONFIG,
+      pipelines: [
+        {
+          id: "calc-test",
+          plan: (ctx) =>
+            ctx.result("C.calc") === undefined
+              ? {
+                  kind: "server",
+                  key: "C.calc",
+                  type: "S3.evaluate",
+                  run: async (runCtx) => {
+                    await runCtx.calc.calculate({
+                      state: BuildState.parse({
+                        classId: "FixClassA",
+                        level: 1,
+                        tree: { allocated: [] },
+                        skills: [],
+                        items: [],
+                      }),
+                      profiles: ["default"],
+                    });
+                    return {};
+                  },
+                }
+              : { kind: "done" },
+        },
+      ],
+      calcProfiles: ["default"],
+    });
+    const request = BuildRequest.parse({ ...REQUEST, calcOverrides: { enemyIsBoss: "Uber" } });
+    const { sessionCode } = await engine.createRun(request, "calc-test");
+    await engine.attach(sessionCode);
+    expect(seen).toEqual([{ enemyIsBoss: "Uber" }]);
+  });
+
   describe("background jobs", () => {
     const jobPipeline = (run: () => Promise<unknown>): Pipeline => ({
       id: "job",

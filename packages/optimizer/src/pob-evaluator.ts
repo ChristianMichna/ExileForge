@@ -5,6 +5,7 @@ import type {
   CalcProfileId,
   CalcResult,
   CalcResultOf,
+  ConfigOverrides,
   PassiveNodeId,
   PatchOp,
 } from "@exileforge/contracts";
@@ -26,6 +27,8 @@ export interface PobTreeEvaluatorOptions {
   /** Weapon set for new allocations; PoB's default if absent. */
   weaponSet?: number;
   mainSkill?: string;
+  /** The player's overrides of the calc profile; sent with every calculation. */
+  overrides?: ConfigOverrides;
 }
 
 function isUnknownMethod(error: unknown): boolean {
@@ -55,6 +58,10 @@ export function createPobTreeEvaluator(options: PobTreeEvaluatorOptions): TreeEv
   confirmResult(allocated: readonly PassiveNodeId[]): Promise<CalcResult>;
 } {
   const { pool, handle, profile } = options;
+  const overrides =
+    options.overrides === undefined || Object.keys(options.overrides).length === 0
+      ? {}
+      : { overrides: options.overrides };
   const baseSet = new Set<string>(options.baseAllocated);
   let baseStats: Promise<CalcResult> | undefined;
 
@@ -62,6 +69,7 @@ export function createPobTreeEvaluator(options: PobTreeEvaluatorOptions): TreeEv
     baseStats ??= pool.request("calc.stats", {
       handle,
       profile,
+      ...overrides,
       ...(options.mainSkill === undefined ? {} : { mainSkill: options.mainSkill }),
     });
     return baseStats;
@@ -118,6 +126,7 @@ export function createPobTreeEvaluator(options: PobTreeEvaluatorOptions): TreeEv
       const batch = await pool.request("calc.evalBatch", {
         handle,
         profile,
+        ...overrides,
         metrics: [...metrics],
         candidates,
       });
@@ -187,6 +196,7 @@ export function createPobTreeEvaluator(options: PobTreeEvaluatorOptions): TreeEv
       const result = await pool.request("calc.nodePower", {
         handle: target,
         profile,
+        ...overrides,
         metrics: [...metrics],
         ...(candidates === undefined ? {} : { candidates: [...candidates] }),
       });
@@ -217,6 +227,7 @@ export function createPobTreeEvaluator(options: PobTreeEvaluatorOptions): TreeEv
       return await pool.request("calc.stats", {
         handle: target,
         profile,
+        ...overrides,
         ...(options.mainSkill === undefined ? {} : { mainSkill: options.mainSkill }),
       });
     } finally {

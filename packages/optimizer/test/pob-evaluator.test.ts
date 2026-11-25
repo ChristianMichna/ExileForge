@@ -96,6 +96,39 @@ describe("createPobTreeEvaluator", () => {
     expect(out[2]).toEqual({ ok: true, metrics: { Life: 100, Dps: 50 }, calcId: "base" });
   });
 
+  it("sends the player's overrides with every calculation, and none when there are none", async () => {
+    const overrides = { enemyIsBoss: "Uber" };
+    const pool = new FakePool();
+    const evaluator = createPobTreeEvaluator({
+      pool,
+      handle,
+      profile,
+      baseAllocated: ids("a"),
+      overrides,
+    });
+    await evaluator.evaluate([ids("a", "c"), ids("a")], ["Life"]);
+    await evaluator.nodePower?.(ids("a", "b"), ids("n1"), ["Life"]);
+    await evaluator.confirm?.(ids("a", "b"), ["Life"]);
+    const calcs = pool.calls.filter((c) => c.method.startsWith("calc."));
+    expect(calcs.map((c) => c.method).sort()).toEqual([
+      "calc.evalBatch",
+      "calc.nodePower",
+      "calc.stats",
+      "calc.stats",
+    ]);
+    for (const call of calcs) {
+      expect((call.params as { overrides?: unknown }).overrides).toEqual(overrides);
+    }
+    const plainPool = new FakePool();
+    await createPobTreeEvaluator({
+      pool: plainPool,
+      handle,
+      profile,
+      baseAllocated: ids("a"),
+    }).evaluate([ids("a", "c")], ["Life"]);
+    expect(JSON.stringify(plainPool.calls)).not.toContain("overrides");
+  });
+
   it("marks a metric PoB does not report as failure", async () => {
     const pool = new FakePool();
     const evaluator = createPobTreeEvaluator({ pool, handle, profile, baseAllocated: ids("a") });
