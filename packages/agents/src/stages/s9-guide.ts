@@ -1,5 +1,10 @@
 import { z } from "zod";
-import type { ArchetypeCandidate, RichText, TargetBuild } from "@astrolabe/contracts/build";
+import type {
+  ArchetypeCandidate,
+  Finding,
+  RichText,
+  TargetBuild,
+} from "@astrolabe/contracts/build";
 import {
   GuideAtlas,
   GuideFaqEntry,
@@ -119,6 +124,24 @@ export interface S9Inputs {
   plans: { progression: JsonValue; gear: JsonValue; crafting: JsonValue };
 }
 
+/** The suitability must cover the mode the player asked for. */
+async function summaryCheck(payload: unknown, ctx: PipelineContext): Promise<Finding[]> {
+  const { suitability } = payload as SummaryDraft;
+  const mode = ctx.run.request.mode;
+  const wrong = [
+    ...(mode.ssf && !suitability.ssf ? ["solo self-found"] : []),
+    ...(mode.hardcore && !suitability.hardcore ? ["hardcore"] : []),
+    ...(!mode.hardcore && !suitability.softcore ? ["softcore"] : []),
+  ];
+  return wrong.map((m) => ({
+    gate: "G7" as const,
+    severity: "error" as const,
+    code: "suitability_contradicts_request",
+    message: `The player asked for ${m} play, so the guide must be suitable for it.`,
+    path: "/suitability",
+  }));
+}
+
 /** One section of the guide (Claude); earlier sections are context for the later ones. */
 export function sectionTask(
   ctx: PipelineContext,
@@ -126,10 +149,11 @@ export function sectionTask(
   section: S9Section,
   inputs: S9Inputs,
 ): AnyTaskSpec {
-  const written = S9_SECTIONS.slice(0, S9_SECTIONS.indexOf(section)).map((s) => ({
-    section: s,
-    content: ctx.result(sectionKey(s)) as JsonValue,
-  }));
+  const written = S9_SECTIONS.slice(0, S9_SECTIONS.indexOf(section)).map((s) => {
+    const content = ctx.result(sectionKey(s));
+    if (content === undefined) throw new Error(`Section ${s} is missing before ${section}`);
+    return { section: s, content };
+  });
   return defineTask<unknown>({
     key: sectionKey(section),
     type: sectionKey(section),
@@ -143,6 +167,7 @@ export function sectionTask(
       written,
     },
     schema: sectionSchemas[section],
+    ...(section === "summary" ? { check: summaryCheck } : {}),
     allowedTools: ["catalog_search", "catalog_get", "calc_evaluate"],
     entities: (p) => walkSection(p).entities,
     richText: (p) => walkSection(p).texts,

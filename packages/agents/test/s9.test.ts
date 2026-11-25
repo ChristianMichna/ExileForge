@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { TargetBuild } from "@astrolabe/contracts/build";
+import type { PipelineContext } from "../src/pipeline.js";
+import type { StageConfig } from "../src/config.js";
 import {
   S9_SECTIONS,
   citableCalcs,
+  sectionTask,
   sectionKey,
   sectionSchemas,
   walkSection,
@@ -60,5 +63,54 @@ describe("S9 sections", () => {
       },
     } as unknown as TargetBuild;
     expect(citableCalcs(target)).toEqual([{ profile: "a", calcId: "calc-1" }]);
+  });
+});
+
+describe("S9 summary check", () => {
+  const run = async (mode: object, suitability: object) => {
+    const ctx = {
+      run: { request: { mode }, interventions: [] },
+      result: () => undefined,
+    } as never as PipelineContext;
+    const spec = sectionTask(ctx, { promptVersion: "t" } as StageConfig, "summary", {
+      chosen: {} as never,
+      target: { calcs: {} } as never,
+      plans: { progression: null, gear: null, crafting: null },
+    }) as never as { check: (p: unknown, c: PipelineContext) => Promise<{ code: string }[]> };
+    return (await spec.check({ suitability }, ctx)).map((f) => f.code);
+  };
+
+  it("accepts a suitability that covers the requested mode", async () => {
+    expect(
+      await run({ ssf: true, hardcore: false }, { softcore: true, hardcore: false, ssf: true }),
+    ).toEqual([]);
+  });
+
+  it("rejects a suitability that contradicts the request", async () => {
+    expect(
+      await run({ ssf: true, hardcore: true }, { softcore: true, hardcore: false, ssf: false }),
+    ).toEqual(["suitability_contradicts_request", "suitability_contradicts_request"]);
+  });
+
+  it("fails loudly when an earlier section is missing", () => {
+    const ctx = { run: { request: {} }, result: () => undefined } as never as PipelineContext;
+    expect(() =>
+      sectionTask(ctx, { promptVersion: "t" } as StageConfig, "faq", {
+        chosen: {} as never,
+        target: { calcs: {} } as never,
+        plans: { progression: null, gear: null, crafting: null },
+      }),
+    ).toThrow(/missing/);
+  });
+
+  it("finds subjects of boss mechanics and entities in lists of rich text", () => {
+    const out = walkSection({
+      bossMechanics: [{ subject: { kind: "gem", id: "FixA" }, advice: [text("Dodge")] }],
+      strengths: [[text("Fast"), entity("FixB")]],
+    });
+    expect(out.entities.map((e) => e.path)).toEqual([
+      "/bossMechanics/0/subject",
+      "/strengths/0/1/ref",
+    ]);
   });
 });
