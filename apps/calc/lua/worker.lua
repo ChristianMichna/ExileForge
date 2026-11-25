@@ -551,8 +551,23 @@ local function findGroup(groupKey)
 	return found, foundGroup
 end
 
+-- The catalog names a gem by PoB's gameId, but PoB's gem table is keyed by its own
+-- table key (they differ for most support gems), so look the gem up by gameId.
+local gemsByGameId, gemsByGameIdSource
+local function gemByGameId(gameId)
+	if gemsByGameIdSource ~= build.data.gems then
+		gemsByGameId, gemsByGameIdSource = {}, build.data.gems
+		for _, gem in pairs(build.data.gems) do
+			if gem.gameId then
+				gemsByGameId[gem.gameId] = gem
+			end
+		end
+	end
+	return gemsByGameId[gameId]
+end
+
 local function gemInstance(spec, wantSupport)
-	local gemData = build.data.gems[spec.gemId]
+	local gemData = gemByGameId(spec.gemId)
 	if not gemData or not gemData.grantedEffect then
 		fail("invalid_params", "Gem not in Path of Building's data", tostring(spec.gemId))
 	end
