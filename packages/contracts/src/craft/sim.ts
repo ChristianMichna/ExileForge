@@ -119,16 +119,22 @@ export const CraftSimResult = z.object({
     z.object({ low: z.number().min(0).max(1), high: z.number().min(0).max(1) }),
     [DerivedSource],
   ),
-  /** How the attempts ended; they add up to `runs`. */
-  outcomes: z.object({
-    succeeded: z.int().nonnegative(),
-    /** Strategy ended or "accept" was chosen without the goal. */
-    finishedWithoutGoal: z.int().nonnegative(),
-    /** "restart" or "abort" was chosen. */
-    abandoned: z.int().nonnegative(),
-    /** An action could not be applied (precondition not met, no mod left to add). */
-    blocked: z.int().nonnegative(),
-  }),
+  /**
+   * How the attempts ended; they add up to `runs`. Absent when the result is
+   * uncalibrated or failed: there is nothing to count, and zeros would look
+   * like a measurement.
+   */
+  outcomes: z
+    .object({
+      succeeded: z.int().nonnegative(),
+      /** Strategy ended or "accept" was chosen without the goal. */
+      finishedWithoutGoal: z.int().nonnegative(),
+      /** "restart" or "abort" was chosen. */
+      abandoned: z.int().nonnegative(),
+      /** An action could not be applied (precondition not met, no mod left to add). */
+      blocked: z.int().nonnegative(),
+    })
+    .optional(),
   /** Attempts until one success; uncalibrated if no run succeeded. */
   expectedAttempts: MeasuredCount,
   actions: z.array(CraftActionUse),
