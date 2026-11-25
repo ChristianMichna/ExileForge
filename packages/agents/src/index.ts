@@ -14,6 +14,7 @@ export type {
   CatalogEntry,
   CatalogPort,
   CatalogQuery,
+  PricePort,
   ProgressionPort,
   ProgressionRequest,
   ProgressionStageTree,

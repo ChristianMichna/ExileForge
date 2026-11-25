@@ -6,6 +6,8 @@ import type {
   TargetBuild,
 } from "@astrolabe/contracts/build";
 import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
+import type { ItemPrice, PricedItemRef } from "@astrolabe/contracts";
+import type { DataRelease } from "@astrolabe/contracts/catalog";
 import type { CalcResult, ConfigOverrides } from "@astrolabe/contracts/calc";
 import type {
   CalcId,
@@ -54,6 +56,8 @@ export interface CatalogQuery {
 /** Read access to the catalog of one data release (gate G1, catalog tools, deterministic steps). */
 export interface CatalogPort {
   readonly dataReleaseId: DataReleaseId;
+  /** The release record with its facts (max level, passive points); absent in fixtures without one. */
+  readonly release?: DataRelease | undefined;
   get(ref: EntityRef): CatalogEntry | undefined;
   search(query: CatalogQuery): CatalogEntry[];
   /** All entries of a kind in catalog order. */
@@ -130,4 +134,12 @@ export interface ProgressionStageTree {
  */
 export interface ProgressionPort {
   optimizeProgression(input: ProgressionRequest): Promise<ProgressionStageTree[]>;
+}
+
+/** Market prices for S7: a thin view of `economy.price`; absent without an economy service. */
+export interface PricePort {
+  price(input: { league?: string; items: PricedItemRef[] }): Promise<{
+    league: string;
+    prices: ItemPrice[];
+  }>;
 }

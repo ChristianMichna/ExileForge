@@ -127,8 +127,13 @@ async function startServerOwningPool(
           ...stages.s3.calcProfiles,
           ...(stages.s5?.calcProfiles ?? []),
           ...(stages.s6?.calcProfiles ?? []),
+          ...(stages.s7?.calcProfiles ?? []),
         ];
   const knownProfiles = [...new Set([...config.pipelines.poc.calcProfiles, ...stageProfiles])];
+  const economy =
+    options.economy === undefined
+      ? undefined
+      : await createEconomy(options.economy, catalog, options.logger);
   const engine = new ForgeEngine({
     store,
     catalog,
@@ -136,13 +141,19 @@ async function startServerOwningPool(
     config,
     logger: options.logger,
     ...(skeleton === undefined ? {} : { skeleton, target: skeleton, progression: skeleton }),
+    ...(economy === undefined
+      ? {}
+      : {
+          economy: {
+            price: async (input) => {
+              const answer = await economy.price(input);
+              return { league: answer.league, prices: answer.prices };
+            },
+          },
+        }),
     pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
     calcProfiles: knownProfiles,
   });
-  const economy =
-    options.economy === undefined
-      ? undefined
-      : await createEconomy(options.economy, catalog, options.logger);
   const craft =
     options.craftConfigPath === undefined
       ? undefined

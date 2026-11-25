@@ -14,8 +14,10 @@ import {
   GemSetupSubmission,
   gemTask,
   S5_GEMS_KEY,
+  type S5Config,
   S5_TARGET_KEY,
   S5_TREE_KEY,
+  targetSize,
   targetStep,
   treeJob,
 } from "./stages/s5-target.js";
@@ -25,13 +27,16 @@ import {
   ProgressionNotes,
   S6_NOTES_KEY,
   S6_PLAN_KEY,
+  type S6Config,
   S6_STAGES_KEY,
   StoredStages,
   stagesJob,
 } from "./stages/s6-progression.js";
 import { TargetBuild } from "@astrolabe/contracts/build";
 import type { ProgressionStageTree } from "./ports.js";
-import { gearKey, gearTask, tiersOf } from "./stages/s7-gear.js";
+import { releaseStageTable } from "./stages/s6-table.js";
+import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
+import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 
@@ -146,17 +151,22 @@ function planTarget(
   profile: SkillProfile,
   candidates: readonly ArchetypeCandidate[],
 ): PlanStep {
-  const s5 = config.s5;
-  if (s5 === undefined) {
+  const s5Base = config.s5;
+  if (s5Base === undefined) {
     return {
       kind: "blocked",
       error: {
         code: "s5_not_configured",
         message:
-          "S5 needs the target level and passive points of the endgame (config/agents/stages.json, block s5). They have not been set yet. S0 to S4 are done; their results are stored with the run.",
+          "S5 needs the calc profiles and the tree objective of the target build (config/agents/stages.json, block s5). They have not been set yet. S0 to S4 are done; their results are stored with the run.",
       },
     };
   }
+  const size = targetSize(ctx.catalog.release);
+  if (typeof size === "string") {
+    return { kind: "blocked", error: { code: "release_facts_missing", message: size } };
+  }
+  const s5: S5Config = { ...s5Base, ...size };
   const selected = z.object({ candidateKey: z.string() }).safeParse(ctx.result(S4_KEY));
   if (!selected.success) {
     return {
@@ -211,17 +221,22 @@ function planProgression(
   chosen: ArchetypeCandidate,
   targetResult: JsonValue,
 ): PlanStep {
-  const s6 = config.s6;
-  if (s6 === undefined) {
+  const s6Base = config.s6;
+  if (s6Base === undefined) {
     return {
       kind: "blocked",
       error: {
         code: "s6_not_configured",
         message:
-          "S6 needs the stage table of the progression: level bands and passive points per stage (config/agents/stages.json, block s6). They have not been set yet. S0 to S5 are done; their results are stored with the run.",
+          "S6 needs the calc profiles and the tree objective of the progression (config/agents/stages.json, block s6). They have not been set yet. S0 to S5 are done; their results are stored with the run.",
       },
     };
   }
+  const table = s6Base.stages ?? releaseStageTable(ctx.catalog.release);
+  if (typeof table === "string") {
+    return { kind: "blocked", error: { code: "release_facts_missing", message: table } };
+  }
+  const s6: S6Config = { ...s6Base, stages: table };
   const target = TargetBuild.safeParse(targetResult);
   if (!target.success) {
     return {
@@ -268,16 +283,20 @@ function planGear(
   chosen: ArchetypeCandidate,
   target: TargetBuild,
 ): PlanStep {
-  const s7 = config.s7;
-  if (s7 === undefined) {
+  const s7Base = config.s7;
+  if (s7Base === undefined) {
     return {
       kind: "blocked",
       error: {
         code: "s7_not_configured",
         message:
-          "S7 needs the gear slots of the release and the budget tiers (config/agents/stages.json, block s7). They have not been set yet. S0 to S6 are done; their results are stored with the run.",
+          "S7 needs the budget tiers and calc profiles of the gear stage (config/agents/stages.json, block s7). They have not been set yet. S0 to S6 are done; their results are stored with the run.",
       },
     };
+  }
+  const s7 = resolveS7(s7Base, ctx.catalog.release);
+  if (typeof s7 === "string") {
+    return { kind: "blocked", error: { code: "release_facts_missing", message: s7 } };
   }
   const tiers = tiersOf(s7, ctx.run.request.budget);
   if (tiers === undefined) {
@@ -296,12 +315,13 @@ function planGear(
       .map((t) => ({ tier: t.id, gear: ctx.result(gearKey(t.id)) as JsonValue }));
     return { kind: "task", spec: gearTask(ctx, config, s7, open, chosen, target, earlier) };
   }
+  if (ctx.result(S7_PLAN_KEY) === undefined) return planJob(ctx, s7, tiers, chosen, target);
   return {
     kind: "blocked",
     error: {
       code: "stage_not_implemented",
       message:
-        "Prices and the upgrade order of S7 and the later stages are not built yet. S0 to S7 gear choices are done; their results are stored with the run.",
+        "S8 (crafting) and the later stages are not built yet. S0 to S7 are done; their results are stored with the run.",
     },
   };
 }

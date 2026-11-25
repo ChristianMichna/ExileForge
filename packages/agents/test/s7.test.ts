@@ -3,16 +3,26 @@ import { BuildState, type ItemSpec } from "@astrolabe/contracts/build";
 import { StageConfig } from "../src/config.js";
 import type { PipelineContext } from "../src/pipeline.js";
 import { createForgePipeline } from "../src/pipeline-forge.js";
-import { geared, gearKey, gearTask, itemEntities, tiersOf } from "../src/stages/s7-gear.js";
+import {
+  type S7Config,
+  geared,
+  gearKey,
+  gearTask,
+  itemEntities,
+  resolveS7,
+  tiersOf,
+} from "../src/stages/s7-gear.js";
 
-const s7: NonNullable<StageConfig["s7"]> = {
-  slots: ["SlotA", "SlotB"],
+const s7: S7Config = {
+  slots: [{ id: "SlotA", classes: ["ClassX"], partialBases: ["FixPartial"] }, { id: "SlotB" }],
+  requiredSlots: ["SlotA", "SlotB"],
   tiers: [
     { id: "low", label: "Low" },
     { id: "mid", label: "Mid" },
     { id: "high", label: "High" },
   ],
   calcProfiles: ["default"],
+  objective: { weights: { M: 1 } },
 };
 const unique: ItemSpec = { kind: "unique", uniqueId: "FixUnique" as never };
 const crafted: ItemSpec = {
@@ -37,8 +47,9 @@ describe("s7 config", () => {
       { id: "a", label: "A" },
       { id: "a", label: "B" },
     ];
-    expect(StageConfig.shape.s7.safeParse({ ...s7, tiers }).success).toBe(false);
-    expect(StageConfig.shape.s7.safeParse(s7).success).toBe(true);
+    const cfg = { calcProfiles: ["default"], objective: { weights: { M: 1 } }, tiers };
+    expect(StageConfig.shape.s7.safeParse(cfg).success).toBe(false);
+    expect(StageConfig.shape.s7.safeParse({ ...cfg, tiers: tiers.slice(0, 1) }).success).toBe(true);
   });
 });
 
@@ -102,7 +113,12 @@ describe("S7 gear", () => {
           request: { exclusions: [], mode: { ssf: over.ssf ?? false, hardcore: false } },
           interventions: [],
         },
-        catalog: { get: () => (over.known === false ? undefined : {}) },
+        catalog: {
+          get: () =>
+            over.known === false
+              ? undefined
+              : { entity: { itemClass: "ClassX", baseItemId: "FixBase" } },
+        },
         calc: over.calc ?? {
           calculate: () => Promise.resolve({ default: { status: "ok", calcId: "calc-1" } }),
         },
@@ -133,6 +149,36 @@ describe("S7 gear", () => {
       ]);
     });
 
+    it("rejects an item whose base class the slot does not accept", async () => {
+      const entities = {
+        FixBase: { itemClass: "ClassY" },
+        FixPartial: { itemClass: "ClassY" },
+        FixUnique: { baseItemId: "FixBase" },
+      } as Record<string, unknown>;
+      const ctx = {
+        ...(checkCtx() as object),
+        catalog: { get: (r: { id: string }) => ({ entity: entities[r.id] }) },
+      } as never;
+      const wrong = { slots: [choice("SlotA", unique), choice("SlotB", unique)] };
+      const findings = await make().check?.(wrong, ctx);
+      expect(findings?.map((f) => f.code)).toEqual(["item_not_allowed_in_slot"]);
+      const partial: ItemSpec = { ...(crafted as object), baseItemId: "FixPartial" } as never;
+      const ok = { slots: [choice("SlotA", partial), choice("SlotB", unique)] };
+      expect(await make().check?.(ok, ctx)).toEqual([]);
+    });
+
+    it("flags an item whose base class cannot be resolved", async () => {
+      const noBase = {
+        ...(checkCtx() as object),
+        catalog: { get: () => ({ entity: {} }) },
+      } as never;
+      const bad = await make().check?.(
+        { slots: [choice("SlotA", unique), choice("SlotB", unique)] },
+        noBase,
+      );
+      expect(bad?.map((f) => f.code)).toEqual(["base_unresolved"]);
+    });
+
     it("rejects trade items in solo self-found mode", async () => {
       const findings = await make().check?.(full, checkCtx({ ssf: true }));
       expect(findings?.map((f) => f.code)).toEqual(["trade_in_ssf", "trade_in_ssf"]);
@@ -156,7 +202,9 @@ describe("S7 gear", () => {
 
 describe("S7 request check", () => {
   it("stops at the start when the budget tiers are not a configured ascending range", () => {
-    const config = { s7 } as StageConfig;
+    const config = {
+      s7: { tiers: s7.tiers, calcProfiles: s7.calcProfiles },
+    } as unknown as StageConfig;
     const plan = (budget: { leveling: string; endgame: string }) =>
       createForgePipeline(config).plan({
         run: { request: { budget }, interventions: [] },
@@ -167,5 +215,54 @@ describe("S7 request check", () => {
       kind: "blocked",
       error: { code: "unknown_budget_tier" },
     });
+  });
+});
+
+describe("resolveS7", () => {
+  const base = { tiers: s7.tiers, calcProfiles: ["default"], objective: { weights: { M: 1 } } };
+  const release = (slots: object[]) =>
+    ({ id: "poe2-fix+r1", itemSlots: { slots, origin: "pob-data" } }) as never;
+  const slot = (id: string, order: number, extra: object = {}) => ({
+    id,
+    order,
+    label: id,
+    itemClasses: ["ClassX"],
+    ...extra,
+  });
+
+  it("uses the release slots in PoB order and requires the non-optional, non-dependent ones", () => {
+    const out = resolveS7(
+      base,
+      release([
+        slot("B", 2, { dependsOnSlot: "A" }),
+        slot("A", 1),
+        slot("C", 3, { optional: true }),
+      ]),
+    );
+    if (typeof out === "string") throw new Error(out);
+    expect(out.slots.map((s) => s.id)).toEqual(["A", "B", "C"]);
+    expect(out.requiredSlots).toEqual(["A"]);
+  });
+
+  it("names a missing slot list or unknown required slot instead of guessing", () => {
+    expect(typeof resolveS7(base, undefined)).toBe("string");
+    expect(resolveS7({ ...base, requiredSlots: ["Z"] }, release([slot("A", 1)]))).toMatch(/Z/);
+  });
+
+  it("rejects an override slot the release does not have", () => {
+    expect(resolveS7({ ...base, slots: ["Typo"] }, release([slot("A", 1)]))).toMatch(/Typo/);
+  });
+
+  it("does not require swap weapon set slots by default", () => {
+    const out = resolveS7(base, release([slot("A", 1), slot("A Swap", 2, { weaponSet: 2 })]));
+    if (typeof out === "string") throw new Error(out);
+    expect(out.requiredSlots).toEqual(["A"]);
+  });
+
+  it("lets the config override the slots without class rules", () => {
+    const out = resolveS7({ ...base, slots: ["Q"] }, undefined);
+    if (typeof out === "string") throw new Error(out);
+    expect(out.slots).toEqual([{ id: "Q" }]);
+    expect(out.requiredSlots).toEqual(["Q"]);
   });
 });
