@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer, type Socket } from "node:net";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { gameDataConfigSchema, loadGameDataConfig } from "../src/gamedata/config.ts";
@@ -13,7 +14,7 @@ import {
   type DatTool,
   type TableRunner,
 } from "../src/gamedata/export.ts";
-import { parsePatchReply } from "../src/gamedata/patch.ts";
+import { parsePatchReply, queryPatchServer } from "../src/gamedata/patch.ts";
 
 // A reply recorded from the update server (binary header, then the base url
 // as UTF-16LE, announced twice).
@@ -45,6 +46,34 @@ describe("parsePatchReply", () => {
       Buffer.alloc(2),
     ]);
     expect(() => parsePatchReply(odd)).toThrow(/unexpected url/);
+  });
+});
+
+describe("queryPatchServer", () => {
+  it("reads the reply of a server that keeps the connection open", async () => {
+    const received: number[] = [];
+    const sockets: Socket[] = [];
+    const server = createServer((socket) => {
+      sockets.push(socket);
+      socket.on("data", (d) => {
+        received.push(...d);
+        socket.write(RECORDED_REPLY); // and stays open, as the real server does
+      });
+    });
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    const addr = server.address();
+    const port = typeof addr === "object" && addr ? addr.port : 0;
+    try {
+      const info = await queryPatchServer(
+        { host: "127.0.0.1", port, handshake: [1, 7], timeoutMs: 5000 },
+        0,
+      );
+      expect(info.version).toBe("0.5.5.10");
+      expect(received).toEqual([1, 7]);
+    } finally {
+      for (const s of sockets) s.destroy();
+      server.close();
+    }
   });
 });
 

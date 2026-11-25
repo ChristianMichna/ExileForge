@@ -64,28 +64,61 @@ export async function queryPatchServer(
 
 class BadReplyError extends Error {}
 
+/** The server keeps the connection open after its reply; this idle time ends the reply. */
+const REPLY_SETTLE_MS = 1000;
+
 function queryOnce(server: GameDataConfig["patchServer"]): Promise<PatchInfo> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
+    let settle: NodeJS.Timeout | undefined;
+    let done = false;
     const socket = net.connect({ host: server.host, port: server.port });
+    const finish = (run: () => PatchInfo, fail: (cause: unknown) => Error): void => {
+      if (done) return;
+      done = true;
+      clearTimeout(settle);
+      socket.destroy();
+      try {
+        resolve(run());
+      } catch (cause) {
+        reject(fail(cause));
+      }
+    };
+    const fail = (message: string, cause?: unknown): void => {
+      if (done) return;
+      done = true;
+      clearTimeout(settle);
+      socket.destroy();
+      reject(new Error(message, { cause }));
+    };
     socket.setTimeout(server.timeoutMs);
     socket.on("connect", () => socket.write(Buffer.from(server.handshake)));
-    socket.on("data", (chunk: Buffer) => chunks.push(chunk));
-    socket.on("timeout", () => {
-      socket.destroy(new Error(`patch server ${server.host} did not answer in time`));
+    socket.on("data", (chunk: Buffer) => {
+      chunks.push(chunk);
+      clearTimeout(settle);
+      settle = setTimeout(() => {
+        finish(
+          () => parsePatchReply(Buffer.concat(chunks)),
+          (cause) => new BadReplyError(`bad reply from patch server ${server.host}`, { cause }),
+        );
+      }, REPLY_SETTLE_MS);
     });
-    socket.on("error", (cause) => {
-      reject(
-        new Error(`cannot query patch server ${server.host}:${String(server.port)}`, { cause }),
+    socket.on("timeout", () => {
+      fail(
+        `cannot query patch server ${server.host}:${String(server.port)}`,
+        new Error("no answer in time"),
       );
     });
-    socket.on("close", (hadError) => {
-      if (hadError) return; // the error handler has rejected
-      try {
-        resolve(parsePatchReply(Buffer.concat(chunks)));
-      } catch (cause) {
-        reject(new BadReplyError(`bad reply from patch server ${server.host}`, { cause }));
-      }
+    socket.on("error", (cause) => {
+      fail(`cannot query patch server ${server.host}:${String(server.port)}`, cause);
+    });
+    socket.on("close", () => {
+      if (chunks.length === 0) fail(`patch server ${server.host} closed without a reply`);
+      else
+        finish(
+          () => parsePatchReply(Buffer.concat(chunks)),
+          (cause) => new BadReplyError(`bad reply from patch server ${server.host}`, { cause }),
+        );
     });
   });
 }
