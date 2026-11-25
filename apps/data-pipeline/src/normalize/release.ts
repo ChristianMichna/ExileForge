@@ -99,6 +99,11 @@ export async function buildCatalog(
       itemClasses: new Set(norm.entities.baseItem.map((b) => String(b.itemClass))),
       baseClassOf: new Map(norm.entities.baseItem.map((b) => [String(b.id), String(b.itemClass)])),
     },
+    vocabulary: new Set(
+      norm.entities.mod.flatMap((m) =>
+        Array.isArray(m.tags) ? m.tags.map((t: unknown) => String(t)) : [],
+      ),
+    ),
     ...(extra.gameDataDir === undefined ? {} : { gameDataDir: extra.gameDataDir }),
   });
   const currencyFindings: Finding[] = [];

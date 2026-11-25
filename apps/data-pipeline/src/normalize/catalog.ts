@@ -73,6 +73,16 @@ export const normalizeConfigSchema = z
         mainTree: z
           .object({ perLevel: z.int().positive(), fromLevel: z.int().positive() })
           .strict(),
+        /**
+         * Lists PoB hard-codes in its code (origin pob-code), by PoB's names. The release id
+         * is the name in snake case; it must exist in the release's mod tags.
+         */
+        classifications: z
+          .object({
+            damageTypes: z.array(z.string().min(1)).min(1),
+            defenceLayers: z.array(z.string().min(1)).min(1),
+          })
+          .strict(),
       })
       .strict(),
   })

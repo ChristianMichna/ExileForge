@@ -42,8 +42,12 @@
     }
   },
   "releaseFacts": {
-    "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on. Known limit: PoB hard-codes level 100 / 99 points, so a different maxCharacterLevel in the game data would not be reflected by PoB.",
+    "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on. classifications: PoB lists them in its code, damage types as dmgTypeList (Modules/CalcPerform.lua, CalcDefence.lua) and defence layers as the resourceList entries with defence = true (Modules/CalcDefence.lua), v0.23.1; the release id is the snake-case name and must be a mod tag of the release. Known limit: PoB hard-codes level 100 / 99 points, so a different maxCharacterLevel in the game data would not be reflected by PoB.",
     "maxLevelTable": "ExperienceLevels",
-    "mainTree": { "perLevel": 1, "fromLevel": 2 }
+    "mainTree": { "perLevel": 1, "fromLevel": 2 },
+    "classifications": {
+      "damageTypes": ["Physical", "Lightning", "Cold", "Fire", "Chaos"],
+      "defenceLayers": ["Armour", "Evasion", "EnergyShield"]
+    }
   }
 }
