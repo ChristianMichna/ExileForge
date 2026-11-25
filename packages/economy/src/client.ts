@@ -18,7 +18,7 @@ export interface ClientDeps {
 
 /**
  * Client for the provider's public economy endpoints. Polite by construction:
- * identifying User-Agent without personal data, requests one after another with
+ * identifying User-Agent with the contact chosen by the project owner, requests one after another with
  * a minimum interval, conditional requests (ETag), size and time limits, no
  * redirects, a pause after 429. Failures raise EconomyError; nothing is
  * replaced by an empty list.
@@ -99,7 +99,9 @@ export class PoeNinjaClient {
 
     const cached = await this.cacheGet(url);
     const headers: Record<string, string> = {
-      "User-Agent": config.userAgent.replace("{appVersion}", this.deps.appVersion),
+      "User-Agent": config.userAgent
+        .replaceAll("{appName}", config.appName)
+        .replaceAll("{appVersion}", this.deps.appVersion),
       Accept: "application/json",
     };
     if (cached?.etag) headers["If-None-Match"] = cached.etag;

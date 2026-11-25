@@ -256,6 +256,7 @@ describe("shipped config", () => {
     const parsed = parseEconomyConfig(read("economy.json"));
     expect(parsed.baseUrl.startsWith("https://")).toBe(true);
     expect(parsed.userAgent).toContain("{appVersion}");
+    expect(parsed.userAgent).toContain("{appName}");
     expect(() => parseItemMap(read("item-map.json"))).not.toThrow();
   });
 });
