@@ -450,7 +450,18 @@ export class ForgeEngine {
             return { kind: "failed", error: r.error };
           }
           r.returns[step.stage] = used + 1;
+          const before = Object.keys(r.results).length;
           this.dropFrom(r, step.stage);
+          if (Object.keys(r.results).length === before) {
+            // Nothing was dropped, so planning would return again at once and burn the returns.
+            r.error = {
+              code: "return_dropped_nothing",
+              message: `Returning stage ${step.stage} dropped no result; the finding names a stage that has not run.`,
+            };
+            r.current = null;
+            tx.setPhase("failed");
+            return { kind: "failed", error: r.error };
+          }
           r.returned[step.stage] = step.findings;
           r.current = null;
           tx.setPhase("planning");
@@ -525,6 +536,8 @@ export class ForgeEngine {
     if (from !== undefined && from <= VARIANT_CHOICE_STAGE) {
       r.interventions = r.interventions.filter((e) => e.intervention.kind !== "chooseVariant");
     }
+    // Findings returned to this stage or a later one belong to results that are gone now.
+    r.returned = Object.fromEntries(Object.entries(r.returned).filter(([key]) => !matches(key)));
     // A running job computed from the old results; its answer must not come back.
     this.jobs.delete(r.runId);
     if (r.current !== null && matches(r.current.type)) {

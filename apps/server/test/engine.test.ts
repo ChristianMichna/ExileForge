@@ -445,4 +445,32 @@ describe("returning a stage", () => {
     const out2 = await e.submit({ runId, taskId: again.taskId, attempt: 1, payload: { x: "b" } });
     expect(out2.next).toMatchObject({ kind: "failed", error: { code: "returns_exhausted" } });
   });
+
+  it("fails at once when the returned stage has nothing to drop", async () => {
+    const store = new RunStore(":memory:");
+    const nothing: Pipeline = {
+      id: "return-nothing",
+      plan: () => ({
+        kind: "return",
+        stage: "S5",
+        findings: [finding],
+        maxReturns: 3,
+        summary: "x",
+      }),
+    };
+    const e = new ForgeEngine({
+      store,
+      catalog: fixtureCatalog(),
+      calc: new PersistedCalc(new CalcFake({ dataReleaseId: RELEASE }), store),
+      config: CONFIG,
+      pipelines: [nothing],
+      calcProfiles: CONFIG.pipelines.poc.calcProfiles,
+    });
+    const { sessionCode } = await e.createRun(REQUEST, "return-nothing");
+    const attached = await e.attach(sessionCode);
+    expect(attached.next).toMatchObject({
+      kind: "failed",
+      error: { code: "return_dropped_nothing" },
+    });
+  });
 });

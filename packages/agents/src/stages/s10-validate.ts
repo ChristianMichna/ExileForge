@@ -44,7 +44,10 @@ export const CriticVerdict = z.object({
   reviewed: z
     .array(z.enum(CRITIC_SECTIONS))
     .min(1)
-    .refine((r) => new Set(r).size === r.length, { message: "duplicate section" }),
+    .refine((r) => new Set(r).size === r.length, { message: "duplicate section" })
+    .refine((r) => CRITIC_SECTIONS.every((s) => r.includes(s)), {
+      message: "name every section in `reviewed` after reading all of them",
+    }),
   issues: z
     .array(
       z.object({
@@ -381,13 +384,13 @@ async function measuredGates(
     const path = `/progression/stages/${index}/calcs`;
     if (stats === undefined) {
       const msg = `Stage ${stage.key} has no readable result for profile ${cfg.calcProfile}.`;
-      g3.push(finding("G3", "stats_unavailable", msg, path, "S6"));
-      g4.push(finding("G4", "stats_unavailable", msg, path, "S6"));
-      g5.push(finding("G5", "stats_unavailable", msg, path, "S6"));
+      g3.push(finding("G3", "stats_unavailable", msg, path));
+      g4.push(finding("G4", "stats_unavailable", msg, path));
+      g5.push(finding("G5", "stats_unavailable", msg, path));
       continue;
     }
     const missing = (gate: Finding["gate"], name: string): Finding =>
-      finding(gate, "stat_missing", `PoB gave no ${name} for stage ${stage.key}.`, path, "S6");
+      finding(gate, "stat_missing", `PoB gave no ${name} for stage ${stage.key}.`, path);
     const spare = stats[cfg.stats.spiritFree];
     if (spare === undefined) g3.push(missing("G3", cfg.stats.spiritFree));
     else if (spare < 0) {
@@ -598,6 +601,15 @@ export function afterReport(ctx: PipelineContext, maxReturns: number): PlanStep 
     };
   }
   const errors = parsed.data.gates.flatMap((g) => g.findings).filter((f) => f.severity === "error");
+  if (errors.length === 0 && !parsed.data.passed) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "validation_failed",
+        message: "The validation report says the guide did not pass but lists no error finding.",
+      },
+    };
+  }
   const order = (stage: string): number => Number(/^S(\d+)/.exec(stage)?.[1] ?? Infinity);
   const returnable = errors
     .filter((f) => f.returnTo !== undefined)

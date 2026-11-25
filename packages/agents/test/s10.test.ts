@@ -381,12 +381,16 @@ describe("S10 after the gates", () => {
     ).toBe(true);
   });
 
+  it("requires the critic to name every section it read", () => {
+    expect(CriticVerdict.safeParse({ reviewed: ["summary"], issues: [] }).success).toBe(false);
+  });
+
   it("rejects critic messages with digits and duplicate reviewed sections", () => {
-    const base = { reviewed: ["summary"], issues: [] };
+    const base = { reviewed: [...CRITIC_SECTIONS], issues: [] };
     expect(CriticVerdict.safeParse(base).success).toBe(true);
-    expect(CriticVerdict.safeParse({ ...base, reviewed: ["summary", "summary"] }).success).toBe(
-      false,
-    );
+    expect(
+      CriticVerdict.safeParse({ ...base, reviewed: [...CRITIC_SECTIONS, "summary"] }).success,
+    ).toBe(false);
     expect(
       CriticVerdict.safeParse({ ...base, issues: [{ section: "faq", message: "Needs 5 more" }] })
         .success,
