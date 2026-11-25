@@ -20,6 +20,7 @@ import { S10_CRITIC } from "../prompts.js";
 import { requestContext } from "./context.js";
 import { craftKey, S8_PLAN_KEY } from "./s8-craft.js";
 import { S6_PLAN_KEY } from "./s6-progression.js";
+import { releaseStageTable } from "./s6-table.js";
 import { S7_PLAN_KEY } from "./s7-plan.js";
 import { itemEntities } from "./s7-gear.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
@@ -410,7 +411,34 @@ async function measuredGates(
       .sort((a, b) => b.fromLevel - a.fromLevel)[0]?.[field];
   const ehpSet = cfg.thresholds.some((t) => t.minEhp !== undefined);
   const dpsSet = cfg.thresholds.some((t) => t.minDps !== undefined);
+  const table = releaseStageTable(ctx.catalog.release);
+  if (typeof table === "string") g3.push(finding("G3", "points_unknown", table));
   for (const { stage, path, returnTo, stats } of await stageStats(ctx, draft, cfg.calcProfile)) {
+    if (typeof table !== "string") {
+      const row = table.find((r) => r.key === stage.key);
+      const used = stage.state.tree.allocated.length;
+      if (row === undefined) {
+        g3.push(
+          finding(
+            "G3",
+            "points_unknown",
+            `No passive point budget for stage ${stage.key}.`,
+            undefined,
+            "S6",
+          ),
+        );
+      } else if (used > row.passivePoints) {
+        g3.push(
+          finding(
+            "G3",
+            "points_overspent",
+            `Stage ${stage.key} allocates more passives than its level grants.`,
+            `/progression/stages/${String(stage.order)}/state/tree`,
+            "S6",
+          ),
+        );
+      }
+    }
     if (stats === undefined) {
       const msg = `Stage ${stage.key} has no readable result for profile ${cfg.calcProfile}.`;
       // Only the gear can be redone to fill in missing measurements of the endgame.
@@ -434,6 +462,23 @@ async function measuredGates(
           returnTo,
         ),
       );
+    }
+    for (const { have, need } of cfg.stats.attributes) {
+      const owned = stats[have];
+      const required = stats[need];
+      if (owned === undefined) g3.push(missing("G3", have));
+      else if (required === undefined) g3.push(missing("G3", need));
+      else if (required > owned) {
+        g3.push(
+          finding(
+            "G3",
+            "attribute_requirement_unmet",
+            `Stage ${stage.key}: ${have} is below the requirement ${need}.`,
+            path,
+            returnTo,
+          ),
+        );
+      }
     }
     if (cfg.resistanceCapStageKinds.includes(stage.kind)) {
       for (const name of cfg.stats.resistMissing) {
@@ -496,7 +541,7 @@ function gapOf(
   if (cfg === undefined && (gate === "G3" || gate === "G4" || gate === "G5")) {
     return `the whole gate (no "s10" block in config/agents/stages.json)`;
   }
-  if (gate === "G3") return "attributes, level requirements, the point count and tree paths";
+  if (gate === "G3") return "gem level requirements and tree connectivity";
   if (gate === "G4") {
     return thresholds?.ehp === true ? undefined : "the EHP minimum (no threshold configured)";
   }

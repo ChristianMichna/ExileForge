@@ -168,6 +168,10 @@ export const StageConfig = z
           spiritFree: z.string().min(1),
           /** Resistance still missing to the cap per element (PoB's "Missing…Resist", never negative); above zero the cap is not reached (G4). */
           resistMissing: z.array(z.string().min(1)).min(1),
+          /** Attribute totals and the highest requirement of any item or gem (PoB's Str/ReqStr…); a total below its requirement fails G3. */
+          attributes: z
+            .array(z.object({ have: z.string().min(1), need: z.string().min(1) }))
+            .min(1),
           ehp: z.string().min(1),
           dps: z.string().min(1),
         }),

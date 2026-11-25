@@ -191,6 +191,7 @@ describe("S10 measured gates", () => {
     stats: {
       spiritFree: "Sp",
       resistMissing: ["MissFire", "MissCold"],
+      attributes: [{ have: "A", need: "ReqA" }],
       ehp: "Ehp",
       dps: "Dps",
     },
@@ -221,7 +222,7 @@ describe("S10 measured gates", () => {
     (await runGates(withStats(stats), stageAt(level, kind), { ...cfg, ...over } as never)).flatMap(
       (g) => g.findings.map((f) => `${g.gate}:${f.code}`),
     );
-  const good = { Sp: 5, MissFire: 0, MissCold: 0, Ehp: 500, Dps: 5000 };
+  const good = { Sp: 5, MissFire: 0, MissCold: 0, Ehp: 500, Dps: 5000, A: 100, ReqA: 80 };
 
   it("passes G4 and G5 when every measured value meets the configured limits", async () => {
     const gates = await runGates(withStats(good), stageAt(90), cfg as never);
@@ -242,8 +243,46 @@ describe("S10 measured gates", () => {
     );
   });
 
+  it("flags an attribute below the requirement of an item or gem (G3)", async () => {
+    expect(await run({ ...good, A: 70 })).toContain("G3:attribute_requirement_unmet");
+    expect(await run(good)).not.toContain("G3:attribute_requirement_unmet");
+    expect(await run({ ...good, ReqA: undefined as never })).toContain("G3:stat_missing");
+  });
+
+  it("checks the allocated passives against the points of the stage table (G3)", async () => {
+    const release = {
+      id: "r",
+      maxCharacterLevel: { value: 5, origin: "pob-code" },
+      passivePoints: {
+        mainTree: { perLevel: 1, fromLevel: 1, origin: "pob-code" },
+        weaponSetByAct: { acts: [{ act: 1, areaLevel: 5, points: 0 }], origin: "pob-code" },
+      },
+    };
+    const base = withStats(good) as unknown as { catalog: object };
+    const c = { ...base, catalog: { ...base.catalog, release } } as never as PipelineContext;
+    const nodes = (n: number) => ({
+      ...STATE,
+      level: 5,
+      tree: {
+        allocated: Array.from({ length: n }, (_, i) => ({ nodeId: `N${String(i)}`, weaponSet: 0 })),
+        ascendancy: [],
+      },
+    });
+    const at = async (n: number, key = "act-1") =>
+      (
+        await runGates(
+          c,
+          draft({ progression: { stages: [stage({ key, kind: "campaign", state: nodes(n) })] } }),
+          cfg as never,
+        )
+      ).flatMap((g) => g.findings.map((f) => `${g.gate}:${f.code}`));
+    expect(await at(5)).not.toContain("G3:points_overspent");
+    expect(await at(6)).toContain("G3:points_overspent");
+    expect(await at(1, "other")).toContain("G3:points_unknown");
+  });
+
   it("separates a missing stat from a value below the minimum", async () => {
-    const codes = await run({ Sp: 1, MissFire: 0, MissCold: 0 });
+    const codes = await run({ Sp: 1, MissFire: 0, MissCold: 0, A: 1, ReqA: 1 });
     expect(codes).toEqual(expect.arrayContaining(["G4:stat_missing", "G5:stat_missing"]));
     expect(codes).not.toContain("G4:ehp_below_minimum");
   });
