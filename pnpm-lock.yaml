@@ -145,6 +145,12 @@ importers:
       '@exileforge/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@exileforge/crafting-sim':
+        specifier: workspace:*
+        version: link:../../packages/crafting-sim
+      '@exileforge/economy':
+        specifier: workspace:*
+        version: link:../../packages/economy
       '@exileforge/optimizer':
         specifier: workspace:*
         version: link:../../packages/optimizer

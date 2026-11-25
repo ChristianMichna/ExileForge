@@ -199,3 +199,17 @@ Antwort des alten Jobs. Noch ohne Zeitlimit und Abbruch.
 `src/calc/skeleton.ts` (`PobSkeleton`) ist der `SkeletonPort` auf PoB und
 `optimizeTree`; er wird mit `PobCalc` in `start.ts` verdrahtet, sobald
 `CalcPool.baseBuild` in main ist.
+
+## Crafting und Preise als MCP-Werkzeuge
+
+`craft_simulate` (Monte-Carlo-Simulation, Paket `crafting-sim`) und `economy_price`
+(Marktpreise, Paket `economy`) sind registriert, wenn `StartOptions.craftConfigPath`
+bzw. `StartOptions.economy` gesetzt sind (Entwicklungs-Einstieg: `--craft-config`,
+Standard `config/crafting/sim.json`; `--economy <cache-dir>` schaltet die Preise ein).
+Ohne Konfiguration gibt es das Werkzeug nicht, statt einen Platzhalter zu liefern.
+Fehlschläge (unbekannte Katalog-IDs, Abruf gescheitert) sind Fehlerantworten mit Code,
+nie leere Ergebnisse. Mit Economy rechnet der Simulator Kosten aus dem Preisbuch der
+Liga der Anfrage; ohne Preise bleiben Kosten `uncalibrated`. Offen (siehe
+`packages/economy/README.md`): Abbildung der Währungs-Items und der Kontakt im
+User-Agent; bis dahin scheitert `economy_price` mit einem klaren Fehler. Die Desktop-App
+muss `economy.cacheDir` und `appVersion` setzen.

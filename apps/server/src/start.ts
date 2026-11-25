@@ -9,6 +9,7 @@ import { PersistedCalc } from "./calc/persisted-calc.js";
 import { PobCalc, type CalcRequester } from "./calc/pob-calc.js";
 import { createItemRenderer } from "./calc/item-text.js";
 import { PobSkeleton } from "./calc/skeleton.js";
+import { createCraft, createEconomy, type EconomySettings } from "./tools/craft-economy.js";
 import type { CalcPort } from "./ports/calc.js";
 import { loadCatalogRelease } from "./catalog/memory-catalog.js";
 import { loadForgeConfig } from "./config/forge-config.js";
@@ -41,6 +42,10 @@ export interface StartOptions {
    * the real pipeline "forge" is the default and S3 measures skeleton builds.
    */
   calc: "fake" | { engine: "pob"; pool: PobPool; optimizerConfigPath: string };
+  /** config/crafting/sim.json; enables the MCP tool craft_simulate. */
+  craftConfigPath?: string;
+  /** Market prices (poe.ninja); enables economy_price and crafting costs. Absent = no price tool. */
+  economy?: EconomySettings;
   allowedOrigins: readonly string[];
   /** File with the per-installation access token (created if missing). */
   tokenFile: string;
@@ -119,7 +124,17 @@ async function startServerOwningPool(
     pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
     calcProfiles: knownProfiles,
   });
+  const economy =
+    options.economy === undefined
+      ? undefined
+      : await createEconomy(options.economy, catalog, options.logger);
+  const craft =
+    options.craftConfigPath === undefined
+      ? undefined
+      : await createCraft(options.craftConfigPath, catalog, economy);
   const app = createApp({
+    ...(craft === undefined ? {} : { craft }),
+    ...(economy === undefined ? {} : { economy: economy.price }),
     engine,
     catalog,
     calc,

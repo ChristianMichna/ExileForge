@@ -9,7 +9,8 @@ export type ForgeErrorCode =
   | "unknown_ask"
   | "run_finished"
   | "invalid_intervention"
-  | "invalid_request";
+  | "invalid_request"
+  | "economy_failed";
 
 /** Expected failure of a forge operation (bad input or state), not a bug. */
 export class ForgeError extends Error {
