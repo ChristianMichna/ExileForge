@@ -88,6 +88,13 @@ export async function currencyBaseItems(
   const tiered = parseRows("TieredCurrency", await table("TieredCurrency"), tieredRow);
   const exchange = parseRows("CurrencyExchange", await table("CurrencyExchange"), exchangeRow);
   // Omens: own table where the patch has one, else the achievement list
+  const hasOmens = manifest.tables.some((t) => t.name === "Omens");
+  if (!hasOmens)
+    findings.push({
+      kind: "currency",
+      id: "Omens",
+      message: "the patch has no Omens table; omens are taken from AchievementOmenTypes only",
+    });
   const omenRows = parseRows("Omens", await optional("Omens"), omenRow);
   const achievementOmens = parseRows(
     "AchievementOmenTypes",
@@ -148,11 +155,20 @@ export async function currencyBaseItems(
     });
 
   const target = (idx: number, table: string): BaseItem | undefined => {
+    const base = bases.get(idx);
+    if (base === undefined) {
+      errors.push({
+        kind: "currency",
+        id: String(idx),
+        message: `${table} row points to a missing BaseItemTypes row`,
+      });
+      return undefined;
+    }
     const item = selected.get(idx);
     if (item === undefined)
       findings.push({
         kind: "currency",
-        id: bases.get(idx)?.Id ?? String(idx),
+        id: base.Id,
         message: `${table} row names an item that is not a selected currency item (class ${classOf(idx) ?? "unknown"}); ignored`,
       });
     return item;
@@ -189,6 +205,14 @@ export async function currencyBaseItems(
     if (item) withTag(item, cfg.tags.omen);
   }
   for (const row of exchange) {
+    if (!bases.has(row.Item)) {
+      errors.push({
+        kind: "currency",
+        id: String(row.Item),
+        message: "CurrencyExchange row points to a missing BaseItemTypes row",
+      });
+      continue;
+    }
     const item = selected.get(row.Item);
     if (item === undefined) continue; // the exchange also lists items outside the selected classes
     if (row.Category == null) continue;

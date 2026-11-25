@@ -109,6 +109,15 @@ async function writeGameData(levels: number[]): Promise<string> {
   });
 }
 
+describe("currency without game data", () => {
+  it("leaves currency out and says so", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const { warnings } = await buildCatalog(snap, out, config, NOW);
+    expect(warnings.map((w) => w.message).join("\n")).toMatch(/currency items are left out/);
+  });
+});
+
 describe("release facts", () => {
   const factsConfig = {
     ...config,
@@ -121,6 +130,10 @@ describe("release facts", () => {
     const gameDataDir = await writeGameData([1, 2, 7, 5]);
     const { manifest } = await buildCatalog(snap, out, factsConfig, NOW, { gameDataDir });
     expect(manifest.release.maxCharacterLevel).toEqual({ value: 7, origin: "game-data" });
+    const shard = CatalogShard.parse(
+      JSON.parse(await readFile(join(out, "baseItem.json"), "utf8")),
+    );
+    expect(shard.entities.map((e) => (e as { id: string }).id)).toContain("Test/Orb");
     expect(manifest.release.passivePoints).toEqual({
       mainTree: {
         perLevel: cfg.releaseFacts.mainTree.perLevel,

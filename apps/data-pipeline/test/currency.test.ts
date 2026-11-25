@@ -47,4 +47,23 @@ describe("currencyBaseItems", () => {
     expect(text).toMatch(/Test\/Orb: CurrencyExchange row points to a missing category/);
     expect(text).toMatch(/Test\/Omen: id is not unique/);
   });
+
+  it("is an error when a table row points to a missing base item", async () => {
+    const bad = tables();
+    bad.Essences = [{ BaseItemType: 99, Tier: 1, Perfect: false }];
+    bad.CurrencyExchange = [{ Item: 98, Category: 0 }];
+    bad.CurrencyItems = [...(bad.CurrencyItems ?? []), { BaseItemType: 97, StackSize: 1 }];
+    const dir = await write(bad);
+    const { errors } = await currencyBaseItems(dir, cfg.currency, new Set());
+    const text = errors.map((e) => `${e.id}: ${e.message}`).join("\n");
+    expect(text).toMatch(/99: Essences row points to a missing BaseItemTypes row/);
+    expect(text).toMatch(/98: CurrencyExchange row points to a missing BaseItemTypes row/);
+    expect(text).toMatch(/97: CurrencyItems row points to a missing BaseItemTypes row/);
+  });
+
+  it("notes that the patch has no Omens table", async () => {
+    const dir = await write(tables());
+    const { findings } = await currencyBaseItems(dir, cfg.currency, new Set());
+    expect(findings.map((f) => f.message).join("\n")).toMatch(/no Omens table/);
+  });
 });

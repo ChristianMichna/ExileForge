@@ -194,5 +194,9 @@ export async function buildCatalog(
     "catalog manifest",
   );
   await writeFile(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-  return { manifest, warnings: [...norm.warnings, ...factFindings], summary: norm.summary };
+  return {
+    manifest,
+    warnings: [...norm.warnings, ...factFindings, ...currencyFindings],
+    summary: norm.summary,
+  };
 }

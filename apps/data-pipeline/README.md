@@ -131,12 +131,13 @@ Leere oder eine doppelte ID ist ein Fehler. Offen: was eine Essenz bewirkt
 (`Essences.UpgradeResult`) ist nicht abgebildet, bis die Crafting-Operation dafür
 festgelegt ist.
 
-IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
+IDs (Ausrüstung, Uniques, Gems, Mods aus PoB-Daten; Währungen aus den Game-Data-Tabellen, siehe ADR-0005):
 
 | Art               | ID                                            |
 | ----------------- | --------------------------------------------- |
 | Mod               | PoB-Mod-ID                                    |
-| Basis             | Name der Basis                                |
+| Basis             | Name der Basis (Ausrüstung)                   |
+| Währung, Essenz, Omen | `BaseItemTypes.Id` (Metadaten-Pfad)       |
 | Unique            | `Titel, Basis`                                |
 | Gem               | Spiel-ID des Gems                             |
 | Passive           | numerische Knoten-ID (als Text)               |
