@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { startCalcPool } from "@exileforge/calc";
+import { startCalcPool } from "@astrolabe/calc";
 import { loadCatalogRelease } from "./catalog/memory-catalog.js";
 import { defaultTokenFile } from "./access-token.js";
 import { createStderrLogger } from "./logger.js";
@@ -13,7 +13,7 @@ import { DEFAULT_PORT, startServer } from "./start.js";
 const { values } = parseArgs({
   options: {
     port: { type: "string", default: String(DEFAULT_PORT) },
-    db: { type: "string", default: "exileforge.sqlite" },
+    db: { type: "string", default: "astrolabe.sqlite" },
     catalog: { type: "string" },
     config: { type: "string", default: "config/forge/forge.json" },
     stages: { type: "string", default: "config/agents/stages.json" },

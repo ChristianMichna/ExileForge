@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import type { FastifyInstance } from "fastify";
-import { parseOptimizerConfig } from "@exileforge/optimizer";
-import { createForgePipeline, StageConfig } from "@exileforge/agents";
+import { parseOptimizerConfig } from "@astrolabe/optimizer";
+import { createForgePipeline, StageConfig } from "@astrolabe/agents";
 import { loadOrCreateAccessToken } from "./access-token.js";
 import { CalcFake } from "./calc/calc-fake.js";
 import { ClassBaseBuilds, type BaseBuildSource } from "./calc/base-builds.js";

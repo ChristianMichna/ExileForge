@@ -1,5 +1,5 @@
 -- worker.lua
--- Long-lived headless Path of Building (PoE2) worker for ExileForge.
+-- Long-lived headless Path of Building (PoE2) worker for Astrolabe.
 --
 -- Boots PoB once through PoB's own HeadlessWrapper.lua and then answers
 -- JSON-RPC 2.0 requests, one JSON object per line on stdin. Every response is
@@ -24,7 +24,7 @@ local workerDir, initPath = ...
 workerDir = workerDir or arg[1]
 initPath = initPath or arg[2]
 
-local RESPONSE_MARKER = "@@EXILEFORGE_RPC@@"
+local RESPONSE_MARKER = "@@ASTROLABE_RPC@@"
 local PROTOCOL_VERSION = 1
 
 package.path = workerDir .. "/?.lua;../runtime/lua/?.lua;../runtime/lua/?/init.lua;" .. package.path
@@ -200,7 +200,7 @@ local function loadIntoPob(xmlText)
 	takePrompt()
 	capture = {}
 	local ok, err = pcall(function()
-		loadBuildFromXML(xmlText, "ExileForge")
+		loadBuildFromXML(xmlText, "Astrolabe")
 		-- second frame so all deferred recalculations have run
 		runCallback("OnFrame")
 	end)
@@ -767,7 +767,7 @@ methods["build.applyPatch"] = function(params)
 	if prompt then
 		fail("calc_failed", "Path of Building reported an error after the patch", prompt)
 	end
-	local handle = addState(build:SaveDB("ExileForge"))
+	local handle = addState(build:SaveDB("Astrolabe"))
 	-- PoB now holds the patched object, but numbers must belong to the stored
 	-- XML (the hash). Leaving current unset makes the next calc load that XML,
 	-- so memory state and export/reload can never differ.
@@ -807,7 +807,7 @@ methods["build.template"] = function(params)
 	if prompt then
 		fail("calc_failed", "Path of Building reported an error for the new build", prompt)
 	end
-	local xmlText = build:SaveDB("ExileForge")
+	local xmlText = build:SaveDB("Astrolabe")
 	current = nil
 	return { payload = xmlText }
 end

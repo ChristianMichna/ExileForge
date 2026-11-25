@@ -43,7 +43,7 @@ describe("calc profiles", () => {
   });
 
   it("rejects a profile whose id differs from its file name, or that sets an option twice", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "exileforge-profiles-"));
+    const dir = await mkdtemp(join(tmpdir(), "astrolabe-profiles-"));
     try {
       await writeFile(
         join(dir, "a.json"),

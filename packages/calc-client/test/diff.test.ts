@@ -1,4 +1,4 @@
-import { PatchOp, BuildState } from "@exileforge/contracts";
+import { PatchOp, BuildState } from "@astrolabe/contracts";
 import { describe, expect, it } from "vitest";
 import { diffBuildState, PatchPlanError } from "../src/index.ts";
 

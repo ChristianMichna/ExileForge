@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CharacterClassId } from "@exileforge/contracts/common";
+import { CharacterClassId } from "@astrolabe/contracts/common";
 import { CalcFake } from "../src/calc/calc-fake.js";
 import { richTextFindings, toPointer } from "../src/engine/checks.js";
 import { RELEASE } from "./fixtures.js";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ItemPrice } from "@exileforge/contracts";
+import { ItemPrice } from "@astrolabe/contracts";
 import { buildPriceBook, EconomyError, priceItems } from "../src/index.js";
 import { catalogHas, config, itemMap, RELEASE, responseA, responseB } from "./fixtures.js";
 

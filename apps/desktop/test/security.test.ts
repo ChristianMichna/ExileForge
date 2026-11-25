@@ -8,15 +8,15 @@ import {
 
 describe("security helpers", () => {
   it("recognises only the app origin", () => {
-    expect(isAppUrl("exileforge://app/index.html")).toBe(true);
-    expect(isAppUrl("exileforge://other/index.html")).toBe(false);
-    expect(isAppUrl("https://exileforge.app/")).toBe(false);
+    expect(isAppUrl("astrolabe://app/index.html")).toBe(true);
+    expect(isAppUrl("astrolabe://other/index.html")).toBe(false);
+    expect(isAppUrl("https://astrolabe.app/")).toBe(false);
     expect(isAppUrl("file:///C:/x.html")).toBe(false);
     expect(isAppUrl("not a url")).toBe(false);
   });
 
   it("trusts IPC only from app frames", () => {
-    expect(isTrustedSender("exileforge://app/index.html#/plan")).toBe(true);
+    expect(isTrustedSender("astrolabe://app/index.html#/plan")).toBe(true);
     expect(isTrustedSender("https://evil.example/")).toBe(false);
     expect(isTrustedSender(undefined)).toBe(false);
   });

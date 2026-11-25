@@ -1,4 +1,4 @@
-import type { DataReleaseId } from "@exileforge/contracts";
+import type { DataReleaseId } from "@astrolabe/contracts";
 import { join, resolve } from "node:path";
 import { loadPoolConfig, resolvePoolSize } from "./config.ts";
 import { pobInstallFromHome, type PobInstall } from "./install.ts";

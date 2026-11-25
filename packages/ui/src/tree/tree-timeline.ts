@@ -1,9 +1,9 @@
 // Level timeline of a passive tree: the allocation is played back point by
 // point across the guide's stages. Input mirrors ProgressionStage
-// (allocationOrder, respecs) from @exileforge/contracts/build; respecs of a
+// (allocationOrder, respecs) from @astrolabe/contracts/build; respecs of a
 // stage are refunded before its new points are allocated.
 
-import type { ProgressionStage } from "@exileforge/contracts/build";
+import type { ProgressionStage } from "@astrolabe/contracts/build";
 
 /** The parts of a progression stage the timeline needs. */
 export type TreeStageInput = Pick<

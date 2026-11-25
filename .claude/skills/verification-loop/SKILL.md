@@ -1,6 +1,6 @@
 ---
 name: verification-loop
-description: Prüfschleife vor jedem PR oder nach einer größeren Änderung in ExileForge – Typecheck, Lint, Tests, Build, Lua-Worker, Projektregeln (Zahlenherkunft, Zugangsdaten) und Diff-Durchsicht, mit PASS/FAIL-Bericht. Verwenden vor dem Öffnen oder Aktualisieren eines PRs oder wenn Qualitäts-Gates bestätigt werden sollen.
+description: Prüfschleife vor jedem PR oder nach einer größeren Änderung in Astrolabe – Typecheck, Lint, Tests, Build, Lua-Worker, Projektregeln (Zahlenherkunft, Zugangsdaten) und Diff-Durchsicht, mit PASS/FAIL-Bericht. Verwenden vor dem Öffnen oder Aktualisieren eines PRs oder wenn Qualitäts-Gates bestätigt werden sollen.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/verification-loop),

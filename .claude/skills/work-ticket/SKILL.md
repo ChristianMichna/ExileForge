@@ -1,9 +1,9 @@
 ---
 name: work-ticket
-description: Schreibt oder prüft ein Arbeitspaket für ExileForge im Ticket-Format des Projektplans – Ziel, betroffene Pakete, Vertrags-Referenzen, prüfbare Akzeptanzkriterien, Testanforderungen, Feature-ID (F-xx), Workstream (WS0–WS9). Verwenden beim Anlegen eines Issues, beim Zerlegen einer Aufgabe in Arbeitspakete und als Gerüst für PR-Beschreibungen.
+description: Schreibt oder prüft ein Arbeitspaket für Astrolabe im Ticket-Format des Projektplans – Ziel, betroffene Pakete, Vertrags-Referenzen, prüfbare Akzeptanzkriterien, Testanforderungen, Feature-ID (F-xx), Workstream (WS0–WS9). Verwenden beim Anlegen eines Issues, beim Zerlegen einer Aufgabe in Arbeitspakete und als Gerüst für PR-Beschreibungen.
 ---
 
-<!-- Eigenentwicklung für ExileForge nach Projektplan 1.0
+<!-- Eigenentwicklung für Astrolabe nach Projektplan 1.0
      („Umsetzung durch den Agent-Swarm"). -->
 
 # Arbeitspaket (Ticket)

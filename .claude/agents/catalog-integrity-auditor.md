@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
-<!-- Eigenentwicklung für ExileForge (nicht aus everything-claude-code).
+<!-- Eigenentwicklung für Astrolabe (nicht aus everything-claude-code).
      Grundlage: Projektplan 1.0, Leitprinzipien und Gate G1. -->
 
 Du schützt zwei Leitprinzipien aus dem Projektplan:

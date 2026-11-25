@@ -1,4 +1,4 @@
-import { MAX_BUILD_PAYLOAD_CHARS } from "@exileforge/contracts";
+import { MAX_BUILD_PAYLOAD_CHARS } from "@astrolabe/contracts";
 import { deflateSync, inflateSync } from "node:zlib";
 import { CalcServiceError } from "./errors.ts";
 

@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { PriceBook } from "@exileforge/contracts";
+import { PriceBook } from "@astrolabe/contracts";
 import { EconomyError } from "./errors.js";
 
 /** Cache files larger than this are ignored; a response is limited far below it. */

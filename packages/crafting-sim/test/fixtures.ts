@@ -1,9 +1,9 @@
-import type { BaseItem, CraftingAction, Mod, PriceBook } from "@exileforge/contracts";
+import type { BaseItem, CraftingAction, Mod, PriceBook } from "@astrolabe/contracts";
 import {
   BaseItem as BaseItemSchema,
   CraftingAction as ActionSchema,
   Mod as ModSchema,
-} from "@exileforge/contracts";
+} from "@astrolabe/contracts";
 
 /*
  * Synthetic fixtures with invented ids. They test the logic of the simulator

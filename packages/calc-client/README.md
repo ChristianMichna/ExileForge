@@ -1,4 +1,4 @@
-# @exileforge/calc-client
+# @astrolabe/calc-client
 
 Brücke zwischen den Entscheidungen im `BuildState` (`packages/contracts`) und dem
 Calc-Service (`apps/calc`). Enthält keine Zahlen und kein Spielwissen; alles

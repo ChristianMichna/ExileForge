@@ -1,6 +1,6 @@
-# @exileforge/agents
+# @astrolabe/agents
 
-Die Planungsstufen von ExileForge als kleine, einzeln geprüfte Aufgaben
+Die Planungsstufen von Astrolabe als kleine, einzeln geprüfte Aufgaben
 (keine Single-Shot-Prompts). Jede Stufe liefert eine `TaskSpec`: Anweisung,
 Kontext, Antwortschema, erlaubte Werkzeuge und Prüfungen. Die Schleife
 (`forge_attach/next/submit`) läuft in `apps/server`.

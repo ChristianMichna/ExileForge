@@ -5,12 +5,12 @@ import { fileURLToPath } from "node:url";
 
 const root = (rel) => fileURLToPath(new URL(rel, import.meta.url));
 const required = [
-  [root("../dist/main.cjs"), "run `pnpm --filter @exileforge/desktop build`"],
-  [root("../dist/preload.cjs"), "run `pnpm --filter @exileforge/desktop build`"],
-  [root("../../web/dist/index.html"), "run `pnpm --filter @exileforge/web build`"],
+  [root("../dist/main.cjs"), "run `pnpm --filter @astrolabe/desktop build`"],
+  [root("../dist/preload.cjs"), "run `pnpm --filter @astrolabe/desktop build`"],
+  [root("../../web/dist/index.html"), "run `pnpm --filter @astrolabe/web build`"],
   [
-    root("../../mcp-bridge/dist/exileforge.mcpb"),
-    "run `pnpm --filter @exileforge/mcp-bridge pack:mcpb`",
+    root("../../mcp-bridge/dist/astrolabe.mcpb"),
+    "run `pnpm --filter @astrolabe/mcp-bridge pack:mcpb`",
   ],
   [
     root("../data-release/manifest.json"),

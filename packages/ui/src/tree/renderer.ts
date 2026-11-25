@@ -1,7 +1,7 @@
 // WebGL renderer of the passive tree (PixiJS). Imperative on purpose: React
 // owns the controls and overlays, this class owns the canvas, the camera and
 // hit testing. Colours come from the --ef-tree-* design tokens; shapes are
-// ExileForge's own (no game art).
+// Astrolabe's own (no game art).
 import { Application, Container, Graphics } from "pixi.js";
 import type { PassiveTreeView, TreeEdgeView, TreeNodeShape, TreeNodeView } from "./tree-model";
 

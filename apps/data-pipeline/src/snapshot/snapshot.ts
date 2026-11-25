@@ -14,7 +14,7 @@ export const releaseIdPattern = /^poe2-\d+(?:\.\d+){1,3}\+r\d+$/;
 
 export const snapshotManifestSchema = z
   .object({
-    format: z.literal("exileforge-raw-snapshot/1"),
+    format: z.literal("astrolabe-raw-snapshot/1"),
     releaseId: z.string().regex(releaseIdPattern),
     gameVersion: z.string().regex(/^\d+(?:\.\d+){1,3}$/),
     pobVersion: z.string().min(1),

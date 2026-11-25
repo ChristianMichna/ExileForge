@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ProvenanceView } from "@exileforge/ui";
+import type { ProvenanceView } from "@astrolabe/ui";
 import {
   Badge,
   Button,
@@ -17,7 +17,7 @@ import {
   StatValue,
   Tabs,
   colorVar,
-} from "@exileforge/ui";
+} from "@astrolabe/ui";
 import { SAMPLE_ITEMS } from "../fixtures/sample-build";
 import { PageHeader } from "../shell/PageHeader";
 
@@ -40,7 +40,7 @@ export function DesignSystem() {
       <PageHeader
         kicker="Reference"
         title="Design System"
-        subtitle="Tokens, typography and building blocks of ExileForge. Original artwork, no game assets."
+        subtitle="Tokens, typography and building blocks of Astrolabe. Original artwork, no game assets."
       />
 
       <div className="gallery">
@@ -173,7 +173,7 @@ export function DesignSystem() {
 
         <Panel title="Ornaments" kicker="Original SVGs, no game assets">
           <div className="ornament-row">
-            <Sigil size={64} title="ExileForge sigil" />
+            <Sigil size={64} title="Astrolabe sigil" />
             <Sigil size={40} />
             <Sigil size={24} />
           </div>

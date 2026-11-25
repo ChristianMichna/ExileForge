@@ -21,4 +21,4 @@ const bridge: DesktopBridge = {
   installUpdate: () => ipcRenderer.invoke(IPC.installUpdate),
 };
 
-contextBridge.exposeInMainWorld("exileforge", bridge);
+contextBridge.exposeInMainWorld("astrolabe", bridge);

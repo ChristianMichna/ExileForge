@@ -102,9 +102,9 @@ describe("bridge over real HTTP", () => {
 describe("endpoint and token", () => {
   it("only ever targets 127.0.0.1 with a valid port", () => {
     expect(endpointFromEnv({}).href).toBe(`http://127.0.0.1:${DEFAULT_PORT}/mcp`);
-    expect(endpointFromEnv({ EXILEFORGE_PORT: "50000" }).href).toBe("http://127.0.0.1:50000/mcp");
+    expect(endpointFromEnv({ ASTROLABE_PORT: "50000" }).href).toBe("http://127.0.0.1:50000/mcp");
     for (const bad of ["evil.example", "0x50", "1e3", " 80 ", "80", "70000"]) {
-      expect(() => endpointFromEnv({ EXILEFORGE_PORT: bad })).toThrow(/port number/);
+      expect(() => endpointFromEnv({ ASTROLABE_PORT: bad })).toThrow(/port number/);
     }
   });
 
@@ -121,7 +121,7 @@ describe("endpoint and token", () => {
   });
 
   it("fails loudly when the token file is missing (app never started)", async () => {
-    const fetcher = fetchWithToken("/nonexistent/exileforge/token", async () => new Response("{}"));
+    const fetcher = fetchWithToken("/nonexistent/astrolabe/token", async () => new Response("{}"));
     await expect(fetcher("http://127.0.0.1:1/mcp")).rejects.toBeInstanceOf(TokenMissingError);
   });
 

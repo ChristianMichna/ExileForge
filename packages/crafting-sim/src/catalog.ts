@@ -1,4 +1,4 @@
-import type { BaseItem, CraftingAction, Mod } from "@exileforge/contracts";
+import type { BaseItem, CraftingAction, Mod } from "@astrolabe/contracts";
 
 /** What the simulator reads from a data release. */
 export interface SimCatalog {

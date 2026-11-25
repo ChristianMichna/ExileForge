@@ -1,4 +1,4 @@
-import type { PassiveNodeId } from "@exileforge/contracts";
+import type { PassiveNodeId } from "@astrolabe/contracts";
 import { OptimizerError } from "./errors.ts";
 import type { EvalFailure, EvalOutcome, Metrics, TreeEvaluator } from "./types.ts";
 

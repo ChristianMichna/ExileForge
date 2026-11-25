@@ -1,6 +1,6 @@
 import type { z } from "zod";
-import type { BuildState, Finding, RichText } from "@exileforge/contracts/build";
-import type { CalcProfileId, DataReleaseId, EntityRef } from "@exileforge/contracts/common";
+import type { BuildState, Finding, RichText } from "@astrolabe/contracts/build";
+import type { CalcProfileId, DataReleaseId, EntityRef } from "@astrolabe/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 

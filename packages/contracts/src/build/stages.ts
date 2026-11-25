@@ -104,7 +104,7 @@ export const ProgressionStage = z
     key,
     order: z.int().nonnegative(),
     label: z.string().min(1).max(120),
-    /** ExileForge's stage grouping; act numbers and level bands come from config. */
+    /** Astrolabe's stage grouping; act numbers and level bands come from config. */
     kind: z.enum(["campaign", "endgame"]),
     act: z.int().positive().optional(),
     levelRange: z.tuple([z.int().positive(), z.int().positive()]),

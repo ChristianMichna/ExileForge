@@ -12,7 +12,7 @@ import { StatMatcher } from "./normalize/stat-matcher.ts";
 import { buildSnapshot } from "./snapshot/build.ts";
 import { readManifest, readShard } from "./snapshot/snapshot.ts";
 
-const USAGE = `exileforge-data <command>
+const USAGE = `astrolabe-data <command>
 
   snapshot --game-version <x.y[.z.w]> --revision <n> --out <dir>
            [--pob-home .pob] [--sources config/data-pipeline/pob-sources.json]

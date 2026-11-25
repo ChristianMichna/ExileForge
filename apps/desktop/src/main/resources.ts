@@ -2,7 +2,7 @@ import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 export interface AppDirs {
-  /** Holds web/, config/, exileforge.mcpb and data-release/ (packaged) or the repository (dev). */
+  /** Holds web/, config/, astrolabe.mcpb and data-release/ (packaged) or the repository (dev). */
   readonly resourcesRoot: string;
   readonly webRoot: string;
   readonly forgeConfigPath: string;
@@ -33,13 +33,13 @@ export function resolveAppDirs(opts: {
     stagesConfigPath: join(root, "config", "agents", "stages.json"),
     desktopConfigPath: join(root, "config", "desktop", "desktop.json"),
     extensionPath: opts.packaged
-      ? join(root, "exileforge.mcpb")
-      : join(root, "apps", "mcp-bridge", "dist", "exileforge.mcpb"),
+      ? join(root, "astrolabe.mcpb")
+      : join(root, "apps", "mcp-bridge", "dist", "astrolabe.mcpb"),
     downloadedReleasesDir: join(opts.userData, "data-releases"),
     bundledReleaseDir: opts.packaged
       ? join(root, "data-release")
       : join(root, "data-snapshots", "current", "catalog"),
-    databasePath: join(opts.userData, "exileforge.sqlite"),
+    databasePath: join(opts.userData, "astrolabe.sqlite"),
   };
 }
 
@@ -60,7 +60,7 @@ async function isRelease(dir: string): Promise<boolean> {
 export async function findDataRelease(dirs: AppDirs, override?: string): Promise<string> {
   if (override !== undefined && override !== "") {
     if (await isRelease(override)) return override;
-    throw new Error(`EXILEFORGE_DATA_RELEASE points to ${override}, which has no manifest.json.`);
+    throw new Error(`ASTROLABE_DATA_RELEASE points to ${override}, which has no manifest.json.`);
   }
   let names: string[] = [];
   try {

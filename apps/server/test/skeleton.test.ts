@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import type { TreeOptimizeInput } from "@exileforge/optimizer";
+import type { TreeOptimizeInput } from "@astrolabe/optimizer";
 import {
   ArchetypeCandidate,
   BuildRequest,
   BuildState,
   SkillProfile,
-} from "@exileforge/contracts/build";
-import { CatalogShard } from "@exileforge/contracts/catalog";
-import { CalcId } from "@exileforge/contracts/common";
+} from "@astrolabe/contracts/build";
+import { CatalogShard } from "@astrolabe/contracts/catalog";
+import { CalcId } from "@astrolabe/contracts/common";
 import { MemoryCatalog } from "../src/catalog/memory-catalog.js";
 import { PobSkeleton } from "../src/calc/skeleton.js";
 import { createMemoryLogger } from "../src/logger.js";

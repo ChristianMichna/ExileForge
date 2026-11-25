@@ -93,7 +93,7 @@
                                   "craftingAction",
                                   "statTranslation"
                                 ],
-                                "description": "Kind of catalog entity (ExileForge's own grouping, not a game concept)"
+                                "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
                               },
                               "id": {
                                 "type": "string",
@@ -136,7 +136,7 @@
                                   "craftingAction",
                                   "statTranslation"
                                 ],
-                                "description": "Kind of catalog entity (ExileForge's own grouping, not a game concept)"
+                                "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
                               },
                               "id": {
                                 "type": "string",
@@ -297,7 +297,7 @@
                               "craftingAction",
                               "statTranslation"
                             ],
-                            "description": "Kind of catalog entity (ExileForge's own grouping, not a game concept)"
+                            "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
                           },
                           "id": {
                             "type": "string",
@@ -453,7 +453,7 @@
                               "craftingAction",
                               "statTranslation"
                             ],
-                            "description": "Kind of catalog entity (ExileForge's own grouping, not a game concept)"
+                            "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
                           },
                           "id": {
                             "type": "string",

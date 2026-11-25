@@ -1,6 +1,6 @@
 ---
 name: contract-first
-description: Leitprinzip „Verträge zuerst" – Schnittstellen und Datenformen in ExileForge werden im Vertragspaket festgelegt, bevor implementiert wird; Vertragsänderungen laufen als eigener Vertrags-PR, Implementierungen arbeiten bis dahin gegen Fakes. Verwenden beim Hinzufügen oder Ändern von Katalog-, Build-, Guide-, CalcRPC-, Pipeline-Stufen-, MCP-Tool-, IPC-, Event- oder Exportformaten.
+description: Leitprinzip „Verträge zuerst" – Schnittstellen und Datenformen in Astrolabe werden im Vertragspaket festgelegt, bevor implementiert wird; Vertragsänderungen laufen als eigener Vertrags-PR, Implementierungen arbeiten bis dahin gegen Fakes. Verwenden beim Hinzufügen oder Ändern von Katalog-, Build-, Guide-, CalcRPC-, Pipeline-Stufen-, MCP-Tool-, IPC-, Event- oder Exportformaten.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/contract-first),
@@ -36,8 +36,8 @@ Dazu die Grenzen der lokalen App (ADR-0004):
 | MCP-Tools, `forge`-Aufgaben | `apps/server` ⇄ Claude (über `.mcpb`-Brücke bzw. HTTP) |
 | Calc-RPC | `calc-client` ⇄ LuaJIT-Worker (JSON-RPC über stdio) |
 | Daten-Release | `apps/data-pipeline` (CI) → App |
-| Teilen-Datei | ExileForge ⇄ ExileForge eines Freundes (`.exileforge.json`) |
-| `.build`-Export | ExileForge → Build Planner im Spiel (GGG-Format) |
+| Teilen-Datei | Astrolabe ⇄ Astrolabe eines Freundes (`.astrolabe.json`) |
+| `.build`-Export | Astrolabe → Build Planner im Spiel (GGG-Format) |
 
 Für jede Grenze gibt es **genau ein** maßgebliches Schema im
 Vertragspaket. Keine parallel gepflegten Typen, Mocks oder Doku-Tabellen mit

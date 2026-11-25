@@ -69,7 +69,7 @@ export const EntityKind = z
     "craftingAction",
     "statTranslation",
   ])
-  .describe("Kind of catalog entity (ExileForge's own grouping, not a game concept)");
+  .describe("Kind of catalog entity (Astrolabe's own grouping, not a game concept)");
 export type EntityKind = z.infer<typeof EntityKind>;
 
 /** Untyped reference to any catalog entity, e.g. for findings and diffs. */

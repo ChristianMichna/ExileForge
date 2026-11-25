@@ -1,4 +1,4 @@
-# ExileForge – Architektur (Entwurf v0.3, lokal zuerst)
+# Astrolabe – Architektur (Entwurf v0.3, lokal zuerst)
 
 Stand: 2026-11-24. Grundlage ist der [Projektplan 1.0](projektplan.md); dieses
 Dokument hält fest, **wie** wir ihn umsetzen und was aus den bisherigen Arbeiten
@@ -9,7 +9,7 @@ steht im [Abgleich](plan-abgleich.md). Annahmen sind mit **⚠ Annahme** markier
 
 1. **Läuft lokal auf Christians PC** und lässt sich **einfach an Freunde schicken** ([ADR-0004](adr/0004-lokal-first.md)).
 2. **Eigenes Frontend**, nicht die Claude-App als Oberfläche ([ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
-3. KI läuft mit **regulärem Claude-Abo**: KI-Schritte im Claude-Chat (Claude Desktop/Code) des Nutzers über die ExileForge-Werkzeuge, iterativ in kleinen Aufgaben, keine Single-Shot-Prompts ([ADR-0002](adr/0002-claude-abo-nur-ueber-connector.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
+3. KI läuft mit **regulärem Claude-Abo**: KI-Schritte im Claude-Chat (Claude Desktop/Code) des Nutzers über die Astrolabe-Werkzeuge, iterativ in kleinen Aufgaben, keine Single-Shot-Prompts ([ADR-0002](adr/0002-claude-abo-nur-ueber-connector.md), [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
 4. **Optisch ansprechend für PoE-Spieler**, eigene Gestaltung, kein Anschein offizieller Herkunft.
 5. **Keine Zahl ohne Engine**, **keine Entität ohne Katalog-ID**, **patch-agnostisch**, **Verträge zuerst** (Leitprinzipien des Plans).
 6. Export als **`.build`**-Datei; **Neuprüfung nach jedem Patch**.
@@ -17,7 +17,7 @@ steht im [Abgleich](plan-abgleich.md). Annahmen sind mit **⚠ Annahme** markier
 
 ## 1. Entscheidung in einem Satz
 
-ExileForge ist eine **lokale Windows-App** (Electron) mit eigenem Frontend,
+Astrolabe ist eine **lokale Windows-App** (Electron) mit eigenem Frontend,
 lokalem Calc-Service aus unverändertem Path of Building PoE2 und einer
 **Claude-Desktop-Erweiterung**: Der Nutzer arbeitet in der App, Claude erledigt im
 eigenen Chat (eigenes Abo) die KI-Schritte in vielen kleinen, sofort mit PoB
@@ -28,7 +28,7 @@ geprüften Aufgaben. Weitergabe per Installer, kein Server.
 ```
  PC des Nutzers
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  ExileForge-App (Electron)                                               │
+│  Astrolabe-App (Electron)                                               │
 │  ┌──────────────┐  ┌────────────────────────────────────────────────┐    │
 │  │ Frontend     │◀─│ lokaler Server 127.0.0.1 (Fastify)             │    │
 │  │ React + Vite │  │  API · Live-Status (SSE) · MCP-Endpunkt /mcp   │    │
@@ -38,7 +38,7 @@ geprüften Aufgaben. Weitergabe per Installer, kein Server.
 │                    └───────────────▲────────────────────────────────┘    │
 │                                    │ forge.attach / next / submit,       │
 │                                    │ catalog.*, calc.*, optimize.*       │
-│  Claude Desktop (eigenes Abo) ── ExileForge-Erweiterung (.mcpb, stdio-Brücke)
+│  Claude Desktop (eigenes Abo) ── Astrolabe-Erweiterung (.mcpb, stdio-Brücke)
 │  oder Claude Code ───────────── claude mcp add --transport http …/mcp     │
 └──────────────────────────────────────────────────────────────────────────┘
         ▲ Installer, App-Updates, Daten-Releases, PoB-Versionen
@@ -79,7 +79,7 @@ was lokal anders läuft, steht in [ADR-0004](adr/0004-lokal-first.md).
 
 ### 3.2 Einrichtung und Weitergabe
 
-- **Installieren:** `ExileForge-Setup.exe` von der GitHub-Releases-Seite,
+- **Installieren:** `Astrolabe-Setup.exe` von der GitHub-Releases-Seite,
   Auto-Update über `electron-updater`. Ohne Code-Signing erscheint einmal die
   SmartScreen-Warnung.
 - **Mit Claude verbinden:** Knopf in der App öffnet die `.mcpb`-Erweiterung, in
@@ -92,7 +92,7 @@ was lokal anders läuft, steht in [ADR-0004](adr/0004-lokal-first.md).
   Eingriffe (Variante wählen, Knoten/Items sperren, Schritt neu) passieren im
   Frontend. Ablauf im Detail: [ADR-0003](adr/0003-hybrid-frontend-und-chat.md)
   Abschnitte 3–4.
-- **Teilen:** Guide als `.exileforge.json` an Freunde schicken (die importieren
+- **Teilen:** Guide als `.astrolabe.json` an Freunde schicken (die importieren
   und rechnen ihn lokal nach), `.build` fürs Spiel, PoB-Codes je Stufe.
 - **⚠ Annahme, prüfen:** Abo-Verbrauch pro Guide; ob ein Claude-Free-Konto
   lokale Erweiterungen nutzen kann.
@@ -189,7 +189,7 @@ einspielen. Reihenfolge nach der Ersten Welle des Plans:
 - Abo-Verbrauch pro Guide.
 - Speicherbedarf je PoB-Worker → Pool-Größe auf dem PC.
 - Code-Signing ja/nein.
-- Lizenz für ExileForge selbst (PoB: MIT).
+- Lizenz für Astrolabe selbst (PoB: MIT).
 
 ## Quellen
 

@@ -1,15 +1,15 @@
 {
-  "name": "@exileforge/mcp-bridge",
+  "name": "@astrolabe/mcp-bridge",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Claude Desktop extension (.mcpb): thin stdio bridge to the local ExileForge MCP endpoint on 127.0.0.1.",
+  "description": "Claude Desktop extension (.mcpb): thin stdio bridge to the local Astrolabe MCP endpoint on 127.0.0.1.",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "bundle": "pnpm build && node scripts/bundle.mjs",
-    "pack:mcpb": "pnpm bundle && mcpb validate manifest.json && mcpb pack . dist/exileforge.mcpb"
+    "pack:mcpb": "pnpm bundle && mcpb validate manifest.json && mcpb pack . dist/astrolabe.mcpb"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",

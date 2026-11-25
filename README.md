@@ -1,9 +1,9 @@
-# ExileForge
+# Astrolabe
 
 **Aus einer Skill-Idee ein vollständiger, durchgerechneter Build für
 Path of Exile 2.**
 
-Du wählst einen Skill und sagst, wie du spielen willst. ExileForge plant
+Du wählst einen Skill und sagst, wie du spielen willst. Astrolabe plant
 mehrere Build-Varianten und arbeitet die gewählte zu einem lückenlosen Guide
 aus: Leveling von Akt 1 bis Endgame, Passive Tree je Stufe, Gems, Ausrüstung
 und Crafting mit Kosten.
@@ -16,10 +16,10 @@ und Crafting mit Kosten.
 
 - **Jede Zahl kommt aus Path of Building.** Die KI schlägt vor, PoB rechnet.
   Keine geschätzten DPS- oder Lebenswerte.
-- **Läuft mit deinem Claude-Abo.** Du arbeitest im ExileForge-Frontend; die
+- **Läuft mit deinem Claude-Abo.** Du arbeitest im Astrolabe-Frontend; die
   KI-Schritte erledigt Claude in deinem eigenen Claude Desktop (oder Claude Code)
-  über die ExileForge-Erweiterung, Schritt für Schritt und sofort mit PoB geprüft.
-  ExileForge sieht deine Claude-Zugangsdaten nie. Wer lieber einen API-Key nutzt,
+  über die Astrolabe-Erweiterung, Schritt für Schritt und sofort mit PoB geprüft.
+  Astrolabe sieht deine Claude-Zugangsdaten nie. Wer lieber einen API-Key nutzt,
   kann das auch, mit Claude oder anderen Modellen.
 - **Läuft bei dir lokal.** Eine Windows-App, kein Server, keine Cloud. Freunden
   schickst du einfach den Installer; Guides lassen sich als Datei teilen.
@@ -32,9 +32,9 @@ und Crafting mit Kosten.
 
 ## Wie es funktioniert (kurz)
 
-1. Du installierst ExileForge (Windows) und verbindest es per Klick mit
+1. Du installierst Astrolabe (Windows) und verbindest es per Klick mit
    Claude Desktop. In der App wählst du Skill und Vorlieben.
-2. ExileForge analysiert den Skill, Claude entwirft 3–6 Varianten, jede wird in
+2. Astrolabe analysiert den Skill, Claude entwirft 3–6 Varianten, jede wird in
    **Path of Building PoE2** gerechnet. Du wählst eine.
 3. Daraus entsteht ein vollständiger Guide von Akt 1 bis Endgame, der erst
    ausgeliefert wird, wenn er alle Prüfungen besteht.
@@ -66,7 +66,7 @@ Path of Building für 1.0 aktualisiert ist.
 ## Hinweise
 
 This product isn't affiliated with or endorsed by Grinding Gear Games in any way.
-ExileForge ist ein Fan-Projekt und steht in keiner Verbindung zu Grinding Gear
+Astrolabe ist ein Fan-Projekt und steht in keiner Verbindung zu Grinding Gear
 Games oder Anthropic. Path of Exile ist eine Marke von Grinding Gear Games.
 Path of Building ist ein Community-Projekt
 ([PathOfBuilding-PoE2](https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2)).

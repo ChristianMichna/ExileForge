@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { PassiveGroup, PassiveNode } from "@exileforge/contracts/catalog";
-import { PassiveNodeId } from "@exileforge/contracts/common";
-import type { PassiveTreeView, TreeTimeline } from "@exileforge/ui";
-import { Callout, PassiveTree, buildTimeline, buildTreeView } from "@exileforge/ui";
+import { PassiveGroup, PassiveNode } from "@astrolabe/contracts/catalog";
+import { PassiveNodeId } from "@astrolabe/contracts/common";
+import type { PassiveTreeView, TreeTimeline } from "@astrolabe/ui";
+import { Callout, PassiveTree, buildTimeline, buildTreeView } from "@astrolabe/ui";
 import { z } from "zod";
 import { PageHeader } from "../shell/PageHeader";
 

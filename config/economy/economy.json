@@ -4,7 +4,7 @@
   "provider": "poe.ninja",
   "baseUrl": "https://poe.ninja",
   "game": "poe2",
-  "appName": "ExileForge",
+  "appName": "Astrolabe",
   "userAgent": "{appName}/{appVersion} (unofficial local desktop app, not affiliated with Grinding Gear Games; contact: lemonfreshx3@hotmail.de)",
   "paths": {
     "leagues": "/{game}/api/economy/leagues",

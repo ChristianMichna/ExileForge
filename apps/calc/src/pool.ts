@@ -11,7 +11,7 @@ import {
   type ConfigOverrides,
   type DataReleaseId,
   PassiveNodeId,
-} from "@exileforge/contracts";
+} from "@astrolabe/contracts";
 import { z } from "zod";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -132,7 +132,7 @@ export class CalcPool {
     if (opts.size < 1) throw new Error("calc pool size must be at least 1");
     await assertPobInstall(opts.install);
     const dataHash = await computeDataHash(opts.install.srcDir);
-    const initDir = await mkdtemp(join(tmpdir(), "exileforge-calc-"));
+    const initDir = await mkdtemp(join(tmpdir(), "astrolabe-calc-"));
     const profiles = Object.fromEntries(
       [...opts.profiles.values()].map((p) => [p.id, { hash: p.hash, config: p.config }]),
     );

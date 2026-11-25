@@ -3,16 +3,16 @@ import type {
   ArchetypeEvaluation,
   BuildRequest,
   SkillProfile,
-} from "@exileforge/contracts/build";
-import type { BuildState, CalcOutcome } from "@exileforge/contracts/build";
-import type { CalcResult, ConfigOverrides } from "@exileforge/contracts/calc";
+} from "@astrolabe/contracts/build";
+import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
+import type { CalcResult, ConfigOverrides } from "@astrolabe/contracts/calc";
 import type {
   CalcId,
   CalcProfileId,
   DataReleaseId,
   EntityKind,
   EntityRef,
-} from "@exileforge/contracts/common";
+} from "@astrolabe/contracts/common";
 
 /** Which engine answers: the PoB worker pool, or calc-fake (fantasy values, tests and PoC only). */
 export type CalcEngineKind = "pob" | "fake";

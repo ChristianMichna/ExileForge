@@ -37,7 +37,7 @@ export interface AppProtocolDeps {
 }
 
 /**
- * Handler for `exileforge://app/...`. Serves the frontend files and forwards
+ * Handler for `astrolabe://app/...`. Serves the frontend files and forwards
  * `/api/*` to the local server with the access token attached. The window is
  * therefore same-origin with its backend: no CORS, no token in page code, and
  * a foreign web page can neither reach the server through the app nor read

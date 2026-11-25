@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import type { PriceBook } from "@exileforge/contracts";
+import type { PriceBook } from "@astrolabe/contracts";
 import {
   EconomyError,
   EconomyService,
@@ -13,7 +13,7 @@ import {
   parseItemMap,
   type BookStore,
 } from "../src/index.js";
-import { EconomyTools } from "@exileforge/contracts";
+import { EconomyTools } from "@astrolabe/contracts";
 import { catalogHas, config, itemMap, RELEASE, responseA, responseB } from "./fixtures.js";
 
 class MemoryBooks implements BookStore {

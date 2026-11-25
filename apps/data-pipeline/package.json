@@ -1,11 +1,11 @@
 {
-  "name": "@exileforge/data-pipeline",
+  "name": "@astrolabe/data-pipeline",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "description": "Builds versioned game-data snapshots from the pinned Path of Building (PoE2) release and diffs them against the previous version (F-01).",
   "bin": {
-    "exileforge-data": "./dist/cli.js"
+    "astrolabe-data": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -14,7 +14,7 @@
     "cli": "node --experimental-strip-types src/cli.ts"
   },
   "dependencies": {
-    "@exileforge/contracts": "workspace:*",
+    "@astrolabe/contracts": "workspace:*",
     "zod": "4.6.7"
   },
   "devDependencies": {

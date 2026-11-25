@@ -1,7 +1,7 @@
 import type { z } from "zod";
-import type { BuildRequest, Finding, RichText, TaskType } from "@exileforge/contracts/build";
-import type { EntityRef, JsonValue } from "@exileforge/contracts/common";
-import type { UserIntervention } from "@exileforge/contracts/forge";
+import type { BuildRequest, Finding, RichText, TaskType } from "@astrolabe/contracts/build";
+import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
+import type { UserIntervention } from "@astrolabe/contracts/forge";
 import type { CalcPort, CatalogPort, SkeletonPort, TargetPort } from "./ports.js";
 
 /** The part of a stored run that pipelines may read. */

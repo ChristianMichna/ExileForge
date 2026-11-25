@@ -63,7 +63,7 @@ jobs:
 
       - name: Unit tests (PoB headless)
         env:
-          EXILEFORGE_REQUIRE_POB: "1"
+          ASTROLABE_REQUIRE_POB: "1"
         run: python -m unittest discover -v tests
 
       - name: Stats from a path with umlauts and spaces

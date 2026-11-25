@@ -15,7 +15,7 @@ const logger = {
 
 try {
   const endpoint = endpointFromEnv(process.env);
-  const tokenFile = process.env["EXILEFORGE_TOKEN_FILE"] || defaultTokenFile(process.env);
+  const tokenFile = process.env["ASTROLABE_TOKEN_FILE"] || defaultTokenFile(process.env);
   const remote = new StreamableHTTPClientTransport(endpoint, { fetch: fetchWithToken(tokenFile) });
   await startBridge(new StdioServerTransport(), remote, logger);
 } catch (error) {

@@ -1,7 +1,7 @@
 {
-  "name": "exileforge",
+  "name": "astrolabe",
   "private": true,
-  "description": "ExileForge monorepo (pnpm + Turborepo).",
+  "description": "Astrolabe monorepo (pnpm + Turborepo).",
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=22.13"

@@ -1,4 +1,4 @@
-import type { MarketSource, PriceBook, PrimarySource } from "@exileforge/contracts";
+import type { MarketSource, PriceBook, PrimarySource } from "@astrolabe/contracts";
 
 type Market = ReturnType<typeof MarketSource.parse>;
 type Confidence = Market["confidence"];

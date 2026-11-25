@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RunEvent } from "@exileforge/contracts/events";
+import type { RunEvent } from "@astrolabe/contracts/events";
 import { applyRunEvent, EMPTY_RUN } from "./run-state";
 
 const base = { runId: "r1", at: "2026-01-01T00:00:00Z" };

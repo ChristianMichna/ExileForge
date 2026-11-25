@@ -28,7 +28,7 @@ export function OrnamentDivider({ className }: { className?: string }) {
   );
 }
 
-/** ExileForge mark: an astrolabe ring with a crossed triangle sight. Own design. */
+/** Astrolabe mark: an astrolabe ring with a crossed triangle sight. Own design. */
 export function Sigil({ size = 40, title }: { size?: number; title?: string }) {
   const labelled = title !== undefined;
   return (

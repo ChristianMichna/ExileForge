@@ -1,13 +1,7 @@
 import { z } from "zod";
-import { BuildRequest, Finding, TaskType } from "@exileforge/contracts/build";
-import { IsoDateTime, JsonValue } from "@exileforge/contracts/common";
-import {
-  RunId,
-  RunPhase,
-  SessionCode,
-  TaskId,
-  UserIntervention,
-} from "@exileforge/contracts/forge";
+import { BuildRequest, Finding, TaskType } from "@astrolabe/contracts/build";
+import { IsoDateTime, JsonValue } from "@astrolabe/contracts/common";
+import { RunId, RunPhase, SessionCode, TaskId, UserIntervention } from "@astrolabe/contracts/forge";
 
 /*
  * Persisted state of one run. Internal storage format of apps/server (not a

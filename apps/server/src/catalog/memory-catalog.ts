@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { CatalogManifest, CatalogShard } from "@exileforge/contracts/catalog";
-import type { DataReleaseId, EntityKind, EntityRef } from "@exileforge/contracts/common";
+import { CatalogManifest, CatalogShard } from "@astrolabe/contracts/catalog";
+import type { DataReleaseId, EntityKind, EntityRef } from "@astrolabe/contracts/common";
 import type { CatalogEntry, CatalogPort, CatalogQuery } from "../ports/catalog.js";
 
 /** In-memory catalog built from validated shards of one data release. */

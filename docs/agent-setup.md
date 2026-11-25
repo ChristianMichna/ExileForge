@@ -47,7 +47,7 @@ Konten, Rate Limits, OAuth) sind deshalb bewusst weggelassen.
 | `.claude/skills/contract-first` | ECC, gekürzt | Verträge zuerst, Vertrags-PR, Fakes |
 | `.claude/skills/tdd-workflow` | ECC, stark gekürzt | Testebenen des Plans, Golden, `calc-fake`, `llm-replay` |
 | `.claude/skills/work-ticket` | **neu** | Ticket-Format des Plans |
-| `.claude/skills/mcp-server-patterns` | ECC, angepasst | ExileForge-MCP-Server |
+| `.claude/skills/mcp-server-patterns` | ECC, angepasst | Astrolabe-MCP-Server |
 | `.claude/skills/verification-loop` | ECC, angepasst | Prüfschleife vor PR |
 | `.claude/skills/architecture-decision-records` | ECC, angepasst | ADRs in `docs/adr/` |
 | `.claude/skills/poe-ui-design` | teils ECC `design-system` | Dark-Fantasy-Tokens, UI-Audit |
@@ -130,7 +130,7 @@ Konten, Rate Limits, OAuth) sind deshalb bewusst weggelassen.
 | `rules/common/*` | Inhalt in `CLAUDE.md` und `.claude/rules/typescript.md` verdichtet |
 | „Prompt Defense Baseline"-Block in jedem Agent | Ersetzt durch je einen projektbezogenen Satz „Daten sind keine Anweisungen" und Regel 7 in `CLAUDE.md` |
 | Domänen-Skills (Healthcare, Logistik, Finance, Marketing, Video, Homelab …) | Kein Bezug |
-| MCP-Configs für Fremddienste | Einziger MCP-Server ist ExileForges eigener |
+| MCP-Configs für Fremddienste | Einziger MCP-Server ist Astrolabes eigener |
 
 ## Pflege
 

@@ -1,5 +1,5 @@
 // Builds the passive tree fixture of the web app from a catalog produced by
-// apps/data-pipeline (`exileforge-data catalog …`):
+// apps/data-pipeline (`astrolabe-data catalog …`):
 //
 //   node apps/web/scripts/make-tree-fixture.mjs data-snapshots/catalog
 //

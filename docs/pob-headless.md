@@ -60,7 +60,7 @@ build.calcsTab.mainOutput  →  JSON-Zeile mit Marker  →  Python-Dict
 - **lua-utf8** ist das einzige native Modul, das PoB headless braucht; es wird mit kompiliert.
 - Build-Codes dekodiert Python, weil PoBs Headless-Modus `Inflate/Deflate` nur als leere Platzhalter hat.
 - PoB schreibt eigene Logzeilen auf stdout. Das Ergebnis steht deshalb in einer Zeile mit dem Präfix
-  `@@EXILEFORGE_RESULT@@`.
+  `@@ASTROLABE_RESULT@@`.
 
 ## Ausgegebene Werte
 
@@ -167,7 +167,7 @@ neue PoB-Version mit der App ausliefern oder beim Start herunterladen.
 
 PoB-PoE2 enthält bereits `src/Modules/BuildExportPoE2.lua`, das Builds als Datei für den Build-Planer im
 Spiel exportiert (mit Game-IDs für Gems, Inventar-Slots, Loadouts). Das deckt sich direkt mit dem
-ExileForge-Ziel „.build-Datei fürs Spiel“ und sollte sich über denselben Headless-Weg ansprechen lassen.
+Astrolabe-Ziel „.build-Datei fürs Spiel“ und sollte sich über denselben Headless-Weg ansprechen lassen.
 Noch nicht ausprobiert.
 
 ## Passt das in eine Web- oder Desktop-App?

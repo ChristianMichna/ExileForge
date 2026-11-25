@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
-<!-- Eigenentwicklung für ExileForge (nicht aus everything-claude-code).
+<!-- Eigenentwicklung für Astrolabe (nicht aus everything-claude-code).
      Grundlage: Projektplan 1.0 (Leitprinzip 1, „Regeln, die jede Stufe
      einhält", Calc-Profile, Gates) und docs/data-model.md. -->
 

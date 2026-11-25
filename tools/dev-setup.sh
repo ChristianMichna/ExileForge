@@ -64,11 +64,11 @@ step "Playwright Chromium"
 if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ -d "$PLAYWRIGHT_BROWSERS_PATH" ] && ls "$PLAYWRIGHT_BROWSERS_PATH" | grep -q '^chromium'; then
   echo "preinstalled in $PLAYWRIGHT_BROWSERS_PATH"
 else
-  # EXILEFORGE_PLAYWRIGHT_DEPS=1 also installs the system libraries (needs root/sudo),
+  # ASTROLABE_PLAYWRIGHT_DEPS=1 also installs the system libraries (needs root/sudo),
   # set by .devcontainer.
   deps=()
-  [ "${EXILEFORGE_PLAYWRIGHT_DEPS:-0}" = 1 ] && deps=(--with-deps)
-  pnpm --filter @exileforge/web exec playwright install "${deps[@]}" chromium
+  [ "${ASTROLABE_PLAYWRIGHT_DEPS:-0}" = 1 ] && deps=(--with-deps)
+  pnpm --filter @astrolabe/web exec playwright install "${deps[@]}" chromium
 fi
 
 # --- TypeScript language server (Claude Code plugin typescript-lsp) -----------

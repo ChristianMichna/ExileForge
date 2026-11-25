@@ -1,6 +1,6 @@
-# @exileforge/ui
+# @astrolabe/ui
 
-Design-System von ExileForge im Stil **„Obsidian-Instrument"**: Die App ist
+Design-System von Astrolabe im Stil **„Obsidian-Instrument"**: Die App ist
 ein okkultes Messinstrument. Obsidianglas, feine gravierte Haarlinien in
 Grünspan, Eckwinkel statt Rahmen, Messwerte in Mono-Schrift, Stufen als
 Marken auf einem Astrolabium. Zinnoberrot ist Fehlern vorbehalten.
@@ -11,8 +11,8 @@ Christian hat diese Richtung am 24.11.2026 aus drei Entwürfen gewählt
 ## Verwendung
 
 ```tsx
-import "@exileforge/ui/styles.css"; // einmal an der App-Wurzel
-import { Panel, ItemTooltip, StatValue } from "@exileforge/ui";
+import "@astrolabe/ui/styles.css"; // einmal an der App-Wurzel
+import { Panel, ItemTooltip, StatValue } from "@astrolabe/ui";
 ```
 
 Das Paket ist ein Quellpaket: `exports` zeigt auf `src/`, gebündelt wird vom

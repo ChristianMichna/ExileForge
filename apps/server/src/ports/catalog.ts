@@ -1,1 +1,1 @@
-export type { CatalogEntry, CatalogPort, CatalogQuery } from "@exileforge/agents";
+export type { CatalogEntry, CatalogPort, CatalogQuery } from "@astrolabe/agents";

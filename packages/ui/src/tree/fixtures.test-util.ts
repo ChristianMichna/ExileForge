@@ -1,6 +1,6 @@
 // Invented tree for tests: names, stats and geometry are made up.
-import { PassiveGroup, PassiveNode } from "@exileforge/contracts/catalog";
-import { PassiveNodeId } from "@exileforge/contracts/common";
+import { PassiveGroup, PassiveNode } from "@astrolabe/contracts/catalog";
+import { PassiveNodeId } from "@astrolabe/contracts/common";
 
 /** Brands made-up node ids for stage inputs. */
 export const ids = (list: string[]): PassiveNodeId[] => list.map((id) => PassiveNodeId.parse(id));

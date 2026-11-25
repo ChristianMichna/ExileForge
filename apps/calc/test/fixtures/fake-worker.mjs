@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
-const MARKER = "@@EXILEFORGE_RPC@@";
+const MARKER = "@@ASTROLABE_RPC@@";
 const init = JSON.parse(readFileSync(process.argv[3], "utf8"));
 const mode = process.env.FAKE_MODE ?? "";
 

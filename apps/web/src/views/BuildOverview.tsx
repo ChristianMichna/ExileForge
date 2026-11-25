@@ -10,7 +10,7 @@ import {
   StatValue,
   Tabs,
   formatNumber,
-} from "@exileforge/ui";
+} from "@astrolabe/ui";
 import type { SampleStage, SampleStat } from "../fixtures/sample-build";
 import { SAMPLE_BUILD, SAMPLE_ITEMS, SAMPLE_STAGES } from "../fixtures/sample-build";
 import { PageHeader } from "../shell/PageHeader";

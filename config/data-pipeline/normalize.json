@@ -1,5 +1,5 @@
 {
-  "$comment": "Mapping rules from the raw PoB snapshot to the catalog contract (apps/data-pipeline/src/normalize). ExileForge vocabulary on the right side, PoB field names on the left; no game values.",
+  "$comment": "Mapping rules from the raw PoB snapshot to the catalog contract (apps/data-pipeline/src/normalize). Astrolabe vocabulary on the right side, PoB field names on the left; no game values.",
   "lang": "en",
   "statScopes": {
     "mod": "stat_descriptions",

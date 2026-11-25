@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { BuildRequest } from "@exileforge/contracts/build";
+import type { BuildRequest } from "@astrolabe/contracts/build";
 
 /*
  * Calls to the local server. In the desktop app `/api` is answered by the app

@@ -1,4 +1,4 @@
-import type { CalcErrorKind } from "@exileforge/contracts";
+import type { CalcErrorKind } from "@astrolabe/contracts";
 
 /**
  * Error of the calc service. `kind` follows the calc RPC contract

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { SkillProfile } from "@exileforge/contracts/build";
+import type { SkillProfile } from "@astrolabe/contracts/build";
 import {
   type ArchetypeCandidate,
   ArchetypeEvaluation,
@@ -8,8 +8,8 @@ import {
   Rationale,
   SkillSetup,
   TargetBuild,
-} from "@exileforge/contracts/build";
-import type { JsonValue } from "@exileforge/contracts/common";
+} from "@astrolabe/contracts/build";
+import type { JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext, type PlanStep } from "../pipeline.js";
 import { S5_GEMS } from "../prompts.js";
