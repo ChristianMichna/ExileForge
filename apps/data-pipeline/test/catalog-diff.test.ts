@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CatalogDiff, CatalogManifest } from "@astrolabe/contracts/catalog";
@@ -64,8 +64,17 @@ describe("catalog diff", () => {
   it("fails on a shard that does not match its hash", async () => {
     const a = await catalog("poe2-0.1+r1");
     const b = await catalog("poe2-0.1+r2");
-    const { writeFile } = await import("node:fs/promises");
     await writeFile(join(b, "mod.json"), "{}");
     await expect(diffCatalogs(a, b)).rejects.toThrow(/manifest hash/);
+  });
+
+  it("fails when the catalogs have different kinds", async () => {
+    const a = await catalog("poe2-0.1+r1");
+    const b = await catalog("poe2-0.1+r2");
+    const path = join(b, "manifest.json");
+    const manifest = JSON.parse(await readFile(path, "utf8")) as { shards: { kind: string }[] };
+    manifest.shards = manifest.shards.filter((s) => s.kind !== "craftingAction");
+    await writeFile(path, JSON.stringify(manifest));
+    await expect(diffCatalogs(a, b)).rejects.toThrow(/different kinds/);
   });
 });
