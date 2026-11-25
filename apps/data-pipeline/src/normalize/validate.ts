@@ -121,11 +121,13 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
     id: string;
     baseItemId?: string;
     variants?: { id?: string }[];
-    mods?: { variantIds?: string[] }[];
+    mods?: { variantIds?: string[]; allocatesNodeId?: string }[];
   }[]) {
     ref("uniqueItem", u.id, "baseItemId", "baseItem", u.baseItemId ?? "");
     const variants = new Set((u.variants ?? []).map((v) => v.id));
     for (const m of u.mods ?? []) {
+      if (m.allocatesNodeId !== undefined)
+        ref("uniqueItem", u.id, "mods.allocatesNodeId", "passiveNode", m.allocatesNodeId);
       for (const v of m.variantIds ?? []) {
         if (!variants.has(v))
           errors.push({

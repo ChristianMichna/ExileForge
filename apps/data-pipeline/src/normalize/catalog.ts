@@ -23,6 +23,20 @@ export const normalizeConfigSchema = z
     $comment: z.string().optional(),
     lang: z.string().min(2),
     statScopes: z.object({ mod: z.string().min(1), passiveNode: z.string().min(1) }).strict(),
+    uniqueLines: z
+      .object({
+        $comment: z.string().optional(),
+        /** Regular expression with one capture group: the name of the allocated node. */
+        allocatesPattern: z.string().refine((p) => {
+          try {
+            // "|" adds an empty alternative, so exec("") succeeds and shows the group count
+            return (new RegExp(`${p}|`).exec("")?.length ?? 0) >= 2;
+          } catch {
+            return false;
+          }
+        }, "must be a valid regular expression with a capture group"),
+      })
+      .strict(),
     passiveNodeKinds: z
       .object({
         flags: z.array(z.tuple([z.string().min(1), z.string().min(1)])),
@@ -153,6 +167,8 @@ export interface NormalizeSummary {
   modsWithHiddenStatGroups: number;
   /** unique lines whose ambiguous text was decided by spawn evidence of the base */
   uniqueLinesDisambiguated: number;
+  /** unique lines resolved to one passive node by its name ("Allocates <node>") */
+  uniqueLinesAllocatingNode: number;
   /** PoB per-level gem fields the contract has no place for, by field */
   gemLevelFieldsNotInContract: Record<string, number>;
   /** per-level gem stat values PoB interpolates at run time (not literal data) */
@@ -219,6 +235,7 @@ class Context {
     modsWithoutGenerationType: 0,
     modsWithHiddenStatGroups: 0,
     uniqueLinesDisambiguated: 0,
+    uniqueLinesAllocatingNode: 0,
     gemLevelFieldsNotInContract: {},
     gemInterpolatedStatValues: 0,
     gemAdditionalStatSets: 0,
@@ -470,7 +487,9 @@ function normalizeUniques(
   ctx: Context,
   bases: ReadonlyMap<string, ReadonlySet<string>>,
   spawn: SpawnIndex,
+  nodeIdsByName: ReadonlyMap<string, readonly string[]>,
 ): Record<string, unknown>[] {
+  const allocates = new RegExp(cfg.uniqueLines.allocatesPattern);
   const uniques = kindOf(raw, "uniques");
   return Object.keys(uniques)
     .sort()
@@ -492,6 +511,36 @@ function normalizeUniques(
         if (listed.length > 0 && known.length === 0) {
           // only for variants the item does not have: PoB never shows it
           ctx.warn("uniqueItem", id, `line "${text}" dropped: none of its variants exist`);
+          continue;
+        }
+        // an "Allocates <node>" line never goes through the stat matcher: the node is the fact
+        const allocated = allocates.exec(text)?.[1];
+        const nodeIds = allocated === undefined ? undefined : nodeIdsByName.get(allocated.trim());
+        if (allocated !== undefined && nodeIds !== undefined && nodeIds.length > 1) {
+          // several nodes share the name: say so, never pick one
+          ctx.warn(
+            "uniqueItem",
+            id,
+            `line "${text}": ${nodeIds.length} nodes named "${allocated.trim()}" (${nodeIds.join(", ")})`,
+          );
+          ctx.countUnresolved("uniqueItem", "ambiguous");
+          mods.push({
+            stats: [],
+            text,
+            unresolved: [{ text, reason: "ambiguous" }],
+            ...(known.length > 0 ? { variantIds: known } : {}),
+          });
+          continue;
+        }
+        if (nodeIds?.length === 1) {
+          // names a passive node: nothing to measure, the node is the fact
+          ctx.summary.uniqueLinesAllocatingNode++;
+          mods.push({
+            stats: [],
+            text,
+            allocatesNodeId: nodeIds[0],
+            ...(known.length > 0 ? { variantIds: known } : {}),
+          });
           continue;
         }
         let [res] = matcher.matchLines([text], cfg.statScopes.mod) as [MatchResult];
@@ -998,11 +1047,18 @@ export function normalizeCatalog(
     baseItem.map((b) => [String(b.id), new Set(rows(b.tags).map(String))] as const),
   );
   const spawn = spawnIndexOf(mod);
+  const nodeIdsByName = new Map<string, string[]>();
+  for (const n of tree.passiveNode) {
+    if (typeof n.name !== "string") continue; // requireStr already reported it
+    const ids = nodeIdsByName.get(String(n.name)) ?? [];
+    ids.push(String(n.id));
+    nodeIdsByName.set(String(n.name), ids);
+  }
   const entities: CatalogEntities = {
     baseItem,
     mod,
     craftingAction: [],
-    uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx, bases, spawn),
+    uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx, bases, spawn, nodeIdsByName),
     gem: normalizeGems(raw, ctx),
     ...tree,
     statTranslation: normalizeStatTranslations(raw, cfg, ctx),
