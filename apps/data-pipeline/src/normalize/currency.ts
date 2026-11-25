@@ -20,7 +20,7 @@ const currencyRow = z.object({
   BaseItemType: nonNeg,
   StackSize: nonNeg.nullish(),
   CurrencyUseType: nonNeg.nullish(),
-  Action: z.string().min(1).nullish(),
+  Action: z.string().nullish(), // empty for rows without one
 });
 const essenceRow = z.object({
   BaseItemType: nonNeg,

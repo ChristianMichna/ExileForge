@@ -74,6 +74,16 @@ describe("currencyBaseItems", () => {
     expect(bad.errors.map((e) => e.message).join()).toMatch(/without id or name/);
   });
 
+  it("treats an empty action as none", async () => {
+    const t = tables();
+    t.CurrencyItems = (t.CurrencyItems ?? []).map((r) => ({ ...r, Action: "" }));
+    const { baseItems, errors } = await currencyBaseItems(await write(t), cfg.currency, new Set());
+    expect(errors).toEqual([]);
+    expect(baseItems.find((b) => b.id === "Test/Orb")?.tags).toEqual([
+      "exchange_category:Currency",
+    ]);
+  });
+
   it("notes that the patch has no Omens table", async () => {
     const dir = await write(tables());
     const { findings } = await currencyBaseItems(dir, cfg.currency, new Set());
