@@ -50,18 +50,6 @@
     {
       "name": "ExperienceLevels",
       "columns": ["Id", "Level", "Experience"]
-    },
-    {
-      "name": "Stats",
-      "columns": ["Id"]
-    },
-    {
-      "name": "Quest",
-      "columns": ["Id", "Act", "Name"]
-    },
-    {
-      "name": "QuestStaticRewards",
-      "columns": ["QuestKey", "RewardStats", "RewardStatsValues"]
     }
   ]
 }
