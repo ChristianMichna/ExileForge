@@ -58,7 +58,7 @@ export function createForgePipeline(config: StageConfig): Pipeline {
       config.s2.candidateCount +
       (config.s5 === undefined ? 0 : 1) +
       (config.s6 === undefined ? 0 : 1) +
-      (config.s7 === undefined ? 0 : config.s7.tiers.length),
+      (config.s7 === undefined ? 0 : (tiersOf(config.s7, ctx.run.request.budget)?.length ?? 0)),
     validateIntervention: (intervention: UserIntervention, ctx) => {
       if (intervention.kind !== "chooseVariant") return undefined;
       if (ctx.result(S3_KEY) === undefined) {
@@ -73,6 +73,16 @@ export function createForgePipeline(config: StageConfig): Pipeline {
         : `Unknown variant ${intervention.candidateKey}`;
     },
     plan: (ctx): PlanStep => {
+      // A tier range the gear stage cannot plan would only show up after S6; stop at the start.
+      if (config.s7 !== undefined && tiersOf(config.s7, ctx.run.request.budget) === undefined) {
+        return {
+          kind: "blocked",
+          error: {
+            code: "unknown_budget_tier",
+            message: `The requested budget tiers ${ctx.run.request.budget.leveling} to ${ctx.run.request.budget.endgame} are not an ascending range of the configured tiers.`,
+          },
+        };
+      }
       const mainSkillId = mainSkillOf(ctx);
       if (mainSkillId === undefined) return { kind: "task", spec: skillTask(ctx, config) };
 
@@ -269,19 +279,23 @@ function planGear(
       },
     };
   }
-  const tiers = tiersOf(s7, ctx.run.request.budget.endgame);
+  const tiers = tiersOf(s7, ctx.run.request.budget);
   if (tiers === undefined) {
     return {
       kind: "blocked",
       error: {
         code: "unknown_budget_tier",
-        message: `The requested endgame budget tier ${ctx.run.request.budget.endgame} is not in the configured tiers.`,
+        message: `The requested budget tiers ${ctx.run.request.budget.leveling} to ${ctx.run.request.budget.endgame} are not an ascending range of the configured tiers.`,
       },
     };
   }
   const open = tiers.find((t) => ctx.result(gearKey(t.id)) === undefined);
-  if (open !== undefined)
-    return { kind: "task", spec: gearTask(ctx, config, s7, open, chosen, target) };
+  if (open !== undefined) {
+    const earlier = tiers
+      .slice(0, tiers.indexOf(open))
+      .map((t) => ({ tier: t.id, gear: ctx.result(gearKey(t.id)) as JsonValue }));
+    return { kind: "task", spec: gearTask(ctx, config, s7, open, chosen, target, earlier) };
+  }
   return {
     kind: "blocked",
     error: {

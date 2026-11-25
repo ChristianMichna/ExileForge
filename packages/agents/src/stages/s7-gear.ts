@@ -39,26 +39,34 @@ export const GearChoice = z.object({
 });
 export type GearChoice = z.infer<typeof GearChoice>;
 
-/** The tiers of this run: every configured tier up to and including the endgame budget. */
+/** The tiers of this run: from the leveling tier to the endgame tier, in config order. */
 export function tiersOf(
   s7: S7Config,
-  endgame: string,
+  budget: { leveling: string; endgame: string },
 ): { id: string; label: string }[] | undefined {
-  const index = s7.tiers.findIndex((t) => t.id === endgame);
-  return index < 0 ? undefined : s7.tiers.slice(0, index + 1);
+  const from = s7.tiers.findIndex((t) => t.id === budget.leveling);
+  const to = s7.tiers.findIndex((t) => t.id === budget.endgame);
+  return from < 0 || to < 0 || from > to ? undefined : s7.tiers.slice(from, to + 1);
 }
 
-/** Item references of a spec, for the catalog check (G1). */
-export function itemEntities(item: ItemSpec): EntityRef[] {
-  if (item.kind === "unique") return [{ kind: "uniqueItem", id: item.uniqueId }];
+/** Catalog references of an item spec with their JSON pointers below the spec. */
+export function itemEntities(item: ItemSpec): { path: string; ref: EntityRef }[] {
+  if (item.kind === "unique") {
+    return [{ path: "/uniqueId", ref: { kind: "uniqueItem", id: item.uniqueId } }];
+  }
   return [
-    { kind: "baseItem", id: item.baseItemId },
-    ...item.mods.map((m): EntityRef => ({ kind: "mod", id: m.modId })),
-    ...item.socketables.map((s): EntityRef =>
-      s.kind === "craftingAction"
-        ? { kind: "craftingAction", id: s.id }
-        : { kind: "baseItem", id: s.id },
-    ),
+    { path: "/baseItemId", ref: { kind: "baseItem", id: item.baseItemId } },
+    ...item.mods.map((m, k) => ({
+      path: `/mods/${k}/modId`,
+      ref: { kind: "mod" as const, id: m.modId },
+    })),
+    ...item.socketables.map((x, k) => ({
+      path: `/socketables/${k}/id`,
+      ref: {
+        kind: x.kind === "craftingAction" ? ("craftingAction" as const) : ("baseItem" as const),
+        id: x.id,
+      },
+    })),
   ];
 }
 
@@ -78,6 +86,7 @@ export function gearTask(
   tier: { id: string; label: string },
   chosen: ArchetypeCandidate,
   target: TargetBuild,
+  earlier: readonly { tier: string; gear: JsonValue }[],
 ): AnyTaskSpec {
   return defineTask<GearChoice>({
     key: gearKey(tier.id),
@@ -89,13 +98,15 @@ export function gearTask(
       chosen,
       tier,
       slots: s7.slots,
+      requiredSlots: s7.requiredSlots ?? s7.slots,
+      earlierTiers: earlier as unknown as JsonValue,
       targetBuild: JSON.parse(JSON.stringify(target)) as JsonValue,
     },
     schema: GearChoice,
     allowedTools: ["catalog_search", "catalog_get", "calc_evaluate"],
     entities: (c) =>
       c.slots.flatMap((s, i) => [
-        ...itemEntities(s.target).map((ref, j) => ({ path: `/slots/${i}/target/${j}`, ref })),
+        ...itemEntities(s.target).map((e) => ({ path: `/slots/${i}/target${e.path}`, ref: e.ref })),
         ...s.rationale.flatMap((r, j) =>
           r.subject === undefined
             ? []
@@ -121,11 +132,38 @@ export function gearTask(
         }
         seen.add(s.slot);
       });
+      for (const slot of s7.requiredSlots ?? s7.slots) {
+        if (!seen.has(slot)) {
+          findings.push({
+            gate: "schema",
+            severity: "error",
+            code: "missing_slot",
+            message: `Slot ${slot} has no item. Every required slot needs one.`,
+            path: "/slots",
+          });
+        }
+      }
+      if (checkCtx.run.request.mode.ssf) {
+        c.slots.forEach((s, i) => {
+          if (s.acquisition === "trade") {
+            findings.push({
+              gate: "G3",
+              severity: "error",
+              code: "trade_in_ssf",
+              message: "This run is solo self-found; items cannot be acquired by trade.",
+              path: `/slots/${i}/acquisition`,
+            });
+          }
+        });
+      }
       findings.push(
         ...rejectedFindings(
           checkCtx,
           c.slots.flatMap((s, i) =>
-            itemEntities(s.target).map((ref, j) => ({ path: `/slots/${i}/target/${j}`, ref })),
+            itemEntities(s.target).map((e) => ({
+              path: `/slots/${i}/target${e.path}`,
+              ref: e.ref,
+            })),
           ),
         ),
       );
@@ -134,8 +172,17 @@ export function gearTask(
         state: geared(target.state, c),
         profiles: s7.calcProfiles,
       });
-      for (const [profile, outcome] of Object.entries(outcomes)) {
-        if (outcome.status === "failed") {
+      for (const profile of s7.calcProfiles) {
+        const outcome = outcomes[profile];
+        if (outcome === undefined) {
+          findings.push({
+            gate: "G2",
+            severity: "error",
+            code: "calc_missing",
+            message: `The engine returned no result for profile ${profile}.`,
+            path: "/slots",
+          });
+        } else if (outcome.status === "failed") {
           findings.push({
             gate: "G2",
             severity: "error",

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BuildState, type ItemSpec } from "@astrolabe/contracts/build";
 import { StageConfig } from "../src/config.js";
 import type { PipelineContext } from "../src/pipeline.js";
+import { createForgePipeline } from "../src/pipeline-forge.js";
 import { geared, gearKey, gearTask, itemEntities, tiersOf } from "../src/stages/s7-gear.js";
 
 const s7: NonNullable<StageConfig["s7"]> = {
@@ -42,15 +43,29 @@ describe("s7 config", () => {
 });
 
 describe("S7 gear", () => {
-  it("plans every tier up to the requested one, in config order", () => {
-    expect(tiersOf(s7, "mid")?.map((t) => t.id)).toEqual(["low", "mid"]);
-    expect(tiersOf(s7, "nope")).toBeUndefined();
+  it("plans the tiers from the leveling to the endgame tier, in config order", () => {
+    expect(tiersOf(s7, { leveling: "low", endgame: "mid" })?.map((t) => t.id)).toEqual([
+      "low",
+      "mid",
+    ]);
+    expect(tiersOf(s7, { leveling: "mid", endgame: "high" })?.map((t) => t.id)).toEqual([
+      "mid",
+      "high",
+    ]);
+    expect(tiersOf(s7, { leveling: "mid", endgame: "low" })).toBeUndefined();
+    expect(tiersOf(s7, { leveling: "low", endgame: "nope" })).toBeUndefined();
     expect(gearKey("mid")).toBe("S7.gear-mid");
   });
 
   it("lists every catalog entity of an item spec", () => {
-    expect(itemEntities(unique)).toEqual([{ kind: "uniqueItem", id: "FixUnique" }]);
-    expect(itemEntities(crafted).map((e) => e.kind)).toEqual(["baseItem", "mod", "craftingAction"]);
+    expect(itemEntities(unique)).toEqual([
+      { path: "/uniqueId", ref: { kind: "uniqueItem", id: "FixUnique" } },
+    ]);
+    expect(itemEntities(crafted).map((e) => [e.path, e.ref.kind])).toEqual([
+      ["/baseItemId", "baseItem"],
+      ["/mods/0/modId", "mod"],
+      ["/socketables/0/id", "craftingAction"],
+    ]);
   });
 
   it("puts the chosen items on the target build", () => {
@@ -66,30 +81,91 @@ describe("S7 gear", () => {
     expect(out.level).toBe(20);
   });
 
-  it("rejects unknown and duplicate slots before any calculation", async () => {
-    const spec = gearTask(
-      {
-        run: { request: {}, interventions: [] },
+  describe("check", () => {
+    const make = () =>
+      gearTask(
+        {
+          run: { request: {}, interventions: [] },
+          result: () => undefined,
+          latest: () => undefined,
+        } as never as PipelineContext,
+        { promptVersion: "t" } as StageConfig,
+        s7,
+        { id: "low", label: "Low" },
+        {} as never,
+        { state: { items: [] } } as never,
+        [],
+      );
+    const checkCtx = (over: { ssf?: boolean; calc?: unknown; known?: boolean } = {}) =>
+      ({
+        run: {
+          request: { exclusions: [], mode: { ssf: over.ssf ?? false, hardcore: false } },
+          interventions: [],
+        },
+        catalog: { get: () => (over.known === false ? undefined : {}) },
+        calc: over.calc ?? {
+          calculate: () => Promise.resolve({ default: { status: "ok", calcId: "calc-1" } }),
+        },
+      }) as never;
+    const full = { slots: [choice("SlotA", unique), choice("SlotB", unique)] };
+
+    it("accepts a complete gear set and calculates it with the configured profiles", async () => {
+      const calculate = (input: { profiles: string[]; state: { items: unknown[] } }) => {
+        expect(input.profiles).toEqual(["default"]);
+        expect(input.state.items).toHaveLength(2);
+        return Promise.resolve({ default: { status: "ok", calcId: "calc-1" } });
+      };
+      expect(await make().check?.(full, checkCtx({ calc: { calculate } }))).toEqual([]);
+    });
+
+    it("rejects unknown, duplicate and missing slots before any calculation", async () => {
+      const bad = {
+        slots: [choice("SlotA", unique), choice("SlotA", unique), choice("Zzz", unique)],
+      };
+      const findings = await make().check?.(
+        bad,
+        checkCtx({ calc: { calculate: () => Promise.reject(new Error("no")) } }),
+      );
+      expect(findings?.map((f) => f.code)).toEqual([
+        "unknown_or_duplicate_slot",
+        "unknown_or_duplicate_slot",
+        "missing_slot",
+      ]);
+    });
+
+    it("rejects trade items in solo self-found mode", async () => {
+      const findings = await make().check?.(full, checkCtx({ ssf: true }));
+      expect(findings?.map((f) => f.code)).toEqual(["trade_in_ssf", "trade_in_ssf"]);
+    });
+
+    it("reports a failed or missing calculation", async () => {
+      const failed = {
+        calculate: () =>
+          Promise.resolve({ default: { status: "failed", error: { code: "x", message: "boom" } } }),
+      };
+      expect((await make().check?.(full, checkCtx({ calc: failed })))?.map((f) => f.code)).toEqual([
+        "calc_failed",
+      ]);
+      const empty = { calculate: () => Promise.resolve({}) };
+      expect((await make().check?.(full, checkCtx({ calc: empty })))?.map((f) => f.code)).toEqual([
+        "calc_missing",
+      ]);
+    });
+  });
+});
+
+describe("S7 request check", () => {
+  it("stops at the start when the budget tiers are not a configured ascending range", () => {
+    const config = { s7 } as StageConfig;
+    const plan = (budget: { leveling: string; endgame: string }) =>
+      createForgePipeline(config).plan({
+        run: { request: { budget }, interventions: [] },
         result: () => undefined,
         latest: () => undefined,
-      } as never as PipelineContext,
-      { promptVersion: "t" } as StageConfig,
-      s7,
-      { id: "low", label: "Low" },
-      {} as never,
-      { state: {} } as never,
-    );
-    const findings = await spec.check?.(
-      { slots: [choice("SlotA", unique), choice("SlotA", unique), choice("Zzz", unique)] },
-      {
-        run: { request: { exclusions: [] }, interventions: [] },
-        catalog: { get: () => ({}) },
-        calc: { calculate: () => Promise.reject(new Error("no")) },
-      } as never,
-    );
-    expect(findings?.map((f) => f.code)).toEqual([
-      "unknown_or_duplicate_slot",
-      "unknown_or_duplicate_slot",
-    ]);
+      } as never as PipelineContext);
+    expect(plan({ leveling: "mid", endgame: "low" })).toMatchObject({
+      kind: "blocked",
+      error: { code: "unknown_budget_tier" },
+    });
   });
 });

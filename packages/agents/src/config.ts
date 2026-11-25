@@ -124,6 +124,8 @@ export const StageConfig = z.object({
     .object({
       /** Slot ids exactly as the release names them (also `EquippedItem.slot`). */
       slots: z.array(z.string().min(1)).min(1),
+      /** Slots every tier must fill; absent means all of `slots`. */
+      requiredSlots: z.array(z.string().min(1)).optional(),
       /** Budget tiers in ascending order; the request names tiers by id. */
       tiers: z
         .array(z.object({ id: BudgetTierId, label: z.string().min(1).max(120) }))
