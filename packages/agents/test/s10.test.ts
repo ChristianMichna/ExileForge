@@ -284,6 +284,18 @@ describe("S10 measured gates", () => {
     });
   });
 
+  it("sends an endgame finding to the part of the last gear tier, also when its measurement is missing", async () => {
+    const d = stageAt(90);
+    const tier = d.gear.tiers[0];
+    if (tier === undefined) throw new Error("the fixture has a gear tier");
+    Object.assign(tier, { budgetTier: "mid", calcs: {} });
+    const gates = await runGates(withStats(good), d, cfg as never);
+    const g4 = gates.find((g) => g.gate === "G4")?.findings ?? [];
+    expect(g4).toEqual([
+      expect.objectContaining({ code: "stats_unavailable", returnTo: "S7.gear-mid" }),
+    ]);
+  });
+
   it("skips the resistance check for stage kinds that are not configured", async () => {
     expect(await run({ ...good, MissFire: 9 }, 90, {}, "campaign")).not.toContain(
       "G4:resistance_below_cap",

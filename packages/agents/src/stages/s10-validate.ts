@@ -9,6 +9,7 @@ import {
   GearPlan,
   ProgressionPlan,
   type TargetBuild,
+  TaskType,
 } from "@astrolabe/contracts/build";
 import type { StatMap } from "@astrolabe/contracts/calc";
 import { GuideDocument } from "@astrolabe/contracts/guide";
@@ -343,7 +344,8 @@ interface Subject {
   /** JSON pointer of the calculations that were read. */
   path: string;
   /** The stage that fixes a finding about this subject. */
-  returnTo: "S6" | "S7";
+  /** The stage or part that fixes a finding about this subject. */
+  returnTo: TaskType;
   stats?: StatMap;
 }
 
@@ -365,6 +367,10 @@ async function stageStats(
     return loaded?.calcProfile === profile ? loaded.stats : undefined;
   };
   const lastTier = draft.gear.tiers.length - 1;
+  // Redoing only the last tier's part is cheaper and is the part whose items decide the numbers.
+  const lastBudgetTier = draft.gear.tiers[lastTier]?.budgetTier;
+  const part = lastBudgetTier === undefined ? "" : `S7.gear-${lastBudgetTier}`;
+  const gearPart = TaskType.safeParse(part).success ? part : "S7";
   const out: Subject[] = [];
   for (const [index, stage] of draft.progression.stages.entries()) {
     const geared = stage.kind === "endgame";
@@ -376,7 +382,7 @@ async function stageStats(
       path: geared
         ? `/gear/tiers/${String(lastTier)}/calcs`
         : `/progression/stages/${String(index)}/calcs`,
-      returnTo: geared ? "S7" : "S6",
+      returnTo: geared ? gearPart : "S6",
       ...(stats === undefined ? {} : { stats }),
     });
   }
@@ -407,9 +413,11 @@ async function measuredGates(
   for (const { stage, path, returnTo, stats } of await stageStats(ctx, draft, cfg.calcProfile)) {
     if (stats === undefined) {
       const msg = `Stage ${stage.key} has no readable result for profile ${cfg.calcProfile}.`;
-      g3.push(finding("G3", "stats_unavailable", msg, path));
-      g4.push(finding("G4", "stats_unavailable", msg, path));
-      g5.push(finding("G5", "stats_unavailable", msg, path));
+      // Only the gear can be redone to fill in missing measurements of the endgame.
+      const back = returnTo === "S6" ? undefined : returnTo;
+      g3.push(finding("G3", "stats_unavailable", msg, path, back));
+      g4.push(finding("G4", "stats_unavailable", msg, path, back));
+      g5.push(finding("G5", "stats_unavailable", msg, path, back));
       continue;
     }
     const missing = (gate: Finding["gate"], name: string): Finding =>
