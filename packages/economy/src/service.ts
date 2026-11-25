@@ -39,6 +39,15 @@ export class EconomyService {
 
   constructor(private readonly deps: EconomyServiceDeps) {
     this.now = deps.now ?? (() => new Date());
+    if (
+      deps.config.uniqueTypes.length > 0 &&
+      (!deps.resolveUnique || !deps.client.uniqueOverview)
+    ) {
+      throw new EconomyError(
+        "invalid_response",
+        "uniqueTypes are configured, but the service has no unique resolver or client; every unique line would stay unmapped",
+      );
+    }
   }
 
   /**

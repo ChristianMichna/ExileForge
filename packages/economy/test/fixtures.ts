@@ -69,12 +69,13 @@ export const configWithUniques: EconomyConfig = {
 };
 
 export const catalogHasWithUniques = (kind: string, id: string) =>
-  kind === "uniqueItem" ? ["uniq-1", "uniq-2"].includes(id) : catalogHas(kind, id);
+  kind === "uniqueItem" ? ["uniq-1", "uniq-2", "uniq-1x"].includes(id) : catalogHas(kind, id);
 
 /** Invented catalog: names are unique except "Twin", which exists twice on different bases. */
 export const resolveUnique = (name: string, baseType: string | undefined): string | undefined => {
   if (name === "Alpha Piece") return "uniq-1";
   if (name === "Beta Piece") return "uniq-2";
+  if (name === "Dup Piece") return "uniq-1x";
   if (name === "Twin") return baseType === "Base One" ? "uniq-1" : undefined;
   return undefined;
 };
@@ -88,5 +89,7 @@ export const uniqueResponse: UniqueOverviewResponse = {
     { id: "104", name: "Unknown Piece", baseType: "Base One", primaryValue: 3 },
     { id: "105", name: "Twin", baseType: "Base Two", primaryValue: 1 },
     { id: "106", name: "Beta Piece", baseType: "Base Two", primaryValue: 0 },
+    { id: "107", name: "Dup Piece", baseType: "Base One", primaryValue: 1 },
+    { id: "108", name: "Dup Piece", baseType: "Base One", primaryValue: 2 },
   ],
 };

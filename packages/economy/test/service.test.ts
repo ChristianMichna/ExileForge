@@ -279,6 +279,27 @@ describe("EconomyService, unique prices", () => {
     expect(out.prices[0]?.price.status).toBe("ok");
   });
 
+  it("refuses to be built with uniqueTypes but without a resolver", () => {
+    expect(
+      () =>
+        new EconomyService({
+          config: configWithUniques,
+          itemMap,
+          client: {
+            async leagues() {
+              return [];
+            },
+            async exchangeOverview() {
+              return responseA;
+            },
+          },
+          books: new MemoryBooks(),
+          dataReleaseId: RELEASE,
+          catalogHas,
+        }),
+    ).toThrowError(/unique/);
+  });
+
   it("fails the refresh visibly when a unique type cannot be fetched, instead of a book without uniques", async () => {
     const { service } = setupUniques({ uniqueFails: true });
     await expect(service.getBook("TestLeague")).rejects.toMatchObject({ code: "network_error" });

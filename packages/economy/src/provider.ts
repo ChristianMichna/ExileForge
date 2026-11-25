@@ -21,6 +21,8 @@ export const ExchangeOverviewResponse = z.object({
 });
 /** Unique item overview (stash endpoint). The line id may be a number or a string; it is kept as a string. */
 export const UniqueOverviewResponse = z.object({
+  /** Present in real responses; only `primary` is looked at, and only if it is there. */
+  core: z.unknown().optional(),
   lines: z.array(
     z.object({
       id: z.union([z.string().min(1), z.number()]).transform(String),

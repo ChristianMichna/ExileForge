@@ -88,7 +88,18 @@ export function buildPriceBook(input: BuildBookInput): PriceBook {
   // reference of this book (docs: "Estimated value in the league's primary reference currency").
   // Lines of a variant or a corrupted copy price a different item than the catalog entry
   // and stay unmapped; so do names the catalog does not resolve to exactly one unique.
+  const candidates = new Map<
+    string,
+    { line: UniqueOverviewResponse["lines"][number]; id: string }[]
+  >();
   for (const response of input.uniqueResponses ?? []) {
+    const own = (response.core as { primary?: unknown } | null | undefined)?.primary;
+    if (typeof own === "string" && own !== primary) {
+      throw new EconomyError(
+        "invalid_response",
+        `unique prices are quoted in "${own}", the exchange reference is "${primary}"`,
+      );
+    }
     for (const line of response.lines) {
       const key = `unique:${line.id}`;
       const id =
@@ -99,23 +110,32 @@ export function buildPriceBook(input: BuildBookInput): PriceBook {
         id === undefined ||
         !catalogHas("uniqueItem", id) ||
         !Number.isFinite(line.primaryValue) ||
-        line.primaryValue <= 0 ||
-        quotes.has(`uniqueItem:${id}`)
+        line.primaryValue <= 0
       ) {
         unmapped.add(key);
         continue;
       }
-      quotes.set(`uniqueItem:${id}`, {
-        item: { kind: "uniqueItem", id },
-        providerItemId: key,
-        amount: line.primaryValue,
-        ...(line.listingCount != null ? { volume: line.listingCount } : {}),
-        confidence: confidenceOf(
-          line.listingCount ?? undefined,
-          config.uniqueConfidence ?? config.confidence,
-        ),
-      } as PriceQuote);
+      candidates.set(id, [...(candidates.get(id) ?? []), { line, id }]);
     }
+  }
+  // Two lines for one catalog unique cannot be told apart: no price, both listed, none picked.
+  for (const [id, entries] of candidates) {
+    const [only] = entries;
+    if (only === undefined || entries.length > 1) {
+      for (const e of entries) unmapped.add(`unique:${e.line.id}`);
+      continue;
+    }
+    const { line } = only;
+    quotes.set(`uniqueItem:${id}`, {
+      item: { kind: "uniqueItem", id },
+      providerItemId: `unique:${line.id}`,
+      amount: line.primaryValue,
+      ...(line.listingCount != null ? { volume: line.listingCount } : {}),
+      confidence: confidenceOf(
+        line.listingCount ?? undefined,
+        config.uniqueConfidence ?? config.confidence,
+      ),
+    } as PriceQuote);
   }
   // The reference currency has no quote of its own; it is the unit.
   quotes.delete(`baseItem:${reference.id}`);

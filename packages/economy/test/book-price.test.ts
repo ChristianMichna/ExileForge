@@ -194,6 +194,19 @@ describe("unique prices", () => {
     );
   });
 
+  it("gives no price when two lines resolve to the same catalog unique, and lists both", () => {
+    const book = buildU();
+    expect(book.quotes.some((q) => q.item.id === "uniq-1x")).toBe(false);
+    expect(book.unmappedProviderItemIds).toEqual(
+      expect.arrayContaining(["unique:107", "unique:108"]),
+    );
+  });
+
+  it("refuses unique prices quoted in another currency than the exchange reference", () => {
+    const other = { ...uniqueResponse, core: { primary: "prov-a" } };
+    expect(() => buildU({ uniqueResponses: [other] })).toThrowError(/quoted in/);
+  });
+
   it("keeps uniques unmapped when no resolver is given", () => {
     const book = buildU({ resolveUnique: undefined });
     expect(book.quotes.some((q) => q.item.kind === "uniqueItem")).toBe(false);

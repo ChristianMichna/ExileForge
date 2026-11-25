@@ -74,13 +74,15 @@ Aus dem vom Provider gemeldeten Handelsvolumen mit Schwellen aus der Config
 
 ## Unique-Preise
 
-Aus dem Stash-Overview (`paths.uniqueOverview`, `uniqueTypes`). Die Zeilen tragen `id` (Zahl), `name`, `baseType`, `corrupted`, `primaryValue` und `listingCount`; `variant` fehlt, wenn es keine gibt (am 25.11.2026 einmal gegen eine echte Antwort der Liga Forbidden Rites gelesen). Die Doku nennt `primaryValue`
+Aus dem Stash-Overview der Provider-Doku (https://poe.ninja/docs/api, gelesen am 25.11.2026; `paths.uniqueOverview`, `uniqueTypes`). Die Zeilen tragen `id` (Zahl), `name`, `baseType`, `corrupted`, `primaryValue` und `listingCount`; `variant` fehlt, wenn es keine gibt (am 25.11.2026 einmal gegen eine echte Antwort der Liga Forbidden Rites gelesen). Die Doku nennt `primaryValue`
 dort „Estimated value in the league's primary reference currency“; das Preisbuch nimmt dafür
 `core.primary` der Exchange-Antworten, also die eigene Referenzwährung, und zeigt die Preise
 als `market`. Der Server löst Name und Basis-Typ der Zeile über den Katalog zu einer
 Unique-ID auf (`createUniqueResolver` in `apps/server`): über den Namen und den Namen
 der Basis (der Provider führt eine Zeile je Basis; eine andere Basis gleichen Namens ist
-ein anderes Item und bleibt unmapped). Ohne Basis-Typ löst nur ein eindeutiger Name auf. Zeilen einer Variante oder eines
+ein anderes Item und bleibt unmapped). Ohne Basis-Typ löst nur ein eindeutiger Name auf. Zwei Zeilen für dieselbe Katalog-ID bekommen keinen Preis (beide stehen unmapped), es wird
+nicht die erste genommen. Nennt die Stash-Antwort ein eigenes `core.primary`, das von der
+Exchange-Referenz abweicht, bricht der Abruf mit `invalid_response` ab. Zeilen einer Variante oder eines
 korrumpierten Exemplars, unbekannte und mehrdeutige Namen sowie unbrauchbare Preise stehen
 mit `unique:<id>` in `unmappedProviderItemIds`. Die Konfidenz kommt aus der Anzahl
 Listings (`uniqueConfidence`, vorläufig). Eine leere Antwort (z. B. in einer Liga ohne Unique-Daten) ergibt keine Unique-Quotes; abgefragte Uniques
