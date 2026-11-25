@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import type { z } from "zod";
-import type { BaseItem, CraftingAction, Mod } from "@exileforge/contracts";
+import type { BaseItem, CraftingAction, Mod, PriceBook } from "@exileforge/contracts";
 import type { CraftSimRequest, CraftSimResult, EconomyTools } from "@exileforge/contracts";
 import {
   createSimCatalog,
@@ -50,7 +50,7 @@ async function readJson(path: string, what: string): Promise<unknown> {
 export interface PriceSource {
   price: EconomyPort;
   /** The league's price book for crafting costs. */
-  book(league: string): Promise<import("@exileforge/contracts").PriceBook>;
+  book(league: string): Promise<PriceBook>;
 }
 
 /** Builds the market price service from config; prices come only from the provider, never from code. */
