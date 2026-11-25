@@ -194,11 +194,21 @@ export class ForgeEngine {
           if (r.phase === "paused") tx.setPhase("planning");
           break;
         case "redoStage": {
+          // Later stages are computed from earlier ones, so redoing a stage drops them too.
+          const from = stageNumber(intervention.stage);
           const matches = (type: string) =>
-            type === intervention.stage || type.startsWith(`${intervention.stage}.`);
+            type === intervention.stage ||
+            type.startsWith(`${intervention.stage}.`) ||
+            (from !== undefined && (stageNumber(type) ?? -1) > from);
           r.results = Object.fromEntries(
             Object.entries(r.results).filter(([, result]) => !matches(result.type)),
           );
+          // A variant choice belongs to the candidates it was made on; the player picks again.
+          if (from !== undefined && from <= VARIANT_CHOICE_STAGE) {
+            r.interventions = r.interventions.filter(
+              (e) => e.intervention.kind !== "chooseVariant",
+            );
+          }
           // A running job computed from the old results; its answer must not come back.
           this.jobs.delete(r.runId);
           if (r.current !== null && matches(r.current.type)) {
@@ -753,4 +763,13 @@ function toJsonRecord(value: unknown): Record<string, JsonValue> {
     throw new Error("JSON Schema of a task is not an object");
   }
   return json;
+}
+
+/** The stage that holds the player's variant choice (S4). */
+const VARIANT_CHOICE_STAGE = 4;
+
+/** "S3.evaluate" and "S3" are stage 3; anything else has no stage number. */
+function stageNumber(type: string): number | undefined {
+  const match = /^S(\d+)(?:\.|$)/.exec(type);
+  return match?.[1] === undefined ? undefined : Number(match[1]);
 }

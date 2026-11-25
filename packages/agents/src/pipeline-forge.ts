@@ -32,6 +32,12 @@ export function createForgePipeline(config: StageConfig): Pipeline {
       (ctx.run.request.mainSkillId === undefined ? 1 : 0) + 1 + config.s2.candidateCount,
     validateIntervention: (intervention: UserIntervention, ctx) => {
       if (intervention.kind !== "chooseVariant") return undefined;
+      if (ctx.result(S3_KEY) === undefined) {
+        return "The candidates are not measured yet; choose after the calculation is done";
+      }
+      if (ctx.result(S4_KEY) !== undefined) {
+        return "A variant is already chosen; redo stage S4 to choose again";
+      }
       const keys = candidatesOf(ctx, config.s2.candidateCount).map((c) => c.key);
       return keys.includes(intervention.candidateKey)
         ? undefined

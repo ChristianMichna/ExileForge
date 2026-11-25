@@ -225,26 +225,88 @@ describe("forge pipeline (agents)", () => {
     });
   });
 
-  it("rejects a variant that is not a candidate", async () => {
-    const skeleton = {
-      evaluate: (input: { candidate: { key: string } }) =>
-        Promise.resolve({
-          candidateKey: input.candidate.key,
-          skeleton: BuildState.parse({
-            classId: "FixClassA",
-            level: 10,
-            tree: { allocated: [] },
-            skills: [],
-            items: [],
-          }),
-          calcs: {},
+  describe("S4 choice", () => {
+    const evaluation = (key: string) =>
+      Promise.resolve({
+        candidateKey: key,
+        skeleton: BuildState.parse({
+          classId: "FixClassA",
+          level: 10,
+          tree: { allocated: [] },
+          skills: [],
+          items: [],
         }),
+        calcs: {},
+      });
+    const fastSkeleton = {
+      evaluate: (input: { candidate: { key: string } }) => evaluation(input.candidate.key),
     };
-    const engine = setup(createForgePipeline(STAGES), skeleton);
-    const { runId } = await driveToS3(engine);
-    await expect(
-      engine.intervene(runId, { kind: "chooseVariant", candidateKey: "zzz" }),
-    ).rejects.toThrow();
+    /** Keeps the run open after S4 so interventions can still be tested. */
+    const openEnded = (pipeline: Pipeline): Pipeline => ({
+      ...pipeline,
+      plan: (ctx) => {
+        const step = pipeline.plan(ctx);
+        return step.kind === "blocked" && step.error.code === "stage_not_implemented"
+          ? { kind: "wait_user", reason: [{ type: "text", text: "later stages" }] }
+          : step;
+      },
+    });
+    const reachChoice = async (skeleton: typeof fastSkeleton) => {
+      const engine = setup(openEnded(createForgePipeline(STAGES)), skeleton);
+      const { runId } = await driveToS3(engine);
+      await vi.waitFor(async () => expect((await engine.next(runId)).kind).toBe("wait_user"));
+      await vi.waitFor(async () =>
+        expect(JSON.stringify(await engine.next(runId))).toContain("picks one"),
+      );
+      return { engine, runId };
+    };
+
+    it("rejects a variant that is not a candidate", async () => {
+      const { engine, runId } = await reachChoice(fastSkeleton);
+      await expect(
+        engine.intervene(runId, { kind: "chooseVariant", candidateKey: "zzz" }),
+      ).rejects.toMatchObject({ code: "invalid_intervention" });
+    });
+
+    it("rejects a choice while the candidates are still being measured", async () => {
+      let release: () => void = () => undefined;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const slow = {
+        evaluate: async (input: { candidate: { key: string } }) => {
+          await gate;
+          return evaluation(input.candidate.key);
+        },
+      };
+      const engine = setup(createForgePipeline(STAGES), slow);
+      const { runId } = await driveToS3(engine);
+      await expect(
+        engine.intervene(runId, { kind: "chooseVariant", candidateKey: "a" }),
+      ).rejects.toMatchObject({ code: "invalid_intervention" });
+      release();
+    });
+
+    it("rejects a second choice; redoing S4 asks the player again", async () => {
+      const { engine, runId } = await reachChoice(fastSkeleton);
+      await engine.intervene(runId, { kind: "chooseVariant", candidateKey: "a" });
+      expect(JSON.stringify(await engine.next(runId))).toContain("later stages");
+      await expect(
+        engine.intervene(runId, { kind: "chooseVariant", candidateKey: "b" }),
+      ).rejects.toMatchObject({ code: "invalid_intervention" });
+      await engine.intervene(runId, { kind: "redoStage", stage: "S4" });
+      expect(JSON.stringify(await engine.next(runId))).toContain("picks one");
+    });
+
+    it("drops the choice when S3 is redone", async () => {
+      const { engine, runId } = await reachChoice(fastSkeleton);
+      await engine.intervene(runId, { kind: "chooseVariant", candidateKey: "a" });
+      expect(JSON.stringify(await engine.next(runId))).toContain("later stages");
+      await engine.intervene(runId, { kind: "redoStage", stage: "S3" });
+      const results = (await engine.view(runId)).results;
+      expect(results["S4.selection"]).toBeUndefined();
+      expect(results["S3.evaluations"]).toBeUndefined();
+    });
   });
 
   it("rejects a support gem and an excluded gem as main skill in S0", async () => {
