@@ -73,27 +73,44 @@ jobs:
           test -n "${PATCH:-}" || { echo "no patch version"; exit 1; }
           echo "patch $PATCH"
           mkdir -p "$RUNNER_TEMP/export" && cd "$RUNNER_TEMP/export"
-          cat > config.json <<EOF
-          {
-            "patch": "$PATCH",
-            "translations": ["English"],
-            "tables": [
-              { "name": "BaseItemTypes", "columns": ["Id", "Name", "ItemClass", "DropLevel"] },
-              { "name": "ItemClasses", "columns": ["Id", "Name"] },
-              { "name": "CurrencyItems", "columns": ["BaseItemType", "StackSize", "CurrencyUseType", "Action", "Description"] },
-              { "name": "Omens", "columns": ["BaseItemType"] },
-              { "name": "Essences", "columns": ["BaseItemType", "Tier", "Perfect", "UpgradeResult"] },
-              { "name": "TieredCurrency", "columns": ["BaseItemType", "Tier", "MinimumModLevel", "LowerTierBaseItemType"] },
-              { "name": "CurrencyExchange", "columns": ["Item", "Category", "SubCategory"] },
-              { "name": "CurrencyExchangeCategories", "columns": ["Id", "Name"] }
-            ]
+          npm install --no-audit --no-fund pathofexile-dat@16.0.1
+          cat > run.mjs <<'EOF'
+          import { execFileSync } from "node:child_process";
+          import { cpSync, mkdirSync, writeFileSync } from "node:fs";
+
+          // one table per run: a table missing from this patch must not hide the others
+          const TABLES = [
+            { name: "BaseItemTypes", columns: ["Id", "Name", "ItemClass", "DropLevel"] },
+            { name: "ItemClasses", columns: ["Id", "Name"] },
+            { name: "CurrencyItems", columns: ["BaseItemType", "StackSize", "CurrencyUseType", "Action", "Description"] },
+            { name: "Omens", columns: ["BaseItemType"] },
+            { name: "AchievementOmenTypes", columns: ["BaseItemType"] },
+            { name: "Essences", columns: ["BaseItemType", "Tier", "Perfect", "UpgradeResult"] },
+            { name: "TieredCurrency", columns: ["BaseItemType", "Tier", "MinimumModLevel", "LowerTierBaseItemType"] },
+            { name: "CurrencyExchange", columns: ["Item", "Category", "SubCategory"] },
+            { name: "CurrencyExchangeCategories", columns: ["Id", "Name"] },
+          ];
+          mkdirSync("out", { recursive: true });
+          for (const t of TABLES) {
+            writeFileSync(
+              "config.json",
+              JSON.stringify({ patch: process.env.PATCH, translations: ["English"], tables: [t] }),
+            );
+            try {
+              execFileSync("./node_modules/.bin/pathofexile-dat", [], { stdio: "pipe", timeout: 300000 });
+              cpSync(`tables/English/${t.name}.json`, `out/${t.name}.json`);
+              console.log(`ok     ${t.name}`);
+            } catch (e) {
+              const msg = String(e.stderr || e.message).trim().split("\n").slice(0, 3).join(" | ");
+              console.log(`FAILED ${t.name}: ${msg}`);
+            }
           }
           EOF
-          npx --yes pathofexile-dat@16.0.1
+          node run.mjs
 
       - name: Summarise the exported tables
         run: |
-          cd "$RUNNER_TEMP/export/tables/English"
+          cd "$RUNNER_TEMP/export/out"
           node --input-type=module - <<'EOF'
           import { readdirSync, readFileSync } from "node:fs";
           for (const f of readdirSync(".").sort()) {
@@ -104,8 +121,13 @@ jobs:
           const names = new Map(
             JSON.parse(readFileSync("BaseItemTypes.json", "utf8")).map((r) => [r._index, r]),
           );
-          const omens = JSON.parse(readFileSync("Omens.json", "utf8"));
-          console.log("omens resolved:", omens.slice(0, 5).map((o) => names.get(o.BaseItemType)?.Id));
-          const cur = JSON.parse(readFileSync("CurrencyItems.json", "utf8"));
-          console.log("currency resolved:", cur.slice(0, 5).map((o) => names.get(o.BaseItemType)?.Id));
+          for (const f of ["CurrencyItems", "Omens", "Essences", "TieredCurrency"]) {
+            let rows;
+            try {
+              rows = JSON.parse(readFileSync(`${f}.json`, "utf8"));
+            } catch {
+              continue;
+            }
+            console.log(`${f} resolved:`, rows.slice(0, 6).map((o) => names.get(o.BaseItemType)?.Id));
+          }
           EOF
