@@ -111,12 +111,23 @@ async function startServerOwningPool(
       ...(stages.s5 === undefined
         ? {}
         : { target: { calcProfiles: stages.s5.calcProfiles, objective: stages.s5.objective } }),
+      ...(stages.s6 === undefined
+        ? {}
+        : {
+            progression: { calcProfiles: stages.s6.calcProfiles, objective: stages.s6.objective },
+          }),
       logger: options.logger,
     });
   }
   // The profiles numbers of a run may come from: the PoC's and, with PoB, the stages'.
   const stageProfiles =
-    pobCalc === undefined ? [] : [...stages.s3.calcProfiles, ...(stages.s5?.calcProfiles ?? [])];
+    pobCalc === undefined
+      ? []
+      : [
+          ...stages.s3.calcProfiles,
+          ...(stages.s5?.calcProfiles ?? []),
+          ...(stages.s6?.calcProfiles ?? []),
+        ];
   const knownProfiles = [...new Set([...config.pipelines.poc.calcProfiles, ...stageProfiles])];
   const engine = new ForgeEngine({
     store,
@@ -124,7 +135,7 @@ async function startServerOwningPool(
     calc,
     config,
     logger: options.logger,
-    ...(skeleton === undefined ? {} : { skeleton, target: skeleton }),
+    ...(skeleton === undefined ? {} : { skeleton, target: skeleton, progression: skeleton }),
     pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
     calcProfiles: knownProfiles,
   });

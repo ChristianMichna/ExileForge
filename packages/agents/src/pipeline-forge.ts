@@ -19,6 +19,17 @@ import {
   targetStep,
   treeJob,
 } from "./stages/s5-target.js";
+import {
+  notesTask,
+  planStep,
+  ProgressionNotes,
+  S6_NOTES_KEY,
+  S6_PLAN_KEY,
+  S6_STAGES_KEY,
+  stagesJob,
+} from "./stages/s6-progression.js";
+import { TargetBuild } from "@astrolabe/contracts/build";
+import type { ProgressionStageTree } from "./ports.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 
@@ -43,7 +54,8 @@ export function createForgePipeline(config: StageConfig): Pipeline {
       (ctx.run.request.mainSkillId === undefined ? 1 : 0) +
       1 +
       config.s2.candidateCount +
-      (config.s5 === undefined ? 0 : 1),
+      (config.s5 === undefined ? 0 : 1) +
+      (config.s6 === undefined ? 0 : 1),
     validateIntervention: (intervention: UserIntervention, ctx) => {
       if (intervention.kind !== "chooseVariant") return undefined;
       if (ctx.result(S3_KEY) === undefined) {
@@ -171,15 +183,64 @@ function planTarget(
   const setup = setupParsed.data;
   const tree = ctx.result(S5_TREE_KEY);
   if (tree === undefined) return treeJob(ctx, s5, profile, chosen, evaluation, setup);
-  if (ctx.result(S5_TARGET_KEY) === undefined) {
+  const targetResult = ctx.result(S5_TARGET_KEY);
+  if (targetResult === undefined) {
     return targetStep(chosen, tree as { state: unknown; calcs: unknown }, setup);
   }
+  return planProgression(ctx, config, profile, chosen, targetResult);
+}
+
+/** S6: stage ordering (PoB job), texts (Claude), then the validated plan. */
+function planProgression(
+  ctx: PipelineContext,
+  config: StageConfig,
+  profile: SkillProfile,
+  chosen: ArchetypeCandidate,
+  targetResult: JsonValue,
+): PlanStep {
+  const s6 = config.s6;
+  if (s6 === undefined) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "s6_not_configured",
+        message:
+          "S6 needs the stage table of the progression: level bands and passive points per stage (config/agents/stages.json, block s6). They have not been set yet. S0 to S5 are done; their results are stored with the run.",
+      },
+    };
+  }
+  const target = TargetBuild.safeParse(targetResult);
+  if (!target.success) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "invalid_target",
+        message: "The stored S5 target is unreadable. Redo stage S5.",
+      },
+    };
+  }
+  const stored = ctx.result(S6_STAGES_KEY);
+  if (stored === undefined) return stagesJob(ctx, s6, profile, chosen, target.data);
+  const trees = stored as unknown as ProgressionStageTree[];
+  const notes = ctx.result(S6_NOTES_KEY);
+  if (notes === undefined) return { kind: "task", spec: notesTask(ctx, config, s6, trees) };
+  const parsedNotes = ProgressionNotes.safeParse(notes);
+  if (!parsedNotes.success) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "invalid_notes",
+        message: "The stored S6 texts are unreadable. Redo stage S6.",
+      },
+    };
+  }
+  if (ctx.result(S6_PLAN_KEY) === undefined) return planStep(s6, trees, parsedNotes.data);
   return {
     kind: "blocked",
     error: {
       code: "stage_not_implemented",
       message:
-        "S6 (progression) and the later stages are not built yet. S0 to S5 are done; their results are stored with the run.",
+        "S7 (gear) and the later stages are not built yet. S0 to S6 are done; their results are stored with the run.",
     },
   };
 }

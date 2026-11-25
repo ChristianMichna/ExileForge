@@ -47,7 +47,7 @@ const profile = SkillProfile.parse({
 });
 const cand = ArchetypeCandidate.parse(candidate("a", "FixClassA", "FixAscA1"));
 
-function setup(optimizeResult: object) {
+function setup(optimizeResult: object, stagesResult?: object) {
   const optimize = vi.fn<(input: TreeOptimizeInput) => Promise<never>>(() =>
     Promise.resolve(optimizeResult as never),
   );
@@ -70,8 +70,10 @@ function setup(optimizeResult: object) {
       objective: { weights: { FullDPS: 1 }, floors: {} },
     },
     target: { calcProfiles: ["as-saved"], objective: { weights: { FullDPS: 1 }, floors: {} } },
+    progression: { calcProfiles: ["as-saved"], objective: { weights: { FullDPS: 1 }, floors: {} } },
     logger: createMemoryLogger(),
     optimize,
+    optimizeStages: (() => Promise.resolve(stagesResult as never)) as never,
   });
   return { skeleton, optimize, withBuild, calculate };
 }
@@ -99,6 +101,68 @@ describe("PobSkeleton", () => {
     expect(out.skeleton.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1", "FixN2"]);
     expect(out.calcs).toEqual({ "as-saved": { status: "ok", calcId: "calc-1" } });
     expect(calculate).toHaveBeenCalledOnce();
+  });
+
+  describe("optimizeProgression (S6)", () => {
+    const target = {
+      candidateKey: "a",
+      state: BuildState.parse({
+        classId: "FixClassA",
+        level: 20,
+        tree: { allocated: [{ nodeId: "FixN1" }, { nodeId: "FixN2" }] },
+        skills: [],
+        items: [],
+      }),
+      calcs: {},
+      rationale: [],
+    } as never;
+    const stage = (key: string, allocated: string[], feasible = true) => ({
+      key,
+      budget: allocated.length,
+      allocated,
+      allocationOrder: allocated,
+      respecs: [],
+      unspent: 0,
+      metrics: {},
+      calcId: "calc-1",
+      violations: feasible ? [] : [{ stat: "x" }],
+      feasible,
+      stoppedBy: "budget_spent",
+    });
+    const input = {
+      request: REQUEST,
+      profile,
+      candidate: cand,
+      target,
+      stages: [
+        { key: "early", budget: 1 },
+        { key: "late", budget: 2 },
+      ],
+    };
+    const wrap = (stages: object[]) => ({
+      stages,
+      evaluations: 3,
+      failedEvaluations: [],
+      failedEvaluationCount: 0,
+    });
+
+    it("returns nested stage builds with a measurement each", async () => {
+      const { skeleton, calculate } = setup(
+        {},
+        wrap([stage("early", ["FixN1"]), stage("late", ["FixN1", "FixN2"])]),
+      );
+      const out = await skeleton.optimizeProgression(input);
+      expect(out.map((s) => [s.key, s.state.tree.allocated.length])).toEqual([
+        ["early", 1],
+        ["late", 2],
+      ]);
+      expect(calculate).toHaveBeenCalledTimes(2);
+    });
+
+    it("fails visibly when a stage misses the floors", async () => {
+      const { skeleton } = setup({}, wrap([stage("early", ["FixN1"], false)]));
+      await expect(skeleton.optimizeProgression(input)).rejects.toThrow(/floors/);
+    });
   });
 
   describe("optimizeTree (S5)", () => {

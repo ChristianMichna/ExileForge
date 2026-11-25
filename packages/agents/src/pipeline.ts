@@ -2,7 +2,7 @@ import type { z } from "zod";
 import type { BuildRequest, Finding, RichText, TaskType } from "@astrolabe/contracts/build";
 import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { UserIntervention } from "@astrolabe/contracts/forge";
-import type { CalcPort, CatalogPort, SkeletonPort, TargetPort } from "./ports.js";
+import type { CalcPort, CatalogPort, ProgressionPort, SkeletonPort, TargetPort } from "./ports.js";
 
 /** The part of a stored run that pipelines may read. */
 export interface RunView {
@@ -21,6 +21,8 @@ export interface PipelineContext {
   readonly skeleton?: SkeletonPort;
   /** Endgame tree optimisation for S5; absent unless the real PoB engine runs. */
   readonly target?: TargetPort;
+  /** Stage ordering of the target tree for S6; same condition as the skeleton. */
+  readonly progression?: ProgressionPort;
   /** Latest intervention of a kind, e.g. the current variant choice. */
   latest<K extends UserIntervention["kind"]>(
     kind: K,
