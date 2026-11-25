@@ -711,6 +711,32 @@
                   ]
                 }
               },
+              "unresolved": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "unmatched",
+                        "ambiguous",
+                        "lossy",
+                        "hidden"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "reason"
+                  ]
+                }
+              },
               "position": {
                 "type": "object",
                 "properties": {

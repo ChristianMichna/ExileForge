@@ -260,6 +260,23 @@ describe("entities", () => {
     expect(UniqueModLine.safeParse({ stats: [], allocatesNodeId: "" }).success).toBe(false);
   });
 
+  it("passive nodes default to no unresolved lines and accept some", () => {
+    const node = {
+      id: "1",
+      name: "Fixture Node",
+      kind: "small",
+      stats: [],
+      position: { groupId: "1", orbit: 0, orbitIndex: 0 },
+      connections: [],
+    };
+    expect(PassiveNode.parse(node).unresolved).toEqual([]);
+    const withLine = { ...node, unresolved: [{ text: "Fixture line", reason: "hidden" }] };
+    expect(PassiveNode.parse(withLine).unresolved).toHaveLength(1);
+    expect(
+      PassiveNode.safeParse({ ...node, unresolved: [{ text: "x", reason: "guessed" }] }).success,
+    ).toBe(false);
+  });
+
   it("ascendancy point unlocks may be absent", () => {
     const asc = {
       id: "fixture_asc",

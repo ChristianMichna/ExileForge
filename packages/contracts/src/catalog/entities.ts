@@ -200,6 +200,12 @@ export const PassiveNode = z.object({
   /** Node kind (small, notable, keystone, jewel socket …) as defined by the release. */
   kind: ClassificationId,
   stats: z.array(z.object({ statId: StatId.optional(), text: z.string().min(1) })),
+  /**
+   * Stat lines of this node whose values could not be resolved from the source
+   * (same meaning as on mods); they also appear in `stats` as text when the
+   * source has one.
+   */
+  unresolved: z.array(UnresolvedLine).default([]),
   position: z.object({
     groupId: z.string().min(1),
     orbit: nonNegInt,
