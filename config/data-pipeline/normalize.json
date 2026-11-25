@@ -23,6 +23,23 @@
   "modGenerationTypeFallback": "unspecified",
   "baseItemPropertyGroups": ["weapon", "armour", "flask", "charm"],
   "classAttributePrefix": "base_",
+  "essence": {
+    "$comment": "Essences become crafting actions from PoB's per-class mod table (Data/Essence.lua). op is the name agreed with the crafting thread (add-specific-mod, params modByItemClass); until packages/crafting-sim implements it the simulator reports the action as uncalibrated. PoB gives no rarity rule for essences, so none is set.",
+    "kind": "essence",
+    "op": "add-specific-mod"
+  },
+  "currency": {
+    "$comment": "Currency-like base items from the game-data tables (docs/adr/0005). itemClasses decides which CurrencyItems rows count; other classes (soul cores, map fragments, incubators ...) are reported as left out. Ids are BaseItemTypes.Id (metadata path), not PoB's name-based equipment ids.",
+    "itemClasses": ["StackableCurrency", "Omen"],
+    "tags": {
+      "action": "currency_action:",
+      "exchangeCategory": "exchange_category:",
+      "lowerTier": "lower_tier:",
+      "essence": "essence",
+      "perfect": "perfect",
+      "omen": "omen"
+    }
+  },
   "releaseFacts": {
     "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on. Known limit: PoB hard-codes level 100 / 99 points, so a different maxCharacterLevel in the game data would not be reflected by PoB.",
     "maxLevelTable": "ExperienceLevels",

@@ -118,12 +118,35 @@ Haupthand ab (`dependsOnSlot`); ihre Klassen sind die Vereinigung über alle Zus
 Klassen, die kein Slot annimmt (Juwelen, Fallen-Werkzeuge), stehen als Warnung in
 `findings.json`. Juwelen-Sockel stehen nicht in der Liste.
 
-IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
+Währungen, Essenzen und Omen (nur mit `--game-data <dir>`, `src/normalize/currency.ts`):
+`CurrencyItems`-Zeilen der Item-Klassen aus `currency.itemClasses` (normalize.json)
+werden zu `baseItem`-Einträgen. ID = `BaseItemTypes.Id` (Metadaten-Pfad des Spiels;
+anders als die namensbasierten PoB-IDs der Ausrüstung), Klasse = `ItemClasses.Id`.
+Eigenschaften: `stackSize`, `useType`, bei gestuften Währungen `currencyTier` und
+`minimumModLevel`, bei Essenzen `essenceTier`. Tags (Wortschatz in der Config): `currency_action:<Action>`,
+`exchange_category:<Kategorie>`, `lower_tier:<ID der niedrigeren Stufe>`, `essence`,
+`perfect`, `omen`. Andere Klassen (Seelenkerne, Kartenfragmente, Inkubatoren …) bleiben
+draußen und stehen mit Anzahl als Warnung in `findings.json`; ein Fremdschlüssel ins
+Leere oder eine doppelte ID ist ein Fehler. Offen: was eine Essenz bewirkt
+(`Essences.UpgradeResult`) ist nicht abgebildet, bis die Crafting-Operation dafür
+festgelegt ist.
+
+Essenzen als Crafting-Aktionen (`src/normalize/essence.ts`, nur mit `--game-data`):
+Je PoB-Essenz (Schlüssel = Metadaten-Pfad = ID der Währungs-Basis) entsteht eine
+`craftingAction` (`kind` und Op aus `normalize.json` `essence`; Op `add-specific-mod`
+mit `modByItemClass`; Name und Form mit dem Crafting-Thread abgesprochen, umgesetzt wird sie in `packages/crafting-sim`). Aufgenommen werden nur
+Einträge, deren Basis, Item-Klasse und Mod im Release existieren; alles andere steht
+als Befund (`kind: essence`) in `findings.json`. Eine Essenz ohne brauchbaren Eintrag
+erzeugt keine Aktion. Aktionsname = PoB-Name (die Basis trägt den Namen aus den Game-Data). Rarität: PoB nennt keine Regel, deshalb setzt die Pipeline keine; der Simulator muss eine
+fehlende Raritätsregel als unkalibriert behandeln (Anforderung an die Op-Umsetzung). `validate.ts` prüft Basis, Item-Klassen und Mod-IDs der Aktion.
+
+IDs (Ausrüstung, Uniques, Gems, Mods aus PoB-Daten; Währungen aus den Game-Data-Tabellen, siehe ADR-0005):
 
 | Art               | ID                                            |
 | ----------------- | --------------------------------------------- |
 | Mod               | PoB-Mod-ID                                    |
-| Basis             | Name der Basis                                |
+| Basis             | Name der Basis (Ausrüstung)                   |
+| Währung, Essenz, Omen | `BaseItemTypes.Id` (Metadaten-Pfad)       |
 | Unique            | `Titel, Basis`                                |
 | Gem               | Spiel-ID des Gems                             |
 | Passive           | numerische Knoten-ID (als Text)               |

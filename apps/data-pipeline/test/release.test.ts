@@ -4,10 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CatalogShard } from "@astrolabe/contracts/catalog";
 import { describe, expect, it } from "vitest";
-import { exportGameData, type DatTool } from "../src/gamedata/export.ts";
-import { gameDataConfigSchema } from "../src/gamedata/config.ts";
 import { buildCatalog, pipelineRevisionOf } from "../src/normalize/release.ts";
 import { sha256, writeManifest } from "../src/snapshot/snapshot.ts";
+import { write, tables } from "./fixtures/game-data.ts";
 import { cfg, rawSnapshot, type RawFixture } from "./fixtures/raw-catalog.ts";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
@@ -102,35 +101,33 @@ describe("buildCatalog", () => {
   });
 });
 
-// invented game data with only a level table
+// invented game data: the currency tables plus a level table
 async function writeGameData(levels: number[]): Promise<string> {
-  const gdConfig = gameDataConfigSchema.parse({
-    patchServer: { host: "patch.example", port: 1, handshake: [1], timeoutMs: 1000 },
-    schemaUrl: "https://schema.example/schema.json",
-    language: "English",
-    toolTimeoutMs: 1000,
-    tables: [{ name: "Levels", columns: ["Level"] }],
+  return write({
+    ...tables(),
+    Levels: levels.map((Level) => ({ Level })),
   });
-  const tool: DatTool = {
-    name: "fake-dat",
-    version: "1.0.0",
-    run: async (job) => {
-      const dir = join(job.workDir, "tables", job.language);
-      await mkdir(dir, { recursive: true });
-      const rows = levels.map((Level, _index) => ({ _index, Level }));
-      await writeFile(join(dir, "Levels.json"), JSON.stringify(rows));
-    },
-  };
-  const dir = join(await mkdtemp(join(tmpdir(), "ef-gd-")), "game-data");
-  await exportGameData({
-    config: gdConfig,
-    patch: { url: "https://cdn.example/9.9.9/", version: "9.9.9" },
-    outDir: dir,
-    tool,
-    schema: { url: gdConfig.schemaUrl, sha256: "b".repeat(64) },
-  });
-  return dir;
 }
+
+describe("essences without game data", () => {
+  it("leaves actions out and says so", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const { warnings } = await buildCatalog(snap, out, config, NOW);
+    expect(warnings.map((w) => w.message).join("\n")).toMatch(
+      /essence crafting actions are left out/,
+    );
+  });
+});
+
+describe("currency without game data", () => {
+  it("leaves currency out and says so", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const { warnings } = await buildCatalog(snap, out, config, NOW);
+    expect(warnings.map((w) => w.message).join("\n")).toMatch(/currency items are left out/);
+  });
+});
 
 describe("release facts", () => {
   const factsConfig = {
@@ -144,6 +141,31 @@ describe("release facts", () => {
     const gameDataDir = await writeGameData([1, 2, 7, 5]);
     const { manifest } = await buildCatalog(snap, out, factsConfig, NOW, { gameDataDir });
     expect(manifest.release.maxCharacterLevel).toEqual({ value: 7, origin: "game-data" });
+    const shard = CatalogShard.parse(
+      JSON.parse(await readFile(join(out, "baseItem.json"), "utf8")),
+    );
+    expect(shard.entities.map((e) => (e as { id: string }).id)).toContain("Test/Orb");
+    const actions = CatalogShard.parse(
+      JSON.parse(await readFile(join(out, "craftingAction.json"), "utf8")),
+    );
+    expect(actions.entities).toEqual([
+      expect.objectContaining({
+        id: "Test/Essence",
+        kind: "essence",
+        itemId: "Test/Essence",
+        effects: [{ op: "add-specific-mod", params: { modByItemClass: { Ring: "AlphaLow" } } }],
+      }),
+    ]);
+    const findings = JSON.parse(await readFile(join(out, "findings.json"), "utf8")) as {
+      warnings: { kind: string; message: string }[];
+    };
+    const text = findings.warnings
+      .filter((w) => w.kind === "essence")
+      .map((w) => w.message)
+      .join("\n");
+    expect(text).toMatch(/item class "Wand" is not in the catalog/);
+    expect(text).toMatch(/mod "NoSuchMod" for Sword is not in the catalog/);
+    expect(text).toMatch(/Other Essence: no currency base item/);
     expect(manifest.release.passivePoints).toEqual({
       mainTree: {
         perLevel: cfg.releaseFacts.mainTree.perLevel,

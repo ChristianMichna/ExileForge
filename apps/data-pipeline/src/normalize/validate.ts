@@ -1,6 +1,7 @@
 import {
   Ascendancy,
   BaseItem,
+  CraftingAction,
   CharacterClass,
   Gem,
   Mod,
@@ -14,6 +15,7 @@ import type { CatalogEntities, Finding } from "./catalog.ts";
 
 const SCHEMAS: Record<keyof CatalogEntities, z.ZodType> = {
   baseItem: BaseItem,
+  craftingAction: CraftingAction,
   mod: Mod,
   uniqueItem: UniqueItem,
   gem: Gem,
@@ -85,6 +87,35 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
 
   for (const b of input.baseItem as { id: string; implicitModIds?: string[] }[]) {
     for (const m of b.implicitModIds ?? []) ref("baseItem", b.id, "implicitModIds", "mod", m);
+  }
+  const itemClasses = new Set(input.baseItem.map((b) => String(b.itemClass)));
+  for (const a of input.craftingAction as {
+    id: string;
+    itemId?: string;
+    effects?: { params?: { modByItemClass?: unknown } }[];
+  }[]) {
+    if (a.itemId !== undefined) ref("craftingAction", a.id, "itemId", "baseItem", a.itemId);
+    for (const effect of a.effects ?? []) {
+      const byClass = effect.params?.modByItemClass;
+      if (typeof byClass !== "object" || byClass === null) continue;
+      for (const [cls, mod] of Object.entries(byClass)) {
+        if (!itemClasses.has(cls))
+          errors.push({
+            kind: "craftingAction",
+            id: a.id,
+            message: `modByItemClass → unknown item class "${cls}"`,
+          });
+        if (typeof mod !== "string") {
+          errors.push({
+            kind: "craftingAction",
+            id: a.id,
+            message: `modByItemClass → mod for "${cls}" is not an id`,
+          });
+          continue;
+        }
+        ref("craftingAction", a.id, "modByItemClass", "mod", mod);
+      }
+    }
   }
   for (const u of input.uniqueItem as {
     id: string;

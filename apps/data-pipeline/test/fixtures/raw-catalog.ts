@@ -92,6 +92,15 @@ export function rawSnapshot() {
         modTags: {},
       },
     } as Record<string, Record<string, unknown>>,
+    essences: {
+      "Test/Essence": {
+        name: "Fake Essence",
+        tierLevel: 1,
+        type: "Fake",
+        mods: { Ring: "AlphaLow", Wand: "AlphaLow", Sword: "NoSuchMod" },
+      },
+      "Test/Elsewhere": { name: "Other Essence", tierLevel: 1, type: "Fake", mods: {} },
+    } as Record<string, Record<string, unknown>>,
     itemSlots: {
       "Fake Hand 2": {
         order: 2,

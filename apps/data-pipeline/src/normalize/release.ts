@@ -16,6 +16,8 @@ import {
   type NormalizeConfig,
   type NormalizeSummary,
 } from "./catalog.ts";
+import { currencyBaseItems } from "./currency.ts";
+import { essenceActions } from "./essence.ts";
 import { buildReleaseFacts } from "./release-facts.ts";
 import { StatMatcher } from "./stat-matcher.ts";
 import { validateCatalog } from "./validate.ts";
@@ -32,6 +34,7 @@ const RAW_KINDS = [
   "statDescriptions",
   "questRewards",
   "itemSlots",
+  "essences",
 ] as const;
 
 /** Written first, so a directory holding it is a previous catalog output. */
@@ -98,8 +101,48 @@ export async function buildCatalog(
     },
     ...(extra.gameDataDir === undefined ? {} : { gameDataDir: extra.gameDataDir }),
   });
+  const currencyFindings: Finding[] = [];
+  const currencyErrors: Finding[] = [];
+  if (extra.gameDataDir !== undefined) {
+    const cur = await currencyBaseItems(
+      extra.gameDataDir,
+      cfg.config.currency,
+      new Set(norm.entities.baseItem.map((b) => String(b.id))),
+    );
+    norm.entities.baseItem.push(...(cur.baseItems as typeof norm.entities.baseItem));
+    currencyFindings.push(...cur.findings);
+    currencyErrors.push(...cur.errors);
+  } else {
+    currencyFindings.push({
+      kind: "currency",
+      id: "all",
+      message: "no game data given, currency items are left out",
+    });
+  }
+  const essenceFindings: Finding[] = [];
+  if (extra.gameDataDir === undefined)
+    essenceFindings.push({
+      kind: "essence",
+      id: "all",
+      message: "no game data given, essence crafting actions are left out",
+    });
+  else {
+    const rawEssences = raw.essences;
+    if (!rawEssences) throw new Error(`snapshot ${snap.releaseId} has no essences shard`);
+    const res = essenceActions(
+      rawEssences,
+      {
+        baseItemIds: new Set(norm.entities.baseItem.map((b) => String(b.id))),
+        itemClasses: new Set(norm.entities.baseItem.map((b) => String(b.itemClass))),
+        modIds: new Set(norm.entities.mod.map((m) => String(m.id))),
+      },
+      cfg.config.essence,
+    );
+    norm.entities.craftingAction.push(...res.actions);
+    essenceFindings.push(...res.findings);
+  }
   const validation = validateCatalog(norm.entities);
-  const errors = [...norm.errors, ...validation.errors, ...factErrors];
+  const errors = [...norm.errors, ...validation.errors, ...factErrors, ...currencyErrors];
 
   const out = resolve(outDir);
   await prepareOutDir(
@@ -117,7 +160,7 @@ export async function buildCatalog(
         releaseId: snap.releaseId,
         summary: norm.summary,
         errors,
-        warnings: [...norm.warnings, ...factFindings],
+        warnings: [...norm.warnings, ...factFindings, ...currencyFindings, ...essenceFindings],
         unresolved: norm.unresolved,
         hiddenStatGroups: norm.hiddenStatGroups,
       },
@@ -175,5 +218,9 @@ export async function buildCatalog(
     "catalog manifest",
   );
   await writeFile(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-  return { manifest, warnings: [...norm.warnings, ...factFindings], summary: norm.summary };
+  return {
+    manifest,
+    warnings: [...norm.warnings, ...factFindings, ...currencyFindings, ...essenceFindings],
+    summary: norm.summary,
+  };
 }
