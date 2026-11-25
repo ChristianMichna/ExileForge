@@ -555,3 +555,51 @@ describe("result shape", () => {
     expect(() => parseCraftSimConfig(raw)).not.toThrow();
   });
 });
+
+describe("add-specific-mod", () => {
+  const fixed = (modByItemClass: Record<string, string>, limits?: Record<string, number>) =>
+    action("act-fixed", [
+      { op: "add-specific-mod", params: { modByItemClass, ...(limits ? { limits } : {}) } },
+    ]);
+  const runFixed = (act: ReturnType<typeof action>, mods = [mod("mod-a", 1), mod("mod-b", 1)]) =>
+    simulate(
+      request({
+        strategy: { steps: [{ order: 0, actionIds: ["act-fixed"], onFail: { action: "accept" } }] },
+        runs: 1000,
+      }),
+      {
+        catalog: createSimCatalog({ baseItems: [base], mods, actions: [act] }),
+        config,
+      },
+    );
+
+  it("adds the mod of the base item's class every time", () => {
+    const r = runFixed(fixed({ "class-x": "mod-a", "class-y": "mod-b" }));
+    expect(outcomesOf(r).succeeded).toBe(1000);
+  });
+
+  it("reports a class without an entry as a problem, not as success or failure of the draw", () => {
+    const r = runFixed(fixed({ "class-y": "mod-b" }));
+    expect(r.successChance.status).not.toBe("ok");
+    expect(r.outcomes).toBeUndefined();
+  });
+
+  it("is blocked when a mod of the same group is already on the item", () => {
+    const grouped = [mod("mod-a", 1, { groups: ["g"] }), mod("mod-b", 1, { groups: ["g"] })];
+    const act = fixed({ "class-x": "mod-a" });
+    const r = simulate(
+      request({
+        start: { ...start, modIds: ["mod-b"] },
+        strategy: { steps: [{ order: 0, actionIds: ["act-fixed"], onFail: { action: "accept" } }] },
+        runs: 1000,
+      }),
+      { catalog: createSimCatalog({ baseItems: [base], mods: grouped, actions: [act] }), config },
+    );
+    expect(outcomesOf(r).succeeded).toBe(0);
+  });
+
+  it("is blocked at a given generation-type limit", () => {
+    const act = fixed({ "class-x": "mod-a" }, { "gen-p": 0 });
+    expect(outcomesOf(runFixed(act)).succeeded).toBe(0);
+  });
+});

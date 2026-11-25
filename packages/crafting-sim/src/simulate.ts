@@ -457,6 +457,34 @@ function compileAction(
           return undefined;
         });
         break;
+      case "add-specific-mod": {
+        const itemClass = catalog.baseItem(start.baseItemId)?.itemClass;
+        const modId = itemClass === undefined ? undefined : r.params.modByItemClass[itemClass];
+        const mod = modId === undefined ? undefined : catalog.mod(modId);
+        if (modId === undefined || !mod) {
+          problems.push(
+            modId === undefined
+              ? `${where}: no mod given for item class ${String(itemClass)} of base ${start.baseItemId}`
+              : `${where}: mod ${modId} is not in the data release`,
+          );
+          break;
+        }
+        poolModIds.push(mod.id);
+        effects.push((s) => {
+          const limit = r.params.limits?.[mod.generationType];
+          let count = 0;
+          for (const m of s.mods) {
+            const other = catalog.mod(m);
+            if (!other) continue;
+            if (other.groups.some((g) => mod.groups.includes(g))) return BLOCKED;
+            if (other.generationType === mod.generationType) count++;
+          }
+          if (limit !== undefined && count >= limit) return BLOCKED;
+          s.mods.push(mod.id);
+          return undefined;
+        });
+        break;
+      }
       case "add-random-mod": {
         const missingLimit = r.params.generationTypes.filter(
           (g) => r.params.limits[g] === undefined,
