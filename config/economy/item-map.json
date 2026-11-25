@@ -1,10 +1,18 @@
 {
-  "$comment": "Mapping of provider item ids to catalog ids (packages/economy). Built on 25.11.2026 by joining the display names of poe.ninja's exchange items (league Standard, all types of economy.json) with the names of the catalog's currency, essence and omen base items; only exact, unique name matches are listed. 'orb-of-extraction' has two catalog items of that name; the one with the tag exchange_category:Incursion (the tradable one) is used, the bench variant has no exchange category. Not listed: provider entries without a catalog item of that name (runes, lineage support gems, uncut gems, idols, some fragments). The module checks every mapped id against the data release and reports the rest as unmapped. Re-run the join after a data release; ids that stop matching are reported, not guessed.",
-  "version": "economy-map-3",
+  "$comment": "Mapping of provider item ids to catalog ids (packages/economy). Built on 25.11.2026 by joining the display names of poe.ninja's exchange items (league Standard, all types of economy.json) with the names of the catalog's exchange base items (data release poe2-0.5.5.10+r2); only exact, unique name matches are listed. 'orb-of-extraction' has two catalog items of that name; the one with the tag exchange_category:Incursion (the tradable one) is used, the bench variant has no exchange category. The module checks every mapped id against the data release and reports the rest as unmapped. Re-run the join after a data release; ids that stop matching are reported, not guessed.",
+  "version": "economy-map-4",
   "items": {
     "adaptive-catalyst": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyJewelleryQualityAttribute"
+    },
+    "ahns-citadel": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemAhnsCitadel"
+    },
+    "ailiths-chimes": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemAilithLineage"
     },
     "alch": {
       "kind": "baseItem",
@@ -13,6 +21,18 @@
     "altered-collarbone": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/AbyssalBenchTicketBreach"
+    },
+    "amanamus-gaze": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/AmanamusGaze"
+    },
+    "amanamus-tithe": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemAmanamusTithe"
+    },
+    "an-audience-with-the-king": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/MapFragments/CurrencyRitualBossFragment"
     },
     "ancient-collarbone": {
       "kind": "baseItem",
@@ -25,6 +45,10 @@
     "ancient-concentrated-liquid-suffering": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/DistilledEmotionTimeLost9"
+    },
+    "ancient-crisis-fragment": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Pinnacle/BurningMonolithKey1"
     },
     "ancient-infuser": {
       "kind": "baseItem",
@@ -46,13 +70,61 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/AbyssalBenchTicketArmourHigh"
     },
+    "ancient-rune-of-splinters": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneOfTheAncients1"
+    },
+    "ancient-rune-of-witchcraft": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneOfTheAncients9"
+    },
     "annul": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyRemoveMod"
     },
+    "arbiters-ignition": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemArbitersIgnition"
+    },
     "architects-orb": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyIncursionDoubleCorrupt"
+    },
+    "arjuns-medal": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemAmmoConservationFour"
+    },
+    "astrids-creativity": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWarpingAdditionalCraftedMod"
+    },
+    "ataluis-bloodletting": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemAtaluiBloodletting"
+    },
+    "atmohuas-soul-core-of-retreat": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial4"
+    },
+    "atziris-allure": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemAtzirisAllure"
+    },
+    "atziris-communion": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemAtzirisCommunion"
+    },
+    "atziris-impatience": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemAtzirisImpatience"
+    },
+    "atziris-soul-core-of-devotion": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial29"
+    },
+    "atziris-soul-core-of-vitality": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial30"
     },
     "aug": {
       "kind": "baseItem",
@@ -70,9 +142,41 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyBreachShard"
     },
+    "breachlord-sac": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/Breach/BreachPinnacleKey"
+    },
+    "breachlords-amalgam": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemBreachlordsAmalgam"
+    },
+    "breachlords-rift": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemBreachlordsRift"
+    },
+    "breachstone": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/MapFragments/CurrencyBreachFragment"
+    },
+    "brutus-brain": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemBrutusBrain"
+    },
+    "cadigans-epiphany": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWarpingCreateJewelSocket"
+    },
+    "call-of-the-shadows": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Pinnacle/RitualPinnacleEffigyPiece"
+    },
     "carapace-catalyst": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyJewelleryQualityDefences"
+    },
+    "carved-cunning": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/CarvedCunning"
     },
     "celestial-alloy": {
       "kind": "baseItem",
@@ -106,9 +210,29 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyIncursionModifySoulCore"
     },
+    "countess-seskes-rune-of-archery": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial18"
+    },
+    "courtesan-mannans-rune-of-cruelty": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial15"
+    },
+    "cowardly-fate": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Ultimatum/TrialmasterKey1"
+    },
     "crackling-flux": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyArcaneFluxLightning"
+    },
+    "craiceanns-rune-of-recovery": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial14"
+    },
+    "craiceanns-rune-of-warding": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial10"
     },
     "cryptic-key": {
       "kind": "baseItem",
@@ -122,6 +246,18 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumAlloy6"
     },
+    "daressos-passion": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemDaressosPassion"
+    },
+    "deadly-fate": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Ultimatum/TrialmasterKey2"
+    },
+    "diallas-desire": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemDiallasDesire"
+    },
     "diluted-liquid-greed": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/DistilledEmotion3"
@@ -133,6 +269,18 @@
     "divine": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyModValues"
+    },
+    "doedres-undoing": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemDoedresUndoing"
+    },
+    "dominus-grasp": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemPietysMercy"
+    },
+    "emergent-instinct": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/EmergentInstinct"
     },
     "eshs-catalyst": {
       "kind": "baseItem",
@@ -166,9 +314,41 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumMetal2"
     },
+    "expedition-logbook": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Expedition/Expedition2Logbook"
+    },
+    "faded-crisis-fragment": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Pinnacle/BurningMonolithKey2"
+    },
+    "farruls-rune-of-the-chase": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial9"
+    },
+    "farruls-rune-of-the-hunt": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial13"
+    },
+    "fenumus-rune-of-agony": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial7"
+    },
+    "fenumus-rune-of-spinning": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial17"
+    },
+    "fox-idol": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanFox"
+    },
     "fracturing-orb": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyFractureRare"
+    },
+    "garukhans-resolve": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemGarukhansResolve"
     },
     "gcp": {
       "kind": "baseItem",
@@ -186,6 +366,10 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyRerollRare2"
     },
+    "greater-desert-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneFireGreater"
+    },
     "greater-essence-of-haste": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyGreaterEssenceSpeed"
@@ -202,17 +386,141 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyAddModToRare2"
     },
+    "greater-glacial-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneColdGreater"
+    },
+    "greater-iron-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneEnhanceGreater"
+    },
     "greater-jewellers-orb": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyAddSkillGemSocket4"
+    },
+    "greater-robust-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneStrengthGreater"
+    },
+    "greater-rune-of-alacrity": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial3"
+    },
+    "greater-rune-of-leadership": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial1"
+    },
+    "greater-storm-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneLightningGreater"
+    },
+    "guatelitzis-soul-core-of-endurance": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial9"
+    },
+    "hawk-idol": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/IdolHawk"
+    },
+    "hayoxis-fulmination": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemHayoxisFulmination"
+    },
+    "head-of-the-king": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/Ritual/RitualPinnacleKey"
+    },
+    "hedgewitch-assandras-rune-of-wisdom": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial5"
+    },
+    "her-declaration": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemHerDeclaration"
     },
     "hinekoras-lock": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyHinekorasLock"
     },
+    "idol-of-alira": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/IdolSpecial5"
+    },
+    "idol-of-eeshta": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanSpecial4"
+    },
+    "idol-of-eramir": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/IdolSpecial3"
+    },
+    "idol-of-greust": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/IdolSpecial1"
+    },
+    "idol-of-maxarius": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanSpecial6"
+    },
+    "idol-of-ralakesh": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanSpecial7"
+    },
+    "idol-of-the-pharisee": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/IdolCorrupted3"
+    },
+    "ixchels-torment": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemFlukeTwo"
+    },
+    "jiquanis-soul-core-of-automation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial16"
+    },
+    "jiquanis-soul-core-of-radiance": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial20"
+    },
+    "jiquanis-thesis": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/ThesisOfSouls"
+    },
+    "kalisas-crescendo": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemKalisasCrescendo"
+    },
+    "kaoms-madness": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemKaomsMadness"
+    },
+    "katlas-gloom": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWarpingDecayInfluence"
+    },
+    "khatals-rejuvenation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemKhatalsRejuvenation"
+    },
+    "kolrs-hunt": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWarpingMarksmanInfluence"
+    },
     "kopecs-orb-of-sacrifice": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyIncursionMutateCorruptionEnchantArmour"
+    },
+    "kulemaks-invitation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/Abyss/AbyssPinnacleKey"
+    },
+    "kurgals-gaze": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/KurgalsGaze"
+    },
+    "kurgals-leash": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemKurgalsLeash"
     },
     "lesser-jewellers-orb": {
       "kind": "baseItem",
@@ -234,6 +542,10 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyRerollRemnant"
     },
+    "masterwork-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneUpgrade"
+    },
     "medveds-crest-of-the-circle": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumMetalUnique1"
@@ -242,6 +554,10 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyDuplicate"
     },
+    "mórrigans-insight": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemMorrigansInsight"
+    },
     "necrotic-catalyst": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyJewelleryQualityMinion"
@@ -249,6 +565,14 @@
     "neural-catalyst": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyJewelleryQualityMana"
+    },
+    "oisins-oath": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemOisinsOath"
+    },
+    "olroths-conviction": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportOlrothsConviction"
     },
     "olroths-crest-of-the-sun": {
       "kind": "baseItem",
@@ -370,9 +694,37 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyIncursionExtractAllSocketablesCurrency"
     },
+    "origin-core": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Pinnacle/MothersoulCombined"
+    },
+    "origin-cradle": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Pinnacle/MothersoulEgg"
+    },
+    "origin-spark": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Pinnacle/MothersoulEmbryo"
+    },
+    "owl-idol": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanOwl"
+    },
+    "ox-idol": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanOx"
+    },
+    "perfect-body-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneLifePerfect"
+    },
     "perfect-chaos-orb": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyRerollRare3"
+    },
+    "perfect-desert-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneFirePerfect"
     },
     "perfect-essence-of-battle": {
       "kind": "baseItem",
@@ -402,9 +754,21 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyUpgradeInherentTo20"
     },
+    "perfect-inspiration-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneManaRecoveryPerfect"
+    },
+    "perfect-iron-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneEnhancePerfect"
+    },
     "perfect-jewellers-orb": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyAddSkillGemSocket5"
+    },
+    "perfect-mind-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneManaPerfect"
     },
     "perfect-orb-of-augmentation": {
       "kind": "baseItem",
@@ -417,6 +781,18 @@
     "perfect-regal-orb": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyUpgradeMagicToRare3"
+    },
+    "perfect-storm-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneLightningPerfect"
+    },
+    "perfect-vision-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneAccuracyPerfect"
+    },
+    "perfect-ward-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWard1Perfect"
     },
     "potent-liquid-contempt": {
       "kind": "baseItem",
@@ -450,9 +826,41 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/AbyssalBenchTicketWaystone"
     },
+    "primate-idol": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanMonkey"
+    },
     "prismatic-alloy": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumAlloy7"
+    },
+    "quipolatls-soul-core-of-flow": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial5"
+    },
+    "quipolatls-thesis": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/ThesisOfExperiments"
+    },
+    "rabbit-idol": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanRabbit"
+    },
+    "rakiatas-flow": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemRakiatasFlow"
+    },
+    "rathas-assault": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemCombatReload"
+    },
+    "raven-touched-shard": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/AugmentAnoint"
+    },
+    "ravens-reflection": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/Delirium/DeliriumPinnacleKey"
     },
     "reaver-catalyst": {
       "kind": "baseItem",
@@ -506,13 +914,53 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyUpgradeMagicToRare"
     },
+    "rigwalds-ferocity": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemRigwaldsFerocity"
+    },
+    "romiras-requital": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemRomirasRequital"
+    },
+    "rune-of-accumulation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneOfTheAncients19"
+    },
+    "rune-of-acrobatics": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneOfTheAncients16"
+    },
+    "rune-of-foundations": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneOfTheAncients20"
+    },
+    "rune-of-renown": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneOfTheAncients18"
+    },
+    "rune-of-the-blossom": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneOfTheAncients22"
+    },
     "runic-alloy": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumAlloy1"
     },
+    "saqawals-rune-of-memory": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial11"
+    },
+    "saqawals-rune-of-the-sky": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial6"
+    },
     "scrap": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyArmourQuality"
+    },
+    "serles-triumph": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWarpingAdditionalSuffix"
     },
     "shattered-triskelion": {
       "kind": "baseItem",
@@ -522,21 +970,89 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyJewelleryQualityCaster"
     },
+    "simulacrum": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/MapFragments/CurrencyAfflictionFragment"
+    },
     "simulacrum-splinter": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyAfflictionShard"
+    },
+    "siones-temper": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemWildshardsThree"
+    },
+    "soul-core-of-azcapa": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreLight"
+    },
+    "soul-core-of-citaqualotl": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreEnlighten"
+    },
+    "soul-core-of-jiquani": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreMaxLife"
+    },
+    "soul-core-of-puhuarte": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreIgnite"
+    },
+    "soul-core-of-quipolatl": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpeed"
+    },
+    "soul-core-of-tacati": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreChaos"
+    },
+    "soul-core-of-ticaba": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreCrit"
+    },
+    "soul-core-of-topotante": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreElemental"
+    },
+    "soul-core-of-zalatl": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreMaxMana"
     },
     "sovereign-alloy": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumAlloy9"
     },
+    "stone-rune": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneStun"
+    },
     "swift-alloy": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumAlloy5"
     },
+    "tecrods-gaze": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TecrodsGaze"
+    },
+    "tecrods-revenge": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemTecrodsRevenge"
+    },
+    "thane-lelds-rune-of-spring": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneSpecial23"
+    },
     "thaumaturgic-flux-19": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencySetKalguuranSkillGemLevel19"
+    },
+    "the-arbiters-reliquary-key": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/MapFragments/VaultKeyPinnacle"
+    },
+    "thruds-might": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWarpingDestructionInfluence"
     },
     "transcendent-alloy": {
       "kind": "baseItem",
@@ -546,17 +1062,157 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyUpgradeToMagic"
     },
+    "tuls-avalanche": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemTulsAvalanche"
+    },
     "tuls-catalyst": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyJewelleryQualityCold"
+    },
+    "tuls-stillness": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemTulsStillness"
+    },
+    "twilight-reliquary-key": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/MapFragments/VaultKeyWorldDrop"
+    },
+    "tzamotos-soul-core-of-ferocity": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial6"
+    },
+    "uhtreds-augury": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemUhtredsAugury"
+    },
+    "uhtreds-constellation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemUhtredsConstellation"
     },
     "uhtreds-crest-of-the-chalice": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumMetalUnique3"
     },
+    "uhtreds-exodus": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemUhtredsExodus"
+    },
+    "uhtreds-omen": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemUhtredsOmen"
+    },
+    "uhtreds-rite": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemUhtredsRite"
+    },
     "uhtreds-saga": {
       "kind": "baseItem",
       "id": "Metadata/Items/Expedition/Expedition2LogbookUhtred"
+    },
+    "uhtreds-sidereus": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWarpingTimeInfluence"
+    },
+    "ulamans-gaze": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/UlamansGaze"
+    },
+    "uncut-skill-gem-1": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SkillGemUncut1"
+    },
+    "uncut-skill-gem-12": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SkillGemUncut12"
+    },
+    "uncut-skill-gem-13": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SkillGemUncut13"
+    },
+    "uncut-skill-gem-15": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SkillGemUncut15"
+    },
+    "uncut-skill-gem-17": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SkillGemUncut17"
+    },
+    "uncut-skill-gem-18": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SkillGemUncut18"
+    },
+    "uncut-skill-gem-19": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SkillGemUncut19"
+    },
+    "uncut-skill-gem-20": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SkillGemUncut20"
+    },
+    "uncut-spirit-gem-10": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut10"
+    },
+    "uncut-spirit-gem-12": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut12"
+    },
+    "uncut-spirit-gem-14": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut14"
+    },
+    "uncut-spirit-gem-15": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut15"
+    },
+    "uncut-spirit-gem-16": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut16"
+    },
+    "uncut-spirit-gem-17": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut17"
+    },
+    "uncut-spirit-gem-18": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut18"
+    },
+    "uncut-spirit-gem-19": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut19"
+    },
+    "uncut-spirit-gem-20": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut20"
+    },
+    "uncut-spirit-gem-5": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut5"
+    },
+    "uncut-spirit-gem-8": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/ReservationGemUncut8"
+    },
+    "uncut-support-gem-3": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemUncut3"
+    },
+    "uncut-support-gem-5": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemUncut5"
+    },
+    "uromotis-soul-core-of-attenuation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial7"
+    },
+    "uruks-smelting": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemUruksSmelting"
+    },
+    "uul-netols-embrace": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemUulNetolsEmbrace"
     },
     "vaal": {
       "kind": "baseItem",
@@ -578,9 +1234,21 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyIncursionMutateUnique"
     },
+    "varashtas-blessing": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemVarashtasBlessing"
+    },
     "verisium": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumMetal1"
+    },
+    "victorious-fate": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Ultimatum/TrialmasterKey3"
+    },
+    "vilentas-propulsion": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemVilentasPropulsion"
     },
     "voranas-crest-of-the-scythe": {
       "kind": "baseItem",
@@ -590,9 +1258,29 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Expedition/Expedition2LogbookVorana"
     },
+    "voranas-siege": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemVoranasSiege"
+    },
+    "vruuns-aftermath": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemVruunsAftermath"
+    },
+    "warding-rune-of-heart": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWardSpecial14"
+    },
+    "warding-rune-of-reinforcement": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/RuneWardSpecial1"
+    },
     "warding-starlit-ore": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyVerisiumOreUniqueStolvarheim"
+    },
+    "weathered-crisis-fragment": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Pinnacle/BurningMonolithKey3"
     },
     "whetstone": {
       "kind": "baseItem",
@@ -602,6 +1290,18 @@
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyIdentification"
     },
+    "wolf-idol": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/TalismanWolf"
+    },
+    "xibaquas-rending": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemXibaquasRending"
+    },
+    "xipocados-soul-core-of-dominion": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/SoulCores/SoulCoreSpecial15"
+    },
     "xophs-catalyst": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyJewelleryQualityFire"
@@ -609,6 +1309,14 @@
     "yuguls-orb-of-sacrifice": {
       "kind": "baseItem",
       "id": "Metadata/Items/Currency/CurrencyIncursionMutateCorruptionEnchantJewel"
+    },
+    "zarokhs-refrain": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gem/SupportGemZarokhsRefrain"
+    },
+    "zarokhs-revolt": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Gems/SupportGemZarokhsRevolt"
     }
   }
 }

@@ -58,13 +58,12 @@ Daten-Release existieren, zählen; der Rest steht in `unmappedProviderItemIds`
 (zusammen mit Zeilen ohne brauchbaren Preis und doppelten Zeilen). Die Datei
 wurde am 25.11.2026 aus einem Namensabgleich gebaut: Anzeigenamen der
 poe.ninja-Exchange-Einträge (Liga Standard, alle `exchangeTypes`) gegen die
-Währungs-, Essenz- und Omen-Basen des Katalogs, nur exakte und eindeutige Treffer
-(152 Einträge, Referenzwährung `divine`). `orb-of-extraction` hat zwei Katalog-Items
-gleichen Namens; genommen ist das mit dem Tag `exchange_category:Incursion` (das
-handelbare, die Bench-Variante hat keine Börsen-Kategorie). Nicht abgebildet sind
-Einträge ohne Katalog-Item gleichen Namens (Runen, Lineage-Gems, Uncut-Gems, Idole,
-einige Fragmente); sie landen in `unmappedProviderItemIds`. Nach einem neuen
-Daten-Release den Abgleich wiederholen.
+Börsen-Basen des Katalogs (Daten-Release `poe2-0.5.5.10+r2`), nur exakte und
+eindeutige Treffer (329 Einträge, alle des damaligen Feeds; Referenzwährung `divine`).
+`orb-of-extraction` hat zwei Katalog-Items gleichen Namens; genommen ist das mit dem
+Tag `exchange_category:Incursion` (das handelbare, die Bench-Variante hat keine
+Börsen-Kategorie). Einträge, die der Provider später ergänzt, landen in
+`unmappedProviderItemIds`. Nach einem neuen Daten-Release den Abgleich wiederholen.
 Fehlt die Referenzwährung im Katalog, scheitert der Abruf mit
 `reference_currency_unmapped`, und Preise bleiben „uncalibrated".
 
