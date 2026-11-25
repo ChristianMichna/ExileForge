@@ -35,8 +35,36 @@ export function parsePatchReply(reply: Buffer): PatchInfo {
   return { url, version: match[1] };
 }
 
-/** Asks the update server for the current patch. Fails on timeout or a bad reply. */
-export function queryPatchServer(server: GameDataConfig["patchServer"]): Promise<PatchInfo> {
+const QUERY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 5000;
+
+/**
+ * Asks the update server for the current patch. The server sometimes does not
+ * answer, so a failed attempt is repeated; the last failure is thrown with the
+ * attempt count. A bad reply is not retried.
+ */
+export async function queryPatchServer(
+  server: GameDataConfig["patchServer"],
+  retryDelayMs: number = RETRY_DELAY_MS,
+): Promise<PatchInfo> {
+  let last: unknown;
+  for (let attempt = 1; attempt <= QUERY_ATTEMPTS; attempt++) {
+    try {
+      return await queryOnce(server);
+    } catch (cause) {
+      if (cause instanceof BadReplyError) throw cause;
+      last = cause;
+      if (attempt < QUERY_ATTEMPTS) await new Promise((r) => setTimeout(r, retryDelayMs));
+    }
+  }
+  throw new Error(`patch server unreachable after ${String(QUERY_ATTEMPTS)} attempts`, {
+    cause: last,
+  });
+}
+
+class BadReplyError extends Error {}
+
+function queryOnce(server: GameDataConfig["patchServer"]): Promise<PatchInfo> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     const socket = net.connect({ host: server.host, port: server.port });
@@ -56,7 +84,7 @@ export function queryPatchServer(server: GameDataConfig["patchServer"]): Promise
       try {
         resolve(parsePatchReply(Buffer.concat(chunks)));
       } catch (cause) {
-        reject(new Error(`bad reply from patch server ${server.host}`, { cause }));
+        reject(new BadReplyError(`bad reply from patch server ${server.host}`, { cause }));
       }
     });
   });
