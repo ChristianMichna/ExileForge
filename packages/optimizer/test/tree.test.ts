@@ -156,6 +156,21 @@ describe("optimizeTree", () => {
     expect(b.evaluations).toBeLessThanOrEqual(a.evaluations);
   });
 
+  it("does not ask for node power when the priority list is empty", async () => {
+    const powered = new FakeEvaluator(model, { withNodePower: true });
+    const result = await optimizeTree({
+      graph,
+      allocated: [],
+      budget: 3,
+      objective: { weights: { Dps: 1 } },
+      evaluator: powered,
+      config,
+      priorityNodeIds: [],
+    });
+    expect(powered.nodePowerCalls).toBe(0);
+    expect(result.priorSource).toBe("exploration");
+  });
+
   it("skips states the engine cannot calculate and reports them", async () => {
     const evaluator = new FakeEvaluator({
       ...model,
