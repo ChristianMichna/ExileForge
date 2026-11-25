@@ -46,7 +46,7 @@ jobs:
       # Only the installer job needs the Electron binary (any value, even "0", skips it).
       ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
       GAME_VERSION: ${{ inputs.game-version || '0.0' }}
-      REVISION: ${{ inputs.revision || '0' }}
+      REVISION: ${{ inputs.revision || '1' }}
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
