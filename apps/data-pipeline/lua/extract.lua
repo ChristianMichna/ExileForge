@@ -258,6 +258,16 @@ loaders["return"] = function(src)
 	return LoadModule(src.file)
 end
 
+-- module returns a list; entities are keyed by their zero-padded position so the order survives
+loaders["list"] = function(src)
+	local list = LoadModule(src.file)
+	local t = {}
+	for i, entry in ipairs(list) do
+		t[string.format("%04d", i)] = entry
+	end
+	return t
+end
+
 -- module fills a table passed as first argument
 loaders["fill"] = function(src)
 	local t = {}

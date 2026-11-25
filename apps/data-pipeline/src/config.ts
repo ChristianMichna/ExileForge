@@ -14,7 +14,7 @@ const relativeLuaPath = z
 const tag = z.record(z.string(), z.string()).optional();
 
 const moduleSource = z.discriminatedUnion("loader", [
-  z.object({ loader: z.literal("return"), file: relativeLuaPath, tag }).strict(),
+  z.object({ loader: z.enum(["return", "list"]), file: relativeLuaPath, tag }).strict(),
   z
     .object({
       loader: z.enum(["fill", "skills"]),

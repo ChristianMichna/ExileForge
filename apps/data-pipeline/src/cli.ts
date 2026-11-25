@@ -25,6 +25,7 @@ const USAGE = `astrolabe-data <command>
       Map every mod's display lines to stat ids and report what stays unresolved.
 
   catalog <snapshotDir> --out <dir> [--config config/data-pipeline/normalize.json]
+          [--game-data <dir>]
       Normalise a snapshot to the catalog contract, validate it and write the
       release files (manifest.json, one shard per kind, findings.json).
 
@@ -115,6 +116,7 @@ async function main(argv: string[]): Promise<void> {
       options: {
         out: { type: "string" },
         config: { type: "string", default: "config/data-pipeline/normalize.json" },
+        "game-data": { type: "string" },
       },
       allowPositionals: true,
       strict: true,
@@ -122,10 +124,13 @@ async function main(argv: string[]): Promise<void> {
     const [dir] = positionals;
     if (!dir || positionals.length !== 1) fail(USAGE);
     const out = values.out ?? fail("--out is required");
+    const gameData = values["game-data"];
     const { manifest, warnings, summary } = await buildCatalog(
       dir,
       out,
       await loadNormalizeConfig(resolve(values.config)),
+      new Date(),
+      gameData === undefined ? {} : { gameDataDir: resolve(gameData) },
     );
     console.warn(
       `catalog ${manifest.release.id}: 0 errors, ${String(warnings.length)} warnings (findings.json)`,

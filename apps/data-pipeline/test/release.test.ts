@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CatalogShard } from "@astrolabe/contracts/catalog";
 import { describe, expect, it } from "vitest";
+import { exportGameData, type DatTool } from "../src/gamedata/export.ts";
+import { gameDataConfigSchema } from "../src/gamedata/config.ts";
 import { buildCatalog, pipelineRevisionOf } from "../src/normalize/release.ts";
 import { sha256, writeManifest } from "../src/snapshot/snapshot.ts";
 import { cfg, rawSnapshot, type RawFixture } from "./fixtures/raw-catalog.ts";
@@ -97,6 +99,96 @@ describe("buildCatalog", () => {
     await writeFile(join(out, "stale.json"), "{}");
     await buildCatalog(snap, out, config, NOW);
     expect(existsSync(join(out, "stale.json"))).toBe(false);
+  });
+});
+
+// invented game data with only a level table
+async function writeGameData(levels: number[]): Promise<string> {
+  const gdConfig = gameDataConfigSchema.parse({
+    patchServer: { host: "patch.example", port: 1, handshake: [1], timeoutMs: 1000 },
+    schemaUrl: "https://schema.example/schema.json",
+    language: "English",
+    toolTimeoutMs: 1000,
+    tables: [{ name: "Levels", columns: ["Level"] }],
+  });
+  const tool: DatTool = {
+    name: "fake-dat",
+    version: "1.0.0",
+    run: async (job) => {
+      const dir = join(job.workDir, "tables", job.language);
+      await mkdir(dir, { recursive: true });
+      const rows = levels.map((Level, _index) => ({ _index, Level }));
+      await writeFile(join(dir, "Levels.json"), JSON.stringify(rows));
+    },
+  };
+  const dir = join(await mkdtemp(join(tmpdir(), "ef-gd-")), "game-data");
+  await exportGameData({
+    config: gdConfig,
+    patch: { url: "https://cdn.example/9.9.9/", version: "9.9.9" },
+    outDir: dir,
+    tool,
+    schema: { url: gdConfig.schemaUrl, sha256: "b".repeat(64) },
+  });
+  return dir;
+}
+
+describe("release facts", () => {
+  const factsConfig = {
+    ...config,
+    config: { ...cfg, releaseFacts: { ...cfg.releaseFacts, maxLevelTable: "Levels" } },
+  };
+
+  it("reads the maximum level and the passive points with their origin", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const gameDataDir = await writeGameData([1, 2, 7, 5]);
+    const { manifest } = await buildCatalog(snap, out, factsConfig, NOW, { gameDataDir });
+    expect(manifest.release.maxCharacterLevel).toEqual({ value: 7, origin: "game-data" });
+    expect(manifest.release.passivePoints).toEqual({
+      mainTree: {
+        perLevel: cfg.releaseFacts.mainTree.perLevel,
+        fromLevel: cfg.releaseFacts.mainTree.fromLevel,
+        origin: "pob-code",
+      },
+      weaponSetByAct: {
+        acts: [
+          { act: 1, areaLevel: 9, points: 3 },
+          { act: 2, areaLevel: 12, points: 2 },
+        ],
+        origin: "pob-data",
+      },
+    });
+  });
+
+  it("leaves the maximum level out and says so when no game data is given", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const { manifest, warnings } = await buildCatalog(snap, out, factsConfig, NOW);
+    expect(manifest.release.maxCharacterLevel).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({ kind: "release", id: "maxCharacterLevel" }),
+    );
+  });
+
+  it("fails when PoB marks quest rewards with a Type (its rule would need mirroring)", async () => {
+    const raw = rawSnapshot();
+    (raw.questRewards["0002"] as Record<string, unknown>).Type = "Cruel";
+    const snap = await writeSnapshot(raw);
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    await expect(buildCatalog(snap, out, factsConfig, NOW)).rejects.toThrow(/quest reward 0002/);
+  });
+
+  it("fails on a level table that is not the configured one", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const gameDataDir = await writeGameData([1, 2]);
+    const wrong = {
+      ...config,
+      config: { ...cfg, releaseFacts: { ...cfg.releaseFacts, maxLevelTable: "Nope" } },
+    };
+    await expect(buildCatalog(snap, out, wrong, NOW, { gameDataDir })).rejects.toThrow(
+      /no table Nope/,
+    );
   });
 });
 
