@@ -2,16 +2,63 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "league": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "inCurrencyItemId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Base item type id – internal game id from the data release"
+    },
     "prices": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "itemId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 512,
-            "description": "Base item type id – internal game id from the data release"
+          "item": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "baseItem"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Base item type id – internal game id from the data release"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "uniqueItem"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Unique item id – internal game id from the data release"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id"
+                ]
+              }
+            ]
           },
           "price": {
             "oneOf": [
@@ -310,13 +357,15 @@
           }
         },
         "required": [
-          "itemId",
+          "item",
           "price"
         ]
       }
     }
   },
   "required": [
+    "league",
+    "inCurrencyItemId",
     "prices"
   ]
 }

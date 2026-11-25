@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { BaseItemId, ClassificationId, CraftingActionId, ModId } from "../common/ids.js";
+import { DerivedSource, measuredFrom } from "../common/sourced.js";
 import { DataReleaseId } from "../common/version.js";
 import { CraftOnFail, MeasuredChance, MeasuredCount, MeasuredPrice } from "../build/stages.js";
 import { EconomyLeague } from "../economy/price.js";
@@ -70,7 +71,11 @@ export type CraftStrategy = z.infer<typeof CraftStrategy>;
 export const CraftSimRequest = z.object({
   dataReleaseId: DataReleaseId,
   start: CraftItemState,
-  /** Price of the start item; the market has no feed for rares, so the caller derives it. */
+  /**
+   * Price of the start item; the market has no feed for rares, so the caller
+   * derives it. With a cost currency but no start cost the result's cost is
+   * "uncalibrated" (pass an explicit 0 for a free item), never silently 0.
+   */
   startCost: MeasuredPrice.optional(),
   strategy: CraftStrategy,
   goal: CraftGoal,
@@ -109,10 +114,21 @@ export const CraftSimResult = z.object({
   seed: z.int(),
   /** Share of attempts (start item to end of strategy) that satisfy the goal. */
   successChance: MeasuredChance,
-  /** 95 % interval of successChance (Wilson); absent when successChance is not ok. */
-  successInterval: z
-    .object({ low: z.number().min(0).max(1), high: z.number().min(0).max(1) })
-    .optional(),
+  /** 95 % Wilson interval of successChance, derived like it. */
+  successInterval: measuredFrom(
+    z.object({ low: z.number().min(0).max(1), high: z.number().min(0).max(1) }),
+    [DerivedSource],
+  ),
+  /** How the attempts ended; they add up to `runs`. */
+  outcomes: z.object({
+    succeeded: z.int().nonnegative(),
+    /** Strategy ended or "accept" was chosen without the goal. */
+    finishedWithoutGoal: z.int().nonnegative(),
+    /** "restart" or "abort" was chosen. */
+    abandoned: z.int().nonnegative(),
+    /** An action could not be applied (precondition not met, no mod left to add). */
+    blocked: z.int().nonnegative(),
+  }),
   /** Attempts until one success; uncalibrated if no run succeeded. */
   expectedAttempts: MeasuredCount,
   actions: z.array(CraftActionUse),

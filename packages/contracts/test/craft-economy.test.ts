@@ -59,6 +59,8 @@ describe("craft.simulate result", () => {
           calcId: "c1",
         },
       },
+      successInterval: { status: "uncalibrated", reason: "x" },
+      outcomes: { succeeded: 10, finishedWithoutGoal: 0, abandoned: 0, blocked: 0 },
       expectedAttempts: { status: "uncalibrated", reason: "no success" },
       actions: [],
       steps: [],
@@ -71,17 +73,42 @@ describe("craft.simulate result", () => {
 describe("economy", () => {
   it("limits economy.price to 200 items", () => {
     const ids = Array.from({ length: 201 }, (_, i) => `item-${i}`);
-    expect(EconomyTools["economy.price"].input.safeParse({ itemIds: ids }).success).toBe(false);
+    expect(
+      EconomyTools["economy.price"].input.safeParse({
+        items: ids.map((id) => ({ kind: "baseItem", id })),
+      }).success,
+    ).toBe(false);
   });
 
   it("keeps unmapped provider ids visible in the price book", () => {
     const parsed = PriceBook.parse({
       provider: "p",
       league: "L",
+      dataReleaseId: "poe2-1.0.0+r1",
       fetchedAt: "2026-11-25T00:00:00Z",
       referenceCurrencyItemId: "ref",
       quotes: [],
     });
     expect(parsed.unmappedProviderItemIds).toEqual([]);
+  });
+
+  it("rejects duplicate quotes and zero prices", () => {
+    const quote = {
+      item: { kind: "baseItem", id: "a" },
+      providerItemId: "p",
+      amount: 1,
+      confidence: "high",
+    };
+    const book = (quotes: unknown[]) => ({
+      provider: "p",
+      league: "L",
+      dataReleaseId: "poe2-1.0.0+r1",
+      fetchedAt: "2026-11-25T00:00:00Z",
+      referenceCurrencyItemId: "ref",
+      quotes,
+    });
+    expect(PriceBook.safeParse(book([quote, quote])).success).toBe(false);
+    expect(PriceBook.safeParse(book([{ ...quote, amount: 0 }])).success).toBe(false);
+    expect(PriceBook.safeParse(book([quote])).success).toBe(true);
   });
 });
