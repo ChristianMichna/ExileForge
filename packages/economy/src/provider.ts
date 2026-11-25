@@ -19,4 +19,20 @@ export const ExchangeOverviewResponse = z.object({
     }),
   ),
 });
+/** Unique item overview (stash endpoint). The line id may be a number or a string; it is kept as a string. */
+export const UniqueOverviewResponse = z.object({
+  lines: z.array(
+    z.object({
+      id: z.union([z.string().min(1), z.number()]).transform(String),
+      name: z.string().min(1),
+      baseType: z.string().nullish(),
+      variant: z.string().nullish(),
+      corrupted: z.boolean().nullish(),
+      primaryValue: z.number(),
+      listingCount: z.number().nonnegative().nullish(),
+    }),
+  ),
+});
+export type UniqueOverviewResponse = z.infer<typeof UniqueOverviewResponse>;
+
 export type ExchangeOverviewResponse = z.infer<typeof ExchangeOverviewResponse>;

@@ -14,7 +14,18 @@ import {
   type BookStore,
 } from "../src/index.js";
 import { EconomyTools } from "@astrolabe/contracts";
-import { catalogHas, config, itemMap, RELEASE, responseA, responseB } from "./fixtures.js";
+import {
+  catalogHas,
+  catalogHasWithUniques,
+  config,
+  configWithUniques,
+  itemMap,
+  RELEASE,
+  resolveUnique,
+  responseA,
+  responseB,
+  uniqueResponse,
+} from "./fixtures.js";
 
 class MemoryBooks implements BookStore {
   book: PriceBook | undefined;
@@ -225,6 +236,55 @@ describe("EconomyService, failure handling", () => {
   });
 });
 
+describe("EconomyService, unique prices", () => {
+  function setupUniques(over: { uniqueFails?: boolean } = {}) {
+    const books = new MemoryBooks();
+    const requests: string[] = [];
+    const service = new EconomyService({
+      config: configWithUniques,
+      itemMap,
+      client: {
+        async leagues() {
+          return [{ id: "TestLeague", name: "TestLeague" }];
+        },
+        async exchangeOverview(league: string, type: string) {
+          requests.push(`ex:${league}/${type}`);
+          return type === "TypeA" ? responseA : responseB;
+        },
+        async uniqueOverview(league: string, type: string) {
+          requests.push(`uq:${league}/${type}`);
+          if (over.uniqueFails) throw new EconomyError("network_error", "offline");
+          return uniqueResponse;
+        },
+      },
+      books,
+      dataReleaseId: RELEASE,
+      catalogHas: catalogHasWithUniques,
+      resolveUnique,
+      now: () => new Date("2026-11-25T10:00:00Z"),
+    });
+    return { service, books, requests };
+  }
+
+  it("fetches the configured unique types with the exchange types and prices a unique", async () => {
+    const { service, requests } = setupUniques();
+    const out = await service.price({
+      items: [{ kind: "uniqueItem", id: "uniq-1" } as never],
+    });
+    expect(requests).toEqual([
+      "ex:TestLeague/TypeA",
+      "ex:TestLeague/TypeB",
+      "uq:TestLeague/UniqueX",
+    ]);
+    expect(out.prices[0]?.price.status).toBe("ok");
+  });
+
+  it("fails the refresh visibly when a unique type cannot be fetched, instead of a book without uniques", async () => {
+    const { service } = setupUniques({ uniqueFails: true });
+    await expect(service.getBook("TestLeague")).rejects.toMatchObject({ code: "network_error" });
+  });
+});
+
 describe("file stores", () => {
   it("round-trips a book and an http entry, and reports a corrupt file instead of hiding it", async () => {
     const dir = await mkdtemp(join(tmpdir(), "economy-test-"));
@@ -266,5 +326,11 @@ describe("shipped config", () => {
     const ids = Object.values(map.items).map((i) => i.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(map.items["divine"]).toBeDefined();
+  });
+
+  it("unique pricing config is consistent: types need a path and thresholds", () => {
+    const raw = read("economy.json");
+    const withoutThresholds = { ...raw, uniqueConfidence: undefined };
+    expect(() => parseEconomyConfig(withoutThresholds)).toThrow(/uniqueOverview|uniqueConfidence/);
   });
 });

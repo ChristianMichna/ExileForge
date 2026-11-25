@@ -10,11 +10,14 @@ import { priceItems } from "./price.js";
 export interface EconomyServiceDeps {
   config: EconomyConfig;
   itemMap: ItemMap;
-  client: Pick<PoeNinjaClient, "leagues" | "exchangeOverview">;
+  client: Pick<PoeNinjaClient, "leagues" | "exchangeOverview"> &
+    Partial<Pick<PoeNinjaClient, "uniqueOverview">>;
   books: BookStore;
   /** The data release the app currently works with. */
   dataReleaseId: PriceBook["dataReleaseId"];
   catalogHas: (kind: "baseItem" | "uniqueItem", id: string) => boolean;
+  /** See BuildBookInput.resolveUnique; without it uniques stay unmapped. */
+  resolveUnique?: (name: string, baseType: string | undefined) => string | undefined;
   now?: () => Date;
 }
 
@@ -113,6 +116,13 @@ export class EconomyService {
     for (const type of config.exchangeTypes) {
       responses.push(await client.exchangeOverview(league, type));
     }
+    const uniqueResponses = [];
+    for (const type of config.uniqueTypes) {
+      if (!client.uniqueOverview) {
+        throw new EconomyError("invalid_response", "the client cannot fetch unique prices");
+      }
+      uniqueResponses.push(await client.uniqueOverview(league, type));
+    }
     const book = buildPriceBook({
       config,
       itemMap: this.deps.itemMap,
@@ -121,6 +131,8 @@ export class EconomyService {
       league,
       fetchedAt: startedAt,
       responses,
+      uniqueResponses,
+      ...(this.deps.resolveUnique ? { resolveUnique: this.deps.resolveUnique } : {}),
     });
     if (book.quotes.length < config.minQuotes) {
       throw new EconomyError(

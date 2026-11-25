@@ -2,7 +2,7 @@ import { PriceBook } from "@astrolabe/contracts";
 import type { PriceQuote } from "@astrolabe/contracts";
 import type { EconomyConfig, ItemMap } from "./config.js";
 import { EconomyError } from "./errors.js";
-import type { ExchangeOverviewResponse } from "./provider.js";
+import type { ExchangeOverviewResponse, UniqueOverviewResponse } from "./provider.js";
 
 export interface BuildBookInput {
   config: EconomyConfig;
@@ -14,6 +14,13 @@ export interface BuildBookInput {
   fetchedAt: string;
   /** One response per requested exchange type. */
   responses: readonly ExchangeOverviewResponse[];
+  /** One response per requested unique type. */
+  uniqueResponses?: readonly UniqueOverviewResponse[] | undefined;
+  /**
+   * Catalog id of a unique item by name and base type name, or undefined if the
+   * catalog has none or the pair is ambiguous.
+   */
+  resolveUnique?: ((name: string, baseType: string | undefined) => string | undefined) | undefined;
 }
 
 function confidenceOf(
@@ -74,6 +81,39 @@ export function buildPriceBook(input: BuildBookInput): PriceBook {
         amount: line.primaryValue,
         ...(line.volumePrimaryValue !== undefined ? { volume: line.volumePrimaryValue } : {}),
         confidence: confidenceOf(line.volumePrimaryValue, config.confidence),
+      } as PriceQuote);
+    }
+  }
+  // Unique prices are quoted in the league's primary reference currency, which is the
+  // reference of this book (docs: "Estimated value in the league's primary reference currency").
+  // Lines of a variant or a corrupted copy price a different item than the catalog entry
+  // and stay unmapped; so do names the catalog does not resolve to exactly one unique.
+  for (const response of input.uniqueResponses ?? []) {
+    for (const line of response.lines) {
+      const key = `unique:${line.id}`;
+      const id =
+        line.variant || line.corrupted
+          ? undefined
+          : input.resolveUnique?.(line.name, line.baseType ?? undefined);
+      if (
+        id === undefined ||
+        !catalogHas("uniqueItem", id) ||
+        !Number.isFinite(line.primaryValue) ||
+        line.primaryValue <= 0 ||
+        quotes.has(`uniqueItem:${id}`)
+      ) {
+        unmapped.add(key);
+        continue;
+      }
+      quotes.set(`uniqueItem:${id}`, {
+        item: { kind: "uniqueItem", id },
+        providerItemId: key,
+        amount: line.primaryValue,
+        ...(line.listingCount != null ? { volume: line.listingCount } : {}),
+        confidence: confidenceOf(
+          line.listingCount ?? undefined,
+          config.uniqueConfidence ?? config.confidence,
+        ),
       } as PriceQuote);
     }
   }
