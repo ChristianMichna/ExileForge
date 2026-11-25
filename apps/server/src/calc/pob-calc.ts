@@ -70,8 +70,8 @@ export class PobCalc implements CalcPort {
   }): Promise<Record<CalcProfileId, CalcOutcome>> {
     if (this.closed) throw new Error("PobCalc is closed");
     const outcomes: Record<CalcProfileId, CalcOutcome> = {};
-    // The player's overrides win over what the state itself carries.
-    const overrides = { ...input.state.config, ...input.overrides };
+    // Only the player's overrides reach PoB; what the AI puts in `state.config` does not choose the enemy.
+    const overrides = input.overrides ?? {};
     let prepared: { handle: BuildHandle; owned: boolean } | { error: CalcOutcome };
     try {
       prepared = await this.prepare(input.state);

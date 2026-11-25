@@ -525,6 +525,7 @@ export class ForgeEngine {
     const numbers = await richTextFindings(ctx.calc, spec.richText?.(data) ?? [], {
       dataReleaseId: ctx.catalog.dataReleaseId,
       calcProfiles: this.options.calcProfiles,
+      overrides: ctx.run.request.calcOverrides,
     });
     if (numbers.length > 0) return { findings: numbers, value: null };
     const own = (await spec.check?.(data, ctx)) ?? [];

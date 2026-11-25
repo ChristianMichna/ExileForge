@@ -106,6 +106,9 @@ async function startServerOwningPool(
       logger: options.logger,
     });
   }
+  // The profiles numbers of a run may come from: the PoC's and, with PoB, the stages'.
+  const stageProfiles = pobCalc === undefined ? [] : stages.s3.calcProfiles;
+  const knownProfiles = [...new Set([...config.pipelines.poc.calcProfiles, ...stageProfiles])];
   const engine = new ForgeEngine({
     store,
     catalog,
@@ -114,13 +117,13 @@ async function startServerOwningPool(
     logger: options.logger,
     ...(skeleton === undefined ? {} : { skeleton }),
     pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
-    calcProfiles: config.pipelines.poc.calcProfiles,
+    calcProfiles: knownProfiles,
   });
   const app = createApp({
     engine,
     catalog,
     calc,
-    calcProfiles: config.pipelines.poc.calcProfiles,
+    calcProfiles: stageProfiles.length > 0 ? stageProfiles : config.pipelines.poc.calcProfiles,
     waitLongPollSeconds: config.waitLongPollSeconds,
     logger: options.logger,
     port: options.port,

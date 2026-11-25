@@ -42,7 +42,12 @@ const DIGIT = /\p{Nd}/u;
 export async function richTextFindings(
   calc: CalcPort,
   texts: readonly { path: string; text: RichText }[],
-  scope?: { dataReleaseId: DataReleaseId; calcProfiles: readonly CalcProfileId[] },
+  scope?: {
+    dataReleaseId: DataReleaseId;
+    calcProfiles: readonly CalcProfileId[];
+    /** The run's calc overrides; a result calculated with others is another situation. */
+    overrides: Readonly<Record<string, boolean | number | string>>;
+  },
 ): Promise<Finding[]> {
   const findings: Finding[] = [];
   for (const { path, text } of texts) {
@@ -64,13 +69,14 @@ export async function richTextFindings(
           result !== undefined &&
           (scope === undefined ||
             (result.dataReleaseId === scope.dataReleaseId &&
-              scope.calcProfiles.includes(result.calcProfile)));
+              scope.calcProfiles.includes(result.calcProfile) &&
+              sameOverrides(result.overrides ?? {}, scope.overrides)));
         if (result === undefined || !inScope || !(segment.ref.stat in result.stats)) {
           findings.push({
             gate: "G2",
             severity: "error",
             code: "unknown_calc_ref",
-            message: `Calc reference ${segment.ref.calcId}/${segment.ref.stat} does not exist for this run's data release and calc profiles. Only reference calcIds and stats returned by the engine for this run.`,
+            message: `Calc reference ${segment.ref.calcId}/${segment.ref.stat} does not exist for this run's data release, calc profiles and calc overrides. Only reference calcIds and stats returned by the engine for this run.`,
             path: segPath,
             calcId: segment.ref.calcId,
           });
@@ -123,4 +129,14 @@ export function stateEntities(state: BuildState): { path: string; ref: EntityRef
     );
   });
   return refs;
+}
+
+function sameOverrides(
+  a: Readonly<Record<string, boolean | number | string>>,
+  b: Readonly<Record<string, boolean | number | string>>,
+): boolean {
+  const keys = Object.keys(a);
+  return (
+    keys.length === Object.keys(b).length && keys.every((k) => Object.hasOwn(b, k) && a[k] === b[k])
+  );
 }

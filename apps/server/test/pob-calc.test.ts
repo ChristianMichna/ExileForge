@@ -63,22 +63,15 @@ const bases = {
 };
 
 describe("PobCalc", () => {
-  it("sends the overrides of the state and of the player, the player's winning", async () => {
+  it("sends only the player's overrides; the state's own config does not choose the enemy", async () => {
     const { pool, calls } = fakePool();
     const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });
-    const state = { ...wanted, config: { enemyIsBoss: "Boss", enemyLevel: 80 } };
-    await calc.calculate({
-      state,
-      profiles: ["as-saved"],
-      overrides: { enemyIsBoss: "Uber" },
-    });
+    const state = { ...wanted, config: { enemyIsBoss: "Boss" } };
+    await calc.calculate({ state, profiles: ["as-saved"], overrides: { enemyLevel: 80 } });
     const stats = calls.find((c) => c.method === "calc.stats");
-    expect((stats?.params as { overrides?: unknown }).overrides).toEqual({
-      enemyIsBoss: "Uber",
-      enemyLevel: 80,
-    });
+    expect((stats?.params as { overrides?: unknown }).overrides).toEqual({ enemyLevel: 80 });
     calls.length = 0;
-    await calc.calculate({ state: wanted, profiles: ["as-saved"] });
+    await calc.calculate({ state, profiles: ["as-saved"] });
     expect(JSON.stringify(calls.find((c) => c.method === "calc.stats"))).not.toContain("overrides");
   });
 

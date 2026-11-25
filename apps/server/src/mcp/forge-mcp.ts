@@ -3,7 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BuildState } from "@exileforge/contracts/build";
 import { type CalcProfileId, EntityKind, EntityRef } from "@exileforge/contracts/common";
-import { ForgeTools, SessionCode } from "@exileforge/contracts/forge";
+import { ForgeTools, RunId, SessionCode } from "@exileforge/contracts/forge";
 import { entityFindings, stateEntities } from "../engine/checks.js";
 import { ForgeError } from "../engine/errors.js";
 import type { ForgeEngine } from "../engine/forge-engine.js";
@@ -27,7 +27,7 @@ export const SERVER_INSTRUCTIONS = `ExileForge plans Path of Exile 2 builds in m
 How to work:
 1. When the user gives a session code (like 7F3K-QX), call forge_attach with it.
 2. Work on the returned task: read its instructions, context, feedback (what the user did in the app) and findings (why the last submission was rejected).
-3. Use catalog_search / catalog_get for ids and calc_evaluate for numbers. Never use game knowledge from memory, never invent ids, never type numbers into text; numbers are calc references.
+3. Use catalog_search / catalog_get for ids and calc_evaluate (always with the runId) for numbers. Never use game knowledge from memory, never invent ids, never type numbers into text; numbers are calc references.
 4. Submit with forge_submit. If it is rejected, fix exactly the findings and submit again.
 5. Keep going: after every result call the next step yourself (forge_next) until the step kind is "done" or "failed". Do not stop to summarise in between.
 6. On "wait_user", tell the user in one sentence what the app needs from them, then call forge_next again.
@@ -147,15 +147,21 @@ export function createForgeMcpServer(deps: ForgeMcpDeps): McpServer {
     "calc_evaluate",
     {
       description:
-        "Calculate a build state with the engine and return stats per calc profile. Use the returned calcId and stat names as calc references. Costs engine time; compare a few variants, not dozens.",
-      inputSchema: z.object({ state: BuildState }),
+        "Calculate a build state with the engine and return stats per calc profile. Use the returned calcId and stat names as calc references. Pass the runId so the calculation uses the player's calc settings of that run; results without it cannot be referenced in a run's text. Costs engine time; compare a few variants, not dozens.",
+      inputSchema: z.object({ state: BuildState, runId: RunId.optional() }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    ({ state }) =>
+    ({ state, runId }) =>
       run(async () => {
         const unknown = entityFindings(deps.catalog, stateEntities(state));
         if (unknown.length > 0) return { status: "rejected", findings: unknown };
-        const outcomes = await deps.calc.calculate({ state, profiles: deps.calcProfiles });
+        const overrides =
+          runId === undefined ? {} : (await engine.view(runId)).request.calcOverrides;
+        const outcomes = await deps.calc.calculate({
+          state,
+          profiles: deps.calcProfiles,
+          overrides,
+        });
         const results = await Promise.all(
           Object.entries(outcomes).map(async ([profile, outcome]) => {
             if (outcome.status === "failed") return { profile, ...outcome };

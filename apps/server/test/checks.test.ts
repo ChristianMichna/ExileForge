@@ -36,6 +36,45 @@ describe("number checks", () => {
     expect(wrongStat[0]?.code).toBe("unknown_calc_ref");
   });
 
+  it("only accepts references calculated with the run's calc overrides", async () => {
+    const calc = new CalcFake({ dataReleaseId: RELEASE });
+    const state = {
+      classId: CharacterClassId.parse("FixClassA"),
+      level: 1,
+      tree: { allocated: [], ascendancy: [] },
+      skills: [],
+      items: [],
+      config: {},
+    };
+    const calculate = async (overrides?: Record<string, string>) => {
+      const out = (
+        await calc.calculate({ state, profiles: ["default"], ...(overrides && { overrides }) })
+      )["default"];
+      if (out?.status !== "ok") throw new Error("fake calc failed");
+      return [
+        {
+          path: "/t",
+          text: [{ type: "calc" as const, ref: { calcId: out.calcId, stat: "fake.alpha" } }],
+        },
+      ];
+    };
+    const scope = (overrides: Record<string, string>) => ({
+      dataReleaseId: RELEASE,
+      calcProfiles: ["default"],
+      overrides,
+    });
+    const uber = { enemyIsBoss: "Uber" };
+    expect(await richTextFindings(calc, await calculate(uber), scope(uber))).toEqual([]);
+    expect(await richTextFindings(calc, await calculate(), scope({}))).toEqual([]);
+    // calculated without the player's overrides, or with other ones
+    expect((await richTextFindings(calc, await calculate(), scope(uber)))[0]?.code).toBe(
+      "unknown_calc_ref",
+    );
+    expect((await richTextFindings(calc, await calculate(uber), scope({})))[0]?.code).toBe(
+      "unknown_calc_ref",
+    );
+  });
+
   it("flags digits of any script", async () => {
     const calc = new CalcFake({ dataReleaseId: RELEASE });
     const findings = await richTextFindings(calc, [
@@ -68,9 +107,9 @@ describe("persisted calc results", () => {
     if (outcome?.status !== "ok") throw new Error("fake calc failed");
     const afterRestart = new PersistedCalc(new CalcFake({ dataReleaseId: RELEASE }), store);
     const text = [{ type: "calc" as const, ref: { calcId: outcome.calcId, stat: "fake.alpha" } }];
-    const scope = { dataReleaseId: RELEASE, calcProfiles: ["default"] };
+    const scope = { dataReleaseId: RELEASE, calcProfiles: ["default"], overrides: {} };
     expect(await richTextFindings(afterRestart, [{ path: "/t", text }], scope)).toEqual([]);
-    const otherProfile = { dataReleaseId: RELEASE, calcProfiles: ["other"] };
+    const otherProfile = { dataReleaseId: RELEASE, calcProfiles: ["other"], overrides: {} };
     expect(
       (await richTextFindings(afterRestart, [{ path: "/t", text }], otherProfile))[0]?.code,
     ).toBe("unknown_calc_ref");
