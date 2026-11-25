@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { CatalogShard } from "@astrolabe/contracts/catalog";
 import { describe, expect, it } from "vitest";
 import { buildCatalog, pipelineRevisionOf } from "../src/normalize/release.ts";
+import { classificationsFrom } from "../src/normalize/release-facts.ts";
 import { sha256 } from "../src/snapshot/snapshot.ts";
 import { write, tables } from "./fixtures/game-data.ts";
 import { writeSnapshot } from "./fixtures/write-snapshot.ts";
@@ -267,5 +268,57 @@ describe("pipelineRevisionOf", () => {
   it("reads the revision and rejects ids without one", () => {
     expect(pipelineRevisionOf("poe2-0.1+r7")).toBe(7);
     expect(() => pipelineRevisionOf("poe2-0.1")).toThrow(/\+r<revision>/);
+  });
+});
+
+describe("classifications", () => {
+  const names = { damageTypes: ["Fire", "Cold"], defenceLayers: ["EnergyShield"] };
+
+  it("turns PoB names into release ids when the tags exist", () => {
+    const { value, finding } = classificationsFrom(
+      names,
+      new Set(["fire", "cold", "energy_shield"]),
+    );
+    expect(finding).toBeUndefined();
+    expect(value).toEqual({
+      damageTypes: ["fire", "cold"],
+      defenceLayers: ["energy_shield"],
+      origin: "pob-code",
+    });
+  });
+
+  it("leaves the field out and names the missing tags", () => {
+    const { value, finding } = classificationsFrom(names, new Set(["fire"]));
+    expect(value).toBeUndefined();
+    expect(finding?.message).toMatch(/cold, energy_shield/);
+  });
+
+  it("lands in the release when the fixture tags match", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const withNames = {
+      ...config,
+      config: {
+        ...cfg,
+        releaseFacts: {
+          ...cfg.releaseFacts,
+          classifications: { damageTypes: ["Fake"], defenceLayers: ["Fake"] },
+        },
+      },
+    };
+    const { manifest } = await buildCatalog(snap, out, withNames, NOW);
+    expect(manifest.release.classifications).toEqual({
+      damageTypes: ["fake"],
+      defenceLayers: ["fake"],
+      origin: "pob-code",
+    });
+  });
+
+  it("reports a finding instead of guessing when tags are missing", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const { manifest, warnings } = await buildCatalog(snap, out, config, NOW);
+    expect(manifest.release.classifications).toBeUndefined();
+    expect(warnings.map((w) => w.message).join("\n")).toMatch(/classifications are left out/);
   });
 });

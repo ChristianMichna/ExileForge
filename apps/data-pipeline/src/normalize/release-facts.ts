@@ -4,7 +4,39 @@ import { readGameDataManifest, readGameDataTable } from "../gamedata/export.ts";
 import type { Json } from "../json.ts";
 import type { Finding, NormalizeConfig } from "./catalog.ts";
 
-type ReleaseFacts = Pick<DataRelease, "maxCharacterLevel" | "passivePoints" | "itemSlots">;
+type ReleaseFacts = Pick<
+  DataRelease,
+  "maxCharacterLevel" | "passivePoints" | "itemSlots" | "classifications"
+>;
+
+/** PoB's CamelCase name as a classification id ("EnergyShield" -> "energy_shield"). */
+function classificationId(pobName: string): string {
+  return pobName.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+}
+
+/**
+ * Damage types and defence layers as ids of this release. The names come from
+ * PoB's code (config); each id must exist among the release's mod tags,
+ * otherwise nothing is guessed: the field is left out and a finding says which
+ * names have no match.
+ */
+export function classificationsFrom(
+  config: NormalizeConfig["releaseFacts"]["classifications"],
+  vocabulary: ReadonlySet<string>,
+): { value?: NonNullable<DataRelease["classifications"]>; finding?: Finding } {
+  const damageTypes = config.damageTypes.map(classificationId);
+  const defenceLayers = config.defenceLayers.map(classificationId);
+  const missing = [...damageTypes, ...defenceLayers].filter((id) => !vocabulary.has(id));
+  if (missing.length > 0)
+    return {
+      finding: {
+        kind: "release",
+        id: "classifications",
+        message: `no matching tag in the release for ${missing.join(", ")}; classifications are left out`,
+      },
+    };
+  return { value: { damageTypes, defenceLayers, origin: "pob-code" } };
+}
 
 const levelRow = z.object({ Level: z.int().positive() });
 const questRow = z.object({
@@ -144,6 +176,8 @@ export async function buildReleaseFacts(opts: {
   questRewards: Record<string, Json>;
   itemSlots: Record<string, Json>;
   known: { itemClasses: ReadonlySet<string>; baseClassOf: ReadonlyMap<string, string> };
+  /** Classification ids of the release (mod tags). */
+  vocabulary: ReadonlySet<string>;
   gameDataDir?: string;
 }): Promise<{ facts: ReleaseFacts; findings: Finding[]; errors: Finding[] }> {
   const { config } = opts;
@@ -153,6 +187,10 @@ export async function buildReleaseFacts(opts: {
   const { slots, errors, warnings } = itemSlotsFrom(opts.itemSlots, opts.known);
   findings.push(...warnings);
   facts.itemSlots = { slots, origin: "pob-code" };
+
+  const classifications = classificationsFrom(config.classifications, opts.vocabulary);
+  if (classifications.value) facts.classifications = classifications.value;
+  if (classifications.finding) findings.push(classifications.finding);
 
   if (opts.gameDataDir === undefined) {
     findings.push({

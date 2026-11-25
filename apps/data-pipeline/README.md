@@ -108,6 +108,11 @@ PoB-Code, Ursprung `pob-code`; Waffensatz-Punkte je Akt aus PoB `QuestRewards.lu
 Ursprung `pob-data`). Gibt PoB keine Quest-Belohnung mit Punkten an, entfällt `passivePoints` ganz. Was nicht gelesen werden kann, fehlt im Release und steht als
 Warnung in `findings.json`, nie als `0`.
 
+`classifications` (Schadensarten und Verteidigungsschichten, Ursprung `pob-code`): die Namen stehen in
+`releaseFacts.classifications` (aus PoBs `dmgTypeList` und `resourceList`), die Release-IDs sind die Namen in
+Snake-Case und müssen als Mod-Tags im Release vorkommen. Fehlt eines, entfällt das Feld und eine Warnung nennt
+die fehlenden Tags.
+
 `itemSlots` listet die Ausrüstungsplätze in PoBs Reihenfolge mit PoBs Slot-Namen
 (wie in `EquippedItem.slot`). Was ein Slot annimmt, fragt der Extraktor bei PoBs
 eigener Slot-Prüfung ab: `itemClasses` sind Klassen, von denen PoB jede Basis nimmt,
@@ -145,17 +150,17 @@ fehlende Raritätsregel als unkalibriert behandeln (Anforderung an die Op-Umsetz
 
 IDs (Ausrüstung, Uniques, Gems, Mods aus PoB-Daten; Währungen aus den Game-Data-Tabellen, siehe ADR-0005):
 
-| Art               | ID                                            |
-| ----------------- | --------------------------------------------- |
-| Mod               | PoB-Mod-ID                                    |
-| Basis             | Name der Basis (Ausrüstung)                   |
-| Währung, Essenz, Omen | `BaseItemTypes.Id` (Metadaten-Pfad)       |
-| Unique            | `Titel, Basis`                                |
-| Gem               | Spiel-ID des Gems                             |
-| Passive           | numerische Knoten-ID (als Text)               |
-| Passiv-Gruppe     | PoB-Gruppen-ID (als Text)                     |
-| Klasse / Aufstieg | Name bzw. PoB-interne Aufstiegs-ID            |
-| Stat-Text         | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
+| Art                   | ID                                            |
+| --------------------- | --------------------------------------------- |
+| Mod                   | PoB-Mod-ID                                    |
+| Basis                 | Name der Basis (Ausrüstung)                   |
+| Währung, Essenz, Omen | `BaseItemTypes.Id` (Metadaten-Pfad)           |
+| Unique                | `Titel, Basis`                                |
+| Gem                   | Spiel-ID des Gems                             |
+| Passive               | numerische Knoten-ID (als Text)               |
+| Passiv-Gruppe         | PoB-Gruppen-ID (als Text)                     |
+| Klasse / Aufstieg     | Name bzw. PoB-interne Aufstiegs-ID            |
+| Stat-Text             | Beschreibungs-ID aus PoBs Stat-Beschreibungen |
 
 Tree-Geometrie (wie PoBs `Classes/PassiveTree.lua`): Jede Passive bekommt
 `position.point` (Baum-Einheiten, y nach unten) aus Gruppenmitte,
@@ -196,11 +201,11 @@ ersten Stat-Set von PoB plus dessen konstante Stats.
 
 Stand PoB 0.23.1: 0 Fehler, 479 Warnungen, rund 2,5 s. Offene Stat-Zeilen:
 
-| Art | unmatched | ambiguous | lossy | hidden |
-|---|---|---|---|---|
-| Mod | 411 | 14 | 138 | 741 |
-| Unique (von 4167 Zeilen) | 1476 | 492 | 54 | 335 |
-| Passive | 131 | 555 | 25 | 467 |
+| Art                      | unmatched | ambiguous | lossy | hidden |
+| ------------------------ | --------- | --------- | ----- | ------ |
+| Mod                      | 411       | 14        | 138   | 741    |
+| Unique (von 4167 Zeilen) | 1476      | 492       | 54    | 335    |
+| Passive                  | 131       | 555       | 25    | 467    |
 
 Bei Uniques fehlen PoB Trade-Hashes; mehrdeutig ist vor allem lokal gegen
 global (gleicher Text), nicht passend sind v. a. PoB-eigene Zeilen wie
