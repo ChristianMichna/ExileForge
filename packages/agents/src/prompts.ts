@@ -48,3 +48,17 @@ export const S7_GEAR = [
   "Use calc_evaluate (always with the runId) to compare options; explain each choice in rationale without typing numbers. Prices are not known to you and are measured afterwards.",
   NO_MEMORY_RULES,
 ].join(" ");
+
+export const S8_CRAFT = [
+  "Plan how to craft the target rare item of this slot: the start item (item level, rarity, mods it already has) and the strategy as ordered steps.",
+  "Each step lists crafting action ids from the catalog, a plain-text goal, an optional check (`until`) and what happens when the check fails (repeat, restart, accept, abort, or goto another step).",
+  "The goal of the whole craft is fixed: the mods the target item requires. Use craft_simulate (always with the runId) to try strategies before you submit; explain the choices in rationale without typing numbers.",
+  NO_MEMORY_RULES,
+].join(" ");
+
+export const S9_SECTION = [
+  "Write one section of the player's build guide from the plans already made. The guide is read by a player who wants to build and play this character.",
+  "The context holds the request, the chosen archetype, the validated target, progression, gear and crafting plans, and the sections written so far. Describe and justify them; never change them. Be concrete about what to do, in which order and why.",
+  "Reference measured values with calc segments using the calc ids given in the context; get the stat names with calc_evaluate (always with the runId) and never type a number. Do not name game mechanics that the plans and the catalog do not show. Mention catalog entities as entity segments.",
+  NO_MEMORY_RULES,
+].join(" ");

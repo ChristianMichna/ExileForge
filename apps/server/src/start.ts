@@ -127,18 +127,9 @@ async function startServerOwningPool(
           ...stages.s3.calcProfiles,
           ...(stages.s5?.calcProfiles ?? []),
           ...(stages.s6?.calcProfiles ?? []),
+          ...(stages.s7?.calcProfiles ?? []),
         ];
   const knownProfiles = [...new Set([...config.pipelines.poc.calcProfiles, ...stageProfiles])];
-  const engine = new ForgeEngine({
-    store,
-    catalog,
-    calc,
-    config,
-    logger: options.logger,
-    ...(skeleton === undefined ? {} : { skeleton, target: skeleton, progression: skeleton }),
-    pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
-    calcProfiles: knownProfiles,
-  });
   const economy =
     options.economy === undefined
       ? undefined
@@ -147,6 +138,41 @@ async function startServerOwningPool(
     options.craftConfigPath === undefined
       ? undefined
       : await createCraft(options.craftConfigPath, catalog, economy, options.logger);
+  const engine = new ForgeEngine({
+    store,
+    catalog,
+    calc,
+    config,
+    logger: options.logger,
+    ...(skeleton === undefined ? {} : { skeleton, target: skeleton, progression: skeleton }),
+    ...(craft === undefined ? {} : { craft: { simulate: craft } }),
+    ...(economy === undefined
+      ? {}
+      : {
+          economy: {
+            price: async (input) => {
+              const answer = await economy.price(input);
+              if (answer.freshness === "stale") {
+                options.logger.error(
+                  "prices come from an older price book because the refresh failed",
+                  {
+                    fetchedAt: answer.fetchedAt,
+                    refreshError: answer.refreshError,
+                  },
+                );
+              }
+              return {
+                league: answer.league,
+                inCurrencyItemId: answer.inCurrencyItemId,
+                freshness: answer.freshness,
+                prices: answer.prices,
+              };
+            },
+          },
+        }),
+    pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
+    calcProfiles: knownProfiles,
+  });
   const app = createApp({
     ...(craft === undefined ? {} : { craft }),
     ...(economy === undefined ? {} : { economy: economy.price }),

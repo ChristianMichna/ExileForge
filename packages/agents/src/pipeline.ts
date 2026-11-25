@@ -2,7 +2,15 @@ import type { z } from "zod";
 import type { BuildRequest, Finding, RichText, TaskType } from "@astrolabe/contracts/build";
 import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { UserIntervention } from "@astrolabe/contracts/forge";
-import type { CalcPort, CatalogPort, ProgressionPort, SkeletonPort, TargetPort } from "./ports.js";
+import type {
+  CalcPort,
+  CatalogPort,
+  CraftSimPort,
+  PricePort,
+  ProgressionPort,
+  SkeletonPort,
+  TargetPort,
+} from "./ports.js";
 
 /** The part of a stored run that pipelines may read. */
 export interface RunView {
@@ -23,6 +31,10 @@ export interface PipelineContext {
   readonly target?: TargetPort;
   /** Stage ordering of the target tree for S6; same condition as the skeleton. */
   readonly progression?: ProgressionPort;
+  /** Market prices for S7; absent without an economy service (prices are then uncalibrated). */
+  readonly economy?: PricePort;
+  /** Crafting simulation for S8. */
+  readonly craft?: CraftSimPort;
   /** Latest intervention of a kind, e.g. the current variant choice. */
   latest<K extends UserIntervention["kind"]>(
     kind: K,

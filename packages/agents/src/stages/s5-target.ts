@@ -9,6 +9,7 @@ import {
   SkillSetup,
   TargetBuild,
 } from "@astrolabe/contracts/build";
+import type { DataRelease } from "@astrolabe/contracts/catalog";
 import type { JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext, type PlanStep } from "../pipeline.js";
@@ -21,8 +22,39 @@ export const S5_GEMS_KEY = "S5.gems";
 export const S5_TREE_KEY = "S5.tree";
 export const S5_TARGET_KEY = "S5.target";
 
-/** S5 settings; absent when the product owner has not set the target size yet. */
-export type S5Config = NonNullable<StageConfig["s5"]>;
+/** Size of the endgame build, read from the data release. */
+export interface TargetSize {
+  level: number;
+  passivePoints: number;
+}
+
+/** S5 settings (profiles, objective) with the size from the release. */
+export type S5Config = NonNullable<StageConfig["s5"]> & TargetSize;
+
+/**
+ * Level and node budget of the endgame build from the release facts: the
+ * main tree gets `perLevel` points per level from `fromLevel` to the maximum
+ * level, quest weapon set points come on top (PoB counts both into the limit).
+ * Missing facts are an error message, never a default.
+ */
+export function targetSize(release: DataRelease | undefined): TargetSize | string {
+  const max = release?.maxCharacterLevel;
+  const points = release?.passivePoints;
+  if (release === undefined || max === undefined || points === undefined) {
+    const missing = [
+      ...(release === undefined ? ["the release record"] : []),
+      ...(max === undefined ? ["maxCharacterLevel"] : []),
+      ...(points === undefined ? ["passivePoints"] : []),
+    ].join(" and ");
+    return `Data release ${release?.id ?? "(unknown)"} lacks ${missing}; S5 cannot size the endgame build. A newer data release is needed.`;
+  }
+  if (points.mainTree.fromLevel > max.value) {
+    return `Data release ${release.id} grants main tree points from level ${points.mainTree.fromLevel}, above its maximum level ${max.value}; the release facts are inconsistent.`;
+  }
+  const levels = max.value - points.mainTree.fromLevel + 1;
+  const weaponSet = points.weaponSetByAct.acts.reduce((sum, a) => sum + a.points, 0);
+  return { level: max.value, passivePoints: levels * points.mainTree.perLevel + weaponSet };
+}
 
 export const GemSetupSubmission = z.object({
   skills: z.array(SkillSetup).min(1),

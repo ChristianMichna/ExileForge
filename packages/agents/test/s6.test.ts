@@ -3,9 +3,9 @@ import { BuildState, type RichText } from "@astrolabe/contracts/build";
 import { StageConfig } from "../src/config.js";
 import type { PipelineContext } from "../src/pipeline.js";
 import type { ProgressionStageTree } from "../src/ports.js";
-import { notesTask, planStep, stagesJob } from "../src/stages/s6-progression.js";
+import { type S6Config, notesTask, planStep, stagesJob } from "../src/stages/s6-progression.js";
 
-const s6: NonNullable<StageConfig["s6"]> = {
+const s6: S6Config = {
   stages: [
     {
       key: "early",

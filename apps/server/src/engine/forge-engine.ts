@@ -14,7 +14,13 @@ import {
   type UserIntervention,
 } from "@astrolabe/contracts/forge";
 import type { ForgeConfig } from "../config/forge-config.js";
-import type { ProgressionPort, SkeletonPort, TargetPort } from "@astrolabe/agents";
+import type {
+  CraftSimPort,
+  PricePort,
+  ProgressionPort,
+  SkeletonPort,
+  TargetPort,
+} from "@astrolabe/agents";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { RunStore } from "../store/run-store.js";
@@ -51,6 +57,10 @@ export interface ForgeEngineOptions {
   target?: TargetPort;
   /** Stage ordering for S6; same condition as the skeleton. */
   progression?: ProgressionPort;
+  /** Market prices for S7. */
+  economy?: PricePort;
+  /** Crafting simulation for S8. */
+  craft?: CraftSimPort;
   /** Reports background job failures that could not be stored in the run. */
   logger?: Logger;
 }
@@ -593,6 +603,8 @@ export class ForgeEngine {
       ...(this.options.skeleton === undefined ? {} : { skeleton: this.options.skeleton }),
       ...(this.options.target === undefined ? {} : { target: this.options.target }),
       ...(this.options.progression === undefined ? {} : { progression: this.options.progression }),
+      ...(this.options.economy === undefined ? {} : { economy: this.options.economy }),
+      ...(this.options.craft === undefined ? {} : { craft: this.options.craft }),
       latest: <K extends UserIntervention["kind"]>(kind: K) => {
         for (let i = r.interventions.length - 1; i >= 0; i -= 1) {
           const entry = r.interventions[i]?.intervention;
