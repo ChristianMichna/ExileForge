@@ -14,7 +14,8 @@ Kontext, Antwortschema, erlaubte Werkzeuge und Prüfungen. Die Schleife
 | S2 | Archetyp-Kandidaten, eine Aufgabe je Kandidat | fertig |
 | S3 | Skelett-Build je Kandidat, Baum per Optimierer, Messung mit PoB; läuft als Hintergrund-Job (`PlanStep` `job`) über den `SkeletonPort`; ohne PoB-Engine endet der Lauf mit `skeleton_unavailable` | fertig, im Server mit `--calc pob` verdrahtet |
 | S4 | Der Spieler wählt einen Kandidaten in der App (`chooseVariant`); bis dahin `wait_user`, nie automatisch; die Wahl wird als `S4.selection` festgehalten | fertig |
-| S5–S10 | Zielbuild und Progression (Optimierer), Crafting-Sim, Economy | Pipeline endet mit `stage_not_implemented` |
+| S5 | Zielbuild: Gem-Setup (Claude, mit PoB geprüft), Endgame-Tree (PoB-Optimierer als Job), `TargetBuild`. Braucht den Block `s5` in `config/agents/stages.json` (Level, Passivpunkte, Calc-Profile, Ziel); ohne ihn endet der Lauf mit `s5_not_configured`. Ascendancy-Punkte fehlen noch | gebaut |
+| S6–S10 | Progression (Optimierer), Crafting-Sim, Economy | Pipeline endet mit `stage_not_implemented` |
 
 S3-Grenzen: Das Skelett hat keine Items und keine Ascendancy-Knoten (Kandidaten
 mit gleicher Klasse und anderer Ascendancy werden gleich gemessen), und eine

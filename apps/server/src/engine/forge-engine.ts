@@ -14,7 +14,7 @@ import {
   type UserIntervention,
 } from "@exileforge/contracts/forge";
 import type { ForgeConfig } from "../config/forge-config.js";
-import type { SkeletonPort } from "@exileforge/agents";
+import type { SkeletonPort, TargetPort } from "@exileforge/agents";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { RunStore } from "../store/run-store.js";
@@ -47,6 +47,8 @@ export interface ForgeEngineOptions {
   now?: () => Date;
   /** Skeleton builds for S3; only with the real PoB engine. */
   skeleton?: SkeletonPort;
+  /** Endgame tree optimisation for S5; same condition as the skeleton. */
+  target?: TargetPort;
   /** Reports background job failures that could not be stored in the run. */
   logger?: Logger;
 }
@@ -571,6 +573,7 @@ export class ForgeEngine {
       catalog: this.options.catalog,
       calc: runCalc,
       ...(this.options.skeleton === undefined ? {} : { skeleton: this.options.skeleton }),
+      ...(this.options.target === undefined ? {} : { target: this.options.target }),
       latest: <K extends UserIntervention["kind"]>(kind: K) => {
         for (let i = r.interventions.length - 1; i >= 0; i -= 1) {
           const entry = r.interventions[i]?.intervention;
