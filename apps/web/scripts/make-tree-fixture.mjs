@@ -61,8 +61,9 @@ for (const n of nodes) {
 }
 
 const cls = [...classes].sort((a, b) => a.id.localeCompare(b.id))[0];
+if (!cls) throw new Error("catalog has no character class");
 const asc = ascendancies.find((a) => a.classId === cls.id && a.startNodeId && a.nodeIds.length > 4);
-if (!cls || !asc) throw new Error("catalog has no class with an ascendancy");
+if (!asc) throw new Error(`class ${cls.id} has no ascendancy with nodes`);
 
 /** Shortest path from the allocated set (plus sources) to the nearest of `targets`. */
 function pathsFrom(sources, allowed) {

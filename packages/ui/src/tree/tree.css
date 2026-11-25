@@ -183,7 +183,7 @@
 
 .ef-tree__counts dt {
   font-family: var(--ef-font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--ef-text-2xs);
   letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
   color: var(--ef-color-text-faint);
@@ -210,7 +210,7 @@
   display: flex;
   align-items: center;
   gap: var(--ef-space-2);
-  width: 260px;
+  width: var(--ef-tree-search-width);
   padding: 0 var(--ef-space-3);
   border: var(--ef-hairline) solid var(--ef-color-line-strong);
   background: color-mix(in srgb, var(--ef-color-inset) 88%, transparent);
@@ -233,7 +233,7 @@
 .ef-tree__search input {
   flex: 1;
   min-width: 0;
-  height: 34px;
+  height: var(--ef-tree-control-size);
   border: 0;
   background: transparent;
   color: var(--ef-color-text);
@@ -265,8 +265,8 @@
 .ef-tree__zoom button {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: var(--ef-tree-control-size);
+  height: var(--ef-tree-control-size);
   border: 0;
   border-right: var(--ef-hairline) solid var(--ef-color-line);
   background: transparent;
@@ -344,7 +344,7 @@
 
 .ef-tree__source {
   font-family: var(--ef-font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--ef-text-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ef-color-text-faint);
@@ -401,7 +401,7 @@
   left: 0;
   margin: -1.9em 0 0 -0.6em;
   font-family: var(--ef-font-mono);
-  font-size: 0.625rem;
+  font-size: var(--ef-text-3xs);
   font-variant-numeric: tabular-nums;
   color: var(--ef-tree-new);
   text-shadow: 0 0 4px var(--ef-tree-ground);
@@ -416,8 +416,8 @@
   top: 0;
   left: 0;
   z-index: 3;
-  width: 300px;
-  margin: 18px 0 0 18px;
+  width: var(--ef-tree-card-width);
+  margin: var(--ef-space-4) 0 0 var(--ef-space-4);
   padding: var(--ef-space-3) var(--ef-space-4) var(--ef-space-4);
   border: var(--ef-hairline) solid var(--ef-color-line);
   border-left: 2px solid var(--ef-card-color);
@@ -443,7 +443,7 @@
   justify-content: space-between;
   gap: var(--ef-space-3);
   font-family: var(--ef-font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--ef-text-2xs);
   letter-spacing: var(--ef-tracking-caps);
   text-transform: uppercase;
   color: var(--ef-color-text-faint);
@@ -577,7 +577,7 @@
 
 .ef-tree-rule__stage-no {
   font-family: var(--ef-font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--ef-text-2xs);
   letter-spacing: var(--ef-tracking-caps);
   color: var(--ef-color-text-faint);
 }
@@ -595,7 +595,7 @@
 
 .ef-tree-rule__stage-levels {
   font-family: var(--ef-font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--ef-text-2xs);
   white-space: nowrap;
   color: var(--ef-color-text-faint);
 }
@@ -813,7 +813,7 @@
 
 .ef-tree__list-kind {
   font-family: var(--ef-font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--ef-text-2xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ef-color-text-faint);

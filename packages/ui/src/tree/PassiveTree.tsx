@@ -47,17 +47,12 @@ const SEARCH_MIN_CHARS = 2;
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-function highlightOf(
-  state: TimelineState,
-  matches: ReadonlySet<string>,
-  focus: string | undefined,
-): TreeHighlight {
+function highlightOf(state: TimelineState, matches: ReadonlySet<string>): TreeHighlight {
   return {
     allocated: state.allocated,
     added: new Set(state.added.keys()),
     refunded: state.refunded,
     matches,
-    focus,
   };
 }
 
@@ -110,18 +105,12 @@ export function PassiveTree({
   const state = useMemo(() => stateAt(timeline, cursor, stageHint), [timeline, cursor, stageHint]);
   const stage = timeline.stages[state.stage];
   const matches = useMemo(() => searchNodes(view, query), [view, query]);
-  const highlight = useMemo(
-    () => highlightOf(state, matches, hover && !hover.inset ? hover.id : undefined),
-    [state, matches, hover],
-  );
+  const highlight = useMemo(() => highlightOf(state, matches), [state, matches]);
   const insetMatches = useMemo(
     () => (ascendancy ? searchNodes(ascendancy.view, query) : new Set<string>()),
     [ascendancy, query],
   );
-  const insetHighlight = useMemo(
-    () => highlightOf(state, insetMatches, hover?.inset ? hover.id : undefined),
-    [state, insetMatches, hover],
-  );
+  const insetHighlight = useMemo(() => highlightOf(state, insetMatches), [state, insetMatches]);
 
   // playback runs to the end of the stage it was started in
   useEffect(() => {
@@ -147,6 +136,7 @@ export function PassiveTree({
   };
 
   const cameraFrame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(cameraFrame.current), []);
   const onCamera = useCallback((c: TreeCamera) => {
     cancelAnimationFrame(cameraFrame.current);
     cameraFrame.current = requestAnimationFrame(() => setCamera(c));
@@ -221,6 +211,7 @@ export function PassiveTree({
           ref={canvasRef}
           view={view}
           highlight={highlight}
+          focus={hover && !hover.inset ? hover.id : undefined}
           initialFit={allocatedMain}
           label={`Passive tree, ${stage ? stage.label : ""}`}
           onCamera={onCamera}
@@ -347,7 +338,7 @@ export function PassiveTree({
               <li data-key="allocated">Allocated</li>
               <li data-key="new">New this stage</li>
               <li data-key="respec">Respec</li>
-              {matches.size > 0 ? <li data-key="search">Search hit</li> : null}
+              {matches.size + insetMatches.size > 0 ? <li data-key="search">Search hit</li> : null}
             </ul>
           </div>
 
@@ -384,6 +375,7 @@ export function PassiveTree({
               ref={insetRef}
               view={ascendancy.view}
               highlight={insetHighlight}
+              focus={hover?.inset ? hover.id : undefined}
               bezel={false}
               label={`Ascendancy ${ascendancy.name}`}
               onHover={(hit) =>
@@ -391,6 +383,11 @@ export function PassiveTree({
                   hit ? { ...hit, pinned: false, inset: true } : h?.pinned ? h : null,
                 )
               }
+              onSelect={(id) => {
+                if (!id) return setHover(null);
+                const pos = insetRef.current?.project(id);
+                if (pos) setHover({ id, ...pos, pinned: true, inset: true });
+              }}
               className="ef-tree__inset-canvas"
             >
               {hover && hovered && hover.inset ? (

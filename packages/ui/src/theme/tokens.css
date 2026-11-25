@@ -112,6 +112,8 @@
   --ef-font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   --ef-font-flavour: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
 
+  --ef-text-3xs: 0.625rem;
+  --ef-text-2xs: 0.6875rem;
   --ef-text-xs: 0.75rem;
   --ef-text-sm: 0.875rem;
   --ef-text-md: 1rem;
@@ -154,6 +156,9 @@
   --ef-tooltip-width: 340px;
   --ef-dial-size: 360px;
   --ef-dial-label-room: 120px;
+  --ef-tree-card-width: 300px;
+  --ef-tree-search-width: 260px;
+  --ef-tree-control-size: 34px;
 }
 
 @media (prefers-reduced-motion: reduce) {

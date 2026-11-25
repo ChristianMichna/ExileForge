@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PassiveGroup, PassiveNode } from "@exileforge/contracts/catalog";
+import { PassiveNodeId } from "@exileforge/contracts/common";
 import type { PassiveTreeView, TreeTimeline } from "@exileforge/ui";
 import { Callout, PassiveTree, buildTimeline, buildTreeView } from "@exileforge/ui";
 import { z } from "zod";
@@ -15,13 +16,14 @@ const TreeFixture = z.object({
   ascendancy: z.object({ id: z.string().min(1), name: z.string().min(1) }),
   passiveNodes: z.array(PassiveNode),
   passiveGroups: z.array(PassiveGroup),
+  // the timeline fields of ProgressionStage (whose refined schema cannot be picked)
   sampleStages: z.array(
     z.object({
-      key: z.string().min(1),
-      label: z.string().min(1),
+      key: z.string().min(1).max(64),
+      label: z.string().min(1).max(120),
       levelRange: z.tuple([z.int().positive(), z.int().positive()]),
-      allocationOrder: z.array(z.string().min(1)),
-      respecs: z.array(z.string().min(1)),
+      allocationOrder: z.array(PassiveNodeId),
+      respecs: z.array(PassiveNodeId),
     }),
   ),
 });

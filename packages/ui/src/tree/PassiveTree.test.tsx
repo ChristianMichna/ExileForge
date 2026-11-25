@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GROUPS, sampleTree } from "./fixtures.test-util";
+import { GROUPS, ids, sampleTree } from "./fixtures.test-util";
 import { PassiveTree } from "./PassiveTree";
 import { buildTreeView } from "./tree-model";
 import { buildTimeline } from "./tree-timeline";
@@ -9,17 +9,25 @@ import { buildTimeline } from "./tree-timeline";
 const calls = vi.hoisted(() => ({
   highlights: [] as unknown[],
   fits: [] as unknown[],
+  focus: [] as unknown[],
+  pans: [] as unknown[],
   fail: false,
+  onError: undefined as ((e: Error) => void) | undefined,
 }));
 vi.mock("./renderer", () => ({
   TreeRenderer: {
-    create: () => {
-      if (calls.fail) return Promise.reject(new Error("WebGL context lost"));
+    create: (_host: unknown, opts: { onError?: (e: Error) => void }) => {
+      if (calls.fail)
+        return Promise.reject(
+          new Error("Tree renderer could not start", { cause: new Error("WebGL unavailable") }),
+        );
+      calls.onError = opts.onError;
       return Promise.resolve({
         setHighlight: (h: unknown) => calls.highlights.push(h),
+        setFocus: (id: unknown) => calls.focus.push(id),
         fit: (...args: unknown[]) => calls.fits.push(args),
         zoomBy: () => undefined,
-        panBy: () => undefined,
+        panBy: (...args: unknown[]) => calls.pans.push(args),
         project: () => ({ x: 10, y: 20 }),
         destroy: () => undefined,
       });
@@ -33,15 +41,15 @@ const timeline = buildTimeline([
     key: "s1",
     label: "First Steps",
     levelRange: [1, 10],
-    allocationOrder: ["a", "b"],
-    respecs: [],
+    allocationOrder: ids(["a", "b"]),
+    respecs: ids([]),
   },
   {
     key: "s2",
     label: "Second Wind",
     levelRange: [11, 20],
-    allocationOrder: ["n", "k"],
-    respecs: ["b"],
+    allocationOrder: ids(["n", "k"]),
+    respecs: ids(["b"]),
   },
 ]);
 
@@ -64,7 +72,10 @@ afterEach(() => {
   cleanup();
   calls.highlights = [];
   calls.fits = [];
+  calls.focus = [];
+  calls.pans = [];
   calls.fail = false;
+  vi.useRealTimers();
 });
 
 describe("PassiveTree", () => {
@@ -109,12 +120,48 @@ describe("PassiveTree", () => {
   it("shows a failing renderer as an error, not as an empty tree", async () => {
     calls.fail = true;
     await renderTree();
-    expect(screen.getByRole("alert").textContent).toContain("WebGL context lost");
+    expect(screen.getByRole("alert").textContent).toContain("WebGL unavailable");
+  });
+
+  it("turns a lost graphics context into a visible error", async () => {
+    await renderTree();
+    act(() => calls.onError?.(new Error("The graphics context was lost (WebGL)")));
+    expect(screen.getByRole("alert").textContent).toContain("graphics context was lost");
+  });
+
+  it("plays the stage point by point and stops at its end", async () => {
+    await renderTree(0);
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole("button", { name: "Play allocation of this stage" }));
+    // restarts at the beginning of the stage it is in
+    expect(
+      within(screen.getByRole("region", { name: "First Steps" })).queryAllByRole("button"),
+    ).toHaveLength(0);
+    for (let i = 0; i < 3; i++) act(() => vi.advanceTimersByTime(120));
+    expect(
+      within(screen.getByRole("region", { name: "First Steps" })).getAllByRole("button"),
+    ).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Play allocation of this stage" })).toBeTruthy();
+  });
+
+  it("frames a passive picked from the list and pans with the keyboard", async () => {
+    await renderTree();
+    fireEvent.click(screen.getByRole("button", { name: /Made-up Keystone/ }));
+    expect(calls.fits.at(-1)).toEqual([["k"], 0.2, 2600]);
+    expect(calls.focus.at(-1)).toBe("k");
+    fireEvent.keyDown(screen.getByRole("application"), { key: "ArrowLeft" });
+    expect(calls.pans.at(-1)).toEqual([80, 0]);
   });
 
   it("names passives of the plan that the data release does not have", async () => {
     const broken = buildTimeline([
-      { key: "s1", label: "Lost", levelRange: [1, 2], allocationOrder: ["ghost"], respecs: [] },
+      {
+        key: "s1",
+        label: "Lost",
+        levelRange: [1, 2],
+        allocationOrder: ids(["ghost"]),
+        respecs: ids([]),
+      },
     ]);
     render(
       <PassiveTree

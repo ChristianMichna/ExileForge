@@ -13,6 +13,8 @@ export interface TreeCanvasHandle {
 export interface TreeCanvasProps {
   readonly view: PassiveTreeView;
   readonly highlight: TreeHighlight;
+  /** Node to ring (hover or pick). */
+  readonly focus?: string | undefined;
   /** Nodes to frame on start (with generous context); the whole tree when absent. */
   readonly initialFit?: readonly string[];
   readonly bezel?: boolean;
@@ -39,16 +41,32 @@ type Status = { kind: "loading" } | { kind: "ready" } | { kind: "error"; message
  * error, never as an empty tree.
  */
 export const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(function TreeCanvas(
-  { view, highlight, initialFit, bezel, label, onHover, onSelect, onCamera, children, className },
+  {
+    view,
+    highlight,
+    focus,
+    initialFit,
+    bezel,
+    label,
+    onHover,
+    onSelect,
+    onCamera,
+    children,
+    className,
+  },
   ref,
 ) {
   const hostRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<TreeRenderer | null>(null);
-  const [status, setStatus] = useState<Status>({ kind: "loading" });
+  // status belongs to one view; a new view starts as loading again
+  const [statusOf, setStatusOf] = useState<{ view: PassiveTreeView; status: Status } | null>(null);
+  const status: Status = statusOf?.view === view ? statusOf.status : { kind: "loading" };
   const callbacks = useRef({ onHover, onSelect, onCamera });
   callbacks.current = { onHover, onSelect, onCamera };
   const highlightRef = useRef(highlight);
   highlightRef.current = highlight;
+  const focusRef = useRef(focus);
+  focusRef.current = focus;
   const fitRef = useRef(initialFit);
 
   useEffect(() => {
@@ -64,6 +82,10 @@ export const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(function
           onHover: (hit) => callbacks.current.onHover?.(hit),
           onSelect: (id) => callbacks.current.onSelect?.(id),
           onCamera: (camera) => callbacks.current.onCamera?.(camera),
+          onError: (error) => {
+            if (!cancelled)
+              setStatusOf({ view, status: { kind: "error", message: error.message } });
+          },
         }),
       )
       .then((r) => {
@@ -74,15 +96,17 @@ export const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(function
         renderer = r;
         rendererRef.current = r;
         r.setHighlight(highlightRef.current);
+        r.setFocus(focusRef.current);
         if (fitRef.current && fitRef.current.length > 0)
           r.fit(fitRef.current, CONTEXT_PADDING, CONTEXT_SPAN);
         else r.fit();
-        setStatus({ kind: "ready" });
+        setStatusOf({ view, status: { kind: "ready" } });
       })
       .catch((cause: unknown) => {
         if (cancelled) return;
-        const message = cause instanceof Error ? cause.message : String(cause);
-        setStatus({ kind: "error", message });
+        const root = cause instanceof Error && cause.cause instanceof Error ? cause.cause : cause;
+        const message = root instanceof Error ? root.message : String(root);
+        setStatusOf({ view, status: { kind: "error", message } });
       });
     return () => {
       cancelled = true;
@@ -94,6 +118,10 @@ export const TreeCanvas = forwardRef<TreeCanvasHandle, TreeCanvasProps>(function
   useEffect(() => {
     rendererRef.current?.setHighlight(highlight);
   }, [highlight]);
+
+  useEffect(() => {
+    rendererRef.current?.setFocus(focus);
+  }, [focus]);
 
   useImperativeHandle(
     ref,

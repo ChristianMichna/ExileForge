@@ -3,15 +3,13 @@
 // (allocationOrder, respecs) from @exileforge/contracts/build; respecs of a
 // stage are refunded before its new points are allocated.
 
-export interface TreeStageInput {
-  readonly key: string;
-  readonly label: string;
-  readonly levelRange: readonly [number, number];
-  /** New passives of this stage in allocation order. */
-  readonly allocationOrder: readonly string[];
-  /** Passives refunded at the start of this stage. */
-  readonly respecs: readonly string[];
-}
+import type { ProgressionStage } from "@exileforge/contracts/build";
+
+/** The parts of a progression stage the timeline needs. */
+export type TreeStageInput = Pick<
+  ProgressionStage,
+  "key" | "label" | "levelRange" | "allocationOrder" | "respecs"
+>;
 
 export interface TimelineStep {
   readonly stage: number;

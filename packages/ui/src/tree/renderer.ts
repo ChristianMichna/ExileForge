@@ -13,8 +13,6 @@ export interface TreeHighlight {
   readonly refunded: ReadonlySet<string>;
   /** Search hits. */
   readonly matches: ReadonlySet<string>;
-  /** Node under the pointer or keyboard focus. */
-  readonly focus?: string | undefined;
 }
 
 export interface TreeCamera {
@@ -32,6 +30,8 @@ export interface TreeRendererOptions {
   readonly onHover?: (hit: { id: string; x: number; y: number } | null) => void;
   readonly onSelect?: (id: string | null) => void;
   readonly onCamera?: (camera: TreeCamera) => void;
+  /** The WebGL context was lost after start; the canvas no longer shows the tree. */
+  readonly onError?: (error: Error) => void;
 }
 
 /** Radius in tree units and minimum radius in screen pixels per shape. */
@@ -105,6 +105,9 @@ export class TreeRenderer {
   private readonly activeEdges = new Graphics();
   private readonly nodes = new Graphics();
   private readonly overlay = new Graphics();
+  private readonly focusLayer = new Graphics();
+  private focus: string | undefined;
+  private hoverId: string | undefined;
   private readonly grid = new Map<string, TreeNodeView[]>();
   private readonly palette: Palette;
   private highlight: TreeHighlight = {
@@ -127,7 +130,14 @@ export class TreeRenderer {
   ) {
     this.app = app;
     this.palette = readPalette(host);
-    this.world.addChild(this.engraving, this.baseEdges, this.activeEdges, this.nodes, this.overlay);
+    this.world.addChild(
+      this.engraving,
+      this.baseEdges,
+      this.activeEdges,
+      this.nodes,
+      this.overlay,
+      this.focusLayer,
+    );
     app.stage.addChild(this.world);
     for (const n of options.view.nodes.values()) {
       if (n.shape === "decoration") continue;
@@ -142,17 +152,28 @@ export class TreeRenderer {
 
   static async create(host: HTMLElement, options: TreeRendererOptions): Promise<TreeRenderer> {
     const app = new Application();
-    await app.init({
-      resizeTo: host,
-      antialias: true,
-      backgroundAlpha: 0,
-      preference: "webgl",
-      resolution: Math.min(window.devicePixelRatio || 1, 2),
-      autoDensity: true,
-    });
-    app.canvas.setAttribute("aria-hidden", "true");
-    host.appendChild(app.canvas);
-    return new TreeRenderer(host, options, app);
+    try {
+      await app.init({
+        resizeTo: host,
+        antialias: true,
+        backgroundAlpha: 0,
+        preference: "webgl",
+        resolution: Math.min(window.devicePixelRatio || 1, 2),
+        autoDensity: true,
+      });
+      app.canvas.setAttribute("aria-hidden", "true");
+      host.appendChild(app.canvas);
+      return new TreeRenderer(host, options, app);
+    } catch (cause) {
+      // never leave a half-built canvas or WebGL context behind
+      let cleanup = "";
+      try {
+        app.destroy({ removeView: true }, { children: true });
+      } catch (destroyError) {
+        cleanup = ` (cleanup failed too: ${destroyError instanceof Error ? destroyError.message : String(destroyError)})`;
+      }
+      throw new Error(`Tree renderer could not start${cleanup}`, { cause });
+    }
   }
 
   destroy(): void {
@@ -171,16 +192,25 @@ export class TreeRenderer {
     this.drawActive();
   }
 
+  /** Ring around the hovered or picked node; drawn on its own layer. */
+  setFocus(id: string | undefined): void {
+    if (id === this.focus) return;
+    this.focus = id;
+    this.drawFocus();
+  }
+
   /** Fits the given nodes (or the whole tree) into the view. */
   fit(ids?: Iterable<string>, padding = 0.08, minSpan = 800): void {
     let { minX, minY, maxX, maxY } = this.options.view.bounds;
     if (ids) {
-      const pts = [...ids].map((id) => this.options.view.nodes.get(id)).filter((n) => n);
+      const pts = [...ids]
+        .map((id) => this.options.view.nodes.get(id))
+        .filter((n): n is TreeNodeView => n !== undefined);
       if (pts.length > 0) {
-        minX = Math.min(...pts.map((n) => n?.x ?? 0));
-        maxX = Math.max(...pts.map((n) => n?.x ?? 0));
-        minY = Math.min(...pts.map((n) => n?.y ?? 0));
-        maxY = Math.max(...pts.map((n) => n?.y ?? 0));
+        minX = Math.min(...pts.map((n) => n.x));
+        maxX = Math.max(...pts.map((n) => n.x));
+        minY = Math.min(...pts.map((n) => n.y));
+        maxY = Math.max(...pts.map((n) => n.y));
       }
     }
     const w = this.host.clientWidth;
@@ -248,6 +278,7 @@ export class TreeRenderer {
       if (Math.abs(this.drawnScale - this.camera.scale) / this.camera.scale > 0.04) {
         this.drawStatic();
         this.drawActive();
+        this.drawFocus();
       }
     });
   }
@@ -311,13 +342,19 @@ export class TreeRenderer {
         if (this.drag.moved || Math.hypot(dx, dy) > 3) {
           this.drag = { x: e.clientX, y: e.clientY, moved: true };
           this.panBy(dx, dy);
-          this.options.onHover?.(null);
+          if (this.hoverId !== undefined) {
+            this.hoverId = undefined;
+            this.options.onHover?.(null);
+          }
           return;
         }
       }
       const p = this.toTree(e.clientX, e.clientY);
       const hit = this.hitTest(p.x, p.y);
       el.style.cursor = hit ? "pointer" : this.drag ? "grabbing" : "grab";
+      // report changes only: moving within one node must not re-render React
+      if (hit?.id === this.hoverId) return;
+      this.hoverId = hit?.id;
       const pos = hit ? this.project(hit.id) : undefined;
       this.options.onHover?.(hit && pos ? { id: hit.id, ...pos } : null);
     });
@@ -329,7 +366,18 @@ export class TreeRenderer {
       this.options.onSelect?.(this.hitTest(p.x, p.y)?.id ?? null);
     });
     el.addEventListener("pointerleave", () => {
-      if (!this.drag) this.options.onHover?.(null);
+      if (this.drag) return;
+      this.hoverId = undefined;
+      this.options.onHover?.(null);
+    });
+    el.addEventListener("pointercancel", () => {
+      this.drag = null;
+      this.hoverId = undefined;
+      this.options.onHover?.(null);
+    });
+    el.addEventListener("webglcontextlost", (e) => {
+      e.preventDefault();
+      this.options.onError?.(new Error("The graphics context was lost (WebGL)"));
     });
   }
 
@@ -543,13 +591,14 @@ export class TreeRenderer {
 
     for (const n of nodes(h.matches)) o.circle(n.x, n.y, this.radius(n) + this.px(6));
     o.stroke({ width: Math.max(8, this.px(1.5)), color: c.search });
+  }
 
-    const focus = h.focus ? view.nodes.get(h.focus) : undefined;
-    if (focus) {
-      const r = this.radius(focus) + this.px(5);
-      o.circle(focus.x, focus.y, r);
-      o.stroke({ width: Math.max(6, this.px(1.5)), color: c.hover });
-    }
+  private drawFocus(): void {
+    const g = this.focusLayer.clear();
+    const focus = this.focus ? this.options.view.nodes.get(this.focus) : undefined;
+    if (!focus) return;
+    g.circle(focus.x, focus.y, this.radius(focus) + this.px(5));
+    g.stroke({ width: Math.max(6, this.px(1.5)), color: this.palette.hover });
   }
 
   private shapePath(g: Graphics, n: TreeNodeView, k: number): void {

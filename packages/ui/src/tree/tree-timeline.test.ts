@@ -1,10 +1,23 @@
 import { describe, expect, it } from "vitest";
 import type { TreeStageInput } from "./tree-timeline";
+import { ids } from "./fixtures.test-util";
 import { buildTimeline, stageAt, stateAt } from "./tree-timeline";
 
 const stages: TreeStageInput[] = [
-  { key: "s1", label: "One", levelRange: [1, 10], allocationOrder: ["a", "b"], respecs: [] },
-  { key: "s2", label: "Two", levelRange: [11, 20], allocationOrder: ["c", "d"], respecs: ["b"] },
+  {
+    key: "s1",
+    label: "One",
+    levelRange: [1, 10],
+    allocationOrder: ids(["a", "b"]),
+    respecs: ids([]),
+  },
+  {
+    key: "s2",
+    label: "Two",
+    levelRange: [11, 20],
+    allocationOrder: ids(["c", "d"]),
+    respecs: ids(["b"]),
+  },
 ];
 
 describe("tree timeline", () => {
@@ -48,7 +61,13 @@ describe("tree timeline", () => {
 
   it("reports inconsistent input instead of hiding it", () => {
     const bad = buildTimeline([
-      { key: "x", label: "X", levelRange: [1, 2], allocationOrder: ["a", "a"], respecs: ["z"] },
+      {
+        key: "x",
+        label: "X",
+        levelRange: [1, 2],
+        allocationOrder: ids(["a", "a"]),
+        respecs: ids(["z"]),
+      },
     ]);
     expect(bad.issues).toEqual([
       "X: refund of z, which is not allocated",
