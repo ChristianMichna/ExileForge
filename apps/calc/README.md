@@ -19,7 +19,8 @@ den Vertrag.
 | `build.export` | fertig (`xml` und `code`) |
 | `build.release` | fertig |
 | `calc.stats` | fertig, mit Calc-Profil und optional `mainSkill` |
-| `build.applyPatch`, `calc.evalBatch`, `calc.nodePower`, `calc.itemPower`, `calc.validate` | folgen in eigenen PRs; bis dahin Fehler `unknown_method` |
+| `build.applyPatch` | fertig (alle Ops aus `PatchOp`, siehe unten) |
+| `calc.evalBatch`, `calc.nodePower`, `calc.itemPower`, `calc.validate` | folgen in eigenen PRs; bis dahin Fehler `unknown_method` |
 
 ## Benutzung
 
@@ -115,6 +116,35 @@ CalcPool (Node)                         PobWorker × N (LuaJIT, cwd = PoB/src)
 - `meta.version.dataHash`: SHA-256 über alle `.lua`/`.json`-Dateien in PoBs
   `src/Data` und `src/TreeData` (Bilder ausgenommen), beim Pool-Start berechnet.
 
+## `build.applyPatch`
+
+Ein Patch wendet eine Liste von Ops auf eine Kopie des Builds an und liefert
+einen **neuen Handle**; der alte Zustand bleibt unverändert. Jede Op nutzt
+dieselbe PoB-Funktion wie das passende Bedienelement in PoB. Scheitert eine
+Op, scheitert der ganze Patch (`invalid_params` mit `op <n> (<name>)` im
+Detail), und es entsteht kein halber Zustand.
+
+| Op | Umsetzung in PoB | ID-Form (aus dem Katalog) |
+| --- | --- | --- |
+| `setLevel` | Charakterstufe, schaltet die automatische Stufe ab | – |
+| `setClass` | `PassiveSpec:SelectClass`; nicht verbundene Passives verwirft PoB, das steht dann in `warnings` | Klassenname (`characterClass.id`) |
+| `setAscendancy` | `PassiveSpec:SelectAscendClass` | `internalId` der Ascendancy (`ascendancy.id`) |
+| `allocateNodes` | `PassiveSpec:AllocNode` mit PoBs Pfadsuche; optional `weaponSet` (PoBs `allocMode`). Nicht erreichbar = Fehler | Knoten-ID (`passiveNode.id`) |
+| `deallocateNodes` | `PassiveSpec:DeallocNode`, inklusive abhängiger Knoten | Knoten-ID |
+| `setSkill` | ersetzt oder ergänzt die Skill-Gruppe mit dem Label `groupKey`; aktive Gem plus Supports, geprüft gegen PoBs Gem-Daten. `weaponSet` kennt PoB für Gruppen nicht, er wird abgelehnt | Gem-Metadata-ID (`gem.id`) |
+| `removeSkill` | entfernt die Gruppe mit dem Label `groupKey` | – |
+| `setItem` | liest den Item-Text mit PoBs Item-Parser, prüft den Slot, rüstet aus | PoB-Slotname |
+| `removeItem` | leert den Slot | PoB-Slotname |
+| `setConfig` | setzt eine Option im Config-Tab des Builds (gleiche Prüfung wie Profile) | PoB-Optionsname |
+
+Der neue Zustand ist PoBs gespeichertes XML nach dem Patch. Die Zahlen im
+Speicher, nach Export und Neuladen und auf jedem Worker sind gleich (Test in
+`test/patch.pob.test.ts`). Kosten: ca. 270 ms für Patch und Speichern auf
+geladenem Build; liegt im Worker gerade ein anderer Zustand, kommt ein
+Neuladen dazu. Für viele Kandidaten ist `calc.evalBatch` gedacht.
+
+`build.export` liefert genau das XML, aus dem `inputHash` berechnet wurde.
+
 ## Konfiguration
 
 - `config/calc/pool.json`: Größe (`"auto"` = min(`maxWorkers`, CPU-Kerne − 1,
@@ -165,6 +195,8 @@ pnpm --filter @exileforge/calc test
   Codes, Export, Fehlerarten, Warteschlange über mehrere Worker, Absturz mit
   Neustart, Timeout, Protokollfehler, Recycling, Fehlstart, Versionskonflikt.
   Läuft überall ohne PoB.
+- `test/patch.pob.test.ts`: `build.applyPatch` gegen das echte PoB; alle IDs,
+  Slots und Item-Texte stammen aus den Golden-Build-Dateien.
 - `test/pob.test.ts`: gegen das echte PoB: alle Golden Builds, gleiche Zahlen
   für XML, Code und re-exportiertes XML, Profil ohne Seiteneffekt, `mainSkill`,
   fehlerhafte Builds und Profile, abgeschossener Worker. Ohne `.pob/`

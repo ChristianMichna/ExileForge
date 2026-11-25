@@ -216,6 +216,42 @@ local function loadIntoPob(xmlText)
 	return captured
 end
 
+-- Checks one Config tab option against PoB's own option list
+-- (Modules/ConfigOptions.lua) and returns a message when it does not fit.
+local INTEGER_TYPES = { count = true, integer = true, countAllowZero = true }
+local function configValueProblem(key, v)
+	local varData = varByName[key]
+	if not varData then
+		return "Path of Building has no config option " .. tostring(key)
+	end
+	local t = varData.type
+	local valid
+	if t == "check" then
+		valid = type(v) == "boolean"
+	elseif INTEGER_TYPES[t] then
+		valid = type(v) == "number" and v == math.floor(v)
+	elseif t == "float" then
+		valid = type(v) == "number"
+	elseif t == "list" then
+		valid = false
+		for _, item in ipairs(varData.list or {}) do
+			if item.val == v then
+				valid = true
+			end
+		end
+	elseif t == "text" then
+		valid = type(v) == "string"
+	end
+	if not valid then
+		return "invalid value for config option " .. key .. " (" .. tostring(t) .. ")"
+	end
+	return nil
+end
+
+local function configInput()
+	return build.configTab.configSets[build.configTab.activeConfigSetId].input
+end
+
 local function applyProfile(profileId)
 	local profile = init.profiles and init.profiles[profileId]
 	if not profile then
@@ -224,33 +260,13 @@ local function applyProfile(profileId)
 	if #profile.config == 0 then
 		return profile
 	end
-	local input = build.configTab.configSets[build.configTab.activeConfigSetId].input
+	local input = configInput()
 	for _, entry in ipairs(profile.config) do
-		local varData = varByName[entry.key]
-		if not varData then
-			fail("invalid_params", "Calc profile sets an option Path of Building does not know", profileId .. ": " .. tostring(entry.key))
+		local problem = configValueProblem(entry.key, entry.value)
+		if problem then
+			fail("invalid_params", "Calc profile does not fit Path of Building", profileId .. ": " .. problem)
 		end
-		local v = entry.value
-		local t = varData.type
-		local valid
-		if t == "check" then
-			valid = type(v) == "boolean"
-		elseif t == "count" or t == "integer" or t == "countAllowZero" or t == "float" then
-			valid = type(v) == "number"
-		elseif t == "list" then
-			valid = false
-			for _, item in ipairs(varData.list or {}) do
-				if item.val == v then
-					valid = true
-				end
-			end
-		elseif t == "text" then
-			valid = type(v) == "string"
-		end
-		if not valid then
-			fail("invalid_params", "Calc profile sets an invalid value", profileId .. ": " .. entry.key .. " (" .. tostring(t) .. ")")
-		end
-		input[entry.key] = v
+		input[entry.key] = entry.value
 	end
 	build.configTab:BuildModList()
 	build.buildFlag = true
@@ -409,6 +425,13 @@ end
 
 -- ---------------------------------------------------------------- methods
 
+local function addState(xmlText)
+	local handle = "w" .. nextHandle
+	nextHandle = nextHandle + 1
+	states[handle] = { xml = xmlText, inputHash = sha2.sha256(xmlText) }
+	return handle
+end
+
 local methods = {}
 
 methods["meta.version"] = function()
@@ -435,9 +458,7 @@ methods["build.load"] = function(params)
 	end
 	checkBuildXml(xmlText)
 	local warnings = loadIntoPob(xmlText)
-	local handle = "w" .. nextHandle
-	nextHandle = nextHandle + 1
-	states[handle] = { xml = xmlText, inputHash = sha2.sha256(xmlText) }
+	local handle = addState(xmlText)
 	current = { handle = handle }
 	return { handle = handle, warnings = warnings }
 end
@@ -446,8 +467,225 @@ methods["build.export"] = function(params)
 	if params.format ~= "xml" then
 		fail("invalid_params", "The worker only exports build XML; the supervisor encodes build codes", tostring(params.format))
 	end
+	-- Exactly the XML the state's inputHash was taken from: exporting and
+	-- loading it again gives the same inputHash and calcId.
+	return { payload = getState(params.handle).xml }
+end
+
+-- ---------------------------------------------------------------- patches
+--
+-- Each op uses the same PoB functions as the matching GUI control, so a
+-- patched build is what a player would get by clicking. A failed op aborts
+-- the whole patch; the stored state is never touched (states are immutable).
+
+local MAX_LEVEL = 100 -- PoB's own level limit (Modules/Build.lua, characterLevel control)
+
+local function nodeById(id)
+	local node = build.spec.nodes[tonumber(id)]
+	if not node then
+		fail("invalid_params", "Passive node not in this tree version", tostring(id))
+	end
+	return node
+end
+
+local function findGroup(groupKey)
+	for index, group in ipairs(build.skillsTab.socketGroupList) do
+		if group.label == groupKey then
+			return index, group
+		end
+	end
+	return nil
+end
+
+local function gemInstance(spec, wantSupport)
+	local gemData = build.data.gems[spec.gemId]
+	if not gemData or not gemData.grantedEffect then
+		fail("invalid_params", "Gem not in Path of Building's data", tostring(spec.gemId))
+	end
+	if (gemData.grantedEffect.support and true or false) ~= wantSupport then
+		fail("invalid_params", wantSupport and "Gem is not a support gem" or "Gem is a support gem, not an active skill", spec.gemId)
+	end
+	return {
+		gemId = gemData.id,
+		skillId = gemData.grantedEffectId,
+		nameSpec = gemData.nameSpec or gemData.name,
+		level = spec.level,
+		quality = spec.quality,
+		enabled = true,
+		enableGlobal1 = true,
+		enableGlobal2 = false,
+		count = 1,
+		corruptLevel = 0,
+		statSet = {},
+		statSetCalcs = {},
+		skillMinionSkillStatSetIndexLookup = {},
+		skillMinionSkillStatSetIndexLookupCalcs = {},
+	}
+end
+
+local function itemSlot(slotName)
+	local slot = build.itemsTab.slots[slotName]
+	if not slot then
+		fail("invalid_params", "Path of Building has no item slot with this name", tostring(slotName))
+	end
+	return slot
+end
+
+local patchOps = {}
+
+patchOps.setLevel = function(op)
+	if op.level > MAX_LEVEL then
+		fail("invalid_params", "Level above Path of Building's maximum", tostring(op.level))
+	end
+	build.characterLevel = op.level
+	build.characterLevelAutoMode = false
+	build.controls.characterLevel:SetText(build.characterLevel)
+	build.configTab:BuildModList()
+end
+
+patchOps.setClass = function(op, warnings)
+	local classId = build.spec.tree.classNameMap[op.classId]
+	if not classId then
+		fail("invalid_params", "Class not in this tree version", tostring(op.classId))
+	end
+	if classId == build.spec.curClassId then
+		return
+	end
+	if build.spec:CountAllocNodes() > 0 and not build.spec:IsClassConnected(classId) then
+		warnings[#warnings + 1] = "Class change to " .. op.classId .. " left passives that do not connect to its start; Path of Building dropped them"
+	end
+	build.spec:SelectClass(classId)
+end
+
+patchOps.setAscendancy = function(op)
+	for ascendId, ascend in pairs(build.spec.curClass.classes) do
+		if ascend.internalId == op.ascendancyId then
+			build.spec:SelectAscendClass(ascendId)
+			return
+		end
+	end
+	fail("invalid_params", "Ascendancy does not belong to the build's class", tostring(op.ascendancyId))
+end
+
+patchOps.allocateNodes = function(op)
+	local spec = build.spec
+	spec.allocMode = op.weaponSet or 0
+	for _, id in ipairs(op.nodeIds) do
+		local node = nodeById(id)
+		if not node.alloc then
+			spec:AllocNode(node)
+			if not node.alloc then
+				spec.allocMode = 0
+				fail("invalid_params", "Passive node cannot be connected to the tree", tostring(id))
+			end
+		end
+	end
+	spec.allocMode = 0
+end
+
+patchOps.deallocateNodes = function(op)
+	for _, id in ipairs(op.nodeIds) do
+		local node = nodeById(id)
+		if node.alloc then
+			build.spec:DeallocNode(node)
+		end
+	end
+end
+
+patchOps.setSkill = function(op)
+	if op.weaponSet ~= nil then
+		fail("invalid_params", "weaponSet for skill groups is not supported by Path of Building", op.groupKey)
+	end
+	local gems = { gemInstance(op, false) }
+	for _, support in ipairs(op.supports) do
+		gems[#gems + 1] = gemInstance(support, true)
+	end
+	local group = {
+		enabled = true,
+		label = op.groupKey,
+		mainActiveSkill = 1,
+		mainActiveSkillCalcs = 1,
+		gemList = gems,
+	}
+	build.skillsTab:ProcessSocketGroup(group)
+	local index = findGroup(op.groupKey)
+	if index then
+		build.skillsTab.socketGroupList[index] = group
+	else
+		table.insert(build.skillsTab.socketGroupList, group)
+	end
+end
+
+patchOps.removeSkill = function(op)
+	local index = findGroup(op.groupKey)
+	if not index then
+		fail("invalid_params", "No skill group with this key", op.groupKey)
+	end
+	table.remove(build.skillsTab.socketGroupList, index)
+	if build.mainSocketGroup > #build.skillsTab.socketGroupList then
+		build.mainSocketGroup = math.max(1, #build.skillsTab.socketGroupList)
+	end
+end
+
+patchOps.setItem = function(op)
+	local slot = itemSlot(op.slot)
+	local item = new("Item", op.itemText)
+	if not item.base then
+		fail("invalid_params", "Path of Building could not read the item text", op.slot)
+	end
+	if not build.itemsTab:IsItemValidForSlot(item, op.slot) then
+		fail("invalid_params", "Item does not fit this slot", op.slot .. ": " .. tostring(item.baseName))
+	end
+	build.itemsTab:AddItem(item, true)
+	slot:SetSelItemId(item.id)
+	build.itemsTab:PopulateSlots()
+end
+
+patchOps.removeItem = function(op)
+	itemSlot(op.slot):SetSelItemId(0)
+	build.itemsTab:PopulateSlots()
+end
+
+patchOps.setConfig = function(op)
+	local problem = configValueProblem(op.key, op.value)
+	if problem then
+		fail("invalid_params", problem)
+	end
+	configInput()[op.key] = op.value
+	build.configTab:BuildModList()
+end
+
+methods["build.applyPatch"] = function(params)
+	if type(params.ops) ~= "table" or #params.ops == 0 then
+		fail("invalid_params", "ops must be a non-empty list")
+	end
 	ensureLoaded(params.handle, nil, nil)
-	return { payload = build:SaveDB("ExileForge") }
+	-- From here on PoB holds a changed build; any failure must not leave it
+	-- marked as the stored state.
+	current = nil
+	local warnings = {}
+	for i, op in ipairs(params.ops) do
+		local apply = patchOps[op.op]
+		if not apply then
+			fail("invalid_params", "Unknown patch op", tostring(op.op))
+		end
+		local ok, err = pcall(apply, op, warnings)
+		if not ok then
+			if getmetatable(err) == RpcError then
+				err.detail = "op " .. i .. " (" .. op.op .. ")" .. (err.detail and ": " .. err.detail or "")
+			end
+			error(err, 0)
+		end
+	end
+	build.buildFlag = true
+	runCallback("OnFrame")
+	local prompt = takePrompt()
+	if prompt then
+		fail("calc_failed", "Path of Building reported an error after the patch", prompt)
+	end
+	local handle = addState(build:SaveDB("ExileForge"))
+	current = { handle = handle }
+	return { handle = handle, warnings = setmetatable(warnings, { __jsontype = "array" }) }
 end
 
 methods["build.release"] = function(params)

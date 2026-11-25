@@ -61,6 +61,7 @@ export const IMPLEMENTED_METHODS = [
   "build.load",
   "build.export",
   "build.release",
+  "build.applyPatch",
   "calc.stats",
 ] as const satisfies readonly CalcMethodName[];
 
@@ -212,6 +213,8 @@ export class CalcPool {
         return this.load(params as CalcParams<"build.load">);
       case "build.export":
         return this.exportBuild(params as CalcParams<"build.export">);
+      case "build.applyPatch":
+        return this.applyPatch(params as CalcParams<"build.applyPatch">);
       case "build.release":
         return this.release(params as CalcParams<"build.release">);
       case "calc.stats": {
@@ -256,6 +259,29 @@ export class CalcPool {
     return p.format === "code" ? { payload: encodeBuildCode(res.payload) } : res;
   }
 
+  /**
+   * Patches a copy of the build in a worker. The worker answers with its own
+   * handle for the new state; the pool fetches that state's XML so the new
+   * handle works on every worker, like a loaded build.
+   */
+  private async applyPatch(p: CalcParams<"build.applyPatch">): Promise<unknown> {
+    const handle = `b${String(this.nextHandle++)}`;
+    return this.withBuild(p.handle, async (worker, wh, slot) => {
+      const timeout = this.opts.config.requestTimeoutMs;
+      const res = workerResult(
+        "build.applyPatch",
+        await worker.call("build.applyPatch", { handle: wh, ops: p.ops }, timeout),
+      );
+      const exported = workerResult(
+        "build.export",
+        await worker.call("build.export", { handle: res.handle, format: "xml" }, timeout),
+      );
+      this.builds.set(handle, { xml: exported.payload });
+      slot.handles.set(handle, res.handle);
+      return { handle, warnings: res.warnings };
+    });
+  }
+
   private release(p: CalcParams<"build.release">): unknown {
     if (!this.builds.delete(p.handle)) {
       throw new CalcServiceError("unknown_handle", "Unknown build handle", p.handle);
@@ -273,7 +299,7 @@ export class CalcPool {
   /** Runs fn on a worker that has the build loaded (loading it there first if needed). */
   private withBuild(
     handle: BuildHandle,
-    fn: (worker: PobWorker, workerHandle: string) => Promise<unknown>,
+    fn: (worker: PobWorker, workerHandle: string, slot: Slot) => Promise<unknown>,
   ): Promise<unknown> {
     const stored = this.builds.get(handle);
     if (!stored) throw new CalcServiceError("unknown_handle", "Unknown build handle", handle);
@@ -293,7 +319,7 @@ export class CalcPool {
         }
         slot.handles.set(handle, wh);
       }
-      return fn(worker, wh);
+      return fn(worker, wh, slot);
     });
   }
 
