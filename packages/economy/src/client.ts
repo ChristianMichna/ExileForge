@@ -99,7 +99,9 @@ export class PoeNinjaClient {
 
     const cached = await this.cacheGet(url);
     const headers: Record<string, string> = {
-      "User-Agent": config.userAgent.replace("{appVersion}", this.deps.appVersion),
+      "User-Agent": config.userAgent
+        .replaceAll("{appName}", config.appName)
+        .replaceAll("{appVersion}", this.deps.appVersion),
       Accept: "application/json",
     };
     if (cached?.etag) headers["If-None-Match"] = cached.etag;

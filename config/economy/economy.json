@@ -4,7 +4,8 @@
   "provider": "poe.ninja",
   "baseUrl": "https://poe.ninja",
   "game": "poe2",
-  "userAgent": "ExileForge/{appVersion} (unofficial local desktop app, not affiliated with Grinding Gear Games)",
+  "appName": "ExileForge",
+  "userAgent": "{appName}/{appVersion} (unofficial local desktop app, not affiliated with Grinding Gear Games; contact: lemonfreshx3@hotmail.de)",
   "paths": {
     "leagues": "/{game}/api/economy/leagues",
     "exchangeOverview": "/{game}/api/economy/exchange/current/overview"
@@ -35,7 +36,7 @@
     "high": 500,
     "medium": 50
   },
-  "$commentUserAgent": "The provider asks for a contact in the User-Agent. None is set: it has to be chosen by the project owner (a public address), and no private data goes into this string.",
+  "$commentUserAgent": "The provider asks for a contact in the User-Agent; the project owner chose this address (25.11.2026). {appName} comes from appName, so a rename only changes that field.",
   "rateLimitBackoffMs": 900000,
   "minQuotes": 1,
   "$commentConfidence": "Provisional: the volume thresholds are not calibrated against real data yet.",
