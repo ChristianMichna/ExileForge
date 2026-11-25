@@ -165,7 +165,29 @@ aus `apps/calc`): Basis-Build laden (`build.load`, je Basis einmal), per
 (`build.applyPatch`), je Profil `calc.stats`, danach den Patch-Handle freigeben.
 Fehler werden zu `failed`-Ergebnissen mit Ursache, nie zu Ersatzwerten.
 
-Noch nicht in `start.ts` verdrahtet (`--calc fake` bleibt Pflicht), weil zwei
-Eingaben fehlen: ein `BaseBuildProvider` (Ausgangs-Build je Klasse oder Import)
-und ein `renderItem` aus den Katalogdaten. Außerdem ist das Server-Profil noch
-`default`, der Rechendienst kennt `as-saved`.
+`src/calc/item-text.ts` rendert `ItemSpec` als PoB-Itemtext aus Katalogdaten
+(`createItemRenderer`). Wertbereiche `(min-max)` bleiben im Text, der Roll geht
+als `{range:F}` an PoB, das selbst rechnet und rundet. Grenzen: Uniques
+erscheinen mit `Implicits: 0` (der Katalog trennt Implicits nicht) und mit PoBs
+Standard-Roll; Socketables, Uniques mit ungewählter Variante, fehlende Texte
+und unbekannte Raritäten führen zu einem Fehler statt zu einem abweichenden
+Item. `src/calc/base-builds.ts` (`ClassBaseBuilds`) liefert den Ausgangs-Build
+je Klasse aus `BaseBuildSource` (PoB erzeugt ihn; `CalcPool.baseBuild` folgt
+im PoB-Thread). Das Server-Profil ist `as-saved`.
+
+Noch nicht in `start.ts` verdrahtet (`--calc fake` bleibt Pflicht), bis
+`CalcPool.baseBuild` in main ist.
+
+## Hintergrund-Jobs und S3
+
+Der `PlanStep` `job` startet rechenintensive Arbeit (S3: Skelett-Builds mit
+Baum-Optimierung in PoB) außerhalb des Run-Locks. `forge_next` antwortet bis
+zum Ende mit "wait" (Long-Poll wie beim Warten auf den Nutzer); das Ergebnis
+wird danach wie ein Server-Schritt gespeichert, ein Fehler beendet den Lauf mit
+`job_failed`. Ein Job ohne Gedächtnis im Record startet nach einem Neustart
+beim nächsten `forge_next` neu; ein `redoStage` während des Laufs verwirft die
+Antwort des alten Jobs. Noch ohne Zeitlimit und Abbruch.
+
+`src/calc/skeleton.ts` (`PobSkeleton`) ist der `SkeletonPort` auf PoB und
+`optimizeTree`; er wird mit `PobCalc` in `start.ts` verdrahtet, sobald
+`CalcPool.baseBuild` in main ist.

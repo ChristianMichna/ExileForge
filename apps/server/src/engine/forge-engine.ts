@@ -14,12 +14,14 @@ import {
   type UserIntervention,
 } from "@exileforge/contracts/forge";
 import type { ForgeConfig } from "../config/forge-config.js";
+import type { SkeletonPort } from "@exileforge/agents";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { RunStore } from "../store/run-store.js";
 import { entityFindings, richTextFindings, schemaFindings } from "./checks.js";
 import { ForgeError } from "./errors.js";
-import type { AnyTaskSpec, Pipeline, PipelineContext } from "./pipeline.js";
+import type { Logger } from "../logger.js";
+import type { AnyTaskSpec, Pipeline, PipelineContext, PlanStep } from "./pipeline.js";
 import type { RunRecord } from "./run-record.js";
 import { newSessionCode } from "./session-code.js";
 
@@ -43,6 +45,10 @@ export interface ForgeEngineOptions {
   /** Calc profiles whose results may be referenced in text. */
   calcProfiles: readonly CalcProfileId[];
   now?: () => Date;
+  /** Skeleton builds for S3; only with the real PoB engine. */
+  skeleton?: SkeletonPort;
+  /** Reports background job failures that could not be stored in the run. */
+  logger?: Logger;
 }
 
 /** Mutable view of one run inside a single locked operation. */
@@ -85,6 +91,8 @@ export class ForgeEngine {
   private readonly locks = new Map<string, Promise<unknown>>();
   private readonly listeners = new Map<string, Set<(event: RunEvent) => void>>();
   private readonly wakers = new Map<string, Set<() => void>>();
+  /** Running background job per run (at most one: the pipeline plans one step at a time). */
+  private readonly jobs = new Map<string, { key: string; token: symbol }>();
   private readonly now: () => Date;
   /** Times of failed attach calls inside the current window. */
   private attachFailures: number[] = [];
@@ -186,11 +194,23 @@ export class ForgeEngine {
           if (r.phase === "paused") tx.setPhase("planning");
           break;
         case "redoStage": {
+          // Later stages are computed from earlier ones, so redoing a stage drops them too.
+          const from = stageNumber(intervention.stage);
           const matches = (type: string) =>
-            type === intervention.stage || type.startsWith(`${intervention.stage}.`);
+            type === intervention.stage ||
+            type.startsWith(`${intervention.stage}.`) ||
+            (from !== undefined && (stageNumber(type) ?? -1) > from);
           r.results = Object.fromEntries(
             Object.entries(r.results).filter(([, result]) => !matches(result.type)),
           );
+          // A variant choice belongs to the candidates it was made on; the player picks again.
+          if (from !== undefined && from <= VARIANT_CHOICE_STAGE) {
+            r.interventions = r.interventions.filter(
+              (e) => e.intervention.kind !== "chooseVariant",
+            );
+          }
+          // A running job computed from the old results; its answer must not come back.
+          this.jobs.delete(r.runId);
           if (r.current !== null && matches(r.current.type)) {
             // Questions of the dropped task are moot; close them so the loop does not block.
             for (const ask of r.asks) {
@@ -414,6 +434,11 @@ export class ForgeEngine {
           };
           continue;
         }
+        case "job": {
+          tx.setPhase("planning");
+          if (this.jobs.get(r.runId)?.key !== step.key) this.startJob(r, step);
+          return this.wait(`ExileForge is working: ${step.label}. Call forge_next again.`);
+        }
         case "wait_user":
           tx.setPhase("waiting_user");
           return { kind: "wait_user", reason: step.reason, retryAfterSeconds: this.retryAfter() };
@@ -506,8 +531,12 @@ export class ForgeEngine {
     return { findings: own, value: toJson(data) };
   }
 
+  /** Read-only context for background jobs: no events, no transaction. */
+  private snapshotContext(r: RunRecord): PipelineContext {
+    return this.buildContext(r, this.options.calc);
+  }
+
   private context(tx: Tx): PipelineContext {
-    const r = tx.record;
     const calc = this.options.calc;
     const reportingCalc: CalcPort = {
       engine: calc.engine,
@@ -521,10 +550,15 @@ export class ForgeEngine {
         return outcomes;
       },
     };
+    return this.buildContext(tx.record, reportingCalc);
+  }
+
+  private buildContext(r: RunRecord, calc: CalcPort): PipelineContext {
     return {
       run: r,
       catalog: this.options.catalog,
-      calc: reportingCalc,
+      calc,
+      ...(this.options.skeleton === undefined ? {} : { skeleton: this.options.skeleton }),
       latest: <K extends UserIntervention["kind"]>(kind: K) => {
         for (let i = r.interventions.length - 1; i >= 0; i -= 1) {
           const entry = r.interventions[i]?.intervention;
@@ -584,6 +618,54 @@ export class ForgeEngine {
     if (r.phase === "done" || r.phase === "failed") {
       throw new ForgeError("run_finished", `Run ${r.runId} is already ${r.phase}.`);
     }
+  }
+
+  /** Runs a pipeline job outside the run lock and stores its result (or failure) when it ends. */
+  private startJob(record: RunRecord, step: Extract<PlanStep, { kind: "job" }>): void {
+    const runId = record.runId;
+    // The job sees a snapshot; its result comes back through a normal locked mutation.
+    const ctx = this.snapshotContext(structuredClone(record));
+    const token = Symbol(step.key);
+    this.jobs.set(runId, { key: step.key, token });
+    // Stale = the run was redone, finished or failed since the job started; the answer is dropped.
+    const finish = (apply: (tx: Tx) => void) =>
+      this.mutate(runId, async (tx) => {
+        const current = this.jobs.get(runId)?.token === token;
+        const phase = tx.record.phase;
+        if (!current || phase === "done" || phase === "failed") return;
+        apply(tx);
+        tx.wake = true;
+      });
+    void step
+      .run(ctx)
+      .then(
+        (value) =>
+          finish((tx) => {
+            tx.record.results[step.key] = {
+              type: step.type,
+              by: "server",
+              value,
+              at: this.now().toISOString(),
+            };
+          }),
+        (error: unknown) => {
+          this.options.logger?.error("background job failed", { runId, job: step.key, error });
+          return finish((tx) => {
+            tx.record.error = {
+              code: "job_failed",
+              message: `${step.label} failed: ${error instanceof Error ? error.message : String(error)}`,
+            };
+            tx.record.current = null;
+            tx.setPhase("failed");
+          });
+        },
+      )
+      .catch((error: unknown) => {
+        this.options.logger?.error("could not store a background job result", { runId, error });
+      })
+      .finally(() => {
+        if (this.jobs.get(runId)?.token === token) this.jobs.delete(runId);
+      });
   }
 
   private wait(text: string): ForgeStep {
@@ -681,4 +763,13 @@ function toJsonRecord(value: unknown): Record<string, JsonValue> {
     throw new Error("JSON Schema of a task is not an object");
   }
   return json;
+}
+
+/** The stage that holds the player's variant choice (S4). */
+const VARIANT_CHOICE_STAGE = 4;
+
+/** "S3.evaluate" and "S3" are stage 3; anything else has no stage number. */
+function stageNumber(type: string): number | undefined {
+  const match = /^S(\d+)(?:\.|$)/.exec(type);
+  return match?.[1] === undefined ? undefined : Number(match[1]);
 }

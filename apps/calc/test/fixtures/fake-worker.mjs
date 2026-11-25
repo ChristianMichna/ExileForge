@@ -67,6 +67,20 @@ const handlers = {
       return rpcError(id, "unknown_handle", "Unknown build handle", p.handle);
     return {};
   },
+  "build.template": (p) => ({
+    payload: `<PathOfBuilding2><Build level="1" className="${p.classId}"/></PathOfBuilding2>`,
+  }),
+  // fixed fantasy node list for calc.nodePower (supervisor tests)
+  "tree.reachable": (p, id) => {
+    if (!states.has(p.handle))
+      return rpcError(id, "unknown_handle", "Unknown build handle", p.handle);
+    return {
+      nodes: [
+        { nodeId: "101", pathCost: 1 },
+        { nodeId: "102", pathCost: 3 },
+      ],
+    };
+  },
   "calc.stats": (p, id) => {
     const xml = states.get(p.handle);
     if (xml === undefined) return rpcError(id, "unknown_handle", "Unknown build handle", p.handle);

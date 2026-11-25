@@ -24,7 +24,9 @@
   "dependencies": {
     "@exileforge/agents": "workspace:*",
     "@exileforge/calc-client": "workspace:*",
+    "@exileforge/calc": "workspace:*",
     "@exileforge/contracts": "workspace:*",
+    "@exileforge/optimizer": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "fastify": "5.12.8",
     "zod": "4.6.7"

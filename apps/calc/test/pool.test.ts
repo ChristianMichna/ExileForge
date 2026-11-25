@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import type { CalcMethodName, CalcParams } from "@exileforge/contracts";
+import {
+  CharacterClassId,
+  PassiveNodeId,
+  type CalcMethodName,
+  type CalcParams,
+} from "@exileforge/contracts";
 import {
   CalcPool,
   CalcServiceError,
@@ -118,8 +123,14 @@ describe("CalcPool with the fake worker", () => {
     );
     await expectKind(
       pool.request(
-        "calc.nodePower",
-        untyped<"calc.nodePower">({ handle, profile: "as-saved", metrics: ["X"] }),
+        "calc.itemPower",
+        untyped<"calc.itemPower">({
+          handle,
+          profile: "as-saved",
+          metrics: ["X"],
+          slot: "S",
+          modLines: ["m"],
+        }),
       ),
       "unknown_method",
     );
@@ -226,6 +237,55 @@ describe("CalcPool with the fake worker", () => {
       }),
       "invalid_params",
     );
+  });
+
+  it("values reachable passives with their path cost", async () => {
+    const { pool } = await fakePool({}, { size: 2 });
+    const { handle } = await pool.request("build.load", { format: "xml", payload: XML });
+    const all = await pool.request("calc.nodePower", {
+      handle,
+      profile: "as-saved",
+      metrics: ["FakeLength"],
+    });
+    expect(all.base.stats.FakeLength).toBe(XML.length);
+    expect(all.results.map((r) => [r.nodeId, r.pathCost])).toEqual([
+      ["101", 1],
+      ["102", 3],
+    ]);
+    expect(all.results[0]?.deltas.FakeLength).toBeGreaterThan(0);
+    const some = await pool.request("calc.nodePower", {
+      handle,
+      profile: "as-saved",
+      metrics: ["FakeLength"],
+      candidates: [PassiveNodeId.parse("102")],
+    });
+    expect(some.results).toHaveLength(1);
+    expect(pool.status().builds).toBe(1);
+    await expectKind(
+      pool.request("calc.nodePower", {
+        handle,
+        profile: "as-saved",
+        metrics: ["FakeLength"],
+        candidates: [PassiveNodeId.parse("999")],
+      }),
+      "invalid_params",
+    );
+  });
+
+  it("offers a fresh build of a class as the starting point", async () => {
+    const { pool } = await fakePool();
+    const base = await pool.baseBuild(CharacterClassId.parse("FixtureClass"));
+    expect(base.format).toBe("xml");
+    const { handle } = await pool.request("build.load", base);
+    expect((await pool.request("build.export", { handle, format: "xml" })).payload).toBe(
+      base.payload,
+    );
+  });
+
+  it("refuses a base build on a closed pool", async () => {
+    const { pool } = await fakePool();
+    await pool.close();
+    await expectKind(pool.baseBuild(CharacterClassId.parse("FixtureClass")), "worker_crashed");
   });
 
   it("forgets released builds", async () => {

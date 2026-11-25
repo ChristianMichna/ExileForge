@@ -1,4 +1,9 @@
-import type { BuildHandle, CalcResult, PatchOp } from "@exileforge/contracts";
+import {
+  CharacterClassId,
+  type BuildHandle,
+  type CalcResult,
+  type PatchOp,
+} from "@exileforge/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CalcPool } from "../src/index.ts";
 import { golden, havePob, startPobPool } from "./pob-setup.ts";
@@ -258,6 +263,90 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
       }
     }
     expect(broken).toMatchObject({ ok: false, error: { kind: "invalid_params" } });
+  });
+
+  it("values a reachable passive like a separate allocation", async () => {
+    const last = facts.nodes[facts.nodes.length - 1] ?? "";
+    const without = (await patch(ops([{ op: "deallocateNodes", nodeIds: [last] }]))).handle;
+    const metrics = ["Life", "CombinedDPS"];
+    const power = await pool.request("calc.nodePower", {
+      handle: without,
+      profile: "as-saved",
+      metrics,
+      candidates: [last as never],
+    });
+    const [entry] = power.results;
+    const direct = await stats(
+      (await patch(ops([{ op: "allocateNodes", nodeIds: [last] }]), without)).handle,
+    );
+    const before = await stats(without);
+    expect(power.results).toHaveLength(1);
+    expect(entry?.nodeId).toBe(last);
+    expect(entry?.pathCost).toBe(1);
+    expect(entry?.calcId).toBe(direct.calcId);
+    for (const m of metrics) {
+      expect(entry?.deltas[m]).toBe((direct.stats[m] ?? NaN) - (before.stats[m] ?? NaN));
+    }
+    // an allocated passive is not a candidate
+    await expect(
+      pool.request("calc.nodePower", {
+        handle: base,
+        profile: "as-saved",
+        metrics,
+        candidates: [last as never],
+      }),
+    ).rejects.toMatchObject({ kind: "invalid_params" });
+  });
+
+  it("reports the path cost PoB would allocate for a passive far from the tree", async () => {
+    // removing an early node drops everything behind it; the node then needs a longer path
+    const early = facts.nodes[Math.min(3, facts.nodes.length - 1)] ?? "";
+    const without = (await patch(ops([{ op: "deallocateNodes", nodeIds: [early] }]))).handle;
+    const count = async (handle: BuildHandle): Promise<number> =>
+      readBuild((await pool.request("build.export", { handle, format: "xml" })).payload).nodes
+        .length;
+    const power = await pool.request("calc.nodePower", {
+      handle: without,
+      profile: "as-saved",
+      metrics: ["Life"],
+      candidates: [early as never],
+    });
+    const after = (await patch(ops([{ op: "allocateNodes", nodeIds: [early] }]), without)).handle;
+    expect(power.results[0]?.pathCost).toBe((await count(after)) - (await count(without)));
+  });
+
+  it("creates a fresh build of a class that loads and exports unchanged", async () => {
+    const other = await golden("pobb-ljOBlCON5WGB");
+    const classId = /<Build [^>]*className="([^"]+)"/.exec(other)?.[1] ?? "";
+    expect(classId).not.toBe("");
+    const template = await pool.baseBuild(CharacterClassId.parse(classId));
+    expect(template.payload).toMatch(/<Build [^>]*level="1"/);
+    expect(template.payload).toContain(`className="${classId}"`);
+    // PoB allocates only the class start itself; no items; level pinned
+    const fresh = readBuild(template.payload);
+    expect(fresh.nodes.filter((n) => n !== "")).toHaveLength(1);
+    expect(fresh.slots).toEqual([]);
+    expect(template.payload).toMatch(/characterLevelAutoMode="false"/);
+    const { handle } = await pool.request("build.load", template);
+    expect((await pool.request("build.export", { handle, format: "xml" })).payload).toBe(
+      template.payload,
+    );
+    await expect(
+      pool.baseBuild(CharacterClassId.parse("exileforge-no-such-class")),
+    ).rejects.toMatchObject({
+      kind: "invalid_params",
+    });
+  });
+
+  it("keeps a fresh build at level 1 when passives are allocated", async () => {
+    const classId = /<Build [^>]*className="([^"]+)"/.exec(xml)?.[1] ?? "";
+    const template = await pool.baseBuild(CharacterClassId.parse(classId));
+    const { handle } = await pool.request("build.load", template);
+    const grown = await patch(ops([{ op: "allocateNodes", nodeIds: facts.nodes }]), handle);
+    const exported = (await pool.request("build.export", { handle: grown.handle, format: "xml" }))
+      .payload;
+    expect(readBuild(exported).nodes.length).toBeGreaterThan(2);
+    expect(exported).toMatch(/<Build [^>]*level="1"/);
   });
 
   it("rejects bad ops with the op index and leaves no half-patched state", async () => {

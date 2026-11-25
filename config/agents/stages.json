@@ -3,6 +3,25 @@
   "version": "stages-1",
   "promptVersion": "forge-prompts-1",
   "supportGemKinds": ["Support"],
-  "s1": { "maxListItems": 12 },
-  "s2": { "candidateCount": 3, "maxKeyEntities": 12 }
+  "s1": {
+    "maxListItems": 12
+  },
+  "s2": {
+    "candidateCount": 3,
+    "maxKeyEntities": 12
+  },
+  "s3": {
+    "level": 20,
+    "passivePoints": 12,
+    "supportCount": 2,
+    "calcProfiles": ["as-saved"],
+    "objective": {
+      "weights": {
+        "FullDPS": 1,
+        "TotalEHP": 0.4
+      },
+      "floors": {}
+    },
+    "gemLevel": 1
+  }
 }

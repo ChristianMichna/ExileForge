@@ -101,6 +101,21 @@ export class PobCalc implements CalcPort {
     return this.results.get(calcId);
   }
 
+  /**
+   * Runs `fn` with a PoB handle of exactly `state` (base build plus patch) and
+   * releases it afterwards. For work that needs many calculations on one
+   * build, e.g. the tree optimizer.
+   */
+  async withBuild<T>(state: BuildState, fn: (handle: BuildHandle) => Promise<T>): Promise<T> {
+    if (this.closed) throw new Error("PobCalc is closed");
+    const prepared = await this.prepare(state);
+    try {
+      return await fn(prepared.handle);
+    } finally {
+      if (prepared.owned) await this.release(prepared.handle);
+    }
+  }
+
   /** Frees the cached base handles; call when the server shuts down. */
   async close(): Promise<void> {
     this.closed = true;
