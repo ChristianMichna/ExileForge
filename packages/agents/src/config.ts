@@ -163,21 +163,25 @@ export const StageConfig = z.object({
       stats: z.object({
         /** Unreserved spirit; below zero the build reserves more than it has (G3). */
         spiritFree: z.string().min(1),
-        /** Resistance over cap per element; below zero the cap is not reached (G4). */
-        resistOverCap: z.array(z.string().min(1)).min(1),
+        /** Resistance still missing to the cap per element (PoB's "Missing…Resist", never negative); above zero the cap is not reached (G4). */
+        resistMissing: z.array(z.string().min(1)).min(1),
         ehp: z.string().min(1),
         dps: z.string().min(1),
       }),
       /** Progression stage kinds ("campaign" or "endgame") whose resistances must be at cap. */
-      resistanceCapStageKinds: z.array(z.enum(["campaign", "endgame"])),
-      /** Minimum EHP and DPS from a character level on; the entry with the highest fromLevel at or below a stage's level applies. */
-      thresholds: z.array(
-        z.object({
-          fromLevel: z.int().positive(),
-          minEhp: z.number().positive().optional(),
-          minDps: z.number().positive().optional(),
+      resistanceCapStageKinds: z.array(z.enum(["campaign", "endgame"])).min(1),
+      /** Minimum EHP and DPS from a character level on; for each of the two minimums the entry with the highest fromLevel at or below a stage's level that sets it applies. */
+      thresholds: z
+        .array(
+          z.object({
+            fromLevel: z.int().positive(),
+            minEhp: z.number().positive().optional(),
+            minDps: z.number().positive().optional(),
+          }),
+        )
+        .refine((t) => new Set(t.map((x) => x.fromLevel)).size === t.length, {
+          message: "duplicate fromLevel",
         }),
-      ),
     })
     .optional(),
   s2: z.object({

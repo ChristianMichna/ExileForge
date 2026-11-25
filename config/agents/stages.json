@@ -72,18 +72,18 @@
     }
   },
   "s10": {
-    "$comment": "Gate inputs of S10. Stat names are PoB output names (see evals/golden). The thresholds are empty until the product owner calibrates them for the patch: with no thresholds, G4 and G5 report the missing check instead of passing.",
+    "$comment": "Gate inputs of S10. Stat names are PoB output names (pob_bridge/lua/runner.lua; MissingXResist is PoB's resistance still missing to the cap). CombinedDPS is used because FullDPS is 0 for builds without full-DPS groups. The thresholds are empty until the product owner calibrates them for the patch: with no thresholds, G4 and G5 report the missing check instead of passing.",
     "calcProfile": "mapping",
     "stats": {
       "spiritFree": "SpiritUnreserved",
-      "resistOverCap": [
-        "FireResistOverCap",
-        "ColdResistOverCap",
-        "LightningResistOverCap",
-        "ChaosResistOverCap"
-      ],
       "ehp": "TotalEHP",
-      "dps": "FullDPS"
+      "dps": "CombinedDPS",
+      "resistMissing": [
+        "MissingFireResist",
+        "MissingColdResist",
+        "MissingLightningResist",
+        "MissingChaosResist"
+      ]
     },
     "resistanceCapStageKinds": ["endgame"],
     "thresholds": []

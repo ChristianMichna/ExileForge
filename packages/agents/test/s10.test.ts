@@ -183,39 +183,48 @@ describe("S10 measured gates", () => {
     calcProfile: "mapping",
     stats: {
       spiritFree: "Sp",
-      resistOverCap: ["FireOver", "ColdOver"],
+      resistMissing: ["MissFire", "MissCold"],
       ehp: "Ehp",
       dps: "Dps",
     },
     resistanceCapStageKinds: ["endgame"],
-    thresholds: [{ fromLevel: 1, minEhp: 100, minDps: 1000 }],
+    thresholds: [
+      { fromLevel: 10, minEhp: 100, minDps: 1000 },
+      { fromLevel: 50, minEhp: 400 },
+    ],
   };
-  const withStats = (stats: Record<string, number>) =>
+  const withStats = (stats: Record<string, number> | undefined, profile = "mapping") =>
     ({
       ...(ctx() as object),
-      calc: { getResult: () => Promise.resolve({ stats }) },
-    }) as never as PipelineContext;
-  const endgame = () =>
-    draft({
-      progression: {
-        stages: [stage({ kind: "endgame", state: { ...STATE, level: 90 } })],
+      calc: {
+        getResult: () =>
+          Promise.resolve(stats === undefined ? undefined : { calcProfile: profile, stats }),
       },
+    }) as never as PipelineContext;
+  const stageAt = (level: number, kind = "endgame") =>
+    draft({
+      progression: { stages: [stage({ kind, state: { ...STATE, level } })] },
     });
-  const run = async (stats: Record<string, number>, c = cfg) =>
-    (await runGates(withStats(stats), endgame(), c as never)).flatMap((g) =>
-      g.findings.map((f) => `${g.gate}:${f.code}`),
+  const run = async (
+    stats: Record<string, number> | undefined,
+    level = 90,
+    over: object = {},
+    kind = "endgame",
+  ) =>
+    (await runGates(withStats(stats), stageAt(level, kind), { ...cfg, ...over } as never)).flatMap(
+      (g) => g.findings.map((f) => `${g.gate}:${f.code}`),
     );
-  const good = { Sp: 5, FireOver: 3, ColdOver: 0, Ehp: 500, Dps: 5000 };
+  const good = { Sp: 5, MissFire: 0, MissCold: 0, Ehp: 500, Dps: 5000 };
 
   it("passes G4 and G5 when every measured value meets the configured limits", async () => {
-    const gates = await runGates(withStats(good), endgame(), cfg as never);
+    const gates = await runGates(withStats(good), stageAt(90), cfg as never);
     expect(gates.find((g) => g.gate === "G4")?.passed).toBe(true);
     expect(gates.find((g) => g.gate === "G5")?.passed).toBe(true);
     expect(gates.find((g) => g.gate === "G3")?.passed).toBe(false);
   });
 
-  it("flags overdrawn spirit, resistances below cap and values below the minimums", async () => {
-    const codes = await run({ Sp: -1, FireOver: -2, ColdOver: 0, Ehp: 5, Dps: 5 });
+  it("flags overdrawn spirit, resistances missing to the cap and values below the minimums", async () => {
+    const codes = await run({ Sp: -1, MissFire: 5, MissCold: 0, Ehp: 5, Dps: 5 });
     expect(codes).toEqual(
       expect.arrayContaining([
         "G3:spirit_overdrawn",
@@ -226,18 +235,46 @@ describe("S10 measured gates", () => {
     );
   });
 
-  it("reports a missing stat instead of assuming a value", async () => {
-    expect(await run({ Ehp: 500, Dps: 5000 })).toEqual(
-      expect.arrayContaining(["G3:stat_missing", "G4:stat_missing"]),
+  it("separates a missing stat from a value below the minimum", async () => {
+    const codes = await run({ Sp: 1, MissFire: 0, MissCold: 0 });
+    expect(codes).toEqual(expect.arrayContaining(["G4:stat_missing", "G5:stat_missing"]));
+    expect(codes).not.toContain("G4:ehp_below_minimum");
+  });
+
+  it("resolves each minimum on its own by level and flags a level without one", async () => {
+    // level 60: minEhp 400 applies, minDps still comes from the entry at level 10
+    expect(await run({ ...good, Ehp: 300 }, 60)).toContain("G4:ehp_below_minimum");
+    expect(await run({ ...good, Dps: 500 }, 60)).toContain("G5:dps_below_minimum");
+    // level 5 is below the smallest fromLevel: not checked, so the gate cannot pass
+    const codes = await run(good, 5);
+    expect(codes).toEqual(expect.arrayContaining(["G4:threshold_missing", "G5:threshold_missing"]));
+  });
+
+  it("skips the resistance check for stage kinds that are not configured", async () => {
+    expect(await run({ ...good, MissFire: 9 }, 90, {}, "campaign")).not.toContain(
+      "G4:resistance_below_cap",
     );
   });
 
+  it("treats a missing or foreign-profile result as unavailable", async () => {
+    expect(await run(undefined)).toContain("G4:stats_unavailable");
+    const foreign = await runGates(withStats(good, "pinnacle"), stageAt(90), cfg as never);
+    expect(foreign.flatMap((g) => g.findings.map((f) => f.code))).toContain("stats_unavailable");
+  });
+
   it("does not pass G4 or G5 without configured thresholds", async () => {
-    const gates = await runGates(withStats(good), endgame(), { ...cfg, thresholds: [] } as never);
+    const gates = await runGates(withStats(good), stageAt(90), { ...cfg, thresholds: [] } as never);
     for (const g of ["G4", "G5"]) {
       expect(gates.find((x) => x.gate === g)?.findings.map((f) => f.code)).toContain(
         "check_not_built",
       );
+    }
+  });
+
+  it("does not pass G3 to G5 without the s10 config block", async () => {
+    const gates = await runGates(ctx(), draft());
+    for (const g of ["G3", "G4", "G5"]) {
+      expect(gates.find((x) => x.gate === g)?.passed).toBe(false);
     }
   });
 });

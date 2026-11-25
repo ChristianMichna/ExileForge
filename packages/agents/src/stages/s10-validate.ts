@@ -245,7 +245,8 @@ async function stageStats(
   }[] = [];
   for (const [index, stage] of draft.progression.stages.entries()) {
     const outcome = stage.calcs[profile];
-    const result = outcome?.status === "ok" ? await ctx.calc.getResult(outcome.calcId) : undefined;
+    const loaded = outcome?.status === "ok" ? await ctx.calc.getResult(outcome.calcId) : undefined;
+    const result = loaded?.calcProfile === profile ? loaded : undefined;
     out.push({ stage, index, ...(result === undefined ? {} : { stats: result.stats }) });
   }
   return out;
@@ -265,8 +266,13 @@ async function measuredGates(
   const g3: Finding[] = [];
   const g4: Finding[] = [];
   const g5: Finding[] = [];
-  const limit = (level: number) =>
-    cfg.thresholds.filter((t) => t.fromLevel <= level).sort((a, b) => b.fromLevel - a.fromLevel)[0];
+  /** The minimum that applies at a level: the highest fromLevel at or below it that sets the field. */
+  const limit = (level: number, field: "minEhp" | "minDps"): number | undefined =>
+    cfg.thresholds
+      .filter((t) => t.fromLevel <= level && t[field] !== undefined)
+      .sort((a, b) => b.fromLevel - a.fromLevel)[0]?.[field];
+  const ehpSet = cfg.thresholds.some((t) => t.minEhp !== undefined);
+  const dpsSet = cfg.thresholds.some((t) => t.minDps !== undefined);
   for (const { stage, index, stats } of await stageStats(ctx, draft, cfg.calcProfile)) {
     const path = `/progression/stages/${index}/calcs`;
     if (stats === undefined) {
@@ -276,19 +282,11 @@ async function measuredGates(
       g5.push(finding("G5", "stats_unavailable", msg, path, "S6"));
       continue;
     }
-    const stat = (name: string): number | undefined => stats[name];
-    const spare = stat(cfg.stats.spiritFree);
-    if (spare === undefined) {
-      g3.push(
-        finding(
-          "G3",
-          "stat_missing",
-          `PoB gave no ${cfg.stats.spiritFree} for stage ${stage.key}.`,
-          path,
-          "S6",
-        ),
-      );
-    } else if (spare < 0) {
+    const missing = (gate: Finding["gate"], name: string): Finding =>
+      finding(gate, "stat_missing", `PoB gave no ${name} for stage ${stage.key}.`, path, "S6");
+    const spare = stats[cfg.stats.spiritFree];
+    if (spare === undefined) g3.push(missing("G3", cfg.stats.spiritFree));
+    else if (spare < 0) {
       g3.push(
         finding(
           "G3",
@@ -300,24 +298,15 @@ async function measuredGates(
       );
     }
     if (cfg.resistanceCapStageKinds.includes(stage.kind)) {
-      for (const name of cfg.stats.resistOverCap) {
-        const over = stat(name);
-        if (over === undefined) {
-          g4.push(
-            finding(
-              "G4",
-              "stat_missing",
-              `PoB gave no ${name} for stage ${stage.key}.`,
-              path,
-              "S6",
-            ),
-          );
-        } else if (over < 0) {
+      for (const name of cfg.stats.resistMissing) {
+        const gap = stats[name];
+        if (gap === undefined) g4.push(missing("G4", name));
+        else if (gap > 0) {
           g4.push(
             finding(
               "G4",
               "resistance_below_cap",
-              `Stage ${stage.key}: ${name} is below the cap.`,
+              `Stage ${stage.key}: ${name} is above zero, the cap is not reached.`,
               path,
               "S6",
             ),
@@ -325,41 +314,33 @@ async function measuredGates(
         }
       }
     }
-    const t = limit(stage.state.level);
-    const ehp = stat(cfg.stats.ehp);
-    if (t?.minEhp !== undefined && (ehp === undefined || ehp < t.minEhp)) {
-      g4.push(
-        finding(
-          "G4",
-          "ehp_below_minimum",
-          `Stage ${stage.key} is below the configured EHP minimum.`,
-          path,
-          "S6",
-        ),
-      );
-    }
-    const dps = stat(cfg.stats.dps);
-    if (t?.minDps !== undefined && (dps === undefined || dps < t.minDps)) {
-      g5.push(
-        finding(
-          "G5",
-          "dps_below_minimum",
-          `Stage ${stage.key} is below the configured damage minimum.`,
-          path,
-          "S6",
-        ),
-      );
+    for (const [gate, list, statName, field, code] of [
+      ["G4", g4, cfg.stats.ehp, "minEhp", "ehp_below_minimum"],
+      ["G5", g5, cfg.stats.dps, "minDps", "dps_below_minimum"],
+    ] as const) {
+      if (field === "minEhp" ? !ehpSet : !dpsSet) continue;
+      const min = limit(stage.state.level, field);
+      if (min === undefined) {
+        list.push(
+          finding(
+            gate,
+            "threshold_missing",
+            `No ${field} is configured for the level of stage ${stage.key}.`,
+            path,
+          ),
+        );
+        continue;
+      }
+      const value = stats[statName];
+      if (value === undefined) list.push(missing(gate, statName));
+      else if (value < min) {
+        list.push(
+          finding(gate, code, `Stage ${stage.key} is below the configured minimum.`, path, "S6"),
+        );
+      }
     }
   }
-  return {
-    g3,
-    g4,
-    g5,
-    thresholdsSet: {
-      ehp: cfg.thresholds.some((t) => t.minEhp !== undefined),
-      dps: cfg.thresholds.some((t) => t.minDps !== undefined),
-    },
-  };
+  return { g3, g4, g5, thresholdsSet: { ehp: ehpSet, dps: dpsSet } };
 }
 
 /** What a gate still does not check, given the config; undefined if nothing is missing. */
