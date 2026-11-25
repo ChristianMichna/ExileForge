@@ -199,6 +199,10 @@ describe("StatMatcher.match", () => {
       status: "ambiguous",
       line: "15% increased Glow",
       descriptionIds: ["base:1", "base:6"],
+      candidates: [
+        { descriptionId: "base:1", stats: [{ statId: "fake_glow_+%", min: 15, max: 15 }] },
+        { descriptionId: "base:6", stats: [{ statId: "fake_local_glow_+%", min: 15, max: 15 }] },
+      ],
     });
   });
 

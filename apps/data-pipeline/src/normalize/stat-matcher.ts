@@ -51,7 +51,13 @@ export type MatchResult =
   /** the description is known but its text shows no value, so the stat value is unknown */
   | { status: "hidden"; line: string; descriptionId: string; statIds: string[] }
   | { status: "unmatched"; line: string }
-  | { status: "ambiguous"; line: string; descriptionIds: string[] };
+  | {
+      status: "ambiguous";
+      line: string;
+      descriptionIds: string[];
+      /** what each description would read as; absent when the line only matches hidden values */
+      candidates?: { descriptionId: string; stats: StatValue[] }[];
+    };
 
 type Inverse = (v: number) => number;
 
@@ -469,7 +475,16 @@ export class StatMatcher {
           const [[descriptionId, stats]] = [...hits] as [[string, StatValue[]]];
           return { status: "matched", descriptionId, stats };
         }
-        return { status: "ambiguous", line, descriptionIds: [...hits.keys()].sort() };
+        const descriptionIds = [...hits.keys()].sort();
+        return {
+          status: "ambiguous",
+          line,
+          descriptionIds,
+          candidates: descriptionIds.map((descriptionId) => ({
+            descriptionId,
+            stats: hits.get(descriptionId) as StatValue[],
+          })),
+        };
       }
     }
     return { status: "unmatched", line };

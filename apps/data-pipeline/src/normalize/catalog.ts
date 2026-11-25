@@ -151,6 +151,8 @@ export interface NormalizeSummary {
   modsWithoutGenerationType: number;
   /** mods with stats whose description renders no text (see `hiddenStatGroups`) */
   modsWithHiddenStatGroups: number;
+  /** unique lines whose ambiguous text was decided by spawn evidence of the base */
+  uniqueLinesDisambiguated: number;
   /** PoB per-level gem fields the contract has no place for, by field */
   gemLevelFieldsNotInContract: Record<string, number>;
   /** per-level gem stat values PoB interpolates at run time (not literal data) */
@@ -216,6 +218,7 @@ class Context {
     unresolved: {},
     modsWithoutGenerationType: 0,
     modsWithHiddenStatGroups: 0,
+    uniqueLinesDisambiguated: 0,
     gemLevelFieldsNotInContract: {},
     gemInterpolatedStatValues: 0,
     gemAdditionalStatSets: 0,
@@ -398,11 +401,75 @@ function normalizeBaseItems(
 
 // ---------------------------------------------------------------- uniques
 
+/**
+ * Decides between descriptions that render the same text (typically a local
+ * and a global stat) from evidence in the data: a candidate counts when a mod
+ * with one of its stats can spawn on a tag of the item's base. Only a single
+ * candidate with evidence is taken; none or several stay ambiguous.
+ */
+/** Array view of a normalized (already typed) field. */
+const rows = (v: unknown): Json[] => (Array.isArray(v) ? (v as Json[]) : []);
+
+/** Spawn weights of the mods that carry a stat, in PoB's order (first matching tag decides). */
+export type SpawnIndex = ReadonlyMap<
+  string,
+  readonly (readonly { tag: string; weight: number }[])[]
+>;
+
+export function spawnIndexOf(mods: readonly Record<string, unknown>[]): SpawnIndex {
+  const index = new Map<string, { tag: string; weight: number }[][]>();
+  for (const m of mods) {
+    const weights = rows(m.spawnWeights)
+      .map(obj)
+      .map((w) => ({ tag: String(w.tag), weight: Number(w.weight) }));
+    for (const st of rows(m.stats).map(obj)) {
+      const key = String(st.statId);
+      const list = index.get(key) ?? [];
+      list.push(weights);
+      index.set(key, list);
+    }
+  }
+  return index;
+}
+
+/**
+ * Whether PoB would let the mod spawn on a base with these tags
+ * (Item.lua GetModSpawnWeight: the first listed tag the base has gives the weight).
+ */
+const spawnsOn = (
+  weights: readonly { tag: string; weight: number }[],
+  baseTags: ReadonlySet<string>,
+) => (weights.find((w) => baseTags.has(w.tag))?.weight ?? 0) > 0;
+
+/**
+ * Decides between descriptions that render the same text (typically a local
+ * and a global stat) from evidence in the data: a candidate counts when a mod
+ * with one of its stats can spawn on the item's base by PoB's weight rule.
+ * Only a single candidate with evidence is taken; none or several stay
+ * ambiguous. The evidence is indirect (a unique-only stat has none), so every
+ * decision is counted in the summary.
+ */
+export function disambiguate(
+  res: Extract<MatchResult, { status: "ambiguous" }>,
+  baseTags: ReadonlySet<string> | undefined,
+  spawn: SpawnIndex,
+): MatchResult | undefined {
+  if (!baseTags || !res.candidates) return undefined;
+  const withEvidence = res.candidates.filter((c) =>
+    c.stats.some((st) => (spawn.get(st.statId) ?? []).some((w) => spawnsOn(w, baseTags))),
+  );
+  const [only] = withEvidence;
+  if (withEvidence.length !== 1 || !only) return undefined;
+  return { status: "matched", descriptionId: only.descriptionId, stats: only.stats };
+}
+
 function normalizeUniques(
   raw: RawKinds,
   matcher: StatMatcher,
   cfg: NormalizeConfig,
   ctx: Context,
+  bases: ReadonlyMap<string, ReadonlySet<string>>,
+  spawn: SpawnIndex,
 ): Record<string, unknown>[] {
   const uniques = kindOf(raw, "uniques");
   return Object.keys(uniques)
@@ -427,7 +494,14 @@ function normalizeUniques(
           ctx.warn("uniqueItem", id, `line "${text}" dropped: none of its variants exist`);
           continue;
         }
-        const [res] = matcher.matchLines([text], cfg.statScopes.mod) as [MatchResult];
+        let [res] = matcher.matchLines([text], cfg.statScopes.mod) as [MatchResult];
+        if (res.status === "ambiguous") {
+          const decided = disambiguate(res, bases.get(str(u.baseName) ?? ""), spawn);
+          if (decided) {
+            res = decided;
+            ctx.summary.uniqueLinesDisambiguated++;
+          }
+        }
         const unresolved = unresolvedOf(res, [text]);
         if (unresolved) ctx.countUnresolved("uniqueItem", unresolved.reason);
         mods.push({
@@ -918,11 +992,17 @@ export function normalizeCatalog(
 ): NormalizeResult {
   const ctx = new Context();
   const tree = normalizeTree(raw, matchers.passiveNode, cfg, ctx);
+  const baseItem = normalizeBaseItems(raw, cfg, ctx);
+  const mod = normalizeMods(raw, matchers.mod, cfg, ctx);
+  const bases = new Map(
+    baseItem.map((b) => [String(b.id), new Set(rows(b.tags).map(String))] as const),
+  );
+  const spawn = spawnIndexOf(mod);
   const entities: CatalogEntities = {
-    baseItem: normalizeBaseItems(raw, cfg, ctx),
-    mod: normalizeMods(raw, matchers.mod, cfg, ctx),
+    baseItem,
+    mod,
     craftingAction: [],
-    uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx),
+    uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx, bases, spawn),
     gem: normalizeGems(raw, ctx),
     ...tree,
     statTranslation: normalizeStatTranslations(raw, cfg, ctx),
