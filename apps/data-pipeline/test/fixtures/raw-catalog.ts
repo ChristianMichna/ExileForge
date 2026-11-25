@@ -92,6 +92,17 @@ export function rawSnapshot() {
         modTags: {},
       },
     } as Record<string, Record<string, unknown>>,
+    itemSlots: {
+      "Fake Hand 2": {
+        order: 2,
+        label: "Fake Hand",
+        weaponSet: 2,
+        itemClasses: ["Sword"],
+        dependsOnSlot: "Fake Finger",
+      },
+      "Fake Finger": { order: 1, label: "Fake Finger", itemClasses: ["Ring"], optional: true },
+      "Fake Charm": { order: 3, label: "Fake Charm", itemClasses: {}, partialBases: ["Odd Charm"] },
+    } as Record<string, Record<string, unknown>>,
     questRewards: {
       "0001": { Act: 1, Area: "Fake Field", AreaLevel: 3, Stat: "+1 to Fake" },
       "0002": { Act: 1, Area: "Fake Hill", AreaLevel: 7, Stat: "+2 Fake Points", questPoints: 2 },

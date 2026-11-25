@@ -268,6 +268,155 @@ loaders["list"] = function(src)
 	return t
 end
 
+-- Equipment slots as PoB's items tab defines them, with what PoB's own IsItemValidForSlot
+-- accepts in each. Jewel sockets (tree sockets and item sockets) are skipped.
+--  * itemClasses: base types of which PoB accepts every base
+--  * partialBases: bases of types that PoB accepts only for some bases (e.g. life flasks)
+--  * dependsOnSlot: Weapon 2 slots depend on the item in Weapon 1; itemClasses is then the union
+--    over all Weapon 1 types and keystone states PoB distinguishes
+--  * optional: PoB shows the slot only under a build condition (a custom shown function); a
+--    shown function that cannot run without a calculated build counts as such a condition
+-- The keystone flags and weapon tags below mirror ItemsTab:IsItemValidForSlot and
+-- ValidateWeaponSlots in PoB's Classes/ItemsTab.lua; a new flag there needs a new state here.
+-- While running, the loader sets tab.items[-1] and the Weapon 1 selection of the shared
+-- build state and restores both afterwards.
+loaders["itemSlots"] = function()
+	local tab = build.itemsTab
+	local slots = {}
+	for _, slot in ipairs(tab.orderedSlots) do
+		if not slot.slotName:find("Jewel", 1, true) then
+			slots[#slots + 1] = slot
+		end
+	end
+	local names = {}
+	local items = {}
+	local typeTotal = {}
+	for name, base in pairs(data.itemBases) do
+		names[#names + 1] = name
+		typeTotal[base.type] = (typeTotal[base.type] or 0) + 1
+	end
+	table.sort(names)
+	for _, name in ipairs(names) do
+		local item = new("Item", "Rarity: NORMAL\n" .. name)
+		assert(item and item.base, "cannot build an item from base " .. name)
+		items[name] = item
+	end
+	local itemSet = tab.activeItemSet
+
+	-- slots whose rule depends on another slot: the union over every state PoB distinguishes
+	local function weapon1Variants(slotName)
+		local variants, seen = {}, {}
+		local w1 = slotName == "Weapon 2" and "Weapon 1" or "Weapon 1 Swap"
+		for _, name in ipairs(names) do
+			local item = items[name]
+			if tab:IsItemValidForSlot(item, w1) then
+				local tags = {}
+				for _, tag in ipairs({ "onehand", "twohand", "axe", "mace", "sword", "one_hand_weapon" }) do
+					tags[#tags + 1] = item.base.tags[tag] and tag or ""
+				end
+				local key = item.base.type .. "|" .. table.concat(tags, ",")
+				if not seen[key] then
+					seen[key] = true
+					variants[#variants + 1] = item
+				end
+			end
+		end
+		return w1, variants
+	end
+
+	local result = {}
+	local order = 0
+	for _, slot in ipairs(slots) do
+		order = order + 1
+		local slotName = slot.slotName
+		local classes, partial = {}, {}
+		local dependsOnSlot
+		if slotName == "Weapon 2" or slotName == "Weapon 2 Swap" then
+			local w1, variants = weapon1Variants(slotName)
+			dependsOnSlot = w1
+			local anyAccepted = {}
+			local stash = itemSet[w1].selItemId
+			local tempId = -1
+			for _, w1item in ipairs(variants) do
+				tab.items[tempId] = w1item
+				itemSet[w1].selItemId = tempId
+				for mask = 0, 7 do
+					local flags = {
+						giantsBlood = mask % 2 == 1,
+						instrumentsOfPower = math.floor(mask / 2) % 2 == 1,
+						lordOfTheWilds = math.floor(mask / 4) % 2 == 1,
+					}
+					for _, name in ipairs(names) do
+						if tab:IsItemValidForSlot(items[name], slotName, itemSet, flags) then
+							anyAccepted[data.itemBases[name].type] = true
+						end
+					end
+				end
+			end
+			-- the empty Weapon 1 slot (unarmed) is one more state
+			itemSet[w1].selItemId = 0
+			tab.items[tempId] = nil
+			for mask = 0, 7 do
+				local flags = {
+					giantsBlood = mask % 2 == 1,
+					instrumentsOfPower = math.floor(mask / 2) % 2 == 1,
+					lordOfTheWilds = math.floor(mask / 4) % 2 == 1,
+				}
+				for _, name in ipairs(names) do
+					if tab:IsItemValidForSlot(items[name], slotName, itemSet, flags) then
+						anyAccepted[data.itemBases[name].type] = true
+					end
+				end
+			end
+			itemSet[w1].selItemId = stash
+			for class in pairs(anyAccepted) do
+				classes[#classes + 1] = class
+			end
+		else
+			local count, accepted = {}, {}
+			for _, name in ipairs(names) do
+				if tab:IsItemValidForSlot(items[name], slotName) then
+					local ty = data.itemBases[name].type
+					count[ty] = (count[ty] or 0) + 1
+					accepted[ty] = accepted[ty] or {}
+					accepted[ty][#accepted[ty] + 1] = name
+				end
+			end
+			for ty, n in pairs(count) do
+				if n == typeTotal[ty] then
+					classes[#classes + 1] = ty
+				else
+					for _, name in ipairs(accepted[ty]) do
+						partial[#partial + 1] = name
+					end
+				end
+			end
+		end
+		table.sort(classes)
+		table.sort(partial)
+		if #classes == 0 and #partial == 0 then
+			error("no base accepted by slot " .. slotName)
+		end
+		-- a custom shown function gates the slot on a build condition; one that cannot be
+		-- evaluated without a calculated build (or says no) marks the slot optional
+		local optional = false
+		if slot.weaponSet == nil and type(slot.shown) == "function" then
+			local ok, shown = pcall(slot.shown)
+			optional = not ok or not shown
+		end
+		result[slotName] = {
+			order = order,
+			label = slot.label,
+			weaponSet = slot.weaponSet,
+			itemClasses = classes,
+			partialBases = #partial > 0 and partial or nil,
+			dependsOnSlot = dependsOnSlot,
+			optional = optional or nil,
+		}
+	end
+	return result
+end
+
 -- module fills a table passed as first argument
 loaders["fill"] = function(src)
 	local t = {}

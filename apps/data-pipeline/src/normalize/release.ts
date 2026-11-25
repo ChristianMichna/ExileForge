@@ -31,6 +31,7 @@ const RAW_KINDS = [
   "passiveTree",
   "statDescriptions",
   "questRewards",
+  "itemSlots",
 ] as const;
 
 /** Written first, so a directory holding it is a previous catalog output. */
@@ -81,13 +82,24 @@ export async function buildCatalog(
   const norm = normalizeCatalog(raw, { mod: matcher, passiveNode: matcher }, cfg.config);
   const questRewards = raw.questRewards;
   if (!questRewards) throw new Error(`snapshot ${snap.releaseId} has no questRewards shard`);
-  const { facts, findings: factFindings } = await buildReleaseFacts({
+  const itemSlots = raw.itemSlots;
+  if (!itemSlots) throw new Error(`snapshot ${snap.releaseId} has no itemSlots shard`);
+  const {
+    facts,
+    findings: factFindings,
+    errors: factErrors,
+  } = await buildReleaseFacts({
     config: cfg.config.releaseFacts,
     questRewards,
+    itemSlots,
+    known: {
+      itemClasses: new Set(norm.entities.baseItem.map((b) => String(b.itemClass))),
+      baseClassOf: new Map(norm.entities.baseItem.map((b) => [String(b.id), String(b.itemClass)])),
+    },
     ...(extra.gameDataDir === undefined ? {} : { gameDataDir: extra.gameDataDir }),
   });
   const validation = validateCatalog(norm.entities);
-  const errors = [...norm.errors, ...validation.errors];
+  const errors = [...norm.errors, ...validation.errors, ...factErrors];
 
   const out = resolve(outDir);
   await prepareOutDir(
