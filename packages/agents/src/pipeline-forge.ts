@@ -38,6 +38,7 @@ import { releaseStageTable } from "./stages/s6-table.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 import { CraftingPlan, GearPlan, ProgressionPlan } from "@astrolabe/contracts/build";
+import { publishStep, S11_GUIDE_KEY } from "./stages/s11-publish.js";
 import {
   afterReport,
   criticTask,
@@ -420,7 +421,20 @@ function planGuide(
       },
     };
   }
-  return afterReport(ctx, config.s10.maxReturnsPerStage);
+  const after = afterReport(ctx, config.s10.maxReturnsPerStage);
+  if (after !== null) return after;
+  if (ctx.result(S11_GUIDE_KEY) !== undefined) return { kind: "done" };
+  if (config.s11 === undefined) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "s11_not_configured",
+        message:
+          "S11 needs the scoring settings (config/agents/stages.json, block s11). S0 to S10 are done and the guide passed validation; the results are stored with the run.",
+      },
+    };
+  }
+  return publishStep(ctx, config.s11, config.promptVersion);
 }
 
 /** The main skill of the run: the player's pick or the S0 choice; both exist once S1 has run. */
