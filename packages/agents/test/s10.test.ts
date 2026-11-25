@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
+import type { StageConfig } from "../src/config.js";
 import type { PipelineContext } from "../src/pipeline.js";
 import {
+  CRITIC_SECTIONS,
+  CriticVerdict,
+  afterReport,
+  reportIsCurrent,
   type GuideDraft,
   assembleDraft,
+  criticTask,
   draftEntities,
   runGates,
 } from "../src/stages/s10-validate.js";
@@ -276,5 +282,118 @@ describe("S10 measured gates", () => {
     for (const g of ["G3", "G4", "G5"]) {
       expect(gates.find((x) => x.gate === g)?.passed).toBe(false);
     }
+  });
+});
+
+describe("S10 critic (G8)", () => {
+  const verdict = (over: object = {}) => ({
+    reviewed: [...CRITIC_SECTIONS],
+    issues: [],
+    ...over,
+  });
+  const g8 = async (v?: object) =>
+    (await runGates(ctx(), draft(), undefined, v as never)).find((g) => g.gate === "G8");
+
+  it("fails G8 until the critic has reviewed the guide", async () => {
+    const gate = await g8(undefined);
+    expect(gate?.passed).toBe(false);
+    expect(gate?.findings.map((f) => f.code)).toEqual(["check_not_built"]);
+  });
+
+  it("passes G8 when every section was read and nothing was found", async () => {
+    expect((await g8(verdict()))?.passed).toBe(true);
+  });
+
+  it("turns issues and unread sections into findings", async () => {
+    const gate = await g8(
+      verdict({
+        reviewed: ["summary"],
+        issues: [{ section: "faq", message: "Contradicts the gear plan" }],
+      }),
+    );
+    expect(gate?.passed).toBe(false);
+    const codes = gate?.findings.map((f) => f.code) ?? [];
+    expect(codes).toContain("inconsistency");
+    expect(codes).toContain("section_not_reviewed");
+  });
+
+  it("names the problem as text when the draft cannot be assembled", () => {
+    const c = { run: { request: {} }, result: () => undefined } as never as PipelineContext;
+    const out = criticTask(c, { promptVersion: "t" } as StageConfig, {
+      chosen: {} as never,
+      target: {} as never,
+      mainSkillId: "G",
+    });
+    expect(typeof out).toBe("string");
+  });
+});
+
+describe("S10 after the gates", () => {
+  const f = (gate: string, code: string, returnTo?: string) => ({
+    gate,
+    severity: "error",
+    code,
+    message: "m",
+    ...(returnTo === undefined ? {} : { returnTo }),
+  });
+  const report = (findings: object[]) => ({
+    passed: false,
+    gates: [{ gate: "G2", passed: false, findings }],
+    critic: null,
+  });
+  const ctxWith = (results: Record<string, unknown>) =>
+    ({ result: (k: string) => results[k] }) as never as PipelineContext;
+
+  it("sends the earliest causing stage back with its findings", () => {
+    const step = afterReport(
+      ctxWith({
+        "S10.report": report([f("G7", "a", "S8"), f("G2", "b", "S6"), f("G2", "c", "S6")]),
+      }),
+      2,
+    );
+    expect(step).toMatchObject({ kind: "return", stage: "S6", maxReturns: 2 });
+    expect(step.kind === "return" && step.findings.map((x) => x.code)).toEqual(["b", "c"]);
+  });
+
+  it("stops when no stage can fix what is open", () => {
+    const step = afterReport(ctxWith({ "S10.report": report([f("G3", "check_not_built")]) }), 2);
+    expect(step).toMatchObject({ kind: "blocked", error: { code: "validation_failed" } });
+  });
+
+  it("names an unreadable report", () => {
+    expect(afterReport(ctxWith({ "S10.report": 5 }), 2)).toMatchObject({
+      kind: "blocked",
+      error: { code: "invalid_report" },
+    });
+  });
+
+  it("recomputes a report that was made without the stored critic verdict", () => {
+    const verdict = { reviewed: [...CRITIC_SECTIONS], issues: [] };
+    expect(reportIsCurrent(ctxWith({}))).toBe(false);
+    expect(reportIsCurrent(ctxWith({ "S10.report": report([]) }))).toBe(true);
+    expect(reportIsCurrent(ctxWith({ "S10.report": report([]), "S10.critic": verdict }))).toBe(
+      false,
+    );
+    expect(
+      reportIsCurrent(
+        ctxWith({ "S10.report": { ...report([]), critic: verdict }, "S10.critic": verdict }),
+      ),
+    ).toBe(true);
+  });
+
+  it("requires the critic to name every section it read", () => {
+    expect(CriticVerdict.safeParse({ reviewed: ["summary"], issues: [] }).success).toBe(false);
+  });
+
+  it("rejects critic messages with digits and duplicate reviewed sections", () => {
+    const base = { reviewed: [...CRITIC_SECTIONS], issues: [] };
+    expect(CriticVerdict.safeParse(base).success).toBe(true);
+    expect(
+      CriticVerdict.safeParse({ ...base, reviewed: [...CRITIC_SECTIONS, "summary"] }).success,
+    ).toBe(false);
+    expect(
+      CriticVerdict.safeParse({ ...base, issues: [{ section: "faq", message: "Needs 5 more" }] })
+        .success,
+    ).toBe(false);
   });
 });
