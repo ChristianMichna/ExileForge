@@ -260,6 +260,13 @@ describe("entities", () => {
     expect(UniqueModLine.safeParse({ stats: [], allocatesNodeId: "" }).success).toBe(false);
   });
 
+  it("a unique mod line may name the gem of the skill it grants", () => {
+    const line = { stats: [], text: "Grants Skill: Fixture Skill", grantsGemId: "Fixture/Gem" };
+    expect(UniqueModLine.parse(line).grantsGemId).toBe("Fixture/Gem");
+    expect(UniqueModLine.parse({ stats: [] }).grantsGemId).toBeUndefined();
+    expect(UniqueModLine.safeParse({ stats: [], grantsGemId: "" }).success).toBe(false);
+  });
+
   it("passive nodes default to no unresolved lines and accept some", () => {
     const node = {
       id: "1",
