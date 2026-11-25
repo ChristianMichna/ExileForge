@@ -727,6 +727,37 @@ methods["build.applyPatch"] = function(params)
 	return { handle = handle, warnings = setmetatable(warnings, { __jsontype = "array" }) }
 end
 
+-- Worker-internal (not part of the contract): the passives PoB can connect to
+-- the current tree, with the number of unallocated nodes on the shortest path
+-- (the node itself included). The supervisor builds calc.nodePower on it.
+methods["tree.reachable"] = function(params)
+	ensureLoaded(params.handle, nil, nil)
+	local out = {}
+	for id, node in pairs(build.spec.nodes) do
+		if not node.alloc and node.path and node.type ~= "ClassStart" and node.type ~= "AscendClassStart" then
+			-- Nodes in the radius of a jewel that allows unconnected allocation
+			-- are allocated alone (PassiveSpec:AllocNode), the path is not.
+			local cost = 0
+			if #node.intuitiveLeapLikesAffecting > 0 then
+				cost = 1
+			else
+				for _, pathNode in ipairs(node.path) do
+					if not pathNode.alloc then
+						cost = cost + 1
+					end
+				end
+			end
+			if cost > 0 then
+				out[#out + 1] = { nodeId = tostring(id), pathCost = cost }
+			end
+		end
+	end
+	table.sort(out, function(x, y)
+		return tonumber(x.nodeId) < tonumber(y.nodeId)
+	end)
+	return { nodes = setmetatable(out, { __jsontype = "array" }) }
+end
+
 methods["build.release"] = function(params)
 	getState(params.handle)
 	states[params.handle] = nil

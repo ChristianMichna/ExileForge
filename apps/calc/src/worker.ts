@@ -36,6 +36,9 @@ interface Pending {
 
 type WorkerMeta = CalcResultOf<"meta.version">;
 
+/** Contract methods plus the worker-internal ones the supervisor builds its own methods from. */
+export type WorkerMethod = CalcMethodName | "tree.reachable";
+
 /**
  * One LuaJIT process running PoB. Strictly one request at a time: PoB has a
  * single build object, so the pool never sends a second request before the
@@ -169,7 +172,7 @@ export class PobWorker {
   }
 
   /** Sends one request and resolves with the raw `result` (validated by the caller). */
-  call(method: CalcMethodName, params: unknown, timeoutMs: number): Promise<unknown> {
+  call(method: WorkerMethod, params: unknown, timeoutMs: number): Promise<unknown> {
     if (!this.alive) {
       return Promise.reject(
         new CalcServiceError("worker_crashed", "Calc worker is not running", this.exitReason),

@@ -8,7 +8,9 @@ import {
   type BuildHandle,
   type CalcResultOf,
   type DataReleaseId,
+  PassiveNodeId,
 } from "@exileforge/contracts";
+import { z } from "zod";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -27,6 +29,10 @@ export type PoolEvent =
   | { type: "worker-recycled"; slot: number; requests: number }
   | { type: "slot-disabled"; slot: number; error: CalcServiceError }
   | { type: "release-failed"; slot: number; handle: string; error: unknown };
+
+const ReachableNodes = z.object({
+  nodes: z.array(z.object({ nodeId: PassiveNodeId, pathCost: z.int().positive() })),
+});
 
 /** Validates a worker answer the pool uses internally; a bad answer is `calc_failed`. */
 function workerResult<M extends CalcMethodName>(method: M, raw: unknown): CalcResultOf<M> {
@@ -64,6 +70,7 @@ export const IMPLEMENTED_METHODS = [
   "build.applyPatch",
   "calc.stats",
   "calc.evalBatch",
+  "calc.nodePower",
 ] as const satisfies readonly CalcMethodName[];
 
 interface Slot {
@@ -229,6 +236,8 @@ export class CalcPool {
       }
       case "calc.evalBatch":
         return this.evalBatch(params as CalcParams<"calc.evalBatch">);
+      case "calc.nodePower":
+        return this.nodePower(params as CalcParams<"calc.nodePower">);
       default:
         throw new CalcServiceError(
           "unknown_method",
@@ -347,6 +356,86 @@ export class CalcPool {
     );
     await Promise.all(lanes);
     return { base, results };
+  }
+
+  /**
+   * What each reachable passive adds to the build: the node is allocated with
+   * PoB's own shortest path (so `pathCost` is what PoB would allocate) and
+   * calculated like an evalBatch candidate. A passive PoB cannot calculate
+   * fails the request; there is no stand-in entry.
+   */
+  private async nodePower(p: CalcParams<"calc.nodePower">): Promise<unknown> {
+    const reachable = await this.reachableNodes(p.handle);
+    const ids = p.candidates ?? [...reachable.keys()];
+    const unique = new Set<string>();
+    for (const id of ids) {
+      if (unique.has(id)) {
+        throw new CalcServiceError("invalid_params", "Passive listed twice", id);
+      }
+      unique.add(id);
+      if (!reachable.has(id)) {
+        throw new CalcServiceError(
+          "invalid_params",
+          "Passive is allocated, unknown or cannot be connected to the tree",
+          id,
+        );
+      }
+    }
+    if (ids.length === 0) {
+      const base = await this.request("calc.stats", { handle: p.handle, profile: p.profile });
+      const missing = p.metrics.filter((m) => !Object.hasOwn(base.stats, m));
+      if (missing.length > 0) {
+        throw new CalcServiceError(
+          "invalid_params",
+          "Metrics missing in the base calculation",
+          missing.join(", "),
+        );
+      }
+      return { base, results: [] };
+    }
+    const batch = await this.request("calc.evalBatch", {
+      handle: p.handle,
+      profile: p.profile,
+      metrics: p.metrics,
+      candidates: ids.map((id) => ({
+        key: id,
+        ops: [{ op: "allocateNodes" as const, nodeIds: [id] }],
+      })),
+    });
+    const results = batch.results.map((r, i) => {
+      const nodeId = ids[i];
+      const pathCost = nodeId === undefined ? undefined : reachable.get(nodeId);
+      if (nodeId === undefined || pathCost === undefined || r.key !== nodeId) {
+        throw new CalcServiceError(
+          "calc_failed",
+          "Batch result does not match the passive list",
+          r.key,
+        );
+      }
+      if (!r.ok) {
+        throw new CalcServiceError(
+          r.error.kind,
+          "Path of Building could not calculate this passive",
+          `${nodeId}: ${r.error.detail ?? ""}`,
+        );
+      }
+      return { nodeId, calcId: r.calcId, deltas: r.deltas, pathCost };
+    });
+    return { base: batch.base, results };
+  }
+
+  /** Passives PoB can connect to the build's tree, with their path cost. */
+  private async reachableNodes(handle: BuildHandle): Promise<Map<PassiveNodeId, number>> {
+    const raw = await this.withBuild(handle, (worker, wh) =>
+      worker.call("tree.reachable", { handle: wh }, this.opts.config.requestTimeoutMs),
+    );
+    const parsed = ReachableNodes.safeParse(raw);
+    if (!parsed.success) {
+      throw new CalcServiceError("calc_failed", "Invalid answer to tree.reachable", undefined, {
+        cause: parsed.error,
+      });
+    }
+    return new Map(parsed.data.nodes.map((n) => [n.nodeId, n.pathCost]));
   }
 
   private async evalCandidate(
