@@ -643,3 +643,59 @@ describe("unique lines that allocate a passive", () => {
     );
   });
 });
+
+describe("unique lines that grant a skill", () => {
+  const withLines = (lines: string[]) => {
+    const raw = rawSnapshot();
+    raw.uniques["Granter, Fake Ring"] = {
+      title: "Granter",
+      baseName: "Fake Ring",
+      variants: [],
+      implicitModLines: {},
+      explicitModLines: lines.map((line) => ({ line })),
+    };
+    return run(raw);
+  };
+  const modsOf = (entities: ReturnType<typeof run>["entities"]) =>
+    byId<{ id: string; mods: Record<string, unknown>[] }>(entities.uniqueItem, "Granter, Fake Ring")
+      ?.mods ?? [];
+
+  it("maps the skill name, with or without a level range, to its gem", () => {
+    const { entities, summary } = withLines([
+      "Grants Skill: Gem A",
+      "Grants Skill: Level (1-20) Gem A",
+    ]);
+    expect(modsOf(entities)).toEqual([
+      { stats: [], text: "Grants Skill: Gem A", grantsGemId: "Metadata/Fake/Game/GemA" },
+      {
+        stats: [],
+        text: "Grants Skill: Level (1-20) Gem A",
+        grantsGemId: "Metadata/Fake/Game/GemA",
+      },
+    ]);
+    expect(summary.uniqueLinesGrantingSkill).toBe(2);
+  });
+
+  it("rejects a granted gem that is not in the catalog", () => {
+    const { entities } = run();
+    (entities.uniqueItem[0] as { mods: Record<string, unknown>[] }).mods.push({
+      stats: [],
+      grantsGemId: "Nope",
+    });
+    expect(validateCatalog(entities).errors.map((e) => e.message)).toContain(
+      'mods.grantsGemId → unknown gem "Nope"',
+    );
+  });
+
+  it("keeps an unknown skill name and a multi-line text visible as unresolved", () => {
+    const { entities, summary } = withLines([
+      "Grants Skill: Nowhere",
+      "Grants Skill: Gem A\nExtra effect",
+    ]);
+    for (const mod of modsOf(entities)) {
+      expect(mod).not.toHaveProperty("grantsGemId");
+      expect(mod).toHaveProperty("unresolved");
+    }
+    expect(summary.uniqueLinesGrantingSkill).toBe(0);
+  });
+});

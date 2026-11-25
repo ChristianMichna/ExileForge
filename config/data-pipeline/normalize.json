@@ -7,7 +7,8 @@
   },
   "uniqueLines": {
     "$comment": "PoB writes unique lines that allocate a passive as this text (first capture group = node name), as generated for the unique jewel Megalomaniac (PoB data Uniques/Special/Generated.lua). Trusted repo configuration, not network input. A name shared by several nodes or by none leaves the line unresolved.",
-    "allocatesPattern": "^Allocates (.+)$"
+    "allocatesPattern": "^Allocates (.+)$",
+    "grantsPattern": "^Grants Skill: (?:Level \\([0-9]+-[0-9]+\\) )?(.+)$"
   },
   "passiveNodeKinds": {
     "flags": [
