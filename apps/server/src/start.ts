@@ -131,7 +131,7 @@ async function startServerOwningPool(
   const craft =
     options.craftConfigPath === undefined
       ? undefined
-      : await createCraft(options.craftConfigPath, catalog, economy);
+      : await createCraft(options.craftConfigPath, catalog, economy, options.logger);
   const app = createApp({
     ...(craft === undefined ? {} : { craft }),
     ...(economy === undefined ? {} : { economy: economy.price }),

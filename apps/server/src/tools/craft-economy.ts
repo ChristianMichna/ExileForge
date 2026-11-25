@@ -49,8 +49,8 @@ async function readJson(path: string, what: string): Promise<unknown> {
 
 export interface PriceSource {
   price: EconomyPort;
-  /** The league's price book for crafting costs. */
-  book(league: string): Promise<PriceBook>;
+  /** The league's price book for crafting costs, and whether it is older than a failed refresh allows. */
+  book(league: string): Promise<{ book: PriceBook; stale: boolean }>;
 }
 
 /** Builds the market price service from config; prices come only from the provider, never from code. */
@@ -88,7 +88,11 @@ export async function createEconomy(
   };
   return {
     price: (input) => wrap(() => service.price(input)),
-    book: (league) => wrap(async () => (await service.getBook(league)).book),
+    book: (league) =>
+      wrap(async () => {
+        const result = await service.getBook(league);
+        return { book: result.book, stale: result.freshness === "stale" };
+      }),
   };
 }
 
@@ -96,7 +100,8 @@ export async function createEconomy(
 export async function createCraft(
   configPath: string,
   catalog: CatalogPort,
-  economy?: PriceSource,
+  economy: PriceSource | undefined,
+  logger: Logger,
 ): Promise<CraftPort> {
   const config = parseCraftSimConfig(await readJson(configPath, "craft sim config"));
   const entities = <T>(kind: "baseItem" | "mod" | "craftingAction"): T[] =>
@@ -107,10 +112,28 @@ export async function createCraft(
     actions: entities<CraftingAction>("craftingAction"),
   });
   return async (request) => {
-    const prices =
-      request.league !== undefined && economy !== undefined
-        ? await economy.book(request.league)
-        : undefined;
+    if (request.dataReleaseId !== catalog.dataReleaseId) {
+      throw new ForgeError(
+        "invalid_request",
+        `Request targets data release ${request.dataReleaseId}, the loaded catalog is ${catalog.dataReleaseId}`,
+      );
+    }
+    // Without a usable price book the simulation still runs; its costs are then "uncalibrated".
+    let prices: PriceBook | undefined;
+    if (request.league !== undefined && economy !== undefined) {
+      try {
+        const result = await economy.book(request.league);
+        prices = result.book;
+        if (result.stale) {
+          logger.error("craft cost uses an older price book because the refresh failed", {
+            league: request.league,
+            fetchedAt: result.book.fetchedAt,
+          });
+        }
+      } catch (error) {
+        logger.error("craft costs are uncalibrated: no price book", { error });
+      }
+    }
     try {
       return simulate(request, { catalog: simCatalog, config, prices });
     } catch (error) {

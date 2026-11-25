@@ -70,6 +70,8 @@ describe("createCraft", () => {
     const craft = await createCraft(
       join(import.meta.dirname, "../../../config/crafting/sim.json"),
       fixtureCatalog(),
+      undefined,
+      createMemoryLogger(),
     );
     await expect(
       craft({
@@ -80,5 +82,39 @@ describe("createCraft", () => {
         targets: [],
       } as never),
     ).rejects.toMatchObject({ name: "ForgeError", code: "invalid_request" });
+  });
+
+  it("rejects a request for another data release instead of labelling the result with it", async () => {
+    const craft = await createCraft(
+      join(import.meta.dirname, "../../../config/crafting/sim.json"),
+      fixtureCatalog(),
+      undefined,
+      createMemoryLogger(),
+    );
+    await expect(
+      craft({ dataReleaseId: "poe2-0.0.1+r9", baseItemId: "x" } as never),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+  });
+
+  it("still simulates when the price book cannot be fetched", async () => {
+    const logger = createMemoryLogger();
+    const craft = await createCraft(
+      join(import.meta.dirname, "../../../config/crafting/sim.json"),
+      fixtureCatalog(),
+      {
+        price: () => Promise.reject(new Error("unused")),
+        book: () => Promise.reject(new Error("offline")),
+      },
+      logger,
+    );
+    // The unknown base item makes the simulation itself reject, after the price lookup failed softly.
+    await expect(
+      craft({
+        dataReleaseId: RELEASE,
+        league: "Standard",
+        baseItemId: "NoSuchBase",
+      } as never),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+    expect(logger.entries.some((e) => e.message.includes("uncalibrated"))).toBe(true);
   });
 });
