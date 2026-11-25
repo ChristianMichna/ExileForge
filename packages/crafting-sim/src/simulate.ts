@@ -46,6 +46,8 @@ interface CompiledAction {
   effects: Apply[];
   /** Ids of all mods an add-random-mod effect of this action can draw from (the chance depends on their weights). */
   poolModIds: string[];
+  /** Mods an add-specific-mod effect of this action sets (their groups and generation type decide whether it applies). */
+  fixedModIds: string[];
 }
 
 type Derived = Extract<Source, { kind: "derived" }>;
@@ -396,6 +398,7 @@ function compileAction(
   const check: CompiledAction["check"] = [];
   const effects: Apply[] = [];
   const poolModIds: string[] = [];
+  const fixedModIds: string[] = [];
   const where = `action ${action.id}`;
 
   for (const rule of action.preconditions) {
@@ -457,6 +460,41 @@ function compileAction(
           return undefined;
         });
         break;
+      case "add-specific-mod": {
+        if (!action.preconditions.some((c) => c.op === "require-rarity")) {
+          problems.push(
+            `${where}: add-specific-mod needs a require-rarity precondition; the release gives no rarity rule, so the action cannot be simulated`,
+          );
+          break;
+        }
+        const itemClass = catalog.baseItem(start.baseItemId)?.itemClass;
+        const modId = itemClass === undefined ? undefined : r.params.modByItemClass[itemClass];
+        const mod = modId === undefined ? undefined : catalog.mod(modId);
+        if (modId === undefined || !mod) {
+          problems.push(
+            modId === undefined
+              ? `${where}: no mod given for item class ${String(itemClass)} of base ${start.baseItemId}`
+              : `${where}: mod ${modId} is not in the data release`,
+          );
+          break;
+        }
+        fixedModIds.push(mod.id);
+        effects.push((s) => {
+          if (s.mods.includes(mod.id)) return BLOCKED;
+          const limit = r.params.limits?.[mod.generationType];
+          let count = 0;
+          for (const m of s.mods) {
+            const other = catalog.mod(m);
+            if (!other) continue;
+            if (other.groups.some((g) => mod.groups.includes(g))) return BLOCKED;
+            if (other.generationType === mod.generationType) count++;
+          }
+          if (limit !== undefined && count >= limit) return BLOCKED;
+          s.mods.push(mod.id);
+          return undefined;
+        });
+        break;
+      }
       case "add-random-mod": {
         const missingLimit = r.params.generationTypes.filter(
           (g) => r.params.limits[g] === undefined,
@@ -501,7 +539,7 @@ function compileAction(
       }
     }
   }
-  return { compiled: { action, check, effects, poolModIds }, problems };
+  return { compiled: { action, check, effects, poolModIds, fixedModIds }, problems };
 }
 
 function countMods(s: State, catalog: SimCatalog, gens: readonly string[] | undefined): number {
@@ -535,7 +573,11 @@ function gamedataInputs(
   compiled: Map<string, CompiledAction>,
 ): PrimarySource[] {
   const pool = new Set<string>();
-  for (const c of compiled.values()) for (const id of c.poolModIds) pool.add(id);
+  const fixed = new Set<string>();
+  for (const c of compiled.values()) {
+    for (const id of c.poolModIds) pool.add(id);
+    for (const id of c.fixedModIds) fixed.add(id);
+  }
   const src = (entity: EntityRef, field: string): PrimarySource => ({
     kind: "gamedata",
     dataReleaseId,
@@ -545,7 +587,14 @@ function gamedataInputs(
   return [
     src({ kind: "baseItem", id: start.baseItemId }, "/tags"),
     ...[...compiled.keys()].map((id) => src({ kind: "craftingAction", id }, "/effects")),
+    ...(fixed.size > 0 ? [src({ kind: "baseItem", id: start.baseItemId }, "/itemClass")] : []),
     ...[...pool].sort().map((id) => src({ kind: "mod", id }, "/spawnWeights")),
+    ...[...fixed]
+      .sort()
+      .flatMap((id) => [
+        src({ kind: "mod", id }, "/groups"),
+        src({ kind: "mod", id }, "/generationType"),
+      ]),
   ];
 }
 

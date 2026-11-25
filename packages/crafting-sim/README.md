@@ -28,7 +28,7 @@ const result = simulate(request, { catalog, config, prices }); // prices: PriceB
 
 ## Op-Vokabular (`src/ops.ts`)
 
-Effekte: `add-random-mod`, `remove-random-mod`, `clear-mods`, `set-rarity`,
+Effekte: `add-random-mod`, `add-specific-mod`, `remove-random-mod`, `clear-mods`, `set-rarity`,
 `set-flag`. Bedingungen: `require-rarity`, `forbid-flag`, `require-mod-count`.
 Neue Währungen eines Patches sind Daten aus diesen Ops. Eine neue Mechanik
 braucht einen neuen Op hier, und bis dahin meldet der Simulator die Aktion als
@@ -39,6 +39,15 @@ gelisteten Generierungstyp haben, deren Mindestlevel ≤ Item-Level ist und dere
 Gewicht > 0 ist. **Annahme (gegen echte Release-Daten zu prüfen):** Das Gewicht
 ist der erste `spawnWeights`-Eintrag, dessen Tag auf der Basis liegt. Mods einer
 bereits vorhandenen Gruppe und volle Generierungstypen sind ausgeschlossen.
+
+`add-specific-mod` (z. B. für Essenzen) setzt den Mod, den die Release je
+Item-Klasse der Basis nennt: `params: { modByItemClass: { <Item-Klasse>: <Mod-ID> }, limits? }`.
+Steht die Klasse der Basis nicht in der Liste oder fehlt der Mod im Katalog, ist
+das Ergebnis `uncalibrated` mit Grund. Ein Mod einer schon vorhandenen Gruppe oder
+ein erreichtes Limit blockiert die Anwendung. Raritätsregeln einer Währung stehen
+als eigene `require-rarity`/`set-rarity`-Einträge in den Daten, nicht im Op. Ohne
+`require-rarity`-Bedingung läuft die Aktion nicht auf beliebiger Rarität, sondern
+wird als `uncalibrated` gemeldet.
 
 ## Ehrlichkeit statt Ersatzwert
 

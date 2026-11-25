@@ -14,6 +14,11 @@ import type { CraftingRule } from "@astrolabe/contracts";
  * of the source data), so a later "default" entry cannot override an earlier
  * match. A candidate is dropped if one of its groups is already on the item or
  * the generation type is at its limit.
+ *
+ * Fixed mod (add-specific-mod): adds the mod the release names for the item class of
+ * the base item. Blocked (not applied) when the item already has a mod of one of its
+ * groups, or a given limit for its generation type is reached. Rarity rules of a
+ * currency are separate require-rarity / set-rarity entries from the release.
  */
 
 const id = z.string().min(1);
@@ -26,6 +31,20 @@ export const AddRandomMod = z.object({
     limits: z.record(id, z.int().nonnegative()),
     domain: id,
     count: z.int().positive().default(1),
+  }),
+});
+
+export const AddSpecificMod = z.object({
+  op: z.literal("add-specific-mod"),
+  params: z.object({
+    /**
+     * Mod to add per item class of the base item (ids of the data release). A base whose
+     * class is not listed makes the action unusable for it (reported as a problem, not
+     * skipped silently).
+     */
+    modByItemClass: z.record(id, id).refine((m) => Object.keys(m).length > 0, "must not be empty"),
+    /** Optional maximum number of mods per generation type; blocked at the limit. */
+    limits: z.record(id, z.int().nonnegative()).optional(),
   }),
 });
 
@@ -70,6 +89,7 @@ export const RequireModCount = z.object({
 
 export const EffectOp = z.discriminatedUnion("op", [
   AddRandomMod,
+  AddSpecificMod,
   RemoveRandomMod,
   ClearMods,
   SetRarity,
