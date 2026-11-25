@@ -245,3 +245,19 @@ Snapshot-Prüfung laufen mit synthetischen Daten. Der Integrationstest gegen
 das echte PoB läuft nur, wenn `.pob/` existiert (lokal nach
 `tools/setup_pob.sh` und im Workflow `data-snapshot.yml`), sonst wird er als
 übersprungen gemeldet.
+
+## Daten-Release veröffentlichen
+
+`.github/workflows/data-release.yml` (nur per Hand von `main`, `workflow_dispatch`) baut
+Snapshot, Game-Data und Katalog wie `data-snapshot.yml` (inklusive der Pipeline-Tests
+gegen echtes PoB) und veröffentlicht den Katalog als GitHub-Release mit Tag
+`data-poe2-<Version>-r<n>` (die Release-ID im Manifest ist `poe2-<Version>+r<n>`; im
+Tag und in Dateinamen steht `-` statt `+`), standardmäßig als Pre-Release. Anhang:
+`catalog-<ID>.tar.gz` (Shards, `manifest.json`, `findings.json` mit den offenen Stellen)
+und seine SHA-256-Datei. Zwei Jobs: der Build läuft mit Lesezugriff, nur der
+Veröffentlichen-Job hat Schreibrechte und führt nur die GitHub-CLI aus. Eingaben werden
+geprüft; `game-version` muss der Patch-Version des Update-Servers entsprechen, und
+ein vorhandener Tag oder ein vorhandenes Release wird nie überschrieben. Rohtabellen der
+Game-Data gehören nicht ins Release (ADR-0005). Noch offen: ein Katalog-Diff gegen das
+vorige Release (`CatalogDiff`); heute gibt es den Diff nur zwischen zwei Roh-Snapshots
+(`diff`-Befehl).

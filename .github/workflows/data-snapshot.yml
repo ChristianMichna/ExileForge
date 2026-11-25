@@ -78,6 +78,19 @@ jobs:
             --out data-snapshots/current/catalog \
             --game-data data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: List currency-like base items (id | name | tags)
+        run: |
+          set -o pipefail
+          node -e '
+            const fs = require("fs");
+            const shard = JSON.parse(fs.readFileSync("data-snapshots/current/catalog/baseItem.json", "utf8"));
+            const rows = shard.entities.filter((b) => b.itemClass === "StackableCurrency" || b.itemClass === "Omen");
+            console.log("currency-like base items: " + rows.length);
+            for (const b of rows) console.log(["ITEM", b.id, b.name, b.itemClass, b.tags.join(",")].join(" | "));
+            const actions = JSON.parse(fs.readFileSync("data-snapshots/current/catalog/craftingAction.json", "utf8")).entities;
+            console.log("crafting actions: " + actions.length);
+          ' | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Diff against an older PoB release
         if: env.COMPARE_REF != ''
         run: |
