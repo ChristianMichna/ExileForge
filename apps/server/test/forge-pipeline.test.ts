@@ -209,13 +209,42 @@ describe("forge pipeline (agents)", () => {
     const engine = setup(createForgePipeline(STAGES), skeleton);
     const { runId, next } = await driveToS3(engine);
     expect(next.kind).toBe("wait_user");
-    await vi.waitFor(async () =>
-      expect(await engine.next(runId)).toMatchObject({
-        kind: "failed",
-        error: { code: "stage_not_implemented" },
-      }),
-    );
+    await vi.waitFor(async () => {
+      const step = await engine.next(runId);
+      expect(step.kind).toBe("wait_user");
+      expect(JSON.stringify(step)).toContain("picks one");
+    });
     expect(seen).toEqual(["a", "b"]);
+    await engine.intervene(runId, { kind: "chooseVariant", candidateKey: "b" });
+    expect(await engine.next(runId)).toMatchObject({
+      kind: "failed",
+      error: { code: "stage_not_implemented" },
+    });
+    expect((await engine.view(runId)).results["S4.selection"]?.value).toEqual({
+      candidateKey: "b",
+    });
+  });
+
+  it("rejects a variant that is not a candidate", async () => {
+    const skeleton = {
+      evaluate: (input: { candidate: { key: string } }) =>
+        Promise.resolve({
+          candidateKey: input.candidate.key,
+          skeleton: BuildState.parse({
+            classId: "FixClassA",
+            level: 10,
+            tree: { allocated: [] },
+            skills: [],
+            items: [],
+          }),
+          calcs: {},
+        }),
+    };
+    const engine = setup(createForgePipeline(STAGES), skeleton);
+    const { runId } = await driveToS3(engine);
+    await expect(
+      engine.intervene(runId, { kind: "chooseVariant", candidateKey: "zzz" }),
+    ).rejects.toThrow();
   });
 
   it("rejects a support gem and an excluded gem as main skill in S0", async () => {

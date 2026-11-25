@@ -7,13 +7,14 @@ import { S0_SKILL_KEY, SkillChoice, skillTask } from "./stages/s0-skill.js";
 import { profileBase, profileTask, S1_BASE_KEY, S1_PROFILE_KEY } from "./stages/s1-profile.js";
 import { candidatesOf, candidateTask } from "./stages/s2-candidates.js";
 import { evaluationsJob, S3_KEY } from "./stages/s3-evaluate.js";
+import { S4_KEY, selectionStep, selectionWait } from "./stages/s4-select.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 
 /**
  * The real pipeline, stage by stage as the stages get built. Today: S0
  * (main skill), S1 (mechanics), S2 (archetype candidates), S3 (skeleton
- * measurement as a background job). Everything after
+ * measurement as a background job), S4 (the player's choice). Everything after
  * needs packages that do not exist yet (optimizer, crafting simulator,
  * economy) and ends the run with an explicit "not implemented" error instead
  * of inventing results.
@@ -85,12 +86,17 @@ export function createForgePipeline(config: StageConfig): Pipeline {
         }
         return evaluationsJob(ctx, parsed.data, candidates);
       }
+      if (ctx.result(S4_KEY) === undefined) {
+        const choice = ctx.latest("chooseVariant");
+        if (choice === undefined) return selectionWait(candidates);
+        return selectionStep(choice.candidateKey);
+      }
       return {
         kind: "blocked",
         error: {
           code: "stage_not_implemented",
           message:
-            "S4 (choosing a candidate) and the later stages are not built yet. S0 to S3 are done; their results are stored with the run.",
+            "S5 (target build) and the later stages are not built yet. S0 to S4 are done; their results are stored with the run.",
         },
       };
     },
