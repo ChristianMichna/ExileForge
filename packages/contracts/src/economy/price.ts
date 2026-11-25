@@ -89,6 +89,11 @@ export const EconomyTools = {
       league: EconomyLeague,
       inCurrencyItemId: BaseItemId,
       prices: z.array(ItemPrice),
+      /** When the price book was fetched. */
+      fetchedAt: IsoDateTime,
+      /** "stale": the refresh failed and an older book was used; `refreshError` says why. */
+      freshness: z.enum(["fresh", "stale"]),
+      refreshError: z.object({ code: z.string().min(1), message: z.string().min(1) }).optional(),
     }),
   },
 } as const;

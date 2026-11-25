@@ -1,0 +1,30 @@
+{
+  "name": "@exileforge/economy",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Market prices (F-14): poe.ninja economy client with local cache, mapping to catalog ids and economy.price conversion. Prices are market numbers with provider, league, fetch time and confidence.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@exileforge/contracts": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}
