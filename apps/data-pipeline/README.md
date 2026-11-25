@@ -118,6 +118,19 @@ Haupthand ab (`dependsOnSlot`); ihre Klassen sind die Vereinigung über alle Zus
 Klassen, die kein Slot annimmt (Juwelen, Fallen-Werkzeuge), stehen als Warnung in
 `findings.json`. Juwelen-Sockel stehen nicht in der Liste.
 
+Währungen, Essenzen und Omen (nur mit `--game-data <dir>`, `src/normalize/currency.ts`):
+`CurrencyItems`-Zeilen der Item-Klassen aus `currency.itemClasses` (normalize.json)
+werden zu `baseItem`-Einträgen. ID = `BaseItemTypes.Id` (Metadaten-Pfad des Spiels;
+anders als die namensbasierten PoB-IDs der Ausrüstung), Klasse = `ItemClasses.Id`.
+Eigenschaften: `stackSize`, `useType`, bei gestuften Währungen `currencyTier` und
+`minimumModLevel`, bei Essenzen `essenceTier`. Tags (Wortschatz in der Config): `currency_action:<Action>`,
+`exchange_category:<Kategorie>`, `lower_tier:<ID der niedrigeren Stufe>`, `essence`,
+`perfect`, `omen`. Andere Klassen (Seelenkerne, Kartenfragmente, Inkubatoren …) bleiben
+draußen und stehen mit Anzahl als Warnung in `findings.json`; ein Fremdschlüssel ins
+Leere oder eine doppelte ID ist ein Fehler. Offen: was eine Essenz bewirkt
+(`Essences.UpgradeResult`) ist nicht abgebildet, bis die Crafting-Operation dafür
+festgelegt ist.
+
 IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
 
 | Art               | ID                                            |

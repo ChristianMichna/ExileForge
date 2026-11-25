@@ -16,6 +16,7 @@ import {
   type NormalizeConfig,
   type NormalizeSummary,
 } from "./catalog.ts";
+import { currencyBaseItems } from "./currency.ts";
 import { buildReleaseFacts } from "./release-facts.ts";
 import { StatMatcher } from "./stat-matcher.ts";
 import { validateCatalog } from "./validate.ts";
@@ -98,8 +99,26 @@ export async function buildCatalog(
     },
     ...(extra.gameDataDir === undefined ? {} : { gameDataDir: extra.gameDataDir }),
   });
+  const currencyFindings: Finding[] = [];
+  const currencyErrors: Finding[] = [];
+  if (extra.gameDataDir !== undefined) {
+    const cur = await currencyBaseItems(
+      extra.gameDataDir,
+      cfg.config.currency,
+      new Set(norm.entities.baseItem.map((b) => String(b.id))),
+    );
+    norm.entities.baseItem.push(...(cur.baseItems as typeof norm.entities.baseItem));
+    currencyFindings.push(...cur.findings);
+    currencyErrors.push(...cur.errors);
+  } else {
+    currencyFindings.push({
+      kind: "currency",
+      id: "all",
+      message: "no game data given, currency items are left out",
+    });
+  }
   const validation = validateCatalog(norm.entities);
-  const errors = [...norm.errors, ...validation.errors, ...factErrors];
+  const errors = [...norm.errors, ...validation.errors, ...factErrors, ...currencyErrors];
 
   const out = resolve(outDir);
   await prepareOutDir(
@@ -117,7 +136,7 @@ export async function buildCatalog(
         releaseId: snap.releaseId,
         summary: norm.summary,
         errors,
-        warnings: [...norm.warnings, ...factFindings],
+        warnings: [...norm.warnings, ...factFindings, ...currencyFindings],
         unresolved: norm.unresolved,
         hiddenStatGroups: norm.hiddenStatGroups,
       },

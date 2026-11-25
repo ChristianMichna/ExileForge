@@ -35,6 +35,24 @@ export const normalizeConfigSchema = z
     modGenerationTypeFallback: z.string().min(1),
     baseItemPropertyGroups: z.array(z.string().min(1)),
     classAttributePrefix: z.string().min(1),
+    currency: z
+      .object({
+        $comment: z.string().optional(),
+        /** CurrencyItems rows of these item classes become catalog base items. */
+        itemClasses: z.array(z.string().min(1)).min(1),
+        /** Tag vocabulary; prefixed tags are followed by a game id. */
+        tags: z
+          .object({
+            action: z.string().min(1),
+            exchangeCategory: z.string().min(1),
+            lowerTier: z.string().min(1),
+            essence: z.string().min(1),
+            perfect: z.string().min(1),
+            omen: z.string().min(1),
+          })
+          .strict(),
+      })
+      .strict(),
     releaseFacts: z
       .object({
         $comment: z.string().optional(),

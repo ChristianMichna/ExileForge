@@ -71,33 +71,6 @@ jobs:
           node apps/data-pipeline/dist/cli.js gamedata \
             --out data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: TEMP probe currency tables
-        run: |
-          cd data-snapshots/current/game-data
-          node -e '
-            const fs = require("fs");
-            const r = (n) => JSON.parse(fs.readFileSync(n + ".json", "utf8"));
-            const base = r("BaseItemTypes"), cls = r("ItemClasses"), cur = r("CurrencyItems");
-            const show = (b) => { const x = base[b]; return x ? [x.Id, x.Name, (cls[x.ItemClass] || {}).Id, x.DropLevel].join(" | ") : String(b); };
-            console.log("CurrencyItems sample");
-            for (const c of cur.slice(0, 6)) console.log(show(c.BaseItemType), JSON.stringify({ s: c.StackSize, u: c.CurrencyUseType, a: c.Action, d: c.Description }));
-            const byUse = {}; for (const c of cur) byUse[c.CurrencyUseType] = (byUse[c.CurrencyUseType] || 0) + 1;
-            console.log("by use type", JSON.stringify(byUse));
-            const byCls = {}; for (const c of cur) { const k = (cls[(base[c.BaseItemType] || {}).ItemClass] || {}).Id; byCls[k] = (byCls[k] || 0) + 1; }
-            console.log("by item class", JSON.stringify(byCls));
-            console.log("Essences");
-            for (const e of r("Essences").slice(0, 4)) console.log(show(e.BaseItemType), JSON.stringify({ t: e.Tier, p: e.Perfect, up: e.UpgradeResult }));
-            console.log("TieredCurrency");
-            for (const t of r("TieredCurrency")) console.log(show(t.BaseItemType), JSON.stringify({ t: t.Tier, m: t.MinimumModLevel, low: t.LowerTierBaseItemType }), show(t.LowerTierBaseItemType));
-            console.log("AchievementOmenTypes");
-            for (const o of r("AchievementOmenTypes").slice(0, 5)) console.log(show(o.BaseItemType));
-            console.log("CurrencyExchangeCategories");
-            const cats = r("CurrencyExchangeCategories");
-            console.log(cats.map((c) => c.Id + "=" + c.Name).join("; "));
-            console.log("CurrencyExchange");
-            for (const x of r("CurrencyExchange").slice(0, 6)) console.log(JSON.stringify(x), show(x.Item));
-          ' 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
-
       - name: Build catalog
         run: |
           set -o pipefail
