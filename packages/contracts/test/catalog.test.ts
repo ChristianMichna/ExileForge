@@ -113,6 +113,34 @@ describe("DataRelease progression facts", () => {
   });
 });
 
+describe("DataRelease item slots", () => {
+  const slots = {
+    origin: "pob-code",
+    slots: [
+      { id: "Fake Head", label: "Fake Head", itemClasses: ["Fake Helm"] },
+      {
+        id: "Fake Hand",
+        label: "Fake Hand",
+        weaponSet: 1,
+        itemClasses: ["Fake Blade", "Fake Wand"],
+      },
+    ],
+  };
+
+  it("accepts slots with the item classes they take", () => {
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: slots }).success).toBe(true);
+  });
+
+  it("rejects duplicate slots, empty class lists and a bad weapon set", () => {
+    const dup = { ...slots, slots: [slots.slots[0], slots.slots[0]] };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: dup }).success).toBe(false);
+    const none = { ...slots, slots: [{ id: "x", label: "x", itemClasses: [] }] };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: none }).success).toBe(false);
+    const set3 = { ...slots, slots: [{ ...slots.slots[1], weaponSet: 3 }] };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: set3 }).success).toBe(false);
+  });
+});
+
 describe("DataRelease", () => {
   it("rejects a gameVersion that does not match the id", () => {
     const r = DataRelease.safeParse({ ...validRelease, gameVersion: "9.8.6" });

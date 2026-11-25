@@ -101,7 +101,7 @@ plus `manifest.json` (`CatalogManifest`). Steuerung über
 Mod-Stufen, Eigenschaftsgruppen); nichts davon ist im Code an eine Spielversion
 gebunden.
 
-Release-Fakten für S5 im `DataRelease`: `maxCharacterLevel` (höchste Stufe der
+Release-Fakten für S5 und S7 im `DataRelease` (`itemSlots`: Slot-Namen und Basis-Klassen aus PoBs eigener Slot-Prüfung, ohne Juwelen-Sockel): `maxCharacterLevel` (höchste Stufe der
 Game-Data-Tabelle aus `releaseFacts.maxLevelTable`, Ursprung `game-data`; nur mit
 `--game-data <dir>`) und `passivePoints` (Hauptbaum-Punkte je Stufe als Regel aus
 PoB-Code, Ursprung `pob-code`; Waffensatz-Punkte je Akt aus PoB `QuestRewards.lua`,

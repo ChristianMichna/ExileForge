@@ -178,6 +178,29 @@ describe("release facts", () => {
     await expect(buildCatalog(snap, out, factsConfig, NOW)).rejects.toThrow(/quest reward 0002/);
   });
 
+  it("lists the slots with the item classes PoB accepts, sorted by id", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const { manifest } = await buildCatalog(snap, out, factsConfig, NOW);
+    expect(manifest.release.itemSlots).toEqual({
+      origin: "pob-code",
+      slots: [
+        { id: "Fake Finger", label: "Fake Finger", itemClasses: ["Ring"] },
+        { id: "Fake Hand 2", label: "Fake Hand", weaponSet: 2, itemClasses: ["Sword", "Ring"] },
+      ],
+    });
+  });
+
+  it("is an error when a slot names an item class the catalog does not have", async () => {
+    const raw = rawSnapshot();
+    raw.itemSlots["Fake Finger"] = { label: "Fake Finger", itemClasses: ["Ghost Class"] };
+    const snap = await writeSnapshot(raw);
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    await expect(buildCatalog(snap, out, factsConfig, NOW)).rejects.toThrow(
+      /itemSlot Fake Finger: item class Ghost Class/,
+    );
+  });
+
   it("fails on a level table that is not the configured one", async () => {
     const snap = await writeSnapshot(rawSnapshot());
     const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");

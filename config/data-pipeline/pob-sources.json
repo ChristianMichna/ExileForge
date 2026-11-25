@@ -29,6 +29,7 @@
       "kind": "questRewards",
       "sources": [{ "loader": "list", "file": "Data/QuestRewards.lua" }]
     },
+    { "kind": "itemSlots", "sources": [{ "loader": "itemSlots" }] },
     { "kind": "gems", "sources": [{ "loader": "return", "file": "Data/Gems.lua" }] },
     { "kind": "gemLevels", "sources": [{ "loader": "gemLevels" }] },
     {

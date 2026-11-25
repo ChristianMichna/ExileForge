@@ -4,7 +4,7 @@ import { readGameDataManifest, readGameDataTable } from "../gamedata/export.ts";
 import type { Json } from "../json.ts";
 import type { Finding, NormalizeConfig } from "./catalog.ts";
 
-type ReleaseFacts = Pick<DataRelease, "maxCharacterLevel" | "passivePoints">;
+type ReleaseFacts = Pick<DataRelease, "maxCharacterLevel" | "passivePoints" | "itemSlots">;
 
 const levelRow = z.object({ Level: z.int().positive() });
 const questRow = z.object({
@@ -17,6 +17,36 @@ const questRow = z.object({
   AreaLevel: z.int().positive(),
   questPoints: z.int().positive().optional(),
 });
+
+const slotRow = z.object({
+  label: z.string().min(1),
+  weaponSet: z.union([z.literal(1), z.literal(2)]).optional(),
+  itemClasses: z.array(z.string().min(1)).min(1),
+});
+
+/** Slots as PoB defines them, sorted by id; every item class must exist in the catalog. */
+export function itemSlotsFrom(
+  rawSlots: Record<string, Json>,
+  knownItemClasses: ReadonlySet<string>,
+): { slots: NonNullable<DataRelease["itemSlots"]>["slots"]; errors: Finding[] } {
+  const errors: Finding[] = [];
+  const slots = Object.entries(rawSlots)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, raw]) => {
+      const parsed = slotRow.safeParse(raw);
+      if (!parsed.success) throw new Error(`item slot ${id} is malformed`, { cause: parsed.error });
+      for (const c of parsed.data.itemClasses) {
+        if (!knownItemClasses.has(c))
+          errors.push({
+            kind: "itemSlot",
+            id,
+            message: `item class ${c} has no base item in the catalog`,
+          });
+      }
+      return { id, ...parsed.data };
+    });
+  return { slots, errors };
+}
 
 /** Highest level of the `ExperienceLevels` table of the game data. */
 export async function readMaxCharacterLevel(gameDataDir: string, table: string): Promise<number> {
@@ -67,11 +97,16 @@ export function weaponSetPointsByAct(
 export async function buildReleaseFacts(opts: {
   config: NormalizeConfig["releaseFacts"];
   questRewards: Record<string, Json>;
+  itemSlots: Record<string, Json>;
+  knownItemClasses: ReadonlySet<string>;
   gameDataDir?: string;
-}): Promise<{ facts: ReleaseFacts; findings: Finding[] }> {
+}): Promise<{ facts: ReleaseFacts; findings: Finding[]; errors: Finding[] }> {
   const { config } = opts;
   const facts: ReleaseFacts = {};
   const findings: Finding[] = [];
+
+  const { slots, errors } = itemSlotsFrom(opts.itemSlots, opts.knownItemClasses);
+  facts.itemSlots = { slots, origin: "pob-code" };
 
   if (opts.gameDataDir === undefined) {
     findings.push({
@@ -99,5 +134,5 @@ export async function buildReleaseFacts(opts: {
       weaponSetByAct: { acts, origin: "pob-data" },
     };
   }
-  return { facts, findings };
+  return { facts, findings, errors };
 }

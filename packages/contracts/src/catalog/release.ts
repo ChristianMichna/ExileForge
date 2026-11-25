@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EntityKind } from "../common/ids.js";
+import { ClassificationId, EntityKind } from "../common/ids.js";
 import { JsonValue } from "../common/json.js";
 import {
   DataReleaseId,
@@ -87,6 +87,35 @@ export const PassivePoints = z
   });
 export type PassivePoints = z.infer<typeof PassivePoints>;
 
+/**
+ * An equipment slot as PoB names it (the same string PoB uses for an equipped
+ * item's slot). Jewel sockets are tied to passive nodes and are not listed.
+ */
+export const ItemSlot = z.object({
+  /** PoB slot name, e.g. "Body Armour" or "Ring 2". */
+  id: z.string().min(1),
+  /** Display name from PoB; several slots may share one (e.g. "Ring 1" and the swap slot). */
+  label: z.string().min(1),
+  /** Weapon set the slot belongs to (1 = main set, 2 = swap set); absent for non-weapon slots. */
+  weaponSet: z.union([z.literal(1), z.literal(2)]).optional(),
+  /** Base item classes (`BaseItem.itemClass`) that PoB accepts in this slot. */
+  itemClasses: z.array(ClassificationId).min(1),
+});
+export type ItemSlot = z.infer<typeof ItemSlot>;
+
+export const ItemSlots = z
+  .object({ slots: z.array(ItemSlot).min(1), origin: ReleaseFactOrigin })
+  .superRefine((v, ctx) => {
+    const seen = new Set<string>();
+    v.slots.forEach((slot, i) => {
+      if (seen.has(slot.id)) {
+        ctx.addIssue({ code: "custom", path: ["slots", i, "id"], message: "duplicate slot" });
+      }
+      seen.add(slot.id);
+    });
+  });
+export type ItemSlots = z.infer<typeof ItemSlots>;
+
 export const DataRelease = z
   .object({
     id: DataReleaseId,
@@ -98,6 +127,8 @@ export const DataRelease = z
     /** Absent (never 0) when the pipeline could not read the value; consumers block visibly. */
     maxCharacterLevel: MaxCharacterLevel.optional(),
     passivePoints: PassivePoints.optional(),
+    /** Equipment slots and the item classes each accepts; absent when PoB could not be asked. */
+    itemSlots: ItemSlots.optional(),
     createdAt: IsoDateTime,
     previousReleaseId: DataReleaseId.optional(),
     /** Path of the CatalogDiff against previousReleaseId, inside the release. */

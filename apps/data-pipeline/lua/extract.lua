@@ -268,6 +268,47 @@ loaders["list"] = function(src)
 	return t
 end
 
+-- equipment slots as PoB's items tab defines them, with the base types PoB's own
+-- IsItemValidForSlot accepts in each (jewel sockets belong to the passive tree and are skipped)
+loaders["itemSlots"] = function()
+	local tab = build.itemsTab
+	local slots = {}
+	for _, slot in ipairs(tab.orderedSlots) do
+		if not slot.slotName:find("Jewel", 1, true) then
+			slots[#slots + 1] = slot
+		end
+	end
+	local names = {}
+	for name in pairs(data.itemBases) do
+		names[#names + 1] = name
+	end
+	table.sort(names)
+	local accepted = {}
+	for _, name in ipairs(names) do
+		local item = new("Item", "Rarity: NORMAL\n" .. name)
+		assert(item and item.base, "cannot build an item from base " .. name)
+		for _, slot in ipairs(slots) do
+			if tab:IsItemValidForSlot(item, slot.slotName) then
+				accepted[slot.slotName] = accepted[slot.slotName] or {}
+				accepted[slot.slotName][data.itemBases[name].type] = true
+			end
+		end
+	end
+	local result = {}
+	for _, slot in ipairs(slots) do
+		local classes = {}
+		for class in pairs(accepted[slot.slotName] or {}) do
+			classes[#classes + 1] = class
+		end
+		table.sort(classes)
+		if #classes == 0 then
+			error("no base accepted by slot " .. slot.slotName)
+		end
+		result[slot.slotName] = { label = slot.label, weaponSet = slot.weaponSet, itemClasses = classes }
+	end
+	return result
+end
+
 -- module fills a table passed as first argument
 loaders["fill"] = function(src)
 	local t = {}
