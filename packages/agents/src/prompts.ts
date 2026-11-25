@@ -41,3 +41,10 @@ export const S6_NOTES = [
   "Use exactly the stage keys given in the context, each once. The passive allocations and their measurements are fixed and come from Path of Building; you only describe them.",
   NO_MEMORY_RULES,
 ].join(" ");
+
+export const S7_GEAR = [
+  "Choose the target item for each gear slot of this budget tier, as an item spec: a unique, or a crafted rare with a base and wanted mods, plus how it is acquired.",
+  "Use only the slots given in the context, each at most once, and fill every required slot. Respect solo self-found mode: no trade then. The context lists the earlier tiers' choices; keep them and upgrade from there. Cheaper tiers use items the player can realistically get with that budget; higher tiers upgrade the slots that gain the most.",
+  "Use calc_evaluate (always with the runId) to compare options; explain each choice in rationale without typing numbers. Prices are not known to you and are measured afterwards.",
+  NO_MEMORY_RULES,
+].join(" ");

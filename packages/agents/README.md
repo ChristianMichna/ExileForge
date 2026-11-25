@@ -16,7 +16,8 @@ Kontext, Antwortschema, erlaubte Werkzeuge und Prüfungen. Die Schleife
 | S4 | Der Spieler wählt einen Kandidaten in der App (`chooseVariant`); bis dahin `wait_user`, nie automatisch; die Wahl wird als `S4.selection` festgehalten | fertig |
 | S5 | Zielbuild: Gem-Setup (Claude, mit PoB geprüft), Endgame-Tree (PoB-Optimierer als Job), `TargetBuild`. Braucht den Block `s5` in `config/agents/stages.json` (Level, Passivpunkte, Calc-Profile, Ziel); ohne ihn endet der Lauf mit `s5_not_configured`. Ascendancy-Punkte fehlen noch | gebaut |
 | S6 | Progression: verschachtelte Tree-Stufen aus dem Ziel-Tree (PoB-Optimierer als Job), Texte je Stufe (Claude), `ProgressionPlan`. Braucht den Block `s6` in `config/agents/stages.json` (Stufentabelle mit Level-Bändern und Passivpunkten, Calc-Profile, Ziel); ohne ihn endet der Lauf mit `s6_not_configured`. Leveling-Skills, Gem-Wechsel und Respec-Kosten fehlen noch | gebaut |
-| S7–S10 | Gear, Crafting-Sim, Economy | Pipeline endet mit `stage_not_implemented` |
+| S7 | Gear je Budget-Stufe: Item-Wahl je Slot (Claude, Katalog-ID und PoB geprüft). Preise (Economy) und Upgrade-Reihenfolge fehlen noch. Braucht den Block `s7` in `config/agents/stages.json` (Slot-Liste aus dem Release, Stufen-Reihenfolge); ohne ihn endet der Lauf mit `s7_not_configured` | teilweise |
+| S8–S10 | Crafting-Sim, Autorenschaft, Validierung | Pipeline endet mit `stage_not_implemented` |
 
 S3-Grenzen: Das Skelett hat keine Items und keine Ascendancy-Knoten (Kandidaten
 mit gleicher Klasse und anderer Ascendancy werden gleich gemessen), und eine
