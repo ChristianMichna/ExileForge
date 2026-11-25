@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 20
     env:
       GAME_VERSION: ${{ inputs.game-version || '0.0' }}
-      REVISION: ${{ inputs.revision || '0' }}
+      REVISION: ${{ inputs.revision || '1' }}
       COMPARE_REF: ${{ inputs.compare-pob-ref }}
       # the integration test must not be skipped here
       REQUIRE_POB: "1"
