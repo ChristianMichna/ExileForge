@@ -57,12 +57,14 @@ const { league, inCurrencyItemId, prices, freshness } = await service.price({ it
 Daten-Release existieren, zählen; der Rest steht in `unmappedProviderItemIds`
 (zusammen mit Zeilen ohne brauchbaren Preis und doppelten Zeilen). Die Datei
 wurde am 25.11.2026 aus einem Namensabgleich gebaut: Anzeigenamen der
-poe.ninja-Exchange-Einträge (Liga Standard; Currency, Essences, Ritual) gegen die
+poe.ninja-Exchange-Einträge (Liga Standard, alle `exchangeTypes`) gegen die
 Währungs-, Essenz- und Omen-Basen des Katalogs, nur exakte und eindeutige Treffer
-(79 Einträge, Referenzwährung `divine`). Nicht abgebildet sind Einträge ohne
-Katalog-Item (Fragmente, Runen, Seelenkerne, Delirium, Breach, Verisium, Idole,
-Lineage-Gems) und der mehrdeutige Eintrag `orb-of-extraction`; sie landen in
-`unmappedProviderItemIds`. Nach einem neuen Daten-Release den Abgleich wiederholen.
+(152 Einträge, Referenzwährung `divine`). `orb-of-extraction` hat zwei Katalog-Items
+gleichen Namens; genommen ist das mit dem Tag `exchange_category:Incursion` (das
+handelbare, die Bench-Variante hat keine Börsen-Kategorie). Nicht abgebildet sind
+Einträge ohne Katalog-Item gleichen Namens (Runen, Lineage-Gems, Uncut-Gems, Idole,
+einige Fragmente); sie landen in `unmappedProviderItemIds`. Nach einem neuen
+Daten-Release den Abgleich wiederholen.
 Fehlt die Referenzwährung im Katalog, scheitert der Abruf mit
 `reference_currency_unmapped`, und Preise bleiben „uncalibrated".
 
