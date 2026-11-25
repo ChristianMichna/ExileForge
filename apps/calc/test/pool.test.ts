@@ -199,6 +199,35 @@ describe("CalcPool with the fake worker", () => {
     );
   });
 
+  it("fails single candidates for a missing metric or a failed calculation and cleans up", async () => {
+    const { pool } = await fakePool({}, { size: 2 });
+    const { handle } = await pool.request("build.load", { format: "xml", payload: XML });
+    const res = await pool.request("calc.evalBatch", {
+      handle,
+      profile: "as-saved",
+      metrics: ["FakeLength"],
+      candidates: [
+        { key: "no-metric", ops: [{ op: "setConfig", key: "dropMetric", value: true }] },
+        { key: "calc-fails", ops: [{ op: "setConfig", key: "failCalc", value: true }] },
+        { key: "fine", ops: [{ op: "setLevel", level: 2 }] },
+      ],
+    });
+    expect(res.results[0]).toMatchObject({ ok: false, error: { kind: "calc_failed" } });
+    expect(res.results[1]).toMatchObject({ ok: false, error: { kind: "calc_failed" } });
+    expect(res.results[2]).toMatchObject({ ok: true });
+    // the patched states of failed candidates are released as well
+    expect(pool.status().builds).toBe(1);
+    await expectKind(
+      pool.request("calc.evalBatch", {
+        handle,
+        profile: "as-saved",
+        metrics: ["constructor"],
+        candidates: [{ key: "a", ops: [{ op: "setLevel", level: 2 }] }],
+      }),
+      "invalid_params",
+    );
+  });
+
   it("forgets released builds", async () => {
     const { pool } = await fakePool();
     const { handle } = await pool.request("build.load", { format: "xml", payload: XML });

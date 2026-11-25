@@ -88,6 +88,8 @@ const handlers = {
         return { calcId: "x" };
       default:
     }
+    // patched states whose ops mention these keys misbehave (evalBatch tests)
+    if (xml.includes("failCalc")) return rpcError(id, "calc_failed", "Fake calc failure");
     const inputHash = sha(xml);
     return {
       calcId: `calc-${sha(`${inputHash}|${p.profile}`).slice(0, 40)}`,
@@ -97,7 +99,9 @@ const handlers = {
       inputHash,
       computedAt: new Date().toISOString(),
       mainSkill: p.mainSkill ?? "Fake Skill",
-      stats: { FakeLength: xml.length, FakePid: process.pid },
+      stats: xml.includes("dropMetric")
+        ? { FakePid: process.pid }
+        : { FakeLength: xml.length, FakePid: process.pid },
       warnings: [],
       unsupportedMods: [],
     };

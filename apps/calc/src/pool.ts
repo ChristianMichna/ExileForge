@@ -309,12 +309,12 @@ export class CalcPool {
    */
   private async evalBatch(p: CalcParams<"calc.evalBatch">): Promise<unknown> {
     const keys = p.candidates.map((c) => c.key);
-    const dup = keys.filter((k, i) => keys.indexOf(k) !== i);
+    const dup = [...new Set(keys.filter((k, i) => keys.indexOf(k) !== i))];
     if (dup.length > 0) {
       throw new CalcServiceError("invalid_params", "Candidate keys must be unique", dup.join(", "));
     }
     const base = await this.request("calc.stats", { handle: p.handle, profile: p.profile });
-    const missing = p.metrics.filter((m) => !(m in base.stats));
+    const missing = p.metrics.filter((m) => !Object.hasOwn(base.stats, m));
     if (missing.length > 0) {
       throw new CalcServiceError(
         "invalid_params",
@@ -326,12 +326,22 @@ export class CalcPool {
       p.candidates.length,
     );
     let next = 0;
+    let aborted = false;
     const lanes = Array.from(
       { length: Math.min(this.slots.length, p.candidates.length) },
       async () => {
-        for (let i = next++; i < p.candidates.length; i = next++) {
+        for (let i = next++; i < p.candidates.length && !aborted; i = next++) {
+          // a closed pool fails the batch as a whole, like any request on it
+          if (this.closed) throw new CalcServiceError("worker_crashed", "Calc pool is closed");
           const candidate = p.candidates[i];
-          if (candidate) results[i] = await this.evalCandidate(p, base, candidate);
+          if (!candidate) continue;
+          try {
+            results[i] = await this.evalCandidate(p, base, candidate);
+          } catch (error) {
+            // an unexpected error ends the batch; other lanes take no new candidates
+            aborted = true;
+            throw error;
+          }
         }
       },
     );
@@ -353,7 +363,7 @@ export class CalcPool {
       for (const metric of p.metrics) {
         const value = result.stats[metric];
         const before = base.stats[metric];
-        if (value === undefined || before === undefined) {
+        if (!Object.hasOwn(result.stats, metric) || value === undefined || before === undefined) {
           // no stand-in value: a metric PoB did not report is a failed candidate
           throw new CalcServiceError("calc_failed", "Metric missing in the candidate", metric);
         }
@@ -365,13 +375,16 @@ export class CalcPool {
       return {
         key: candidate.key,
         ok: false,
-        error: { kind: error.kind, detail: error.message },
+        error: { kind: error.kind, detail: error.detail ?? error.message },
       };
     } finally {
       const created = handle;
       if (created !== undefined) {
         await this.request("build.release", { handle: created }).catch((error: unknown) => {
-          this.emit({ type: "release-failed", slot: -1, handle: created, error });
+          // after close the pool is gone anyway; anything else is reported
+          if (!this.closed) {
+            this.emit({ type: "release-failed", slot: -1, handle: created, error });
+          }
         });
       }
     }
