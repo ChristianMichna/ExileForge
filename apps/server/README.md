@@ -177,3 +177,17 @@ im PoB-Thread). Das Server-Profil ist `as-saved`.
 
 Noch nicht in `start.ts` verdrahtet (`--calc fake` bleibt Pflicht), bis
 `CalcPool.baseBuild` in main ist.
+
+## Hintergrund-Jobs und S3
+
+Der `PlanStep` `job` startet rechenintensive Arbeit (S3: Skelett-Builds mit
+Baum-Optimierung in PoB) außerhalb des Run-Locks. `forge_next` antwortet bis
+zum Ende mit "wait" (Long-Poll wie beim Warten auf den Nutzer); das Ergebnis
+wird danach wie ein Server-Schritt gespeichert, ein Fehler beendet den Lauf mit
+`job_failed`. Ein Job ohne Gedächtnis im Record startet nach einem Neustart
+beim nächsten `forge_next` neu; ein `redoStage` während des Laufs verwirft die
+Antwort des alten Jobs. Noch ohne Zeitlimit und Abbruch.
+
+`src/calc/skeleton.ts` (`PobSkeleton`) ist der `SkeletonPort` auf PoB und
+`optimizeTree`; er wird mit `PobCalc` in `start.ts` verdrahtet, sobald
+`CalcPool.baseBuild` in main ist.

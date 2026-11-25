@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { createForgePipeline, type Pipeline, type StageConfig } from "@exileforge/agents";
-import { BuildRequest } from "@exileforge/contracts/build";
+import { describe, expect, it, vi } from "vitest";
+import {
+  createForgePipeline,
+  type Pipeline,
+  type SkeletonPort,
+  type StageConfig,
+} from "@exileforge/agents";
+import { BuildRequest, BuildState } from "@exileforge/contracts/build";
 import type { ForgeStep } from "@exileforge/contracts/forge";
 import { CalcFake } from "../src/calc/calc-fake.js";
 import { ForgeEngine } from "../src/engine/forge-engine.js";
@@ -13,10 +18,19 @@ const STAGES: StageConfig = {
   supportGemKinds: ["fixture_support"],
   s1: { maxListItems: 5 },
   s2: { candidateCount: 2, maxKeyEntities: 5 },
+  s3: {
+    level: 10,
+    passivePoints: 3,
+    gemLevel: 1,
+    supportCount: 1,
+    calcProfiles: ["default"],
+    objective: { weights: { FakeMetric: 1 }, floors: {} },
+  },
 };
 
-function setup(pipeline: Pipeline) {
+function setup(pipeline: Pipeline, skeleton?: SkeletonPort) {
   return new ForgeEngine({
+    ...(skeleton === undefined ? {} : { skeleton }),
     store: new RunStore(":memory:"),
     catalog: fixtureCatalog(),
     calc: new CalcFake({ dataReleaseId: RELEASE }),
@@ -91,8 +105,8 @@ describe("forge pipeline (agents)", () => {
     ...extra,
   });
 
-  it("runs S1 and S2 with a preset skill, checks them, and ends with stage_not_implemented", async () => {
-    const engine = setup(createForgePipeline(STAGES));
+  /** Drives a preset-skill run through S1 and S2 and returns the step after the last candidate. */
+  async function driveToS3(engine: ForgeEngine): Promise<{ runId: string; next: ForgeStep }> {
     const { runId, sessionCode } = await engine.createRun(REQUEST, "forge");
     let t = task((await engine.attach(sessionCode)).next);
     expect(t.type).toBe("S1.profile");
@@ -165,7 +179,43 @@ describe("forge pipeline (agents)", () => {
     });
     expect(second.result).toBe("accepted");
     if (second.result !== "accepted") throw new Error();
-    expect(second.next).toMatchObject({ kind: "failed", error: { code: "stage_not_implemented" } });
+    return { runId, next: second.next };
+  }
+
+  it("runs S1 and S2 with a preset skill, checks them, and stops at S3 without the PoB engine", async () => {
+    const engine = setup(createForgePipeline(STAGES));
+    const { next } = await driveToS3(engine);
+    expect(next).toMatchObject({ kind: "failed", error: { code: "skeleton_unavailable" } });
+  });
+
+  it("measures all candidates in a background job when a skeleton engine exists", async () => {
+    const seen: string[] = [];
+    const skeleton = {
+      evaluate: (input: { candidate: { key: string } }) => {
+        seen.push(input.candidate.key);
+        return Promise.resolve({
+          candidateKey: input.candidate.key,
+          skeleton: BuildState.parse({
+            classId: "FixClassA",
+            level: 10,
+            tree: { allocated: [] },
+            skills: [],
+            items: [],
+          }),
+          calcs: {},
+        });
+      },
+    };
+    const engine = setup(createForgePipeline(STAGES), skeleton);
+    const { runId, next } = await driveToS3(engine);
+    expect(next.kind).toBe("wait_user");
+    await vi.waitFor(async () =>
+      expect(await engine.next(runId)).toMatchObject({
+        kind: "failed",
+        error: { code: "stage_not_implemented" },
+      }),
+    );
+    expect(seen).toEqual(["a", "b"]);
   });
 
   it("rejects a support gem and an excluded gem as main skill in S0", async () => {
@@ -191,5 +241,62 @@ describe("forge pipeline (agents)", () => {
     const { sessionCode } = await engine.createRun(REQUEST, "forge");
     const step = (await engine.attach(sessionCode)).next;
     expect(step).toMatchObject({ kind: "failed", error: { code: "invalid_main_skill" } });
+  });
+
+  describe("background jobs", () => {
+    const jobPipeline = (run: () => Promise<unknown>): Pipeline => ({
+      id: "job",
+      plan: (ctx) =>
+        ctx.result("J.calc") === undefined
+          ? {
+              kind: "job",
+              key: "J.calc",
+              type: "S3.evaluate",
+              label: "calculating",
+              run: async () => (await run()) as never,
+            }
+          : { kind: "done" },
+    });
+
+    it("answers wait while the job runs, starts it once, and continues when it ends", async () => {
+      let release: (v: unknown) => void = () => undefined;
+      const run = vi.fn(() => new Promise((resolve) => (release = resolve)));
+      const engine = setup(jobPipeline(run));
+      const { runId, sessionCode } = await engine.createRun(REQUEST, "job");
+      const first = (await engine.attach(sessionCode)).next;
+      expect(first).toMatchObject({ kind: "wait_user" });
+      expect((await engine.next(runId)).kind).toBe("wait_user");
+      expect(run).toHaveBeenCalledTimes(1);
+
+      release({ ok: true });
+      await vi.waitFor(async () => expect((await engine.next(runId)).kind).toBe("done"));
+      expect(run).toHaveBeenCalledTimes(1);
+    });
+
+    it("fails the run with the job's error", async () => {
+      const engine = setup(jobPipeline(() => Promise.reject(new Error("pob down"))));
+      const { runId, sessionCode } = await engine.createRun(REQUEST, "job");
+      await engine.attach(sessionCode);
+      await vi.waitFor(async () =>
+        expect(await engine.next(runId)).toMatchObject({
+          kind: "failed",
+          error: { code: "job_failed", message: expect.stringContaining("pob down") },
+        }),
+      );
+    });
+
+    it("drops the answer of a job whose stage was redone meanwhile", async () => {
+      let release: (v: unknown) => void = () => undefined;
+      const run = vi.fn(() => new Promise((resolve) => (release = resolve)));
+      const engine = setup(jobPipeline(run));
+      const { runId, sessionCode } = await engine.createRun(REQUEST, "job");
+      await engine.attach(sessionCode);
+      await engine.intervene(runId, { kind: "redoStage", stage: "S3" });
+      release({ stale: true });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      // The stale result is gone, so the next step starts the job again.
+      expect((await engine.next(runId)).kind).toBe("wait_user");
+      expect(run).toHaveBeenCalledTimes(2);
+    });
   });
 });

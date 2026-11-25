@@ -142,6 +142,9 @@ importers:
       '@exileforge/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@exileforge/optimizer':
+        specifier: workspace:*
+        version: link:../../packages/optimizer
       '@modelcontextprotocol/sdk':
         specifier: 1.32.2
         version: 1.32.2(zod@4.6.7)
