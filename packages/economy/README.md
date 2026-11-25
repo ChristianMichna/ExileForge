@@ -29,10 +29,11 @@ const { league, inCurrencyItemId, prices, freshness } = await service.price({ it
 - Der Provider rät Desktop-Apps, über ein eigenes Backend zu gehen. Astrolabe ist
   lokal ohne Backend; das Volumen ist klein (siehe oben). Das ist eine bewusste
   Abweichung und bei Beanstandung neu zu entscheiden.
-- Die Feldnamen der Antworten stammen aus der Doku; sie sind noch nicht gegen echte
-  Antworten geprüft (der Entwicklungsumgebung fehlt der Zugriff). Tests nutzen
-  erfundene Antworten. Eine Antwort, die nicht passt, ist ein Fehler
-  (`invalid_response`), nie eine leere Preisliste.
+- Die Feldnamen der Antworten stammen aus der Doku und wurden am 25.11.2026 einmal
+  gegen echte Antworten gelesen (Ligen: `id`/`name`; Exchange: `core.primary`,
+  `lines[].id/primaryValue/volumePrimaryValue`, `items[].id/name/category`). Die
+  Tests nutzen weiter erfundene Antworten. Eine Antwort, die nicht passt, ist ein
+  Fehler (`invalid_response`), nie eine leere Preisliste.
 
 ## Ablauf
 
@@ -54,11 +55,16 @@ const { league, inCurrencyItemId, prices, freshness } = await service.price({ it
 
 `item-map.json` bildet Provider-IDs auf Katalog-IDs ab. Nur IDs, die im Katalog des
 Daten-Release existieren, zählen; der Rest steht in `unmappedProviderItemIds`
-(zusammen mit Zeilen ohne brauchbaren Preis und doppelten Zeilen). Die Datei ist
-leer: Das Katalog-Release enthält noch keine Währungs-Items (PoB führt sie nicht;
-die dat-Extraktion ist nicht freigegeben). Ohne Abbildung der Referenzwährung
-scheitert der Abruf mit `reference_currency_unmapped`, und Preise bleiben
-„uncalibrated". Der Einsatz in der App wartet daher auf diese Entscheidung.
+(zusammen mit Zeilen ohne brauchbaren Preis und doppelten Zeilen). Die Datei
+wurde am 25.11.2026 aus einem Namensabgleich gebaut: Anzeigenamen der
+poe.ninja-Exchange-Einträge (Liga Standard; Currency, Essences, Ritual) gegen die
+Währungs-, Essenz- und Omen-Basen des Katalogs, nur exakte und eindeutige Treffer
+(79 Einträge, Referenzwährung `divine`). Nicht abgebildet sind Einträge ohne
+Katalog-Item (Fragmente, Runen, Seelenkerne, Delirium, Breach, Verisium, Idole,
+Lineage-Gems) und der mehrdeutige Eintrag `orb-of-extraction`; sie landen in
+`unmappedProviderItemIds`. Nach einem neuen Daten-Release den Abgleich wiederholen.
+Fehlt die Referenzwährung im Katalog, scheitert der Abruf mit
+`reference_currency_unmapped`, und Preise bleiben „uncalibrated".
 
 ## Konfidenz
 

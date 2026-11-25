@@ -257,6 +257,14 @@ describe("shipped config", () => {
     expect(parsed.baseUrl.startsWith("https://")).toBe(true);
     expect(parsed.userAgent).toContain("{appVersion}");
     expect(parsed.userAgent).toContain("{appName}");
-    expect(() => parseItemMap(read("item-map.json"))).not.toThrow();
+    const map = parseItemMap(read("item-map.json"));
+    expect(Object.keys(map.items).length).toBeGreaterThan(0);
+  });
+
+  it("every mapped catalog id is unique and the reference currency is mapped", () => {
+    const map = parseItemMap(read("item-map.json"));
+    const ids = Object.values(map.items).map((i) => i.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(map.items["divine"]).toBeDefined();
   });
 });

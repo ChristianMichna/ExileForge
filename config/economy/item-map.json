@@ -1,5 +1,322 @@
 {
-  "$comment": "Mapping of provider item ids to catalog ids (packages/economy). Only ids that exist in the data release's catalog may be listed; the module checks that and reports the rest as unmapped. Empty until the catalog carries currency items (PoB data has none; dat extraction is not released yet).",
-  "version": "economy-map-1",
-  "items": {}
+  "$comment": "Mapping of provider item ids to catalog ids (packages/economy). Built on 25.11.2026 by joining the display names of poe.ninja's exchange items (league Standard, types Currency, Essences, Ritual) with the names of the catalog's currency, essence and omen base items; only exact, unique name matches are listed. Not listed: entries without a catalog item (fragments, runes, soul cores, delirium, breach, verisium, idols, lineage gems, ...) and the ambiguous 'orb-of-extraction'. The module checks every mapped id against the data release and reports the rest as unmapped. Re-run the join after a data release; ids that stop matching are reported, not guessed.",
+  "version": "economy-map-2",
+  "items": {
+    "alch": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyUpgradeToRare"
+    },
+    "ancient-infuser": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionCorruptTablet"
+    },
+    "annul": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyRemoveMod"
+    },
+    "architects-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionDoubleCorrupt"
+    },
+    "aug": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyAddModToMagic"
+    },
+    "bauble": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyFlaskQuality"
+    },
+    "chance": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyUpgradeRandomly"
+    },
+    "chaos": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyRerollRare"
+    },
+    "core-destabiliser": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionModifySoulCore"
+    },
+    "cryptic-key": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/StrongboxKey"
+    },
+    "crystallised-corruption": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionDoubleCorruptGem"
+    },
+    "divine": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyModValues"
+    },
+    "essence-of-delirium": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyCorruptedEssenceDelirium"
+    },
+    "essence-of-horror": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyCorruptedEssenceHorror"
+    },
+    "essence-of-hysteria": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyCorruptedEssenceHysteria"
+    },
+    "essence-of-the-breach": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyCorruptedEssenceBreach"
+    },
+    "etcher": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyMagicQuality"
+    },
+    "exalted": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyAddModToRare"
+    },
+    "fracturing-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyFractureRare"
+    },
+    "gcp": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyGemQuality"
+    },
+    "greater-chaos-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyRerollRare2"
+    },
+    "greater-essence-of-haste": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyGreaterEssenceSpeed"
+    },
+    "greater-essence-of-insulation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyGreaterEssenceFireResist"
+    },
+    "greater-essence-of-ruin": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyGreaterEssenceChaos"
+    },
+    "greater-exalted-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyAddModToRare2"
+    },
+    "greater-jewellers-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyAddSkillGemSocket4"
+    },
+    "hinekoras-lock": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyHinekorasLock"
+    },
+    "kopecs-orb-of-sacrifice": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionMutateCorruptionEnchantArmour"
+    },
+    "lesser-jewellers-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyAddSkillGemSocket3"
+    },
+    "mirror": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyDuplicate"
+    },
+    "omen-of-abyssal-echoes": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnAbyssRerollOptions"
+    },
+    "omen-of-amelioration": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnDeathPreventExpLoss"
+    },
+    "omen-of-bartering": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenSellVendorRandomise"
+    },
+    "omen-of-chance": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnChanceNotDestroy"
+    },
+    "omen-of-chaotic-effectiveness": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnChaosMapMonsterEffectiveness"
+    },
+    "omen-of-chaotic-monsters": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnChaosMapMonsterRarity"
+    },
+    "omen-of-chaotic-quantity": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnChaosMapPackSize"
+    },
+    "omen-of-chaotic-rarity": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnChaosMapItemRarity"
+    },
+    "omen-of-dextral-annulment": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnAnnulRemoveSuffixes"
+    },
+    "omen-of-dextral-crystallisation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnPerfectEssenceSuffix"
+    },
+    "omen-of-dextral-erasure": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnChaosSuffix"
+    },
+    "omen-of-dextral-exaltation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnExaltAddSuffixes"
+    },
+    "omen-of-dextral-necromancy": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnAbyssAddSuffixes"
+    },
+    "omen-of-greater-exaltation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnExaltAddTwoMods"
+    },
+    "omen-of-light": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnAnnulRemoveAbyssMod"
+    },
+    "omen-of-resurgence": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnLowLifeFullyHeal"
+    },
+    "omen-of-sanctification": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnDivineSanctify"
+    },
+    "omen-of-secret-compartments": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenStrongboxOpenableAgain"
+    },
+    "omen-of-sinistral-annulment": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnAnnulRemovePrefixes"
+    },
+    "omen-of-sinistral-crystallisation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnPerfectEssencePrefix"
+    },
+    "omen-of-sinistral-erasure": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnChaosPrefix"
+    },
+    "omen-of-sinistral-exaltation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnExaltAddPrefixes"
+    },
+    "omen-of-sinistral-necromancy": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnAbyssAddPrefixes"
+    },
+    "omen-of-the-blackblooded": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnAbyssGuarenteeLichTypeMod3"
+    },
+    "omen-of-the-blessed": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnDivineRerollImplicits"
+    },
+    "omen-of-the-hunt": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenTormentedMonsterReleased"
+    },
+    "omen-of-whittling": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/OmenOnChaosLowestLevelMod"
+    },
+    "perfect-chaos-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyRerollRare3"
+    },
+    "perfect-essence-of-battle": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyPerfectEssenceAttack"
+    },
+    "perfect-essence-of-electricity": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyPerfectEssenceLightning"
+    },
+    "perfect-essence-of-enhancement": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyPerfectEssenceDefences"
+    },
+    "perfect-essence-of-haste": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyPerfectEssenceSpeed"
+    },
+    "perfect-essence-of-ruin": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyPerfectEssenceChaos"
+    },
+    "perfect-exalted-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyAddModToRare3"
+    },
+    "perfect-jewellers-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyAddSkillGemSocket5"
+    },
+    "perfect-orb-of-augmentation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyAddModToMagic3"
+    },
+    "perfect-orb-of-transmutation": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyUpgradeToMagic3"
+    },
+    "perfect-regal-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyUpgradeMagicToRare3"
+    },
+    "regal": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyUpgradeMagicToRare"
+    },
+    "scrap": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyArmourQuality"
+    },
+    "transmute": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyUpgradeToMagic"
+    },
+    "vaal": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyCorrupt"
+    },
+    "vaal-armourers-infuser": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionWeaponOrArmourQualityHigh"
+    },
+    "vaal-blacksmiths-infuser": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionMartialWeaponQuality"
+    },
+    "vaal-catalysing-infuser": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionJewelleryQuality"
+    },
+    "vaal-cultivation-orb": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionMutateUnique"
+    },
+    "whetstone": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyWeaponQuality"
+    },
+    "wisdom": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIdentification"
+    },
+    "yuguls-orb-of-sacrifice": {
+      "kind": "baseItem",
+      "id": "Metadata/Items/Currency/CurrencyIncursionMutateCorruptionEnchantJewel"
+    }
+  }
 }
