@@ -241,6 +241,7 @@ export function planJob(
         out.push({
           budgetTier: tier.id,
           slots,
+          calcs: { [profile]: { status: "ok", calcId: withAll.source.calcId } },
           upgradeOrder: upgrades
             .sort((a, b) => b.sort - a.sort)
             .map((u) => ({ slot: u.slot, gainPerCost: u.ratio })),
