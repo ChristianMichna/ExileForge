@@ -92,6 +92,12 @@ export function rawSnapshot() {
         modTags: {},
       },
     } as Record<string, Record<string, unknown>>,
+    questRewards: {
+      "0001": { Act: 1, Area: "Fake Field", AreaLevel: 3, Stat: "+1 to Fake" },
+      "0002": { Act: 1, Area: "Fake Hill", AreaLevel: 7, Stat: "+2 Fake Points", questPoints: 2 },
+      "0003": { Act: 1, Area: "Fake Cave", AreaLevel: 9, Stat: "+1 Fake Points", questPoints: 1 },
+      "0004": { Act: 2, Area: "Fake Marsh", AreaLevel: 12, Stat: "+2 Fake Points", questPoints: 2 },
+    } as Record<string, Record<string, unknown>>,
     itemBases: {
       "Fake Ring": {
         type: "Ring",

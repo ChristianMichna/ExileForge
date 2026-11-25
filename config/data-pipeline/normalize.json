@@ -22,5 +22,10 @@
   },
   "modGenerationTypeFallback": "unspecified",
   "baseItemPropertyGroups": ["weapon", "armour", "flask", "charm"],
-  "classAttributePrefix": "base_"
+  "classAttributePrefix": "base_",
+  "releaseFacts": {
+    "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on.",
+    "maxLevelTable": "ExperienceLevels",
+    "mainTree": { "perLevel": 1, "fromLevel": 2 }
+  }
 }

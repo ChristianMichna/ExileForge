@@ -25,6 +25,10 @@
     },
     { "kind": "runes", "sources": [{ "loader": "return", "file": "Data/ModRunes.lua" }] },
     { "kind": "essences", "sources": [{ "loader": "return", "file": "Data/Essence.lua" }] },
+    {
+      "kind": "questRewards",
+      "sources": [{ "loader": "list", "file": "Data/QuestRewards.lua" }]
+    },
     { "kind": "gems", "sources": [{ "loader": "return", "file": "Data/Gems.lua" }] },
     { "kind": "gemLevels", "sources": [{ "loader": "gemLevels" }] },
     {

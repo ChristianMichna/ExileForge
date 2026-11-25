@@ -16,6 +16,7 @@ import {
   type NormalizeConfig,
   type NormalizeSummary,
 } from "./catalog.ts";
+import { buildReleaseFacts } from "./release-facts.ts";
 import { StatMatcher } from "./stat-matcher.ts";
 import { validateCatalog } from "./validate.ts";
 
@@ -29,6 +30,7 @@ const RAW_KINDS = [
   "skills",
   "passiveTree",
   "statDescriptions",
+  "questRewards",
 ] as const;
 
 /** Written first, so a directory holding it is a previous catalog output. */
@@ -69,6 +71,7 @@ export async function buildCatalog(
   outDir: string,
   cfg: { config: NormalizeConfig; sha256: string },
   now: Date = new Date(),
+  extra: { gameDataDir?: string } = {},
 ): Promise<CatalogBuildResult> {
   const snap = await readManifest(snapshotDir);
   const pipelineRevision = pipelineRevisionOf(snap.releaseId);
@@ -76,6 +79,11 @@ export async function buildCatalog(
   for (const kind of RAW_KINDS) raw[kind] = await readShard(snapshotDir, snap, kind);
   const matcher = new StatMatcher(raw.statDescriptions ?? {});
   const norm = normalizeCatalog(raw, { mod: matcher, passiveNode: matcher }, cfg.config);
+  const { facts, findings: factFindings } = await buildReleaseFacts({
+    config: cfg.config.releaseFacts,
+    questRewards: raw.questRewards ?? {},
+    ...(extra.gameDataDir === undefined ? {} : { gameDataDir: extra.gameDataDir }),
+  });
   const validation = validateCatalog(norm.entities);
   const errors = [...norm.errors, ...validation.errors];
 
@@ -95,7 +103,7 @@ export async function buildCatalog(
         releaseId: snap.releaseId,
         summary: norm.summary,
         errors,
-        warnings: norm.warnings,
+        warnings: [...norm.warnings, ...factFindings],
         unresolved: norm.unresolved,
         hiddenStatGroups: norm.hiddenStatGroups,
       },
@@ -145,6 +153,7 @@ export async function buildCatalog(
         pobVersion: snap.pobVersion,
         pipelineRevision,
         sourceHashes,
+        ...facts,
         createdAt: now.toISOString(),
       },
       shards,
@@ -152,5 +161,5 @@ export async function buildCatalog(
     "catalog manifest",
   );
   await writeFile(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-  return { manifest, warnings: norm.warnings, summary: norm.summary };
+  return { manifest, warnings: [...norm.warnings, ...factFindings], summary: norm.summary };
 }
