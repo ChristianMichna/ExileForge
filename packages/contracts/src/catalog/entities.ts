@@ -116,6 +116,8 @@ export const UniqueModLine = z.object({
   stats: z.array(StatRange),
   unresolved: z.array(UnresolvedLine).default([]),
   text: z.string().optional(),
+  /** For a line that allocates a passive by name ("Allocates <node>"): that node. */
+  allocatesNodeId: PassiveNodeId.optional(),
   /** Restrict this line to some variants; absent = all variants. */
   variantIds: z.array(z.string().min(1)).optional(),
 });
