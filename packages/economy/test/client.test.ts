@@ -49,7 +49,7 @@ const json = (body: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(body), { status: 200, ...init });
 
 describe("PoeNinjaClient", () => {
-  it("sends an identifying User-Agent without personal data and builds the URL from config", async () => {
+  it("sends an identifying User-Agent with the configured contact and builds the URL from config", async () => {
     const { client, calls } = setup(() => json(responseA));
     await client.exchangeOverview("Test League", "TypeA");
     const call = calls[0];

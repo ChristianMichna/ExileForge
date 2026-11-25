@@ -18,7 +18,7 @@ export interface ClientDeps {
 
 /**
  * Client for the provider's public economy endpoints. Polite by construction:
- * identifying User-Agent without personal data, requests one after another with
+ * identifying User-Agent with the contact chosen by the project owner, requests one after another with
  * a minimum interval, conditional requests (ETag), size and time limits, no
  * redirects, a pause after 429. Failures raise EconomyError; nothing is
  * replaced by an empty list.
