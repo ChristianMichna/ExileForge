@@ -156,7 +156,13 @@ export async function buildCatalog(
       id: "all",
       message: "no game data given, game ids of passives and slots are left out",
     });
-  } else if (facts.itemSlots) {
+  } else if (!facts.itemSlots) {
+    gameIdErrors.push({
+      kind: "gameId",
+      id: "slots",
+      message: "the release has no item slots, game ids cannot be set",
+    });
+  } else {
     const ids = await applyGameIds({
       gameDataDir: extra.gameDataDir,
       config: cfg.config.gameIds,

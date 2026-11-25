@@ -124,9 +124,11 @@ describe("release facts", () => {
     const nodes = CatalogShard.parse(
       JSON.parse(await readFile(join(out, "passiveNode.json"), "utf8")),
     ).entities as { pobNodeId?: number; gameId?: string }[];
-    expect(Object.fromEntries(nodes.map((n) => [n.pobNodeId, n.gameId]))).toMatchObject({
+    expect(Object.fromEntries(nodes.map((n) => [n.pobNodeId, n.gameId]))).toEqual({
       1: "fixture_start",
       2: "fixture_big",
+      3: undefined,
+      5: undefined,
     });
     expect(manifest.release.itemSlots?.slots.map((s) => s.gameId)).toContain("FixtureHand2");
     const shard = CatalogShard.parse(
@@ -175,6 +177,8 @@ describe("release facts", () => {
     const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
     const { manifest, warnings } = await buildCatalog(snap, out, factsConfig, NOW);
     expect(manifest.release.maxCharacterLevel).toBeUndefined();
+    expect(manifest.release.gameIds).toBeUndefined();
+    expect(warnings).toContainEqual(expect.objectContaining({ kind: "gameId", id: "all" }));
     expect(warnings).toContainEqual(
       expect.objectContaining({ kind: "release", id: "maxCharacterLevel" }),
     );

@@ -80,4 +80,24 @@ describe("applyGameIds", () => {
       applyGameIds({ gameDataDir: dir, config, passiveNodes: nodes, slots }),
     ).rejects.toThrow(/no table Inventories/);
   });
+
+  it("reports a mapped slot that the release lacks and an empty id", async () => {
+    const t = tables();
+    t.PassiveSkills = [{ Id: "", Name: "Start", PassiveSkillGraphId: 1 }];
+    const dir = await write(t);
+    const cfg2 = { ...config, slots: { ...config.slots, map: { Gone: "FixtureHand2" } } };
+    const res = await applyGameIds({ gameDataDir: dir, config: cfg2, passiveNodes: nodes, slots });
+    const text = res.findings.map((f) => f.message).join("\n");
+    expect(text).toMatch(/mapped slot is not a slot of the release/);
+    expect(text).toMatch(/empty id 1/);
+  });
+
+  it("aborts when PassiveSkills is missing", async () => {
+    const t = tables();
+    delete (t as Record<string, unknown>).PassiveSkills;
+    const dir = await write(t);
+    await expect(
+      applyGameIds({ gameDataDir: dir, config, passiveNodes: nodes, slots }),
+    ).rejects.toThrow(/no table PassiveSkills/);
+  });
 });

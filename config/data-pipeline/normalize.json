@@ -47,7 +47,7 @@
     }
   },
   "gameIds": {
-    "$comment": "Game ids for the .build export (game data read in CI, approved by Christian 2026-11-26). Passives: the PassiveSkills row with the same node id (column PassiveSkillGraphId in the dat schema, the column PoB's export script calls PassiveSkillNodeId) and the same name; no match, several rows or another name leave the id out and are counted. Slots: PoB slot name -> Inventories.Id. The pairing is by position in the game table (set 1: Weapon1/Offhand1, swap set: Weapon2/Offhand2), NOT yet verified in the game; flasks, charms, arms and legs have no counterpart row that this pipeline can confirm and stay unmapped.",
+    "$comment": "Game ids for the .build export (game data read in CI, approved by Christian 2026-11-25 23:13 UTC). Passives: the PassiveSkills row with the same node id (column PassiveSkillGraphId in the dat schema, the column PoB's export script calls PassiveSkillNodeId) and the same name; no match, several rows or another name leave the id out and are counted. Slots: PoB slot name -> Inventories.Id. Only slots whose inventory row has the same name are mapped. Weapon 2 and the swap slots stay unmapped until their pairing is verified in the game, as do flasks, charms, arms and legs.",
     "passives": {
       "table": "PassiveSkills",
       "idColumn": "Id",
@@ -59,9 +59,6 @@
       "idColumn": "Id",
       "map": {
         "Weapon 1": "Weapon1",
-        "Weapon 2": "Offhand1",
-        "Weapon 1 Swap": "Weapon2",
-        "Weapon 2 Swap": "Offhand2",
         "Helmet": "Helm1",
         "Body Armour": "BodyArmour1",
         "Gloves": "Gloves1",

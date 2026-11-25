@@ -247,8 +247,8 @@ Tabellen in `game-data.json` (Pflichttabellen, fehlen sie, bricht der Lauf ab).
   `summary.gameIds.passivesWithoutGameId` und in den Findings. Zeilen ohne PoB-Knoten sind kein Fehler.
 - **Slots:** feste Zuordnung PoB-Slot-Name → Inventory-Id in der Konfiguration (`slots.map`).
   Ein Eintrag mit unbekannter Inventory-Id ist ein Fehler; nicht zugeordnete Slots (Flasks,
-  Charms, Arme, Beine) bekommen keine ID und stehen in den Findings. Die Zuordnung ist
-  noch **nicht im Spiel verifiziert**.
+  Charms, Arme, Beine) bekommen keine ID und stehen in den Findings. Zugeordnet sind nur Slots, deren Inventory-Zeile
+  gleich heißt; `Weapon 2` und die Swap-Slots bleiben offen, bis die Zuordnung im Spiel geprüft ist.
 - Eine `gameId` darf in einem Release nur einmal vorkommen (Fehler sonst).
 
 ## Crafting-Daten aus den Update-Servern
