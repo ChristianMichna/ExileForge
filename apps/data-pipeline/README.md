@@ -134,11 +134,11 @@ festgelegt ist.
 Essenzen als Crafting-Aktionen (`src/normalize/essence.ts`, nur mit `--game-data`):
 Je PoB-Essenz (Schlüssel = Metadaten-Pfad = ID der Währungs-Basis) entsteht eine
 `craftingAction` (`kind` und Op aus `normalize.json` `essence`; Op `add-specific-mod`
-mit `modByItemClass`, definiert in `packages/crafting-sim`). Aufgenommen werden nur
+mit `modByItemClass`; Name und Form mit dem Crafting-Thread abgesprochen, umgesetzt wird sie in `packages/crafting-sim`). Aufgenommen werden nur
 Einträge, deren Basis, Item-Klasse und Mod im Release existieren; alles andere steht
 als Befund (`kind: essence`) in `findings.json`. Eine Essenz ohne brauchbaren Eintrag
-erzeugt keine Aktion. Rarität: PoB nennt keine Regel, deshalb setzt die Pipeline keine
-(Simulator meldet die Aktion dann als unkalibriert statt geraten).
+erzeugt keine Aktion. Aktionsname = PoB-Name (die Basis trägt den Namen aus den Game-Data). Rarität: PoB nennt keine Regel, deshalb setzt die Pipeline keine; der Simulator muss eine
+fehlende Raritätsregel als unkalibriert behandeln (Anforderung an die Op-Umsetzung). `validate.ts` prüft Basis, Item-Klassen und Mod-IDs der Aktion.
 
 IDs (Ausrüstung, Uniques, Gems, Mods aus PoB-Daten; Währungen aus den Game-Data-Tabellen, siehe ADR-0005):
 

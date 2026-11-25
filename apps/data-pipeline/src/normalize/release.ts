@@ -120,7 +120,13 @@ export async function buildCatalog(
     });
   }
   const essenceFindings: Finding[] = [];
-  if (extra.gameDataDir !== undefined) {
+  if (extra.gameDataDir === undefined)
+    essenceFindings.push({
+      kind: "essence",
+      id: "all",
+      message: "no game data given, essence crafting actions are left out",
+    });
+  else {
     const rawEssences = raw.essences;
     if (!rawEssences) throw new Error(`snapshot ${snap.releaseId} has no essences shard`);
     const res = essenceActions(

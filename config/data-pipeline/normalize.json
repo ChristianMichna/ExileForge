@@ -24,7 +24,7 @@
   "baseItemPropertyGroups": ["weapon", "armour", "flask", "charm"],
   "classAttributePrefix": "base_",
   "essence": {
-    "$comment": "Essences become crafting actions from PoB's per-class mod table (Data/Essence.lua). op is defined by packages/crafting-sim (add-specific-mod: modByItemClass). PoB gives no rarity rule for essences, so none is set.",
+    "$comment": "Essences become crafting actions from PoB's per-class mod table (Data/Essence.lua). op is the name agreed with the crafting thread (add-specific-mod, params modByItemClass); until packages/crafting-sim implements it the simulator reports the action as uncalibrated. PoB gives no rarity rule for essences, so none is set.",
     "kind": "essence",
     "op": "add-specific-mod"
   },

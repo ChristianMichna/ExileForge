@@ -109,6 +109,17 @@ async function writeGameData(levels: number[]): Promise<string> {
   });
 }
 
+describe("essences without game data", () => {
+  it("leaves actions out and says so", async () => {
+    const snap = await writeSnapshot(rawSnapshot());
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const { warnings } = await buildCatalog(snap, out, config, NOW);
+    expect(warnings.map((w) => w.message).join("\n")).toMatch(
+      /essence crafting actions are left out/,
+    );
+  });
+});
+
 describe("currency without game data", () => {
   it("leaves currency out and says so", async () => {
     const snap = await writeSnapshot(rawSnapshot());

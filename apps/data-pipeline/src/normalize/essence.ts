@@ -1,4 +1,3 @@
-import type { CraftingAction } from "@astrolabe/contracts/catalog";
 import { z } from "zod";
 import type { Json } from "../json.ts";
 import type { Finding, NormalizeConfig } from "./catalog.ts";
@@ -27,9 +26,10 @@ export function essenceActions(
     modIds: ReadonlySet<string>;
   },
   cfg: NormalizeConfig["essence"],
-): { actions: CraftingAction[]; findings: Finding[] } {
+): { actions: Record<string, unknown>[]; findings: Finding[] } {
   const findings: Finding[] = [];
-  const actions: CraftingAction[] = [];
+  // contract-checked afterwards by validateCatalog
+  const actions: Record<string, unknown>[] = [];
   for (const [id, raw] of Object.entries(rawEssences).sort(([a], [b]) => (a < b ? -1 : 1))) {
     const row = essenceRow.safeParse(raw);
     if (!row.success) throw new Error(`essence ${id} is malformed`, { cause: row.error });
@@ -65,6 +65,7 @@ export function essenceActions(
       });
       continue;
     }
+    // the name is PoB's; the base item (game data) carries its own, they are not cross-checked
     actions.push({
       id,
       name: row.data.name,
@@ -72,7 +73,7 @@ export function essenceActions(
       itemId: id,
       preconditions: [],
       effects: [{ op: cfg.op, params: { modByItemClass } }],
-    } as unknown as CraftingAction);
+    });
   }
   return { actions, findings };
 }
