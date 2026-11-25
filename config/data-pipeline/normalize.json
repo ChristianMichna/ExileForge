@@ -6,7 +6,7 @@
     "passiveNode": "passive_skill_stat_descriptions"
   },
   "uniqueLines": {
-    "$comment": "PoB writes unique lines that allocate a passive as this text (first capture group = node name), as on the unique jewel Megalomaniac (PoB data Uniques/jewel.lua). A name shared by several nodes or by none leaves the line unresolved.",
+    "$comment": "PoB writes unique lines that allocate a passive as this text (first capture group = node name), as generated for the unique jewel Megalomaniac (PoB data Uniques/Special/Generated.lua). Trusted repo configuration, not network input. A name shared by several nodes or by none leaves the line unresolved.",
     "allocatesPattern": "^Allocates (.+)$"
   },
   "passiveNodeKinds": {

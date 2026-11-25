@@ -29,12 +29,12 @@ export const normalizeConfigSchema = z
         /** Regular expression with one capture group: the name of the allocated node. */
         allocatesPattern: z.string().refine((p) => {
           try {
-            new RegExp(p);
-            return true;
+            // "|" adds an empty alternative, so exec("") succeeds and shows the group count
+            return (new RegExp(`${p}|`).exec("")?.length ?? 0) >= 2;
           } catch {
             return false;
           }
-        }, "must be a valid regular expression"),
+        }, "must be a valid regular expression with a capture group"),
       })
       .strict(),
     passiveNodeKinds: z
@@ -513,8 +513,25 @@ function normalizeUniques(
           ctx.warn("uniqueItem", id, `line "${text}" dropped: none of its variants exist`);
           continue;
         }
+        // an "Allocates <node>" line never goes through the stat matcher: the node is the fact
         const allocated = allocates.exec(text)?.[1];
         const nodeIds = allocated === undefined ? undefined : nodeIdsByName.get(allocated.trim());
+        if (allocated !== undefined && nodeIds !== undefined && nodeIds.length > 1) {
+          // several nodes share the name: say so, never pick one
+          ctx.warn(
+            "uniqueItem",
+            id,
+            `line "${text}": ${nodeIds.length} nodes named "${allocated.trim()}" (${nodeIds.join(", ")})`,
+          );
+          ctx.countUnresolved("uniqueItem", "ambiguous");
+          mods.push({
+            stats: [],
+            text,
+            unresolved: [{ text, reason: "ambiguous" }],
+            ...(known.length > 0 ? { variantIds: known } : {}),
+          });
+          continue;
+        }
         if (nodeIds?.length === 1) {
           // names a passive node: nothing to measure, the node is the fact
           ctx.summary.uniqueLinesAllocatingNode++;
@@ -1032,6 +1049,7 @@ export function normalizeCatalog(
   const spawn = spawnIndexOf(mod);
   const nodeIdsByName = new Map<string, string[]>();
   for (const n of tree.passiveNode) {
+    if (typeof n.name !== "string") continue; // requireStr already reported it
     const ids = nodeIdsByName.get(String(n.name)) ?? [];
     ids.push(String(n.id));
     nodeIdsByName.set(String(n.name), ids);

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { disambiguate, normalizeCatalog, spawnIndexOf } from "../src/normalize/catalog.ts";
+import {
+  disambiguate,
+  normalizeCatalog,
+  normalizeConfigSchema,
+  spawnIndexOf,
+} from "../src/normalize/catalog.ts";
 import { StatMatcher } from "../src/normalize/stat-matcher.ts";
 import { validateCatalog } from "../src/normalize/validate.ts";
 import { cfg, rawSnapshot, type RawFixture } from "./fixtures/raw-catalog.ts";
@@ -572,6 +577,56 @@ describe("unique lines that allocate a passive", () => {
     expect(mod).toMatchObject({ unresolved: [{ text: "Allocates Nowhere", reason: "unmatched" }] });
     expect(mod).not.toHaveProperty("allocatesNodeId");
     expect(summary.uniqueLinesAllocatingNode).toBe(0);
+  });
+
+  it("reports a name shared by several nodes as ambiguous and keeps the variants", () => {
+    const raw = rawSnapshot();
+    const tree = raw.passiveTree as Record<string, { kind: string; data: Record<string, unknown> }>;
+    const big = tree["2"];
+    if (!big) throw new Error("fixture node Big missing");
+    tree["900"] = { kind: "node", data: { ...big.data, skill: 900, connections: [] } };
+    raw.uniques["Allocator, Fake Ring"] = {
+      ...unique(["Allocates Big"]),
+      variants: ["Old", "New"],
+      explicitModLines: [{ line: "Allocates Big", variants: [2] }],
+    };
+    const { entities, summary, warnings } = run(raw);
+    const [mod] =
+      byId<{ id: string; mods: Record<string, unknown>[] }>(
+        entities.uniqueItem,
+        "Allocator, Fake Ring",
+      )?.mods ?? [];
+    expect(mod).toMatchObject({
+      unresolved: [{ text: "Allocates Big", reason: "ambiguous" }],
+      variantIds: ["2"],
+    });
+    expect(mod).not.toHaveProperty("allocatesNodeId");
+    expect(summary.uniqueLinesAllocatingNode).toBe(0);
+    expect(warnings.map((w) => w.message).join("\n")).toMatch(/2 nodes named "Big"/);
+  });
+
+  it("keeps variants on a resolved allocates line", () => {
+    const raw = rawSnapshot();
+    raw.uniques["Allocator, Fake Ring"] = {
+      ...unique([]),
+      variants: ["Old", "New"],
+      explicitModLines: [{ line: "Allocates Big", variants: [2] }],
+    };
+    const { entities } = run(raw);
+    const [mod] =
+      byId<{ id: string; mods: Record<string, unknown>[] }>(
+        entities.uniqueItem,
+        "Allocator, Fake Ring",
+      )?.mods ?? [];
+    expect(mod).toMatchObject({ allocatesNodeId: "2", variantIds: ["2"] });
+  });
+
+  it("requires a capture group in the pattern", () => {
+    const bad = { ...cfg, uniqueLines: { allocatesPattern: "^Allocates .+$" } };
+    expect(normalizeConfigSchema.safeParse(bad).success).toBe(false);
+    expect(
+      normalizeConfigSchema.safeParse({ ...cfg, uniqueLines: { allocatesPattern: "(" } }).success,
+    ).toBe(false);
   });
 
   it("rejects an allocated node that is not in the catalog", () => {
