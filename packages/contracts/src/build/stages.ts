@@ -158,6 +158,16 @@ export const GearPlan = z.object({
 });
 export type GearPlan = z.infer<typeof GearPlan>;
 
+/** What happens when a crafting step does not reach its check. */
+export const CraftOnFail = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("repeat") }),
+  z.object({ action: z.literal("restart") }),
+  z.object({ action: z.literal("accept") }),
+  z.object({ action: z.literal("abort"), reason: RichText }),
+  z.object({ action: z.literal("goto"), order: z.int().nonnegative() }),
+]);
+export type CraftOnFail = z.infer<typeof CraftOnFail>;
+
 export const CraftStep = z.object({
   order: z.int().nonnegative(),
   /** Actions used together in this step (e.g. a currency plus modifiers). */
@@ -166,13 +176,7 @@ export const CraftStep = z.object({
   successChance: MeasuredChance,
   expectedAttempts: MeasuredCount,
   expectedCost: MeasuredPrice,
-  onFail: z.discriminatedUnion("action", [
-    z.object({ action: z.literal("repeat") }),
-    z.object({ action: z.literal("restart") }),
-    z.object({ action: z.literal("accept") }),
-    z.object({ action: z.literal("abort"), reason: RichText }),
-    z.object({ action: z.literal("goto"), order: z.int().nonnegative() }),
-  ]),
+  onFail: CraftOnFail,
 });
 export type CraftStep = z.infer<typeof CraftStep>;
 
