@@ -131,8 +131,10 @@ export class PoeNinjaClient {
       body = cached.body;
     } else if (response.status === 429) {
       const seconds = Number(response.headers.get("retry-after"));
-      const backoffMs =
-        Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : config.rateLimitBackoffMs;
+      const backoffMs = Math.min(
+        Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : config.rateLimitBackoffMs,
+        config.maxRateLimitBackoffMs,
+      );
       this.blockedUntil = this.clock() + backoffMs;
       throw new EconomyError("rate_limited", `provider answered 429 for ${url}`);
     } else if (response.status >= 300 && response.status < 400) {

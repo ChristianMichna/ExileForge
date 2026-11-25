@@ -38,5 +38,6 @@
   "$commentUserAgent": "The provider asks for a contact in the User-Agent. None is set: it has to be chosen by the project owner (a public address), and no private data goes into this string.",
   "rateLimitBackoffMs": 900000,
   "minQuotes": 1,
-  "$commentConfidence": "Provisional: the volume thresholds are not calibrated against real data yet."
+  "$commentConfidence": "Provisional: the volume thresholds are not calibrated against real data yet.",
+  "maxRateLimitBackoffMs": 3600000
 }

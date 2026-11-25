@@ -29,6 +29,8 @@ export const EconomyConfig = z
     requestTimeoutMs: z.int().positive(),
     /** Pause after a 429 without a usable Retry-After. */
     rateLimitBackoffMs: z.int().positive(),
+    /** Upper bound for a provider-given Retry-After. */
+    maxRateLimitBackoffMs: z.int().positive(),
     /** A refresh with fewer usable quotes is refused and the old book kept. */
     minQuotes: z.int().positive(),
     maxResponseBytes: z.int().positive(),

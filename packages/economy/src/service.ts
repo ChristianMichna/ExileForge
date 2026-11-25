@@ -29,7 +29,10 @@ export interface BookResult {
 
 export class EconomyService {
   private readonly now: () => Date;
-  private readonly inFlight = new Map<string, Promise<PriceBook>>();
+  private readonly inFlight = new Map<
+    string,
+    Promise<{ book: PriceBook; warnings: EconomyError[] }>
+  >();
 
   constructor(private readonly deps: EconomyServiceDeps) {
     this.now = deps.now ?? (() => new Date());
@@ -86,22 +89,24 @@ export class EconomyService {
     }
   }
 
-  /** Concurrent callers of the same league share one fetch. */
-  private refreshWithWarnings(league: string): Promise<BookResult> {
-    const warnings: EconomyError[] = [];
+  /** Concurrent callers of the same league share one fetch, and its warnings. */
+  private async refreshWithWarnings(league: string): Promise<BookResult> {
     let run = this.inFlight.get(league);
     if (!run) {
-      run = this.fetchAndStore(league, warnings).finally(() => this.inFlight.delete(league));
+      run = this.fetchAndStore(league).finally(() => this.inFlight.delete(league));
       this.inFlight.set(league, run);
     }
-    return run.then((book) => ({ book, freshness: "fresh" as const, warnings }));
+    const { book, warnings } = await run;
+    return { book, freshness: "fresh", warnings: [...warnings] };
   }
 
   async refresh(league: string): Promise<PriceBook> {
     return (await this.refreshWithWarnings(league)).book;
   }
 
-  private async fetchAndStore(league: string, warnings: EconomyError[]): Promise<PriceBook> {
+  private async fetchAndStore(
+    league: string,
+  ): Promise<{ book: PriceBook; warnings: EconomyError[] }> {
     const { config, client, books } = this.deps;
     const startedAt = this.now().toISOString();
     const responses = [];
@@ -123,17 +128,19 @@ export class EconomyService {
         `only ${book.quotes.length} usable quotes (minimum ${config.minQuotes}), ${book.unmappedProviderItemIds.length} ids unmapped; the previous book is kept`,
       );
     }
+    // A book that breaks the contract is a bug and fails loudly; only storing is allowed to fail softly.
+    const valid = PriceBookSchema.parse(book);
+    const warnings: EconomyError[] = [];
     try {
-      await books.set(PriceBookSchema.parse(book));
+      await books.set(valid);
     } catch (error) {
-      // The fresh book is still good; say that it could not be kept.
       warnings.push(
         error instanceof EconomyError
           ? error
           : new EconomyError("cache_error", "price book could not be stored", { cause: error }),
       );
     }
-    return book;
+    return { book, warnings };
   }
 
   /** `economy.price`: output of the contract tool. */

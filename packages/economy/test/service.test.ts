@@ -177,6 +177,15 @@ describe("EconomyService, failure handling", () => {
     });
   });
 
+  it("gives every concurrent caller the warnings of the shared fetch", async () => {
+    const { service } = setup({ failStore: true });
+    const results = await Promise.all([
+      service.getBook("TestLeague"),
+      service.getBook("TestLeague"),
+    ]);
+    for (const r of results) expect(r.warnings[0]?.code).toBe("cache_error");
+  });
+
   it("returns a fresh book with a warning when it could not be stored", async () => {
     const { service } = setup({ failStore: true });
     const result = await service.getBook("TestLeague");

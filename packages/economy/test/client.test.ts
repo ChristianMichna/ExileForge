@@ -166,6 +166,30 @@ describe("PoeNinjaClient", () => {
     expect(calls).toHaveLength(2);
   });
 
+  it("caps a huge Retry-After at the configured maximum", async () => {
+    let time = 0;
+    let calls = 0;
+    const client = new PoeNinjaClient({
+      config,
+      appVersion: "1",
+      http: new MemoryHttpCache(),
+      fetch: (async () => {
+        calls++;
+        return new Response("x", { status: 429, headers: { "retry-after": "99999999" } });
+      }) as unknown as typeof fetch,
+      sleep: async (ms) => void (time += ms),
+      clock: () => time,
+    });
+    await expect(client.exchangeOverview("L", "TypeA")).rejects.toMatchObject({
+      code: "rate_limited",
+    });
+    time += config.maxRateLimitBackoffMs + 1;
+    await expect(client.exchangeOverview("L", "TypeA")).rejects.toMatchObject({
+      code: "rate_limited",
+    });
+    expect(calls).toBe(2);
+  });
+
   it("stops reading a body that grows past the limit without announcing a length", async () => {
     let pulled = 0;
     const stream = new ReadableStream<Uint8Array>({
