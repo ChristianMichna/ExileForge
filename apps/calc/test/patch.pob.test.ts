@@ -1,4 +1,9 @@
-import type { BuildHandle, CalcResult, PatchOp } from "@exileforge/contracts";
+import {
+  CharacterClassId,
+  type BuildHandle,
+  type CalcResult,
+  type PatchOp,
+} from "@exileforge/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CalcPool } from "../src/index.ts";
 import { golden, havePob, startPobPool } from "./pob-setup.ts";
@@ -314,20 +319,34 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     const other = await golden("pobb-ljOBlCON5WGB");
     const classId = /<Build [^>]*className="([^"]+)"/.exec(other)?.[1] ?? "";
     expect(classId).not.toBe("");
-    const template = await pool.baseBuild(classId as never);
+    const template = await pool.baseBuild(CharacterClassId.parse(classId));
     expect(template.payload).toMatch(/<Build [^>]*level="1"/);
     expect(template.payload).toContain(`className="${classId}"`);
-    // PoB allocates only the class start itself; no items
+    // PoB allocates only the class start itself; no items; level pinned
     const fresh = readBuild(template.payload);
-    expect(fresh.nodes.length).toBeLessThanOrEqual(1);
+    expect(fresh.nodes.filter((n) => n !== "")).toHaveLength(1);
     expect(fresh.slots).toEqual([]);
+    expect(template.payload).toMatch(/characterLevelAutoMode="false"/);
     const { handle } = await pool.request("build.load", template);
     expect((await pool.request("build.export", { handle, format: "xml" })).payload).toBe(
       template.payload,
     );
-    await expect(pool.baseBuild("exileforge-no-such-class" as never)).rejects.toMatchObject({
+    await expect(
+      pool.baseBuild(CharacterClassId.parse("exileforge-no-such-class")),
+    ).rejects.toMatchObject({
       kind: "invalid_params",
     });
+  });
+
+  it("keeps a fresh build at level 1 when passives are allocated", async () => {
+    const classId = /<Build [^>]*className="([^"]+)"/.exec(xml)?.[1] ?? "";
+    const template = await pool.baseBuild(CharacterClassId.parse(classId));
+    const { handle } = await pool.request("build.load", template);
+    const grown = await patch(ops([{ op: "allocateNodes", nodeIds: facts.nodes }]), handle);
+    const exported = (await pool.request("build.export", { handle: grown.handle, format: "xml" }))
+      .payload;
+    expect(readBuild(exported).nodes.length).toBeGreaterThan(2);
+    expect(exported).toMatch(/<Build [^>]*level="1"/);
   });
 
   it("rejects bad ops with the op index and leaves no half-patched state", async () => {

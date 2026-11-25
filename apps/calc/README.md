@@ -123,8 +123,11 @@ CalcPool (Node)                         PobWorker × N (LuaJIT, cwd = PoB/src)
 Nicht Teil des Vertrags. PoB legt einen neuen Build der Klasse an (Level 1,
 nur der Klassenstart vergeben, keine Items, keine Skills) und exportiert ihn als
 XML: `{ format: "xml", payload }`. Das Ergebnis geht in `build.load` und ist der
-Ausgangszustand für `diffBuildState` (`packages/calc-client`). Eine Klasse, die
-es im Baum nicht gibt, ist `invalid_params`. So liegt keine handgeschriebene
+Ausgangszustand für `diffBuildState` (`packages/calc-client`). Das Level ist fest auf 1 gesetzt (`characterLevelAutoMode="false"`), sonst
+rechnet PoB es aus den vergebenen Punkten hoch. Der Klassenstart ist in der
+Vorlage vergeben, steht aber nicht in `BuildState.tree`; `diffBuildState`
+fasst ihn nie an. Eine Klasse, die es im Baum nicht gibt, ist
+`invalid_params`. So liegt keine handgeschriebene
 Vorlage im Repo, und die Vorlage passt immer zur geladenen PoB-Version.
 
 ## `calc.nodePower`

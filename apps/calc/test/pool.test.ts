@@ -282,6 +282,12 @@ describe("CalcPool with the fake worker", () => {
     );
   });
 
+  it("refuses a base build on a closed pool", async () => {
+    const { pool } = await fakePool();
+    await pool.close();
+    await expectKind(pool.baseBuild(CharacterClassId.parse("FixtureClass")), "worker_crashed");
+  });
+
   it("forgets released builds", async () => {
     const { pool } = await fakePool();
     const { handle } = await pool.request("build.load", { format: "xml", payload: XML });

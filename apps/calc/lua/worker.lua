@@ -737,8 +737,7 @@ methods["build.template"] = function(params)
 	current = nil
 	takePrompt()
 	local ok, err = pcall(function()
-		newBuild()
-		runCallback("OnFrame")
+		newBuild() -- runs its own frame
 	end)
 	if not ok then
 		fail("calc_failed", "Path of Building could not start a new build", tostring(err))
@@ -748,6 +747,12 @@ methods["build.template"] = function(params)
 		fail("invalid_params", "Class not in this tree version", params.classId)
 	end
 	build.spec:SelectClass(classId)
+	-- A new build levels with its passive points (auto mode); the state says
+	-- level 1, so pin it, as the setLevel patch op does.
+	build.characterLevel = 1
+	build.characterLevelAutoMode = false
+	build.controls.characterLevel:SetText(build.characterLevel)
+	build.configTab:BuildModList()
 	build.buildFlag = true
 	runCallback("OnFrame")
 	local prompt = takePrompt()
