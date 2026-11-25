@@ -97,6 +97,18 @@ export type PlanStep =
       run(ctx: PipelineContext): Promise<JsonValue>;
     }
   | { kind: "wait_user"; reason: RichText }
+  /**
+   * Sends a stage back: drops its results and everything after, and shows the findings to the
+   * task that redoes it. After `maxReturns` returns of the same stage the run fails visibly.
+   */
+  | {
+      kind: "return";
+      stage: TaskType;
+      findings: Finding[];
+      maxReturns: number;
+      /** What still fails, for the error when the returns are used up. */
+      summary: string;
+    }
   /** The pipeline cannot go on (missing stage, wrong engine). Fails the run visibly. */
   | { kind: "blocked"; error: { code: string; message: string } }
   | { kind: "done" };

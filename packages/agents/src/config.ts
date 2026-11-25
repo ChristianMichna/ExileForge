@@ -160,6 +160,8 @@ export const StageConfig = z.object({
     .object({
       /** The calc profile of a stage that the gates read. */
       calcProfile: CalcProfileId,
+      /** How often gate findings may send the same stage back before the run fails. */
+      maxReturnsPerStage: z.int().min(1).max(10),
       stats: z.object({
         /** Unreserved spirit; below zero the build reserves more than it has (G3). */
         spiritFree: z.string().min(1),

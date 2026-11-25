@@ -62,3 +62,9 @@ export const S9_SECTION = [
   "Reference measured values with calc segments using the calc ids given in the context; get the stat names with calc_evaluate (always with the runId) and never type a number. Do not name game mechanics that the plans and the catalog do not show. Mention catalog entities as entity segments.",
   NO_MEMORY_RULES,
 ].join(" ");
+
+export const S10_CRITIC = [
+  "Read the finished guide draft in the context as a critical reviewer. Look only for contradictions inside the draft and the request: prose that disagrees with the plans, items or choices it describes, or with itself, advice that does not fit the player's mode or budget as the request states them, and steps that cannot be followed in the order the plans give.",
+  "Report each problem as an issue with the section it is in and a short plain-text message without digits, and name every section you actually read in `reviewed`. Do not rewrite anything, do not invent problems, and report no issue when there is none. Measured values are not in the draft; the gates check them, so do not judge numbers.",
+  NO_MEMORY_RULES,
+].join(" ");
