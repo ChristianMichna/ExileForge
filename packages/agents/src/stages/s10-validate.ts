@@ -14,7 +14,9 @@ import type { StatMap } from "@astrolabe/contracts/calc";
 import { GuideDocument } from "@astrolabe/contracts/guide";
 import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
-import type { PipelineContext, PlanStep } from "../pipeline.js";
+import { type AnyTaskSpec, defineTask, type PipelineContext, type PlanStep } from "../pipeline.js";
+import { S10_CRITIC } from "../prompts.js";
+import { requestContext } from "./context.js";
 import { craftKey, S8_PLAN_KEY } from "./s8-craft.js";
 import { S6_PLAN_KEY } from "./s6-progression.js";
 import { S7_PLAN_KEY } from "./s7-plan.js";
@@ -22,6 +24,72 @@ import { itemEntities } from "./s7-gear.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
 
 export const S10_REPORT_KEY = "S10.report";
+export const S10_CRITIC_KEY = "S10.critic";
+
+/** What the critic reads: the written sections of the guide. */
+export const CRITIC_SECTIONS = [
+  "summary",
+  "mechanics",
+  "progression",
+  "gear",
+  "crafting",
+  "playstyle",
+  "atlas",
+  "variants",
+  "faq",
+] as const;
+export type CriticSection = (typeof CRITIC_SECTIONS)[number];
+
+export const CriticVerdict = z.object({
+  reviewed: z.array(z.enum(CRITIC_SECTIONS)).min(1),
+  issues: z
+    .array(
+      z.object({
+        section: z.enum(CRITIC_SECTIONS),
+        message: z.string().min(1).max(1000),
+      }),
+    )
+    .max(50),
+});
+export type CriticVerdict = z.infer<typeof CriticVerdict>;
+
+/** G8 task (Claude as critic): consistency of text and data over the whole draft. */
+export function criticTask(
+  ctx: PipelineContext,
+  config: StageConfig,
+  inputs: S10Inputs,
+): AnyTaskSpec | string {
+  let draft: GuideDraft;
+  try {
+    draft = assembleDraft(ctx, inputs);
+  } catch (cause) {
+    return cause instanceof Error ? cause.message : String(cause);
+  }
+  return defineTask<CriticVerdict>({
+    key: S10_CRITIC_KEY,
+    type: "S10.critic",
+    promptVersion: config.promptVersion,
+    instructions: S10_CRITIC,
+    context: {
+      request: requestContext(ctx),
+      draft: JSON.parse(JSON.stringify(draft)) as JsonValue,
+    },
+    schema: CriticVerdict,
+    allowedTools: ["catalog_get"],
+  });
+}
+
+/** G8 from the critic's verdict: passes only if every part was read and nothing was found. */
+function criticGate(verdict: CriticVerdict | undefined): Finding[] {
+  if (verdict === undefined) {
+    return [finding("G8", "check_not_built", "The critic has not reviewed the guide.")];
+  }
+  const missed = CRITIC_SECTIONS.filter((s) => !verdict.reviewed.includes(s));
+  return [
+    ...missed.map((s) => finding("G8", "section_not_reviewed", `The critic did not read ${s}.`)),
+    ...verdict.issues.map((i) => finding("G8", "inconsistency", `${i.section}: ${i.message}`)),
+  ];
+}
 
 /** The guide as assembled by the app; metadata and the final report are added at publishing (S11). */
 export const GuideDraft = GuideDocument.omit({ metadata: true, validation: true });
@@ -225,7 +293,6 @@ const NOT_BUILT: Partial<Record<Finding["gate"], string>> = {
   G2: "the required calc profiles of the config and the list of unsupported mods",
   G6: "the continuity of skills between stages (lost gems)",
   G7: "the minimum counts of the guide parts and rares of earlier tiers",
-  G8: "the whole gate (consistency of text and data, critic)",
 };
 
 type S10Config = NonNullable<StageConfig["s10"]>;
@@ -367,6 +434,7 @@ export async function runGates(
   ctx: PipelineContext,
   draft: GuideDraft,
   cfg?: S10Config,
+  critic?: CriticVerdict,
 ): Promise<GateResult[]> {
   const measured = cfg === undefined ? undefined : await measuredGates(ctx, draft, cfg);
   const g1 = draftEntities(draft)
@@ -430,6 +498,7 @@ export async function runGates(
     G3: measured?.g3 ?? [],
     G4: measured?.g4 ?? [],
     G5: measured?.g5 ?? [],
+    G8: criticGate(critic),
     G1: g1,
     G2: g2,
     G6: g6,
@@ -459,7 +528,9 @@ export function validateStep(inputs: S10Inputs, cfg?: S10Config): PlanStep {
     type: "S10",
     run: async (runCtx) => {
       const draft = assembleDraft(runCtx, inputs);
-      const gates = await runGates(runCtx, draft, cfg);
+      const stored = runCtx.result(S10_CRITIC_KEY);
+      const critic = stored === undefined ? undefined : CriticVerdict.parse(stored);
+      const gates = await runGates(runCtx, draft, cfg, critic);
       return JSON.parse(
         JSON.stringify({ passed: gates.every((g) => g.passed), gates, draft }),
       ) as JsonValue;

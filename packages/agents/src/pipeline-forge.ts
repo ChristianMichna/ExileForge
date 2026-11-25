@@ -38,7 +38,7 @@ import { releaseStageTable } from "./stages/s6-table.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 import { CraftingPlan, GearPlan, ProgressionPlan } from "@astrolabe/contracts/build";
-import { S10_REPORT_KEY, validateStep } from "./stages/s10-validate.js";
+import { criticTask, S10_CRITIC_KEY, S10_REPORT_KEY, validateStep } from "./stages/s10-validate.js";
 import { S9_SECTIONS, sectionKey, sectionTask } from "./stages/s9-guide.js";
 import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
 
@@ -69,7 +69,8 @@ export function createForgePipeline(config: StageConfig): Pipeline {
       (config.s6 === undefined ? 0 : 1) +
       (config.s7 === undefined ? 0 : (tiersOf(config.s7, ctx.run.request.budget)?.length ?? 0)) +
       craftTaskCount(ctx) +
-      S9_SECTIONS.length,
+      S9_SECTIONS.length +
+      1,
     validateIntervention: (intervention: UserIntervention, ctx) => {
       if (intervention.kind !== "chooseVariant") return undefined;
       if (ctx.result(S3_KEY) === undefined) {
@@ -389,6 +390,17 @@ function planGuide(
       crafting: JSON.parse(JSON.stringify(crafting.data)) as JsonValue,
     };
     return { kind: "task", spec: sectionTask(ctx, config, open, { chosen, target, plans }) };
+  }
+  if (ctx.result(S10_CRITIC_KEY) === undefined) {
+    const critic = criticTask(ctx, config, {
+      chosen,
+      target,
+      mainSkillId: mainSkillOfRun(ctx),
+    });
+    if (typeof critic === "string") {
+      return { kind: "blocked", error: { code: "invalid_plans", message: critic } };
+    }
+    return { kind: "task", spec: critic };
   }
   if (ctx.result(S10_REPORT_KEY) === undefined)
     return validateStep({ chosen, target, mainSkillId: mainSkillOfRun(ctx) }, config.s10);

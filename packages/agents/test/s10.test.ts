@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { StageConfig } from "../src/config.js";
 import type { PipelineContext } from "../src/pipeline.js";
 import {
+  CRITIC_SECTIONS,
   type GuideDraft,
   assembleDraft,
+  criticTask,
   draftEntities,
   runGates,
 } from "../src/stages/s10-validate.js";
@@ -276,5 +279,48 @@ describe("S10 measured gates", () => {
     for (const g of ["G3", "G4", "G5"]) {
       expect(gates.find((x) => x.gate === g)?.passed).toBe(false);
     }
+  });
+});
+
+describe("S10 critic (G8)", () => {
+  const verdict = (over: object = {}) => ({
+    reviewed: [...CRITIC_SECTIONS],
+    issues: [],
+    ...over,
+  });
+  const g8 = async (v?: object) =>
+    (await runGates(ctx(), draft(), undefined, v as never)).find((g) => g.gate === "G8");
+
+  it("fails G8 until the critic has reviewed the guide", async () => {
+    const gate = await g8(undefined);
+    expect(gate?.passed).toBe(false);
+    expect(gate?.findings.map((f) => f.code)).toEqual(["check_not_built"]);
+  });
+
+  it("passes G8 when every section was read and nothing was found", async () => {
+    expect((await g8(verdict()))?.passed).toBe(true);
+  });
+
+  it("turns issues and unread sections into findings", async () => {
+    const gate = await g8(
+      verdict({
+        reviewed: ["summary"],
+        issues: [{ section: "faq", message: "Contradicts the gear plan" }],
+      }),
+    );
+    expect(gate?.passed).toBe(false);
+    const codes = gate?.findings.map((f) => f.code) ?? [];
+    expect(codes).toContain("inconsistency");
+    expect(codes).toContain("section_not_reviewed");
+  });
+
+  it("names the problem as text when the draft cannot be assembled", () => {
+    const c = { run: { request: {} }, result: () => undefined } as never as PipelineContext;
+    const out = criticTask(c, { promptVersion: "t" } as StageConfig, {
+      chosen: {} as never,
+      target: {} as never,
+      mainSkillId: "G",
+    });
+    expect(typeof out).toBe("string");
   });
 });
