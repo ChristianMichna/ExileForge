@@ -1,0 +1,9 @@
+{
+  "$comment": "Provisional defaults for the minimal planning form. Budget tier ids belong to config and the data release; the full intake form (F-05) will list them from there and replace this file.",
+  "budgetTiers": [
+    { "id": "start", "label": "League start" },
+    { "id": "mid", "label": "Mid" },
+    { "id": "endgame", "label": "Endgame" }
+  ],
+  "defaults": { "leveling": "start", "endgame": "mid" }
+}

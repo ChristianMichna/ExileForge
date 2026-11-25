@@ -13,3 +13,4 @@ export { createPocPipeline } from "./pipelines/poc-pipeline.js";
 export { createForgeMcpServer, mcpToolName, MCP_SERVER_NAME } from "./mcp/forge-mcp.js";
 export { startServer, DEFAULT_PORT, type StartOptions } from "./start.js";
 export { createStderrLogger, type Logger } from "./logger.js";
+export { defaultTokenFile, loadOrCreateAccessToken } from "./access-token.js";
