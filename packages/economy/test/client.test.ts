@@ -59,6 +59,20 @@ describe("PoeNinjaClient", () => {
     expect(call?.headers["User-Agent"]).toBe("TestApp/9.9.9 (contact: https://example.test/app)");
   });
 
+  it("requests unique overviews from the configured path and accepts numeric line ids", async () => {
+    const withUniques = {
+      ...config,
+      paths: { ...config.paths, uniqueOverview: "/{game}/api/uniques" },
+    };
+    const { client, calls } = setup(
+      () => json({ lines: [{ id: 7, name: "Alpha Piece", primaryValue: 2 }] }),
+      withUniques,
+    );
+    const out = await client.uniqueOverview("L", "UniqueX");
+    expect(calls[0]?.url).toBe("https://prices.example.test/gx/api/uniques?league=L&type=UniqueX");
+    expect(out.lines[0]?.id).toBe("7");
+  });
+
   it("keeps the minimum interval between requests, also for concurrent callers", async () => {
     const { client, sleeps } = setup(() => json(responseA));
     await Promise.all([
