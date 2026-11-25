@@ -12,7 +12,7 @@ import {
 } from "@astrolabe/contracts/build";
 import type { StatMap } from "@astrolabe/contracts/calc";
 import { GuideDocument } from "@astrolabe/contracts/guide";
-import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
+import type { CalcId, EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { type AnyTaskSpec, defineTask, type PipelineContext, type PlanStep } from "../pipeline.js";
 import { S10_CRITIC } from "../prompts.js";
@@ -337,24 +337,48 @@ const NOT_BUILT: Partial<Record<Finding["gate"], string>> = {
 
 type S10Config = NonNullable<StageConfig["s10"]>;
 
-/** The PoB outputs of every progression stage for the configured calc profile. */
+/** One thing the gates measure: a progression stage, or for the endgame stage the geared build. */
+interface Subject {
+  stage: GuideDraft["progression"]["stages"][number];
+  /** JSON pointer of the calculations that were read. */
+  path: string;
+  /** The stage that fixes a finding about this subject. */
+  returnTo: "S6" | "S7";
+  stats?: StatMap;
+}
+
+/**
+ * The PoB outputs the gates read for the configured calc profile. Progression stages carry no
+ * gear, so for endgame stages the numbers come from the last gear tier (the target build wearing
+ * that tier's items); a campaign stage is measured as it is.
+ */
 async function stageStats(
   ctx: PipelineContext,
   draft: GuideDraft,
   profile: string,
-): Promise<
-  { stage: GuideDraft["progression"]["stages"][number]; index: number; stats?: StatMap }[]
-> {
-  const out: {
-    stage: GuideDraft["progression"]["stages"][number];
-    index: number;
-    stats?: StatMap;
-  }[] = [];
+): Promise<Subject[]> {
+  const read = async (outcome: { status: string; calcId?: string } | undefined) => {
+    const loaded =
+      outcome?.status === "ok" && outcome.calcId !== undefined
+        ? await ctx.calc.getResult(outcome.calcId as CalcId)
+        : undefined;
+    return loaded?.calcProfile === profile ? loaded.stats : undefined;
+  };
+  const lastTier = draft.gear.tiers.length - 1;
+  const out: Subject[] = [];
   for (const [index, stage] of draft.progression.stages.entries()) {
-    const outcome = stage.calcs[profile];
-    const loaded = outcome?.status === "ok" ? await ctx.calc.getResult(outcome.calcId) : undefined;
-    const result = loaded?.calcProfile === profile ? loaded : undefined;
-    out.push({ stage, index, ...(result === undefined ? {} : { stats: result.stats }) });
+    const geared = stage.kind === "endgame";
+    const stats = await read(
+      geared ? draft.gear.tiers[lastTier]?.calcs[profile] : stage.calcs[profile],
+    );
+    out.push({
+      stage,
+      path: geared
+        ? `/gear/tiers/${String(lastTier)}/calcs`
+        : `/progression/stages/${String(index)}/calcs`,
+      returnTo: geared ? "S7" : "S6",
+      ...(stats === undefined ? {} : { stats }),
+    });
   }
   return out;
 }
@@ -380,8 +404,7 @@ async function measuredGates(
       .sort((a, b) => b.fromLevel - a.fromLevel)[0]?.[field];
   const ehpSet = cfg.thresholds.some((t) => t.minEhp !== undefined);
   const dpsSet = cfg.thresholds.some((t) => t.minDps !== undefined);
-  for (const { stage, index, stats } of await stageStats(ctx, draft, cfg.calcProfile)) {
-    const path = `/progression/stages/${index}/calcs`;
+  for (const { stage, path, returnTo, stats } of await stageStats(ctx, draft, cfg.calcProfile)) {
     if (stats === undefined) {
       const msg = `Stage ${stage.key} has no readable result for profile ${cfg.calcProfile}.`;
       g3.push(finding("G3", "stats_unavailable", msg, path));
@@ -400,7 +423,7 @@ async function measuredGates(
           "spirit_overdrawn",
           `Stage ${stage.key} reserves more spirit than it has.`,
           path,
-          "S6",
+          returnTo,
         ),
       );
     }
@@ -415,7 +438,7 @@ async function measuredGates(
               "resistance_below_cap",
               `Stage ${stage.key}: ${name} is above zero, the cap is not reached.`,
               path,
-              "S6",
+              returnTo,
             ),
           );
         }
@@ -442,7 +465,13 @@ async function measuredGates(
       if (value === undefined) list.push(missing(gate, statName));
       else if (value < min) {
         list.push(
-          finding(gate, code, `Stage ${stage.key} is below the configured minimum.`, path, "S6"),
+          finding(
+            gate,
+            code,
+            `Stage ${stage.key} is below the configured minimum.`,
+            path,
+            returnTo,
+          ),
         );
       }
     }

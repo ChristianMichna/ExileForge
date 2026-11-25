@@ -85,6 +85,7 @@ describe("PobSkeleton", () => {
       feasible: true,
       violations: [],
       failedEvaluationCount: 0,
+      failedEvaluations: [],
       stoppedBy: "budget_spent",
     });
     const out = await skeleton.evaluate({ request: REQUEST, profile, candidate: cand });
@@ -187,6 +188,7 @@ describe("PobSkeleton", () => {
       feasible: true,
       violations: [],
       failedEvaluationCount: 0,
+      failedEvaluations: [],
       stoppedBy: "budget_spent",
     };
     const input = { request: REQUEST, profile, candidate: cand, state, passivePoints: 7 };
@@ -218,6 +220,7 @@ describe("PobSkeleton", () => {
       feasible: true,
       violations: [],
       failedEvaluationCount: 0,
+      failedEvaluations: [],
       stoppedBy: "budget_spent",
     });
     const request = BuildRequest.parse({ ...REQUEST, calcOverrides: { enemyIsBoss: "Uber" } });
@@ -233,6 +236,7 @@ describe("PobSkeleton", () => {
       feasible: true,
       violations: [],
       failedEvaluationCount: 0,
+      failedEvaluations: [],
       stoppedBy: "no_gain",
     });
     await expect(

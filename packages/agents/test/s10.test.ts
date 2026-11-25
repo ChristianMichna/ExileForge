@@ -49,6 +49,7 @@ const draft = (over: object = {}) =>
     gear: {
       tiers: [
         {
+          calcs: { mapping: { status: "ok", calcId: "c1" } },
           slots: [
             {
               slot: "Ring 1",
@@ -254,6 +255,33 @@ describe("S10 measured gates", () => {
     // level 5 is below the smallest fromLevel: not checked, so the gate cannot pass
     const codes = await run(good, 5);
     expect(codes).toEqual(expect.arrayContaining(["G4:threshold_missing", "G5:threshold_missing"]));
+  });
+
+  it("measures the endgame stage with the gear of the last tier and sends findings to S7", async () => {
+    const ids: string[] = [];
+    const ctxSeen = {
+      ...(ctx() as object),
+      calc: {
+        getResult: (id: string) => {
+          ids.push(id);
+          return Promise.resolve({
+            calcProfile: "mapping",
+            stats: { Sp: 5, MissFire: 4, MissCold: 0, Ehp: 500, Dps: 5000 },
+          });
+        },
+      },
+    } as never as PipelineContext;
+    const d = stageAt(90);
+    const tier = d.gear.tiers[0];
+    if (tier === undefined) throw new Error("the fixture has a gear tier");
+    tier.calcs = { mapping: { status: "ok", calcId: "geared" } } as never;
+    const gates = await runGates(ctxSeen, d, cfg as never);
+    expect(ids).toEqual(["geared"]);
+    const g4 = gates.find((g) => g.gate === "G4")?.findings ?? [];
+    expect(g4.find((f) => f.code === "resistance_below_cap")).toMatchObject({
+      returnTo: "S7",
+      path: "/gear/tiers/0/calcs",
+    });
   });
 
   it("skips the resistance check for stage kinds that are not configured", async () => {

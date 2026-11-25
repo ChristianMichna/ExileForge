@@ -152,6 +152,12 @@ export const GearPlan = z.object({
         budgetTier: BudgetTierId,
         slots: z.array(GearSlotPlan).min(1),
         upgradeOrder: z.array(z.object({ slot: z.string().min(1), gainPerCost: MeasuredRatio })),
+        /**
+         * The target build wearing this tier's gear, measured per calc profile. The gates read the
+         * endgame numbers (resistances, EHP, damage) here, because the progression stages carry
+         * no gear. Empty for plans written before this field existed.
+         */
+        calcs: z.record(CalcProfileId, CalcOutcome).default({}),
       }),
     )
     .min(1),

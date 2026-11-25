@@ -209,6 +209,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       this.options.logger.info("progression had failed evaluations", {
         candidate: input.candidate.key,
         failedEvaluations: result.failedEvaluationCount,
+        firstFailures: result.failedEvaluations.slice(0, 3),
       });
     }
     const last = result.stages.at(-1);
@@ -297,6 +298,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         feasible: result.feasible,
         violations: result.violations,
         failedEvaluations: result.failedEvaluationCount,
+        firstFailures: result.failedEvaluations.slice(0, 3),
         stoppedBy: result.stoppedBy,
       });
     }
