@@ -1,19 +1,23 @@
 import { z } from "zod";
 import {
   type ArchetypeCandidate,
+  type BuildState,
   type CraftingPlan,
   CraftingPlan as CraftingPlanSchema,
-  type Finding,
+  Finding,
+  GateResult,
   GearPlan,
   ProgressionPlan,
   type TargetBuild,
 } from "@astrolabe/contracts/build";
 import { GuideDocument } from "@astrolabe/contracts/guide";
-import { EntityKind, type EntityRef, type JsonValue } from "@astrolabe/contracts/common";
+import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { PipelineContext, PlanStep } from "../pipeline.js";
-import { craftKey } from "./s8-craft.js";
+import { craftKey, S8_PLAN_KEY } from "./s8-craft.js";
+import { S6_PLAN_KEY } from "./s6-progression.js";
+import { S7_PLAN_KEY } from "./s7-plan.js";
 import { itemEntities } from "./s7-gear.js";
-import { type S9Section, sectionKey, type SummaryDraft, walkSection } from "./s9-guide.js";
+import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
 
 export const S10_REPORT_KEY = "S10.report";
 
@@ -28,75 +32,137 @@ export interface S10Inputs {
   mainSkillId: string;
 }
 
-/** Puts the stored plans and the written sections together; a string names what is wrong. */
-export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDraft | string {
-  const section = (s: S9Section): unknown => ctx.result(sectionKey(s));
-  const progression = ProgressionPlan.safeParse(ctx.result("S6.plan"));
-  const gear = GearPlan.safeParse(ctx.result("S7.plan"));
-  const crafting = z
-    .object({ plans: z.array(CraftingPlanSchema) })
-    .safeParse(ctx.result("S8.plan"));
-  if (!progression.success) return "The stored progression plan (S6) is unreadable.";
-  if (!gear.success) return "The stored gear plan (S7) is unreadable.";
-  if (!crafting.success) return "The stored crafting plans (S8) are unreadable.";
+/** Parses a stored result; the error names the part and keeps the schema error as cause. */
+function stored<T>(schema: z.ZodType<T>, value: unknown, what: string): T {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(`The stored ${what} is unreadable. Redo the stage that wrote it.`, {
+      cause: parsed.error,
+    });
+  }
+  return parsed.data;
+}
+
+/** Puts the stored plans and the written sections together; throws with the cause if a part is unreadable. */
+export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDraft {
+  const part = <K extends S9Section>(
+    k: K,
+    schema: z.ZodType<z.infer<(typeof sectionSchemas)[K]>>,
+  ) => stored(schema, ctx.result(sectionKey(k)), `${k} section (S9)`);
+  const progression = stored(ProgressionPlan, ctx.result(S6_PLAN_KEY), "progression plan (S6)");
+  const gear = stored(GearPlan, ctx.result(S7_PLAN_KEY), "gear plan (S7)");
+  const crafting = stored(
+    z.object({ plans: z.array(CraftingPlanSchema) }),
+    ctx.result(S8_PLAN_KEY),
+    "crafting plans (S8)",
+  ).plans;
   const request = ctx.run.request;
-  // The gear plan points to the crafting plan of each crafted rare of the last tier.
+  const planned = new Set(crafting.map((c) => c.key));
+  // The gear plan points to the crafting plan of each crafted rare of the last tier that has one.
   const linked: GearPlan = {
-    tiers: gear.data.tiers.map((t, i) => ({
+    tiers: gear.tiers.map((t, i) => ({
       ...t,
-      slots: t.slots.map((s) =>
-        i === gear.data.tiers.length - 1 && s.acquisition === "craft" && s.target.kind === "crafted"
-          ? { ...s, craftingPlanKey: craftKey(s.slot) }
-          : s,
+      slots: t.slots.map((sl) =>
+        i === gear.tiers.length - 1 &&
+        sl.acquisition === "craft" &&
+        sl.target.kind === "crafted" &&
+        planned.has(craftKey(sl.slot))
+          ? { ...sl, craftingPlanKey: craftKey(sl.slot) }
+          : sl,
       ),
     })),
   };
-  const summaryDraft = section("summary") as SummaryDraft | undefined;
-  if (summaryDraft === undefined) return "The summary section is missing.";
-  const candidate = inputs.chosen;
-  const draft = {
-    request,
-    summary: {
-      ...summaryDraft,
-      classId: candidate.classId,
-      ascendancyId: candidate.ascendancyId,
-      mainSkillId: inputs.mainSkillId,
-      budgetRange: { from: request.budget.leveling, to: request.budget.endgame },
+  return stored(
+    GuideDraft,
+    {
+      request,
+      summary: {
+        ...part("summary", sectionSchemas.summary),
+        classId: inputs.chosen.classId,
+        ascendancyId: inputs.chosen.ascendancyId,
+        mainSkillId: inputs.mainSkillId,
+        budgetRange: { from: request.budget.leveling, to: request.budget.endgame },
+      },
+      mechanics: part("mechanics", sectionSchemas.mechanics),
+      progression,
+      gear: linked,
+      crafting,
+      playstyle: part("playstyle", sectionSchemas.playstyle),
+      atlas: part("atlas", sectionSchemas.atlas),
+      variants: part("variants", sectionSchemas.variants).variants,
+      faq: part("faq", sectionSchemas.faq).faq,
     },
-    mechanics: section("mechanics"),
-    progression: progression.data,
-    gear: linked,
-    crafting: crafting.data.plans,
-    playstyle: section("playstyle"),
-    atlas: section("atlas"),
-    variants: (section("variants") as { variants?: unknown } | undefined)?.variants,
-    faq: (section("faq") as { faq?: unknown } | undefined)?.faq,
-  };
-  const parsed = GuideDraft.safeParse(draft);
-  return parsed.success
-    ? parsed.data
-    : `The guide does not fit the document contract: ${parsed.error.message}`;
+    "guide draft",
+  );
 }
 
+type Found = { path: string; ref: EntityRef };
+
+const ref = (kind: EntityRef["kind"], id: string, path: string): Found => ({
+  path,
+  ref: { kind, id } as EntityRef,
+});
+
+function stateEntities(state: BuildState, base: string): Found[] {
+  return [
+    ref("characterClass", state.classId, `${base}/classId`),
+    ...(state.ascendancyId === undefined
+      ? []
+      : [ref("ascendancy", state.ascendancyId, `${base}/ascendancyId`)]),
+    ...state.tree.allocated.map((n, i) =>
+      ref("passiveNode", n.nodeId, `${base}/tree/allocated/${i}/nodeId`),
+    ),
+    ...state.tree.ascendancy.map((n, i) => ref("passiveNode", n, `${base}/tree/ascendancy/${i}`)),
+    ...state.skills.flatMap((sk, i) => [
+      ref("gem", sk.gem.gemId, `${base}/skills/${i}/gem/gemId`),
+      ...sk.supports.map((g, j) => ref("gem", g.gemId, `${base}/skills/${i}/supports/${j}/gemId`)),
+    ]),
+    ...state.items.flatMap((it, i) =>
+      itemEntities(it.item).map((e) => ({ path: `${base}/items/${i}/item${e.path}`, ref: e.ref })),
+    ),
+  ];
+}
+
+/** Currency items named by prices anywhere in a value (`currencyItemId` fields). */
+function currencyEntities(value: unknown, path: string): Found[] {
+  if (Array.isArray(value)) return value.flatMap((x, i) => currencyEntities(x, `${path}/${i}`));
+  if (typeof value !== "object" || value === null) return [];
+  return Object.entries(value).flatMap(([k, x]) =>
+    k === "currencyItemId" && typeof x === "string"
+      ? [ref("baseItem", x, `${path}/${k}`)]
+      : currencyEntities(x, `${path}/${k}`),
+  );
+}
+
+const prefixed = (found: Found[], base: string): Found[] =>
+  found.map((e) => ({ path: `${base}${e.path}`, ref: e.ref }));
+
 /** Every catalog reference in the draft, with a JSON pointer. */
-export function draftEntities(draft: GuideDraft): { path: string; ref: EntityRef }[] {
-  const kinds = new Set<string>(EntityKind.options);
-  const out: { path: string; ref: EntityRef }[] = [];
-  const walk = (v: unknown, path: string): void => {
-    if (Array.isArray(v)) return v.forEach((x, i) => walk(x, `${path}/${i}`));
-    if (typeof v !== "object" || v === null) return;
-    const o = v as Record<string, unknown>;
-    if (typeof o.kind === "string" && kinds.has(o.kind) && typeof o.id === "string") {
-      out.push({ path, ref: { kind: o.kind, id: o.id } as EntityRef });
-      return;
-    }
-    for (const [k, x] of Object.entries(o)) walk(x, `${path}/${k}`);
-  };
-  walk(draft.progression, "/progression");
-  walk(draft.crafting, "/crafting");
+export function draftEntities(draft: GuideDraft): Found[] {
+  const out: Found[] = [
+    ...(draft.request.mainSkillId === undefined
+      ? []
+      : [ref("gem", draft.request.mainSkillId, "/request/mainSkillId")]),
+    ...draft.request.exclusions.map((x, i) => ({ path: `/request/exclusions/${i}`, ref: x })),
+    ref("characterClass", draft.summary.classId, "/summary/classId"),
+    ref("ascendancy", draft.summary.ascendancyId, "/summary/ascendancyId"),
+    ref("gem", draft.summary.mainSkillId, "/summary/mainSkillId"),
+  ];
+  draft.progression.stages.forEach((st, i) => {
+    const base = `/progression/stages/${i}`;
+    out.push(
+      ...stateEntities(st.state, `${base}/state`),
+      ...st.allocationOrder.map((n, j) => ref("passiveNode", n, `${base}/allocationOrder/${j}`)),
+      ...st.respecs.map((n, j) => ref("passiveNode", n, `${base}/respecs/${j}`)),
+      ...prefixed(
+        walkSection({ tasks: st.tasks, dangers: st.dangers, rationale: st.rationale }).entities,
+        base,
+      ),
+    );
+  });
   draft.gear.tiers.forEach((t, i) =>
-    t.slots.forEach((s, j) => {
-      for (const item of [s.target, s.minimum, ...s.alternatives]) {
+    t.slots.forEach((sl, j) => {
+      for (const item of [sl.target, sl.minimum, ...sl.alternatives]) {
         if (item === undefined) continue;
         for (const e of itemEntities(item)) {
           out.push({ path: `/gear/tiers/${i}/slots/${j}${e.path}`, ref: e.ref });
@@ -104,15 +170,35 @@ export function draftEntities(draft: GuideDraft): { path: string; ref: EntityRef
       }
     }),
   );
-  const prose = {
-    mechanics: draft.mechanics,
-    playstyle: draft.playstyle,
-    atlas: draft.atlas,
-    variants: draft.variants,
-    faq: draft.faq,
-    summary: draft.summary,
-  };
-  for (const e of walkSection(prose).entities) out.push(e);
+  draft.crafting.forEach((c, i) => {
+    const base = `/crafting/${i}`;
+    out.push(
+      ...prefixed(itemEntities(c.target), `${base}/target`),
+      ref("baseItem", c.start.baseItemId, `${base}/start/baseItemId`),
+      ...c.steps.flatMap((st, j) =>
+        st.actionIds.map((id, k) => ref("craftingAction", id, `${base}/steps/${j}/actionIds/${k}`)),
+      ),
+      ...prefixed(walkSection({ steps: c.steps, fallback: c.fallback }).entities, base),
+    );
+  });
+  out.push(
+    ...currencyEntities(draft.progression, "/progression"),
+    ...currencyEntities(draft.gear, "/gear"),
+    ...currencyEntities(draft.crafting, "/crafting"),
+    ...walkSection({
+      mechanics: draft.mechanics,
+      playstyle: draft.playstyle,
+      atlas: draft.atlas,
+      variants: draft.variants,
+      faq: draft.faq,
+      summary: {
+        scalingAxes: draft.summary.scalingAxes,
+        playstyle: draft.summary.playstyle,
+        strengths: draft.summary.strengths,
+        weaknesses: draft.summary.weaknesses,
+      },
+    }).entities,
+  );
   return out;
 }
 
@@ -123,26 +209,28 @@ const finding = (
   path?: string,
   returnTo?: string,
 ): Finding =>
-  ({
+  Finding.parse({
     gate,
     severity: "error",
     code,
     message,
     ...(path === undefined ? {} : { path }),
     ...(returnTo === undefined ? {} : { returnTo }),
-  }) as Finding;
+  });
 
-/** Gates that need thresholds or a critic are not built yet; they fail visibly instead of passing. */
-const NOT_BUILT = ["G3", "G4", "G5", "G8"] as const;
+/** What a gate does not check yet; such a gate cannot pass. */
+const NOT_BUILT: Partial<Record<Finding["gate"], string>> = {
+  G2: "the required calc profiles of the config and the list of unsupported mods",
+  G3: "the whole gate (attributes, level requirements, spirit, point count, tree paths)",
+  G4: "the whole gate (resistance caps and EHP thresholds per stage)",
+  G5: "the whole gate (damage thresholds per stage)",
+  G6: "the continuity of skills between stages (lost gems)",
+  G7: "the minimum counts of the guide parts and rares of earlier tiers",
+  G8: "the whole gate (consistency of text and data, critic)",
+};
 
-export interface GateReport {
-  gate: Finding["gate"];
-  passed: boolean;
-  findings: Finding[];
-}
-
-/** Runs the deterministic gates over the draft. */
-export function runGates(ctx: PipelineContext, draft: GuideDraft): GateReport[] {
+/** Runs the deterministic gates over the draft; a gate passes only if everything it covers was checked. */
+export function runGates(ctx: PipelineContext, draft: GuideDraft): GateResult[] {
   const g1 = draftEntities(draft)
     .filter((e) => ctx.catalog.get(e.ref) === undefined)
     .map((e) =>
@@ -153,79 +241,86 @@ export function runGates(ctx: PipelineContext, draft: GuideDraft): GateReport[] 
         e.path,
       ),
     );
-  const failedCalc = (record: Record<string, { status: string }>, path: string): Finding[] =>
-    Object.entries(record)
-      .filter(([, o]) => o.status !== "ok")
-      .map(([profile]) =>
-        finding("G2", "calc_failed", `The calculation of profile ${profile} failed.`, path),
-      );
-  const g2 = draft.progression.stages.flatMap((s, i) =>
-    failedCalc(s.calcs, `/progression/stages/${i}/calcs`),
-  );
+  const g2 = draft.progression.stages.flatMap((s, i) => {
+    const path = `/progression/stages/${i}/calcs`;
+    const outcomes = Object.entries(s.calcs);
+    return [
+      ...(outcomes.length === 0
+        ? [finding("G2", "calc_missing", `Stage ${s.key} has no calculation.`, path, "S6")]
+        : []),
+      ...outcomes
+        .filter(([, o]) => o.status !== "ok")
+        .map(([profile]) =>
+          finding(
+            "G2",
+            "calc_failed",
+            `Stage ${s.key}: the calculation of ${profile} failed.`,
+            path,
+            "S6",
+          ),
+        ),
+    ];
+  });
   const g6 = draft.progression.stages.flatMap((s, i) =>
-    s.respecs.length > 0 && s.respecCost === undefined
+    s.respecs.length > 0 && s.respecCost?.status !== "ok"
       ? [
           finding(
             "G6",
-            "respec_cost_missing",
-            `Stage ${s.key} respecs passives but states no respec cost.`,
+            "respec_cost_not_measured",
+            `Stage ${s.key} respecs passives but has no measured respec cost.`,
             `/progression/stages/${i}/respecCost`,
             "S6",
           ),
         ]
       : [],
   );
-  const crafted = draft.gear.tiers
-    .at(-1)
-    ?.slots.filter((s) => s.acquisition === "craft" && s.target.kind === "crafted");
   const planned = new Set<string>(draft.crafting.map((c: CraftingPlan) => c.key));
-  const g7 = [
-    ...(crafted ?? [])
-      .filter((s) => !planned.has(craftKey(s.slot)))
-      .map((s) =>
-        finding(
-          "G7",
-          "craft_plan_missing",
-          `Rare slot ${s.slot} has no crafting plan.`,
-          "/crafting",
-          "S8",
-        ),
+  const g7 = draft.gear.tiers
+    .at(-1)
+    ?.slots.filter((s) => s.acquisition === "craft" && s.target.kind === "crafted")
+    .filter((s) => !planned.has(craftKey(s.slot)))
+    .map((s) =>
+      finding(
+        "G7",
+        "craft_plan_missing",
+        `Rare slot ${s.slot} has no crafting plan.`,
+        "/crafting",
+        "S8",
       ),
-  ];
-  const results: GateReport[] = [
-    { gate: "G1", passed: g1.length === 0, findings: g1 },
-    { gate: "G2", passed: g2.length === 0, findings: g2 },
-    { gate: "G6", passed: g6.length === 0, findings: g6 },
-    { gate: "G7", passed: g7.length === 0, findings: g7 },
-  ];
-  for (const gate of NOT_BUILT) {
-    results.push({
-      gate,
-      passed: false,
-      findings: [
+    );
+  const found: Partial<Record<Finding["gate"], Finding[]>> = {
+    G1: g1,
+    G2: g2,
+    G6: g6,
+    G7: g7 ?? [],
+  };
+  return (["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"] as const).map((gate) => {
+    const findings = [...(found[gate] ?? [])];
+    const gap = NOT_BUILT[gate];
+    if (gap !== undefined) {
+      findings.push(
         finding(
           gate,
-          "gate_not_built",
-          `Gate ${gate} is not built yet, so the guide cannot count as validated.`,
+          "check_not_built",
+          `Not checked yet: ${gap}. The gate cannot count as passed.`,
         ),
-      ],
-    });
-  }
-  return results;
+      );
+    }
+    return GateResult.parse({ gate, passed: findings.length === 0, findings });
+  });
 }
 
-/** S10: assembles the guide draft and runs the gates; the report is stored even when gates fail. */
-export function validateStep(ctx: PipelineContext, inputs: S10Inputs): PlanStep {
+/** S10: assembles the guide draft and runs the gates; the draft and report are stored even when gates fail. */
+export function validateStep(inputs: S10Inputs): PlanStep {
   return {
     kind: "server",
     key: S10_REPORT_KEY,
     type: "S10",
     run: async (runCtx) => {
       const draft = assembleDraft(runCtx, inputs);
-      if (typeof draft === "string") throw new Error(draft);
       const gates = runGates(runCtx, draft);
       return JSON.parse(
-        JSON.stringify({ passed: gates.every((g) => g.passed), gates }),
+        JSON.stringify({ passed: gates.every((g) => g.passed), gates, draft }),
       ) as JsonValue;
     },
   };

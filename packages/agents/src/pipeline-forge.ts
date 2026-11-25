@@ -391,7 +391,7 @@ function planGuide(
     return { kind: "task", spec: sectionTask(ctx, config, open, { chosen, target, plans }) };
   }
   if (ctx.result(S10_REPORT_KEY) === undefined)
-    return validateStep(ctx, {
+    return validateStep({
       chosen,
       target,
       mainSkillId: mainSkillOfRun(ctx),
