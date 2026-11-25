@@ -35,6 +35,7 @@ import {
 import { TargetBuild } from "@astrolabe/contracts/build";
 import type { ProgressionStageTree } from "./ports.js";
 import { releaseStageTable } from "./stages/s6-table.js";
+import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 
 export const FORGE_PIPELINE_ID = "forge";
@@ -314,12 +315,13 @@ function planGear(
       .map((t) => ({ tier: t.id, gear: ctx.result(gearKey(t.id)) as JsonValue }));
     return { kind: "task", spec: gearTask(ctx, config, s7, open, chosen, target, earlier) };
   }
+  if (ctx.result(S7_PLAN_KEY) === undefined) return planJob(ctx, s7, tiers, chosen, target);
   return {
     kind: "blocked",
     error: {
       code: "stage_not_implemented",
       message:
-        "Prices and the upgrade order of S7 and the later stages are not built yet. S0 to S7 gear choices are done; their results are stored with the run.",
+        "S8 (crafting) and the later stages are not built yet. S0 to S7 are done; their results are stored with the run.",
     },
   };
 }

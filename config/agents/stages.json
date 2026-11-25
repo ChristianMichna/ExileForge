@@ -62,6 +62,12 @@
         "label": "Endgame"
       }
     ],
-    "calcProfiles": ["mapping", "pinnacle"]
+    "calcProfiles": ["mapping", "pinnacle"],
+    "objective": {
+      "weights": {
+        "FullDPS": 1,
+        "TotalEHP": 0.4
+      }
+    }
   }
 }

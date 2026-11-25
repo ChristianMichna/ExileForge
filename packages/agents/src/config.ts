@@ -136,6 +136,8 @@ export const StageConfig = z.object({
           message: "duplicate tier id",
         }),
       calcProfiles: z.array(CalcProfileId).min(1),
+      /** Weights of the PoB outputs that rank gear upgrades (gain per cost). */
+      objective: z.object({ weights: z.record(z.string().min(1), z.number()) }),
     })
     .optional(),
   s2: z.object({

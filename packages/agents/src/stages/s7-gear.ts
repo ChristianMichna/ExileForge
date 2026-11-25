@@ -79,7 +79,13 @@ export function resolveS7(
     slots
       .filter((s) => s.dependsOnSlot === undefined && s.weaponSet !== 2 && !optional.has(s.id))
       .map((s) => s.id);
-  return { tiers: base.tiers, calcProfiles: base.calcProfiles, slots, requiredSlots };
+  return {
+    tiers: base.tiers,
+    calcProfiles: base.calcProfiles,
+    objective: base.objective,
+    slots,
+    requiredSlots,
+  };
 }
 
 /** The base item of a spec: its own base, or the base of the unique. */
