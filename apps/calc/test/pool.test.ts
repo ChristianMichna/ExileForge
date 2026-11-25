@@ -156,6 +156,49 @@ describe("CalcPool with the fake worker", () => {
     );
   });
 
+  it("evaluates candidates against a base and reports failures one by one", async () => {
+    const { pool } = await fakePool({}, { size: 2 });
+    const { handle } = await pool.request("build.load", { format: "xml", payload: XML });
+    const res = await pool.request("calc.evalBatch", {
+      handle,
+      profile: "as-saved",
+      metrics: ["FakeLength"],
+      candidates: [
+        { key: "lvl2", ops: [{ op: "setLevel", level: 2 }] },
+        { key: "too-high", ops: [{ op: "setLevel", level: 101 }] },
+        { key: "lvl3", ops: [{ op: "setLevel", level: 3 }] },
+      ],
+    });
+    expect(res.base.stats.FakeLength).toBe(XML.length);
+    expect(res.results.map((r) => r.key)).toEqual(["lvl2", "too-high", "lvl3"]);
+    const [a, bad, c] = res.results;
+    expect(a).toMatchObject({ ok: true });
+    expect(a?.ok && a.deltas.FakeLength).toBeGreaterThan(0);
+    expect(bad).toMatchObject({ ok: false, error: { kind: "invalid_params" } });
+    expect(c).toMatchObject({ ok: true });
+    // candidate states are temporary
+    expect(pool.status().builds).toBe(1);
+    await expectKind(
+      pool.request("calc.evalBatch", {
+        handle,
+        profile: "as-saved",
+        metrics: ["NoSuchMetric"],
+        candidates: [{ key: "a", ops: [{ op: "setLevel", level: 2 }] }],
+      }),
+      "invalid_params",
+    );
+    const same = { key: "a", ops: [{ op: "setLevel" as const, level: 2 }] };
+    await expectKind(
+      pool.request("calc.evalBatch", {
+        handle,
+        profile: "as-saved",
+        metrics: ["FakeLength"],
+        candidates: [same, same],
+      }),
+      "invalid_params",
+    );
+  });
+
   it("forgets released builds", async () => {
     const { pool } = await fakePool();
     const { handle } = await pool.request("build.load", { format: "xml", payload: XML });

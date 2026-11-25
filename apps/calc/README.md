@@ -20,7 +20,8 @@ den Vertrag.
 | `build.release` | fertig |
 | `calc.stats` | fertig, mit Calc-Profil und optional `mainSkill` |
 | `build.applyPatch` | fertig (alle Ops aus `PatchOp`, siehe unten) |
-| `calc.evalBatch`, `calc.nodePower`, `calc.itemPower`, `calc.validate` | folgen in eigenen PRs; bis dahin Fehler `unknown_method` |
+| `calc.evalBatch` | fertig: Kandidaten (Patch-Ops) gegen einen Basis-Zustand, nur Deltas der gewünschten Metriken |
+| `calc.nodePower`, `calc.itemPower`, `calc.validate` | folgen in eigenen PRs; bis dahin Fehler `unknown_method` |
 
 ## Benutzung
 
@@ -146,6 +147,18 @@ Speicher, nach Export und Neuladen und auf jedem Worker sind gleich (Test in
 `test/patch.pob.test.ts`). Kosten: ca. 270 ms für Patch und Speichern auf
 geladenem Build; liegt im Worker gerade ein anderer Zustand, kommt ein
 Neuladen dazu. Für viele Kandidaten ist `calc.evalBatch` gedacht.
+
+## `calc.evalBatch`
+
+Jeder Kandidat wird per `build.applyPatch` in einen eigenen, temporären Zustand
+gelegt und wie jeder Build mit `calc.stats` gerechnet (seine `calcId` ist also
+eine echte `calcId`). Die Kandidaten laufen parallel auf allen Workern; der
+Temp-Zustand wird danach freigegeben. Zurück kommen `base` (volles Ergebnis)
+und je Kandidat die Deltas (`Kandidat − Basis`) der angefragten Metriken oder
+ein Fehler `{kind, detail}`; ein fehlgeschlagener Kandidat lässt den Rest
+unberührt. Eine Metrik, die in der Basis fehlt, ist `invalid_params`; fehlt sie
+nur beim Kandidaten, scheitert dieser (kein Ersatzwert). Kosten: je Kandidat
+Patch (~0,3 s) plus Neuladen (~0,5 s), verteilt auf die Worker.
 
 `build.export` liefert genau das XML, aus dem `inputHash` berechnet wurde.
 

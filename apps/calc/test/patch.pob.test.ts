@@ -236,6 +236,30 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     expect((await stats(handle)).calcProfile).toBe("as-saved");
   });
 
+  it("evaluates candidates as deltas against the base, equal to separate calculations", async () => {
+    const metrics = ["Life", "CombinedDPS"];
+    const res = await pool.request("calc.evalBatch", {
+      handle: base,
+      profile: "as-saved",
+      metrics,
+      candidates: [
+        { key: "level", ops: ops([{ op: "setLevel", level: 61 }]) },
+        { key: "broken", ops: ops([{ op: "setClass", classId: "exileforge-no-such-class" }]) },
+      ],
+    });
+    expect(res.base.calcId).toBe(baseResult.calcId);
+    const [level, broken] = res.results;
+    const direct = await stats((await patch(ops([{ op: "setLevel", level: 61 }]))).handle);
+    expect(level?.ok).toBe(true);
+    if (level?.ok) {
+      expect(level.calcId).toBe(direct.calcId);
+      for (const m of metrics) {
+        expect(level.deltas[m]).toBe((direct.stats[m] ?? NaN) - (baseResult.stats[m] ?? NaN));
+      }
+    }
+    expect(broken).toMatchObject({ ok: false, error: { kind: "invalid_params" } });
+  });
+
   it("rejects bad ops with the op index and leaves no half-patched state", async () => {
     const bad: [unknown[], RegExp][] = [
       [

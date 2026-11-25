@@ -63,6 +63,7 @@ export const IMPLEMENTED_METHODS = [
   "build.release",
   "build.applyPatch",
   "calc.stats",
+  "calc.evalBatch",
 ] as const satisfies readonly CalcMethodName[];
 
 interface Slot {
@@ -226,6 +227,8 @@ export class CalcPool {
           worker.call("calc.stats", { ...p, handle: wh }, this.opts.config.requestTimeoutMs),
         );
       }
+      case "calc.evalBatch":
+        return this.evalBatch(params as CalcParams<"calc.evalBatch">);
       default:
         throw new CalcServiceError(
           "unknown_method",
@@ -296,6 +299,82 @@ export class CalcPool {
       slot.handles.set(handle, res.handle);
       return { handle, warnings: res.warnings };
     });
+  }
+
+  /**
+   * Candidates against one base state. Each candidate is patched into its own
+   * state and calculated like any build (so its calcId is a real calcId), on
+   * whatever worker is free; only the requested metrics' deltas are returned.
+   * A failing candidate is reported on its own and does not fail the batch.
+   */
+  private async evalBatch(p: CalcParams<"calc.evalBatch">): Promise<unknown> {
+    const keys = p.candidates.map((c) => c.key);
+    const dup = keys.filter((k, i) => keys.indexOf(k) !== i);
+    if (dup.length > 0) {
+      throw new CalcServiceError("invalid_params", "Candidate keys must be unique", dup.join(", "));
+    }
+    const base = await this.request("calc.stats", { handle: p.handle, profile: p.profile });
+    const missing = p.metrics.filter((m) => !(m in base.stats));
+    if (missing.length > 0) {
+      throw new CalcServiceError(
+        "invalid_params",
+        "Metrics missing in the base calculation",
+        missing.join(", "),
+      );
+    }
+    const results = new Array<CalcResultOf<"calc.evalBatch">["results"][number]>(
+      p.candidates.length,
+    );
+    let next = 0;
+    const lanes = Array.from(
+      { length: Math.min(this.slots.length, p.candidates.length) },
+      async () => {
+        for (let i = next++; i < p.candidates.length; i = next++) {
+          const candidate = p.candidates[i];
+          if (candidate) results[i] = await this.evalCandidate(p, base, candidate);
+        }
+      },
+    );
+    await Promise.all(lanes);
+    return { base, results };
+  }
+
+  private async evalCandidate(
+    p: CalcParams<"calc.evalBatch">,
+    base: CalcResultOf<"calc.stats">,
+    candidate: CalcParams<"calc.evalBatch">["candidates"][number],
+  ): Promise<CalcResultOf<"calc.evalBatch">["results"][number]> {
+    let handle: BuildHandle | undefined;
+    try {
+      handle = (await this.request("build.applyPatch", { handle: p.handle, ops: candidate.ops }))
+        .handle;
+      const result = await this.request("calc.stats", { handle, profile: p.profile });
+      const deltas: Record<string, number> = {};
+      for (const metric of p.metrics) {
+        const value = result.stats[metric];
+        const before = base.stats[metric];
+        if (value === undefined || before === undefined) {
+          // no stand-in value: a metric PoB did not report is a failed candidate
+          throw new CalcServiceError("calc_failed", "Metric missing in the candidate", metric);
+        }
+        deltas[metric] = value - before;
+      }
+      return { key: candidate.key, ok: true, calcId: result.calcId, deltas };
+    } catch (error) {
+      if (!(error instanceof CalcServiceError)) throw error;
+      return {
+        key: candidate.key,
+        ok: false,
+        error: { kind: error.kind, detail: error.message },
+      };
+    } finally {
+      const created = handle;
+      if (created !== undefined) {
+        await this.request("build.release", { handle: created }).catch((error: unknown) => {
+          this.emit({ type: "release-failed", slot: -1, handle: created, error });
+        });
+      }
+    }
   }
 
   private release(p: CalcParams<"build.release">): unknown {
