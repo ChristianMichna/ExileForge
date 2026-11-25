@@ -188,8 +188,8 @@ werden, eine Warnung mit Grund, und er bleibt ohne `point` (nie `0,0`).
   Basis-Implicits ohne genau einen passenden Mod (z. B. „Grants Skill"-Zeilen),
   Baum-Verbindungen zu fehlenden Knoten, Startknoten unbekannter Klassen,
   Unique-Zeilen mit nicht vorhandenen Varianten, Aufstiege ohne Knoten.
-- `unresolved`: offene Stat-Zeilen von Passiven mit Grund (der Vertrag hat bei
-  `PassiveNode` dafür kein Feld; Mods und Uniques tragen `unresolved` selbst).
+- `unresolved`: offene Stat-Zeilen von Passiven mit Grund (zusätzlich tragen Passive,
+  Mods und Uniques `unresolved` selbst, seit contracts 0.8.0).
 - `hiddenStatGroups`: Mods mit Stats, deren Beschreibung keinen Text erzeugt.
 - `summary`: Zählung aller offenen Zeilen je Art und Grund und von allem, was
   nicht in den Katalog übernommen wird (Mods ohne Generierungsart, von PoB zur

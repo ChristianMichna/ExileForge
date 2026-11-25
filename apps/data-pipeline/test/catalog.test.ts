@@ -186,7 +186,10 @@ describe("normalizeCatalog", () => {
         { text: "Something unknowable" },
       ],
     });
-    expect(byId(entities.passiveNode, "2")).not.toHaveProperty("unresolved");
+    expect(byId(entities.passiveNode, "2")).toMatchObject({
+      unresolved: [{ text: "Something unknowable", reason: "unmatched" }],
+    });
+    expect(byId(entities.passiveNode, "1")).toMatchObject({ unresolved: [] });
     expect(unresolved).toEqual([
       { kind: "passiveNode", id: "2", text: "Something unknowable", reason: "unmatched" },
     ]);
