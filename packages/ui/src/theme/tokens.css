@@ -70,6 +70,33 @@
 
   --ef-color-focus: #9af0dc;
 
+  /* Passive tree (aliases; the renderer reads them at start) */
+  --ef-tree-ground: var(--ef-color-ground);
+  --ef-tree-engraving: #0f1c1b;
+  --ef-tree-bezel: var(--ef-color-line);
+  --ef-tree-edge: #1d3431;
+  --ef-tree-node: #4c5a57;
+  --ef-tree-node-notable: #8d9894;
+  --ef-tree-node-keystone: var(--ef-color-text);
+  --ef-tree-allocated: var(--ef-color-verdigris-dim);
+  --ef-tree-new: var(--ef-color-verdigris-bright);
+  --ef-tree-respec: var(--ef-color-warning);
+  --ef-tree-search: var(--ef-color-rarity-rare);
+  --ef-tree-hover: var(--ef-color-text-strong);
+  --ef-tree-glow: radial-gradient(circle at 50% 50%, rgb(79 209 181 / 4%), transparent 62%);
+  --ef-tree-stage-glow: linear-gradient(180deg, transparent, rgb(79 209 181 / 6%));
+  --ef-tree-hud-shade: radial-gradient(ellipse at 0 0, rgb(7 9 10 / 88%) 30%, transparent 72%);
+  --ef-tree-hud-shade-bottom-right: radial-gradient(
+    ellipse at 100% 100%,
+    rgb(7 9 10 / 85%) 30%,
+    transparent 72%
+  );
+  --ef-tree-hud-shade-bottom: radial-gradient(
+    ellipse at 0 100%,
+    rgb(7 9 10 / 85%) 30%,
+    transparent 72%
+  );
+
   /* Light and glass */
   --ef-glow-verdigris: 0 0 10px rgb(79 209 181 / 55%);
   --ef-glow-danger: 0 0 8px rgb(255 90 54 / 70%);
@@ -85,6 +112,8 @@
   --ef-font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   --ef-font-flavour: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
 
+  --ef-text-3xs: 0.625rem;
+  --ef-text-2xs: 0.6875rem;
   --ef-text-xs: 0.75rem;
   --ef-text-sm: 0.875rem;
   --ef-text-md: 1rem;
@@ -127,6 +156,9 @@
   --ef-tooltip-width: 340px;
   --ef-dial-size: 360px;
   --ef-dial-label-room: 120px;
+  --ef-tree-card-width: 300px;
+  --ef-tree-search-width: 260px;
+  --ef-tree-control-size: 34px;
 }
 
 @media (prefers-reduced-motion: reduce) {

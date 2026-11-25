@@ -156,3 +156,16 @@ Quellen: [startdebugging.net](https://startdebugging.net/2026/05/fix-claude-reac
   der Lauf mit dem `PlanStep` `blocked` und dem Fehler `stage_not_implemented`,
   bis S3 ff. gebaut sind. Einstellungen: `config/agents/stages.json`
   (Option `--stages`, Standard `config/agents/stages.json`).
+
+## PoB-Adapter (`PobCalc`)
+
+`src/calc/pob-calc.ts` setzt den `CalcPort` auf den PoB-Rechendienst (`CalcPool`
+aus `apps/calc`): Basis-Build laden (`build.load`, je Basis einmal), per
+`diffBuildState` aus `packages/calc-client` auf den gewünschten Zustand patchen
+(`build.applyPatch`), je Profil `calc.stats`, danach den Patch-Handle freigeben.
+Fehler werden zu `failed`-Ergebnissen mit Ursache, nie zu Ersatzwerten.
+
+Noch nicht in `start.ts` verdrahtet (`--calc fake` bleibt Pflicht), weil zwei
+Eingaben fehlen: ein `BaseBuildProvider` (Ausgangs-Build je Klasse oder Import)
+und ein `renderItem` aus den Katalogdaten. Außerdem ist das Server-Profil noch
+`default`, der Rechendienst kennt `as-saved`.

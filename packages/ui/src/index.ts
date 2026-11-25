@@ -36,3 +36,25 @@ export type {
   ProvenanceView,
   ValueState,
 } from "./components/provenance-model";
+
+export { PassiveTree } from "./tree/PassiveTree";
+export type { PassiveTreeProps } from "./tree/PassiveTree";
+export { buildTreeView, arcBetween } from "./tree/tree-model";
+export type {
+  PassiveTreeView,
+  TreeArc,
+  TreeBounds,
+  TreeEdgeView,
+  TreeGroupView,
+  TreeNodeShape,
+  TreeNodeView,
+  TreeViewOptions,
+} from "./tree/tree-model";
+export { buildTimeline, stageAt, stateAt } from "./tree/tree-timeline";
+export type {
+  TimelineStage,
+  TimelineState,
+  TimelineStep,
+  TreeStageInput,
+  TreeTimeline,
+} from "./tree/tree-timeline";
