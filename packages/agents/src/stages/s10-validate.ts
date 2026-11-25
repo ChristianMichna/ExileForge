@@ -589,7 +589,7 @@ const StoredReport = z.object({ passed: z.boolean(), gates: z.array(GateResult) 
  * After the gates: findings that name the stage that caused them send that stage back (the
  * earliest one first, since later stages build on it); what no stage can fix stops the run.
  */
-export function afterReport(ctx: PipelineContext, maxReturns: number): PlanStep {
+export function afterReport(ctx: PipelineContext, maxReturns: number): PlanStep | null {
   const parsed = StoredReport.safeParse(ctx.result(S10_REPORT_KEY));
   if (!parsed.success) {
     return {
@@ -636,12 +636,5 @@ export function afterReport(ctx: PipelineContext, maxReturns: number): PlanStep 
       },
     };
   }
-  return {
-    kind: "blocked",
-    error: {
-      code: "stage_not_implemented",
-      message:
-        "S11 (publishing) is not built yet. S0 to S10 are done and the guide passed validation; the results are stored with the run.",
-    },
-  };
+  return null;
 }

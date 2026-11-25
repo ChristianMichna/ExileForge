@@ -468,7 +468,8 @@ export class ForgeEngine {
           continue;
         }
         case "done":
-          r.guideId = randomUUID();
+          // The publishing step names the guide; pipelines without one get a fresh id.
+          r.guideId = guideIdOf(r.results["S11.guide"]?.value) ?? randomUUID();
           r.current = null;
           tx.setPhase("done");
           tx.emit({ type: "guide.ready", guideId: r.guideId });
@@ -862,4 +863,9 @@ const VARIANT_CHOICE_STAGE = 4;
 function stageNumber(type: string): number | undefined {
   const match = /^S(\d+)(?:\.|$)/.exec(type);
   return match?.[1] === undefined ? undefined : Number(match[1]);
+}
+
+function guideIdOf(value: unknown): string | undefined {
+  const id = (value as { metadata?: { guideId?: unknown } } | null | undefined)?.metadata?.guideId;
+  return typeof id === "string" ? id : undefined;
 }

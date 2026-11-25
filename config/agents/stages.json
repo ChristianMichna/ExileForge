@@ -88,5 +88,20 @@
     "resistanceCapStageKinds": ["endgame"],
     "thresholds": [],
     "maxReturnsPerStage": 2
+  },
+  "s11": {
+    "$comment": "Completeness score of the published guide: weighted share of non-empty parts. Equal weights until the product owner sets other ones.",
+    "scoringConfigVersion": "guide-scoring-1",
+    "weights": {
+      "summary": 1,
+      "mechanics": 1,
+      "progression": 1,
+      "gear": 1,
+      "crafting": 1,
+      "playstyle": 1,
+      "atlas": 1,
+      "variants": 1,
+      "faq": 1
+    }
   }
 }

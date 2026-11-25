@@ -352,7 +352,16 @@ describe("S10 after the gates", () => {
       2,
     );
     expect(step).toMatchObject({ kind: "return", stage: "S6", maxReturns: 2 });
-    expect(step.kind === "return" && step.findings.map((x) => x.code)).toEqual(["b", "c"]);
+    expect(step?.kind === "return" && step.findings.map((x) => x.code)).toEqual(["b", "c"]);
+  });
+
+  it("leaves a passed report to the publishing step", () => {
+    const passed = {
+      passed: true,
+      gates: [{ gate: "G2", passed: true, findings: [] }],
+      critic: null,
+    };
+    expect(afterReport(ctxWith({ "S10.report": passed }), 2)).toBeNull();
   });
 
   it("stops when no stage can fix what is open", () => {
