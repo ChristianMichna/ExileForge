@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "league": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "itemIds": {
+      "minItems": 1,
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512,
+        "description": "Base item type id – internal game id from the data release"
+      }
+    },
+    "inCurrencyItemId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Base item type id – internal game id from the data release"
+    }
+  },
+  "required": [
+    "itemIds"
+  ]
+}

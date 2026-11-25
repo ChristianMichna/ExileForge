@@ -33,6 +33,14 @@
       "types": "./dist/forge/index.d.ts",
       "import": "./dist/forge/index.js"
     },
+    "./economy": {
+      "types": "./dist/economy/index.d.ts",
+      "import": "./dist/economy/index.js"
+    },
+    "./craft": {
+      "types": "./dist/craft/index.d.ts",
+      "import": "./dist/craft/index.js"
+    },
     "./events": {
       "types": "./dist/events/index.d.ts",
       "import": "./dist/events/index.js"
