@@ -126,6 +126,15 @@ describe("DataRelease item slots", () => {
   };
   const slots = { origin: "pob-code", slots: [head, hand] };
 
+  it("accepts release classifications and rejects duplicates and empty lists", () => {
+    const ok = { origin: "pob-code", damageTypes: ["FakeA", "FakeB"], defenceLayers: ["FakeC"] };
+    expect(DataRelease.safeParse({ ...validRelease, classifications: ok }).success).toBe(true);
+    const dup = { ...ok, damageTypes: ["FakeA", "FakeA"] };
+    expect(DataRelease.safeParse({ ...validRelease, classifications: dup }).success).toBe(false);
+    const none = { ...ok, defenceLayers: [] };
+    expect(DataRelease.safeParse({ ...validRelease, classifications: none }).success).toBe(false);
+  });
+
   it("accepts slots with the item classes they take", () => {
     expect(DataRelease.safeParse({ ...validRelease, itemSlots: slots }).success).toBe(true);
   });

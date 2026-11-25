@@ -126,20 +126,57 @@ export interface S9Inputs {
 
 /** The suitability must cover the mode the player asked for. */
 async function summaryCheck(payload: unknown, ctx: PipelineContext): Promise<Finding[]> {
-  const { suitability } = payload as SummaryDraft;
+  const summary = payload as SummaryDraft;
+  const { suitability } = summary;
   const mode = ctx.run.request.mode;
   const wrong = [
     ...(mode.ssf && !suitability.ssf ? ["solo self-found"] : []),
     ...(mode.hardcore && !suitability.hardcore ? ["hardcore"] : []),
     ...(!mode.hardcore && !suitability.softcore ? ["softcore"] : []),
   ];
-  return wrong.map((m) => ({
-    gate: "G7" as const,
-    severity: "error" as const,
-    code: "suitability_contradicts_request",
-    message: `The player asked for ${m} play, so the guide must be suitable for it.`,
-    path: "/suitability",
-  }));
+  const classes = ctx.catalog.release?.classifications;
+  const unknown =
+    classes === undefined
+      ? []
+      : [
+          ...summary.damageTypes
+            .filter((id) => !classes.damageTypes.includes(id))
+            .map((id, i) => ({ id, path: `/damageTypes/${i}`, what: "damage type" })),
+          ...summary.defenceLayers
+            .filter((id) => !classes.defenceLayers.includes(id))
+            .map((id, i) => ({ id, path: `/defenceLayers/${i}`, what: "defence layer" })),
+        ];
+  const classFindings: Finding[] = [
+    ...unknown.map((u) => ({
+      gate: "G1" as const,
+      severity: "error" as const,
+      code: "unknown_classification",
+      message: `${u.id} is not a ${u.what} of data release ${ctx.catalog.dataReleaseId}.`,
+      path: u.path,
+    })),
+    ...(classes === undefined
+      ? [
+          {
+            gate: "G1" as const,
+            severity: "warning" as const,
+            code: "classifications_unchecked",
+            message:
+              "The data release does not list its damage types and defence layers, so these ids could not be checked.",
+            path: "/damageTypes",
+          },
+        ]
+      : []),
+  ];
+  return [
+    ...classFindings,
+    ...wrong.map((m) => ({
+      gate: "G7" as const,
+      severity: "error" as const,
+      code: "suitability_contradicts_request",
+      message: `The player asked for ${m} play, so the guide must be suitable for it.`,
+      path: "/suitability",
+    })),
+  ];
 }
 
 /** One section of the guide (Claude); earlier sections are context for the later ones. */
