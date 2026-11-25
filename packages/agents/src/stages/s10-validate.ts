@@ -41,15 +41,22 @@ export const CRITIC_SECTIONS = [
 export type CriticSection = (typeof CRITIC_SECTIONS)[number];
 
 export const CriticVerdict = z.object({
-  reviewed: z.array(z.enum(CRITIC_SECTIONS)).min(1),
+  reviewed: z
+    .array(z.enum(CRITIC_SECTIONS))
+    .min(1)
+    .refine((r) => new Set(r).size === r.length, { message: "duplicate section" }),
   issues: z
     .array(
       z.object({
         section: z.enum(CRITIC_SECTIONS),
-        message: z.string().min(1).max(1000),
+        message: z
+          .string()
+          .min(1)
+          .max(1000)
+          .regex(/^\D*$/, { message: "no digits: numbers come from the engine" }),
       }),
     )
-    .max(50),
+    .max(200),
 });
 export type CriticVerdict = z.infer<typeof CriticVerdict>;
 
@@ -79,6 +86,34 @@ export function criticTask(
   });
 }
 
+/** The stage that wrote a section of the guide, for returning findings to it. */
+function causeOf(section: CriticSection): string {
+  switch (section) {
+    case "progression":
+      return "S6";
+    case "gear":
+      return "S7";
+    case "crafting":
+      return "S8";
+    default:
+      return `S9.${section}`;
+  }
+}
+
+/** The stored critic verdict; an unreadable one names itself and keeps the cause. */
+function readCritic(value: unknown): CriticVerdict {
+  return stored(CriticVerdict, value, "critic verdict (S10.critic)");
+}
+
+/** Whether the stored report was made with the critic verdict that is stored now. */
+export function reportIsCurrent(ctx: PipelineContext): boolean {
+  const report = ctx.result(S10_REPORT_KEY);
+  if (report === undefined) return false;
+  const used = (report as { critic?: unknown } | null)?.critic ?? null;
+  const now = ctx.result(S10_CRITIC_KEY) ?? null;
+  return JSON.stringify(used) === JSON.stringify(now);
+}
+
 /** G8 from the critic's verdict: passes only if every part was read and nothing was found. */
 function criticGate(verdict: CriticVerdict | undefined): Finding[] {
   if (verdict === undefined) {
@@ -87,7 +122,9 @@ function criticGate(verdict: CriticVerdict | undefined): Finding[] {
   const missed = CRITIC_SECTIONS.filter((s) => !verdict.reviewed.includes(s));
   return [
     ...missed.map((s) => finding("G8", "section_not_reviewed", `The critic did not read ${s}.`)),
-    ...verdict.issues.map((i) => finding("G8", "inconsistency", `${i.section}: ${i.message}`)),
+    ...verdict.issues.map((i) =>
+      finding("G8", "inconsistency", `${i.section}: ${i.message}`, undefined, causeOf(i.section)),
+    ),
   ];
 }
 
@@ -103,7 +140,7 @@ export interface S10Inputs {
 }
 
 /** Parses a stored result; the error names the part and keeps the schema error as cause. */
-function stored<T>(schema: z.ZodType<T>, value: unknown, what: string): T {
+export function stored<T>(schema: z.ZodType<T>, value: unknown, what: string): T {
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
     throw new Error(`The stored ${what} is unreadable. Redo the stage that wrote it.`, {
@@ -529,11 +566,70 @@ export function validateStep(inputs: S10Inputs, cfg?: S10Config): PlanStep {
     run: async (runCtx) => {
       const draft = assembleDraft(runCtx, inputs);
       const stored = runCtx.result(S10_CRITIC_KEY);
-      const critic = stored === undefined ? undefined : CriticVerdict.parse(stored);
+      const critic = stored === undefined ? undefined : readCritic(stored);
       const gates = await runGates(runCtx, draft, cfg, critic);
       return JSON.parse(
-        JSON.stringify({ passed: gates.every((g) => g.passed), gates, draft }),
+        JSON.stringify({
+          passed: gates.every((g) => g.passed),
+          gates,
+          draft,
+          critic: critic ?? null,
+        }),
       ) as JsonValue;
+    },
+  };
+}
+
+const StoredReport = z.object({ passed: z.boolean(), gates: z.array(GateResult) });
+
+/**
+ * After the gates: findings that name the stage that caused them send that stage back (the
+ * earliest one first, since later stages build on it); what no stage can fix stops the run.
+ */
+export function afterReport(ctx: PipelineContext, maxReturns: number): PlanStep {
+  const parsed = StoredReport.safeParse(ctx.result(S10_REPORT_KEY));
+  if (!parsed.success) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "invalid_report",
+        message: "The stored validation report is unreadable. Redo stage S10.",
+      },
+    };
+  }
+  const errors = parsed.data.gates.flatMap((g) => g.findings).filter((f) => f.severity === "error");
+  const order = (stage: string): number => Number(/^S(\d+)/.exec(stage)?.[1] ?? Infinity);
+  const returnable = errors
+    .filter((f) => f.returnTo !== undefined)
+    .sort((a, b) => order(a.returnTo ?? "") - order(b.returnTo ?? ""));
+  const first = returnable[0]?.returnTo;
+  if (first !== undefined) {
+    const group = returnable.filter(
+      (f) => (f.returnTo ?? "").split(".")[0] === first.split(".")[0],
+    );
+    return {
+      kind: "return",
+      stage: first,
+      findings: group,
+      maxReturns,
+      summary: `Open findings: ${errors.map((f) => f.code).join(", ")}.`,
+    };
+  }
+  if (errors.length > 0) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "validation_failed",
+        message: `The guide did not pass validation and no stage can fix it by itself: ${[...new Set(errors.map((f) => `${f.gate}:${f.code}`))].join(", ")}.`,
+      },
+    };
+  }
+  return {
+    kind: "blocked",
+    error: {
+      code: "stage_not_implemented",
+      message:
+        "S11 (publishing) is not built yet. S0 to S10 are done and the guide passed validation; the results are stored with the run.",
     },
   };
 }

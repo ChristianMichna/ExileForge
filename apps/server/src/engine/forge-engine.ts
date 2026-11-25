@@ -163,6 +163,8 @@ export class ForgeEngine {
       asks: [],
       taskCounter: 0,
       nextSeq: 0,
+      returns: {},
+      returned: {},
     };
     const tx = new Tx(record, this.now);
     tx.emit({ type: "run.phase", phase: "planning" });
@@ -208,48 +210,7 @@ export class ForgeEngine {
           if (r.phase === "paused") tx.setPhase("planning");
           break;
         case "redoStage": {
-          // Later stages are computed from earlier ones, so redoing a stage drops them too.
-          const from = stageNumber(intervention.stage);
-          const matches = (type: string) =>
-            type === intervention.stage ||
-            type.startsWith(`${intervention.stage}.`) ||
-            (from !== undefined && (stageNumber(type) ?? -1) > from);
-          // Parts of a stage build on each other in order (e.g. S6.stages → S6.notes → S6.plan):
-          // redoing one part drops the parts stored after it.
-          let partDropped = false;
-          r.results = Object.fromEntries(
-            Object.entries(r.results).filter(([, result]) => {
-              if (matches(result.type)) {
-                partDropped = partDropped || stageNumber(result.type) === from;
-                return false;
-              }
-              if (
-                partDropped &&
-                intervention.stage.includes(".") &&
-                stageNumber(result.type) === from
-              ) {
-                return false;
-              }
-              return true;
-            }),
-          );
-          // A variant choice belongs to the candidates it was made on; the player picks again.
-          if (from !== undefined && from <= VARIANT_CHOICE_STAGE) {
-            r.interventions = r.interventions.filter(
-              (e) => e.intervention.kind !== "chooseVariant",
-            );
-          }
-          // A running job computed from the old results; its answer must not come back.
-          this.jobs.delete(r.runId);
-          if (r.current !== null && matches(r.current.type)) {
-            // Questions of the dropped task are moot; close them so the loop does not block.
-            for (const ask of r.asks) {
-              if (ask.answer === undefined && ask.taskId === r.current.taskId) {
-                ask.answer = "(withdrawn: stage redone)";
-              }
-            }
-            r.current = null;
-          }
+          this.dropFrom(r, intervention.stage);
           break;
         }
         default:
@@ -477,6 +438,24 @@ export class ForgeEngine {
           r.current = null;
           tx.setPhase("failed");
           return { kind: "failed", error: step.error };
+        case "return": {
+          const used = r.returns[step.stage] ?? 0;
+          if (used >= step.maxReturns) {
+            r.error = {
+              code: "returns_exhausted",
+              message: `Stage ${step.stage} was returned ${String(used)} times and the gates still fail. ${step.summary}`,
+            };
+            r.current = null;
+            tx.setPhase("failed");
+            return { kind: "failed", error: r.error };
+          }
+          r.returns[step.stage] = used + 1;
+          this.dropFrom(r, step.stage);
+          r.returned[step.stage] = step.findings;
+          r.current = null;
+          tx.setPhase("planning");
+          continue;
+        }
         case "done":
           r.guideId = randomUUID();
           r.current = null;
@@ -493,7 +472,7 @@ export class ForgeEngine {
               key: spec.key,
               type: spec.type,
               attempt: 1,
-              findings: [],
+              findings: this.takeReturned(r, spec.type),
               feedback: [],
               startedAt: this.now().toISOString(),
             };
@@ -514,6 +493,58 @@ export class ForgeEngine {
       }
     }
     throw new Error(`Pipeline ${pipeline.id} did not reach a task, wait or done`);
+  }
+
+  /**
+   * Drops the results of a stage and everything computed from them, so the stage runs again.
+   * Later stages are computed from earlier ones; parts of one stage build on each other in order.
+   */
+  private dropFrom(r: RunRecord, stage: string): void {
+    // Later stages are computed from earlier ones, so redoing a stage drops them too.
+    const from = stageNumber(stage);
+    const matches = (type: string) =>
+      type === stage ||
+      type.startsWith(`${stage}.`) ||
+      (from !== undefined && (stageNumber(type) ?? -1) > from);
+    // Parts of a stage build on each other in order (e.g. S6.stages → S6.notes → S6.plan):
+    // redoing one part drops the parts stored after it.
+    let partDropped = false;
+    r.results = Object.fromEntries(
+      Object.entries(r.results).filter(([, result]) => {
+        if (matches(result.type)) {
+          partDropped = partDropped || stageNumber(result.type) === from;
+          return false;
+        }
+        if (partDropped && stage.includes(".") && stageNumber(result.type) === from) {
+          return false;
+        }
+        return true;
+      }),
+    );
+    // A variant choice belongs to the candidates it was made on; the player picks again.
+    if (from !== undefined && from <= VARIANT_CHOICE_STAGE) {
+      r.interventions = r.interventions.filter((e) => e.intervention.kind !== "chooseVariant");
+    }
+    // A running job computed from the old results; its answer must not come back.
+    this.jobs.delete(r.runId);
+    if (r.current !== null && matches(r.current.type)) {
+      // Questions of the dropped task are moot; close them so the loop does not block.
+      for (const ask of r.asks) {
+        if (ask.answer === undefined && ask.taskId === r.current.taskId) {
+          ask.answer = "(withdrawn: stage redone)";
+        }
+      }
+      r.current = null;
+    }
+  }
+
+  /** Gate findings returned to a stage are shown to the task that redoes it. */
+  private takeReturned(r: RunRecord, type: string): Finding[] {
+    const key = Object.keys(r.returned).find((k) => type === k || type.startsWith(`${k}.`));
+    if (key === undefined) return [];
+    const { [key]: findings = [], ...rest } = r.returned;
+    r.returned = rest;
+    return findings;
   }
 
   private taskOf(r: RunRecord, spec: AnyTaskSpec): ForgeTask {

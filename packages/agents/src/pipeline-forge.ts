@@ -38,7 +38,13 @@ import { releaseStageTable } from "./stages/s6-table.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 import { CraftingPlan, GearPlan, ProgressionPlan } from "@astrolabe/contracts/build";
-import { criticTask, S10_CRITIC_KEY, S10_REPORT_KEY, validateStep } from "./stages/s10-validate.js";
+import {
+  afterReport,
+  criticTask,
+  reportIsCurrent,
+  S10_CRITIC_KEY,
+  validateStep,
+} from "./stages/s10-validate.js";
 import { S9_SECTIONS, sectionKey, sectionTask } from "./stages/s9-guide.js";
 import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
 
@@ -398,20 +404,23 @@ function planGuide(
       mainSkillId: mainSkillOfRun(ctx),
     });
     if (typeof critic === "string") {
-      return { kind: "blocked", error: { code: "invalid_plans", message: critic } };
+      return { kind: "blocked", error: { code: "draft_unreadable", message: critic } };
     }
     return { kind: "task", spec: critic };
   }
-  if (ctx.result(S10_REPORT_KEY) === undefined)
+  if (!reportIsCurrent(ctx))
     return validateStep({ chosen, target, mainSkillId: mainSkillOfRun(ctx) }, config.s10);
-  return {
-    kind: "blocked",
-    error: {
-      code: "stage_not_implemented",
-      message:
-        "S11 (publishing) and the return of gate findings to the causing stage are not built yet. S0 to S10 are done; their results, including the validation report, are stored with the run.",
-    },
-  };
+  if (config.s10 === undefined) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "s10_not_configured",
+        message:
+          "S10 needs the gate settings (config/agents/stages.json, block s10). S0 to S10 are done; their results are stored with the run.",
+      },
+    };
+  }
+  return afterReport(ctx, config.s10.maxReturnsPerStage);
 }
 
 /** The main skill of the run: the player's pick or the S0 choice; both exist once S1 has run. */

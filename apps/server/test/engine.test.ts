@@ -2,6 +2,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import { defineTask, type Pipeline } from "@astrolabe/agents";
 import { RunEvent } from "@astrolabe/contracts/events";
 import type { ForgeStep } from "@astrolabe/contracts/forge";
 import { ForgeTools } from "@astrolabe/contracts/forge";
@@ -384,5 +386,63 @@ describe("forge loop", () => {
     expect(again).toMatchObject({ taskId: t.taskId, attempt: 2 });
     expect(second.engine.eventsAfter(runId, -1).length).toBeGreaterThan(0);
     second.store.close();
+  });
+});
+
+describe("returning a stage", () => {
+  const finding = {
+    gate: "G7" as const,
+    severity: "error" as const,
+    code: "craft_plan_missing",
+    message: "Rare slot has no crafting plan.",
+    returnTo: "S2",
+  };
+  const pipeline: Pipeline = {
+    id: "return-test",
+    plan: (ctx) => {
+      if (ctx.result("S2.a") === undefined) {
+        return {
+          kind: "task",
+          spec: defineTask<{ x: string }>({
+            key: "S2.a",
+            type: "S2.a",
+            instructions: "Say x.",
+            promptVersion: "t",
+            context: {},
+            schema: z.object({ x: z.string() }),
+            allowedTools: [],
+          }),
+        };
+      }
+      return {
+        kind: "return",
+        stage: "S2",
+        findings: [finding],
+        maxReturns: 1,
+        summary: "Still open.",
+      };
+    },
+  };
+
+  it("sends the stage back once with the findings, then fails visibly", async () => {
+    const store = new RunStore(":memory:");
+    const e = new ForgeEngine({
+      store,
+      catalog: fixtureCatalog(),
+      calc: new PersistedCalc(new CalcFake({ dataReleaseId: RELEASE }), store),
+      config: CONFIG,
+      pipelines: [pipeline],
+      calcProfiles: CONFIG.pipelines.poc.calcProfiles,
+    });
+    const { runId, sessionCode } = await e.createRun(REQUEST, "return-test");
+    const first = task((await e.attach(sessionCode)).next);
+    expect(first.findings).toEqual([]);
+    const out = await e.submit({ runId, taskId: first.taskId, attempt: 1, payload: { x: "a" } });
+    // The stage is sent back: the same task comes again, now with the returned findings.
+    const again = task(out.next);
+    expect(again.findings).toEqual([expect.objectContaining({ code: "craft_plan_missing" })]);
+    // The second submission is sent back again, but only one return is allowed.
+    const out2 = await e.submit({ runId, taskId: again.taskId, attempt: 1, payload: { x: "b" } });
+    expect(out2.next).toMatchObject({ kind: "failed", error: { code: "returns_exhausted" } });
   });
 });

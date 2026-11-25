@@ -56,6 +56,10 @@ export const RunRecord = z.object({
   taskCounter: z.int().nonnegative(),
   /** Seq the next event of this run gets. */
   nextSeq: z.int().nonnegative(),
+  /** How often gate findings sent a stage back (S10), per stage; bounded by the pipeline. */
+  returns: z.record(z.string(), z.int().nonnegative()).default({}),
+  /** Findings returned to a stage, shown to the task that redoes it. */
+  returned: z.record(z.string(), z.array(Finding)).default({}),
   guideId: z.uuid().optional(),
   error: z.object({ code: z.string().min(1), message: z.string().min(1) }).optional(),
 });

@@ -64,7 +64,7 @@ export const S9_SECTION = [
 ].join(" ");
 
 export const S10_CRITIC = [
-  "Read the finished guide draft in the context as a critical reviewer. Look for places where the prose contradicts the data (plans, items, measured values) or itself, claims the plans do not support, advice that does not fit the player's mode or budget, and steps that cannot be followed in the given order.",
-  "Report each problem as an issue with the section it is in and what is wrong, and name every section you read in `reviewed`. Do not rewrite anything, do not invent problems, and report no issue when there is none. Reference entities only by ids from the context.",
-  "You judge consistency only; measured numbers are checked by the gates.",
+  "Read the finished guide draft in the context as a critical reviewer. Look only for contradictions inside the draft and the request: prose that disagrees with the plans, items or choices it describes, or with itself, advice that does not fit the player's mode or budget as the request states them, and steps that cannot be followed in the order the plans give.",
+  "Report each problem as an issue with the section it is in and a short plain-text message without digits, and name every section you actually read in `reviewed`. Do not rewrite anything, do not invent problems, and report no issue when there is none. Measured values are not in the draft; the gates check them, so do not judge numbers.",
+  NO_MEMORY_RULES,
 ].join(" ");

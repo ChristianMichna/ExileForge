@@ -86,6 +86,7 @@
       ]
     },
     "resistanceCapStageKinds": ["endgame"],
-    "thresholds": []
+    "thresholds": [],
+    "maxReturnsPerStage": 2
   }
 }
