@@ -2,14 +2,15 @@ import { z } from "zod";
 import type { TargetBuild } from "@astrolabe/contracts/build";
 import {
   type ArchetypeCandidate,
+  BuildState,
+  CalcOutcome,
   type Finding,
   ProgressionPlan,
-  ProgressionStage,
   Rationale,
   RichText,
   type SkillProfile,
 } from "@astrolabe/contracts/build";
-import type { JsonValue } from "@astrolabe/contracts/common";
+import { CalcProfileId, PassiveNodeId, type JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import type { ProgressionStageTree } from "../ports.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext, type PlanStep } from "../pipeline.js";
@@ -22,6 +23,18 @@ export const S6_PLAN_KEY = "S6.plan";
 
 /** S6 settings; absent when the stage table has not been set yet. */
 export type S6Config = NonNullable<StageConfig["s6"]>;
+
+/** Stored result of the S6.stages job; checked again when read back. */
+export const StoredStages = z.array(
+  z.object({
+    key: z.string().min(1),
+    state: BuildState,
+    allocationOrder: z.array(PassiveNodeId),
+    respecs: z.array(PassiveNodeId),
+    unspent: z.int().nonnegative(),
+    calcs: z.record(CalcProfileId, CalcOutcome),
+  }),
+);
 
 /** What Claude writes per stage; everything measured comes from the optimizer. */
 export const ProgressionNotes = z.object({
@@ -66,7 +79,11 @@ export function stagesJob(
         profile,
         candidate: chosen,
         target,
-        stages: s6.stages.map((s) => ({ key: s.key, budget: s.passivePoints })),
+        stages: s6.stages.map((s) => ({
+          key: s.key,
+          budget: s.passivePoints,
+          level: s.levelRange[1],
+        })),
       });
       return JSON.parse(JSON.stringify(result)) as JsonValue;
     },
@@ -96,7 +113,7 @@ export function notesTask(
             kind: s.kind,
             act: s.act,
             levelRange: s.levelRange,
-            newNodes: trees.find((t) => t.key === s.key)?.allocationOrder ?? [],
+            newNodes: trees.find((t) => t.key === s.key)?.allocationOrder,
           })),
         ),
       ) as JsonValue,
@@ -184,9 +201,7 @@ export function planStep(
           calcs: tree.calcs,
         };
       });
-      const parsed = ProgressionPlan.safeParse({
-        stages: stages.map((st) => ProgressionStage.parse(st)),
-      });
+      const parsed = ProgressionPlan.safeParse({ stages });
       if (!parsed.success) {
         throw new Error("The stored S6 stages are not a valid progression plan", {
           cause: parsed.error,

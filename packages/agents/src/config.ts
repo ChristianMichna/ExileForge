@@ -70,7 +70,42 @@ export const StageConfig = z.object({
             passivePoints: z.int().nonnegative(),
           }),
         )
-        .min(1),
+        .min(1)
+        .superRefine((stages, ctx) => {
+          const keys = new Set<string>();
+          stages.forEach((st, i) => {
+            if (keys.has(st.key)) {
+              ctx.addIssue({
+                code: "custom",
+                message: `duplicate stage key ${st.key}`,
+                path: [i, "key"],
+              });
+            }
+            keys.add(st.key);
+            if (st.levelRange[0] > st.levelRange[1]) {
+              ctx.addIssue({
+                code: "custom",
+                message: "levelRange must be ascending",
+                path: [i, "levelRange"],
+              });
+            }
+            const prev = stages[i - 1];
+            if (prev !== undefined && st.passivePoints < prev.passivePoints) {
+              ctx.addIssue({
+                code: "custom",
+                message: "passivePoints must not decrease",
+                path: [i, "passivePoints"],
+              });
+            }
+            if (prev !== undefined && st.levelRange[0] <= prev.levelRange[1]) {
+              ctx.addIssue({
+                code: "custom",
+                message: "level bands must not overlap",
+                path: [i, "levelRange"],
+              });
+            }
+          });
+        }),
       calcProfiles: z.array(CalcProfileId).min(1),
       objective: z.object({
         weights: z.record(z.string().min(1), z.number()),

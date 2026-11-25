@@ -109,7 +109,8 @@ export interface ProgressionRequest {
   profile: SkillProfile;
   candidate: ArchetypeCandidate;
   target: TargetBuild;
-  stages: readonly { key: string; budget: number }[];
+  /** `level` is the stage's character level; each stage is measured at it. */
+  stages: readonly { key: string; budget: number; level: number }[];
 }
 
 /** One stage of the progression: nested tree, allocation order and a measurement per profile. */
@@ -118,6 +119,8 @@ export interface ProgressionStageTree {
   state: BuildState;
   allocationOrder: string[];
   respecs: string[];
+  /** Points the stage could not spend because the target tree ran out. */
+  unspent: number;
   calcs: Record<CalcProfileId, CalcOutcome>;
 }
 

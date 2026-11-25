@@ -26,6 +26,7 @@ import {
   S6_NOTES_KEY,
   S6_PLAN_KEY,
   S6_STAGES_KEY,
+  StoredStages,
   stagesJob,
 } from "./stages/s6-progression.js";
 import { TargetBuild } from "@astrolabe/contracts/build";
@@ -221,7 +222,17 @@ function planProgression(
   }
   const stored = ctx.result(S6_STAGES_KEY);
   if (stored === undefined) return stagesJob(ctx, s6, profile, chosen, target.data);
-  const trees = stored as unknown as ProgressionStageTree[];
+  const storedTrees = StoredStages.safeParse(stored);
+  if (!storedTrees.success) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "invalid_stages",
+        message: "The stored S6 stages are unreadable. Redo stage S6.",
+      },
+    };
+  }
+  const trees = storedTrees.data as unknown as ProgressionStageTree[];
   const notes = ctx.result(S6_NOTES_KEY);
   if (notes === undefined) return { kind: "task", spec: notesTask(ctx, config, s6, trees) };
   const parsedNotes = ProgressionNotes.safeParse(notes);

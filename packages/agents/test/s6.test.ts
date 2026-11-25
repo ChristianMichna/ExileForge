@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BuildState, type RichText } from "@astrolabe/contracts/build";
-import type { StageConfig } from "../src/config.js";
+import { StageConfig } from "../src/config.js";
 import type { PipelineContext } from "../src/pipeline.js";
 import type { ProgressionStageTree } from "../src/ports.js";
 import { notesTask, planStep, stagesJob } from "../src/stages/s6-progression.js";
@@ -32,6 +32,7 @@ const tree = (key: string, nodes: string[]): ProgressionStageTree => ({
   }),
   allocationOrder: nodes,
   respecs: [],
+  unspent: 0,
   calcs: { default: { status: "ok", calcId: "calc-1" } } as never,
 });
 const trees = [tree("early", ["a"]), tree("late", ["a", "b"])];
@@ -40,6 +41,26 @@ const noProgressionCtx = {
   result: () => undefined,
 } as never as PipelineContext;
 const config = { promptVersion: "t" } as StageConfig;
+
+describe("s6 config", () => {
+  const base = { calcProfiles: ["default"], objective: { weights: { M: 1 } } };
+  const stage = (key: string, range: [number, number], points: number) => ({
+    key,
+    label: key,
+    kind: "campaign" as const,
+    levelRange: range,
+    passivePoints: points,
+  });
+  const parse = (stages: unknown[]) => StageConfig.shape.s6.safeParse({ ...base, stages }).success;
+
+  it("rejects duplicate keys, reversed or overlapping bands and shrinking points", () => {
+    expect(parse([stage("a", [1, 5], 1), stage("b", [6, 9], 2)])).toBe(true);
+    expect(parse([stage("a", [1, 5], 1), stage("a", [6, 9], 2)])).toBe(false);
+    expect(parse([stage("a", [5, 1], 1)])).toBe(false);
+    expect(parse([stage("a", [1, 5], 1), stage("b", [5, 9], 2)])).toBe(false);
+    expect(parse([stage("a", [1, 5], 3), stage("b", [6, 9], 2)])).toBe(false);
+  });
+});
 
 describe("S6 stages", () => {
   it("blocks visibly without the PoB progression service", () => {
@@ -66,6 +87,13 @@ describe("S6 stages", () => {
     ]);
     const ok = await spec.check?.({ stages: [note("early"), note("late")] }, {} as never);
     expect(ok).toEqual([]);
+  });
+
+  it("fails the plan step when a stage is missing from the stored results", async () => {
+    const notes = { stages: [{ key: "early", tasks: [text("x")], dangers: [], rationale: [] }] };
+    const step = planStep(s6, trees, notes);
+    if (step.kind !== "server") throw new Error("expected a server step");
+    expect(() => step.run({} as never)).toThrow(/missing/);
   });
 
   it("assembles the plan from the measured stages and the texts", async () => {

@@ -204,8 +204,24 @@ export class ForgeEngine {
             type === intervention.stage ||
             type.startsWith(`${intervention.stage}.`) ||
             (from !== undefined && (stageNumber(type) ?? -1) > from);
+          // Parts of a stage build on each other in order (e.g. S6.stages → S6.notes → S6.plan):
+          // redoing one part drops the parts stored after it.
+          let partDropped = false;
           r.results = Object.fromEntries(
-            Object.entries(r.results).filter(([, result]) => !matches(result.type)),
+            Object.entries(r.results).filter(([, result]) => {
+              if (matches(result.type)) {
+                partDropped = partDropped || stageNumber(result.type) === from;
+                return false;
+              }
+              if (
+                partDropped &&
+                intervention.stage.includes(".") &&
+                stageNumber(result.type) === from
+              ) {
+                return false;
+              }
+              return true;
+            }),
           );
           // A variant choice belongs to the candidates it was made on; the player picks again.
           if (from !== undefined && from <= VARIANT_CHOICE_STAGE) {

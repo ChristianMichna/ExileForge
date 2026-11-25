@@ -211,8 +211,16 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         failedEvaluations: result.failedEvaluationCount,
       });
     }
+    const last = result.stages.at(-1);
+    if (last === undefined || last.allocated.length < targetNodes.length) {
+      throw new Error(
+        `The last stage ends with ${last?.allocated.length ?? 0} of ${targetNodes.length} target nodes; raise its passive points`,
+      );
+    }
     const out: ProgressionStageTree[] = [];
     for (const stage of result.stages) {
+      const level = input.stages.find((s) => s.key === stage.key)?.level;
+      if (level === undefined) throw new Error(`Stage ${stage.key} has no level`);
       if (!stage.feasible) {
         throw new Error(
           `Stage ${stage.key} could not meet the objective floors: ${JSON.stringify(stage.violations)}`,
@@ -220,6 +228,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       }
       const state = BuildState.parse({
         ...base,
+        level,
         tree: { allocated: stage.allocated.map((nodeId) => ({ nodeId })), ascendancy: [] },
       });
       const calcs = await this.options.calc.calculate({
@@ -239,6 +248,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         state,
         allocationOrder: stage.allocationOrder,
         respecs: stage.respecs,
+        unspent: stage.unspent,
         calcs,
       });
     }

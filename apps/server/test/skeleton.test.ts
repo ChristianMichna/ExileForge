@@ -135,8 +135,8 @@ describe("PobSkeleton", () => {
       candidate: cand,
       target,
       stages: [
-        { key: "early", budget: 1 },
-        { key: "late", budget: 2 },
+        { key: "early", budget: 1, level: 10 },
+        { key: "late", budget: 2, level: 20 },
       ],
     };
     const wrap = (stages: object[]) => ({
@@ -157,10 +157,19 @@ describe("PobSkeleton", () => {
         ["late", 2],
       ]);
       expect(calculate).toHaveBeenCalledTimes(2);
+      expect(out.map((s) => s.state.level)).toEqual([10, 20]);
+    });
+
+    it("fails when the last stage does not reach the target tree", async () => {
+      const { skeleton } = setup({}, wrap([stage("early", ["FixN1"]), stage("late", ["FixN1"])]));
+      await expect(skeleton.optimizeProgression(input)).rejects.toThrow(/target nodes/);
     });
 
     it("fails visibly when a stage misses the floors", async () => {
-      const { skeleton } = setup({}, wrap([stage("early", ["FixN1"], false)]));
+      const { skeleton } = setup(
+        {},
+        wrap([stage("early", ["FixN1"], false), stage("late", ["FixN1", "FixN2"])]),
+      );
       await expect(skeleton.optimizeProgression(input)).rejects.toThrow(/floors/);
     });
   });
