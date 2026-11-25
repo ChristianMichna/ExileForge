@@ -125,7 +125,10 @@ anders als die namensbasierten PoB-IDs der Ausrüstung), Klasse = `ItemClasses.I
 Eigenschaften: `stackSize`, `useType`, bei gestuften Währungen `currencyTier` und
 `minimumModLevel`, bei Essenzen `essenceTier`. Tags (Wortschatz in der Config): `currency_action:<Action>`,
 `exchange_category:<Kategorie>`, `lower_tier:<ID der niedrigeren Stufe>`, `essence`,
-`perfect`, `omen`. Andere Klassen (Seelenkerne, Kartenfragmente, Inkubatoren …) bleiben
+`perfect`, `omen`. Mit `currency.includeExchangeItems` (an) kommt außerdem jedes Item dazu, das die
+Börsenliste des Spiels (`CurrencyExchange`) führt, egal welcher Klasse (Runen, Uncut-Gems,
+Idole, Fragmente, Seelenkerne …; Tag `exchange_category:<Kategorie>`, keine Eigenschaften
+außer Drop-Level). Andere Klassen (Inkubatoren …) bleiben
 draußen und stehen mit Anzahl als Warnung in `findings.json`; ein Fremdschlüssel ins
 Leere oder eine doppelte ID ist ein Fehler. Offen: was eine Essenz bewirkt
 (`Essences.UpgradeResult`) ist nicht abgebildet, bis die Crafting-Operation dafür

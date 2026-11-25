@@ -49,6 +49,8 @@ export const normalizeConfigSchema = z
         $comment: z.string().optional(),
         /** CurrencyItems rows of these item classes become catalog base items. */
         itemClasses: z.array(z.string().min(1)).min(1),
+        /** Also take every item the game's currency exchange lists, whatever its class. */
+        includeExchangeItems: z.boolean(),
         /** Tag vocabulary; prefixed tags are followed by a game id. */
         tags: z
           .object({

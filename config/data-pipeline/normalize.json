@@ -31,6 +31,7 @@
   "currency": {
     "$comment": "Currency-like base items from the game-data tables (docs/adr/0005). itemClasses decides which CurrencyItems rows count; other classes (soul cores, map fragments, incubators ...) are reported as left out. Ids are BaseItemTypes.Id (metadata path), not PoB's name-based equipment ids.",
     "itemClasses": ["StackableCurrency", "Omen"],
+    "includeExchangeItems": true,
     "tags": {
       "action": "currency_action:",
       "exchangeCategory": "exchange_category:",
