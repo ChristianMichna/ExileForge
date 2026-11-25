@@ -1,0 +1,5 @@
+{
+  "$comment": "Mapping of provider item ids to catalog ids (packages/economy). Only ids that exist in the data release's catalog may be listed; the module checks that and reports the rest as unmapped. Empty until the catalog carries currency items (PoB data has none; dat extraction is not released yet).",
+  "version": "economy-map-1",
+  "items": {}
+}
