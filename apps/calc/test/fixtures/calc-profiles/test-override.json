@@ -1,0 +1,6 @@
+{
+  "$comment": "Test-only profile. enemyIsBoss and its values are taken from PoB's Modules/ConfigOptions.lua (v0.23.1); tests only check that the override changes the result, not by how much.",
+  "id": "test-override",
+  "description": "Test profile that overrides one PoB config option.",
+  "config": [{ "key": "enemyIsBoss", "value": "None" }]
+}
