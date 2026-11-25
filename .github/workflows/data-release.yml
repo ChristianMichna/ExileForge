@@ -1,0 +1,89 @@
+# Publishes a data release (F-01): builds the catalog like data-snapshot.yml and
+# attaches it to a GitHub release of this repository. Started by hand; the
+# release is a pre-release unless `prerelease` is switched off. Release id and
+# tag follow the contract (poe2-<game version>+r<revision>).
+name: Data release
+
+on:
+  workflow_dispatch:
+    inputs:
+      game-version:
+        description: "Game version, must equal the patch the game-data step reads, e.g. 0.5.5.10"
+        required: true
+      revision:
+        description: "Pipeline revision for this game version"
+        required: true
+        default: "1"
+      prerelease:
+        description: "Mark the GitHub release as a pre-release"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GAME_VERSION: ${{ inputs.game-version }}
+      REVISION: ${{ inputs.revision }}
+      PRERELEASE: ${{ inputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Set up headless PoB
+        run: tools/setup_pob.sh
+
+      - name: Build pipeline and snapshot
+        run: |
+          pnpm exec turbo run build --filter=@astrolabe/data-pipeline
+          node apps/data-pipeline/dist/cli.js snapshot \
+            --game-version "$GAME_VERSION" --revision "$REVISION" --out data-snapshots/current
+
+      - name: Game data (crafting tables from the update servers)
+        run: |
+          set -o pipefail
+          node apps/data-pipeline/dist/cli.js gamedata \
+            --out data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Game version must match the patch that was read
+        run: |
+          patch=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("data-snapshots/current/game-data/manifest.json","utf8")).patch.version)')
+          if [ "$patch" != "$GAME_VERSION" ]; then
+            echo "game-version input '$GAME_VERSION' differs from the patch read from the update server '$patch'" >&2
+            exit 1
+          fi
+
+      - name: Build catalog
+        run: |
+          set -o pipefail
+          node apps/data-pipeline/dist/cli.js catalog data-snapshots/current \
+            --out data-snapshots/current/catalog \
+            --game-data data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Create the GitHub release
+        run: |
+          set -euo pipefail
+          id="poe2-${GAME_VERSION}+r${REVISION}"
+          tag="data-poe2-${GAME_VERSION}-r${REVISION}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "release $tag already exists; data releases are immutable" >&2
+            exit 1
+          fi
+          # catalog only: shards, manifest, findings; raw game tables stay out (ADR-0005)
+          tar -C data-snapshots/current/catalog -czf "catalog-${id}.tar.gz" .
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$tag" "catalog-${id}.tar.gz" \
+            --target "$GITHUB_SHA" --title "Data release $id" \
+            --notes "Catalog of data release $id. Built by .github/workflows/data-release.yml from the pinned PoB data and the game-data tables (docs/adr/0005). Unofficial; contains no game assets." \
+            "${flags[@]}"
