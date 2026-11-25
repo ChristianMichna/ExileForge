@@ -16,6 +16,9 @@ export type {
   CatalogQuery,
   SkeletonPort,
   SkeletonRequest,
+  TargetPort,
+  TargetRequest,
+  TargetTree,
 } from "./ports.js";
 export { evaluationsJob, S3_KEY } from "./stages/s3-evaluate.js";
 export { createForgePipeline, FORGE_PIPELINE_ID } from "./pipeline-forge.js";
@@ -29,3 +32,4 @@ export {
   userEntities,
 } from "./stages/s2-candidates.js";
 export { requestContext } from "./stages/context.js";
+export { GemSetupSubmission, S5_GEMS_KEY, S5_TARGET_KEY, S5_TREE_KEY } from "./stages/s5-target.js";

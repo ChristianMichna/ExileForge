@@ -76,3 +76,28 @@ export interface SkeletonRequest {
 export interface SkeletonPort {
   evaluate(input: SkeletonRequest): Promise<ArchetypeEvaluation>;
 }
+
+/** Input of the endgame target tree (S5): the chosen candidate with its final skill setup. */
+export interface TargetRequest {
+  request: BuildRequest;
+  profile: SkillProfile;
+  candidate: ArchetypeCandidate;
+  /** The build to optimise: class, level and skills as chosen; tree empty. */
+  state: BuildState;
+  /** Points the main tree may use. */
+  passivePoints: number;
+}
+
+/** Result of the target tree: the build with its tree and a measurement per calc profile. */
+export interface TargetTree {
+  state: BuildState;
+  calcs: Record<CalcProfileId, CalcOutcome>;
+}
+
+/**
+ * Optimises the endgame passive tree of the chosen build and measures it.
+ * Present only with the real engine, like the skeleton port.
+ */
+export interface TargetPort {
+  optimizeTree(input: TargetRequest): Promise<TargetTree>;
+}

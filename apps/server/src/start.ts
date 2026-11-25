@@ -108,11 +108,15 @@ async function startServerOwningPool(
       catalog,
       optimizerConfig: await loadOptimizerConfig(optimizerConfigPath),
       settings: stages.s3,
+      ...(stages.s5 === undefined
+        ? {}
+        : { target: { calcProfiles: stages.s5.calcProfiles, objective: stages.s5.objective } }),
       logger: options.logger,
     });
   }
   // The profiles numbers of a run may come from: the PoC's and, with PoB, the stages'.
-  const stageProfiles = pobCalc === undefined ? [] : stages.s3.calcProfiles;
+  const stageProfiles =
+    pobCalc === undefined ? [] : [...stages.s3.calcProfiles, ...(stages.s5?.calcProfiles ?? [])];
   const knownProfiles = [...new Set([...config.pipelines.poc.calcProfiles, ...stageProfiles])];
   const engine = new ForgeEngine({
     store,
@@ -120,7 +124,7 @@ async function startServerOwningPool(
     calc,
     config,
     logger: options.logger,
-    ...(skeleton === undefined ? {} : { skeleton }),
+    ...(skeleton === undefined ? {} : { skeleton, target: skeleton }),
     pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
     calcProfiles: knownProfiles,
   });

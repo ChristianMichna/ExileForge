@@ -218,7 +218,7 @@ describe("forge pipeline (agents)", () => {
     await engine.intervene(runId, { kind: "chooseVariant", candidateKey: "b" });
     expect(await engine.next(runId)).toMatchObject({
       kind: "failed",
-      error: { code: "stage_not_implemented" },
+      error: { code: "s5_not_configured" },
     });
     expect((await engine.view(runId)).results["S4.selection"]?.value).toEqual({
       candidateKey: "b",
@@ -246,7 +246,7 @@ describe("forge pipeline (agents)", () => {
       ...pipeline,
       plan: (ctx) => {
         const step = pipeline.plan(ctx);
-        return step.kind === "blocked" && step.error.code === "stage_not_implemented"
+        return step.kind === "blocked" && step.error.code === "s5_not_configured"
           ? { kind: "wait_user", reason: [{ type: "text", text: "later stages" }] }
           : step;
       },
@@ -296,6 +296,22 @@ describe("forge pipeline (agents)", () => {
       ).rejects.toMatchObject({ code: "invalid_intervention" });
       await engine.intervene(runId, { kind: "redoStage", stage: "S4" });
       expect(JSON.stringify(await engine.next(runId))).toContain("picks one");
+    });
+
+    it("asks for the gem setup after the choice when S5 is configured", async () => {
+      const s5 = {
+        level: 20,
+        passivePoints: 5,
+        calcProfiles: ["default"],
+        objective: { weights: { FakeMetric: 1 }, floors: {} },
+      };
+      const engine = setup(createForgePipeline({ ...STAGES, s5 }), fastSkeleton);
+      const { runId } = await driveToS3(engine);
+      await vi.waitFor(async () =>
+        expect(JSON.stringify(await engine.next(runId))).toContain("picks one"),
+      );
+      await engine.intervene(runId, { kind: "chooseVariant", candidateKey: "a" });
+      expect(task(await engine.next(runId)).type).toBe("S5.gems");
     });
 
     it("drops the choice when S3 is redone", async () => {
