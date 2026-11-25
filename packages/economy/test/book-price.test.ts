@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ItemPrice } from "@exileforge/contracts";
 import { buildPriceBook, EconomyError, priceItems } from "../src/index.js";
 import { catalogHas, config, itemMap, RELEASE, responseA, responseB } from "./fixtures.js";
 
@@ -95,12 +96,25 @@ describe("priceItems", () => {
     }
   });
 
-  it("the reference currency in itself is an identity, not a market quote", () => {
+  it("the reference currency in itself is no market quote: uncalibrated, not a made-up source", () => {
     const { prices } = priceItems(book, [{ kind: "baseItem", id: ref }]);
-    const price = prices[0]?.price;
+    expect(prices[0]?.price.status).toBe("uncalibrated");
+  });
+
+  it("the reference currency in another currency is derived from that currency's quote", () => {
+    const price = priceItems(book, [{ kind: "baseItem", id: ref }], "cur-a" as never).prices[0]
+      ?.price;
     if (price?.status !== "ok") throw new Error("expected ok");
-    expect(price.value.amount).toBe(1);
-    expect(price.source).toMatchObject({ kind: "derived", formula: "economy.identity" });
+    expect(price.value.amount).toBeCloseTo(0.25, 10);
+    expect(price.source.kind).toBe("derived");
+  });
+
+  it("every result parses against the contract's ItemPrice", () => {
+    const { prices } = priceItems(book, [
+      { kind: "baseItem", id: "cur-a" as never },
+      { kind: "baseItem", id: "nothing" as never },
+    ]);
+    for (const p of prices) expect(ItemPrice.safeParse(p).success).toBe(true);
   });
 
   it("is uncalibrated, with the reason, for items or target currencies without a quote", () => {

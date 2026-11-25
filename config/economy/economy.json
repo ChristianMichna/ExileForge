@@ -29,11 +29,14 @@
   "cacheTtlMinutes": 60,
   "minRequestIntervalMs": 1500,
   "requestTimeoutMs": 15000,
-  "maxResponseBytes": 5000000,
+  "maxResponseBytes": 2000000,
   "confidence": {
     "$comment": "Volume (in primary currency units, as the provider reports volumePrimaryValue) at or above which a quote counts as that confidence. Below `medium` it is low.",
     "high": 500,
     "medium": 50
   },
-  "$commentUserAgent": "The provider asks for a contact in the User-Agent. None is set: it has to be chosen by the project owner (a public address), and no private data goes into this string."
+  "$commentUserAgent": "The provider asks for a contact in the User-Agent. None is set: it has to be chosen by the project owner (a public address), and no private data goes into this string.",
+  "rateLimitBackoffMs": 900000,
+  "minQuotes": 1,
+  "$commentConfidence": "Provisional: the volume thresholds are not calibrated against real data yet."
 }

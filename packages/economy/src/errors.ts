@@ -18,4 +18,6 @@ export type EconomyErrorCode =
   | "invalid_response"
   | "no_league"
   | "reference_currency_unmapped"
-  | "rate_limited";
+  | "rate_limited"
+  | "implausible_response"
+  | "cache_error";

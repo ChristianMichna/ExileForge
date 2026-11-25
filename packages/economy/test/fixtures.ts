@@ -20,6 +20,8 @@ export const config: EconomyConfig = {
   cacheTtlMinutes: 60,
   minRequestIntervalMs: 1000,
   requestTimeoutMs: 5000,
+  rateLimitBackoffMs: 60_000,
+  minQuotes: 1,
   maxResponseBytes: 10_000,
   confidence: { high: 500, medium: 50 },
 };

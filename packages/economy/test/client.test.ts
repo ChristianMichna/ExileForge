@@ -127,6 +127,91 @@ describe("PoeNinjaClient", () => {
     );
   });
 
+  it("does not follow redirects", async () => {
+    const { client, calls } = setup(
+      () =>
+        new Response(null, { status: 302, headers: { location: "http://elsewhere.example/x" } }),
+    );
+    await expect(client.exchangeOverview("L", "TypeA")).rejects.toMatchObject({
+      code: "http_error",
+    });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("pauses after 429 (Retry-After or the configured backoff) instead of asking again", async () => {
+    let time = 0;
+    const calls: number[] = [];
+    const client = new PoeNinjaClient({
+      config,
+      appVersion: "1",
+      http: new MemoryHttpCache(),
+      fetch: (async () => {
+        calls.push(time);
+        return new Response("slow down", { status: 429, headers: { "retry-after": "120" } });
+      }) as unknown as typeof fetch,
+      sleep: async (ms) => void (time += ms),
+      clock: () => time,
+    });
+    await expect(client.exchangeOverview("L", "TypeA")).rejects.toMatchObject({
+      code: "rate_limited",
+    });
+    await expect(client.exchangeOverview("L", "TypeB")).rejects.toMatchObject({
+      code: "rate_limited",
+    });
+    expect(calls).toHaveLength(1);
+    time += 121_000;
+    await expect(client.exchangeOverview("L", "TypeB")).rejects.toMatchObject({
+      code: "rate_limited",
+    });
+    expect(calls).toHaveLength(2);
+  });
+
+  it("stops reading a body that grows past the limit without announcing a length", async () => {
+    let pulled = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled++;
+        controller.enqueue(new Uint8Array(4000));
+        if (pulled > 100) controller.close();
+      },
+    });
+    const { client } = setup(() => new Response(stream, { status: 200 }));
+    await expect(client.exchangeOverview("L", "TypeA")).rejects.toMatchObject({
+      code: "response_too_large",
+    });
+    expect(pulled).toBeLessThan(10);
+  });
+
+  it("does not store an invalid response, so a bad body is not revalidated forever", async () => {
+    const { client, http } = setup(() => json({ nope: true }, { headers: { etag: '"x"' } }));
+    await expect(client.exchangeOverview("L", "TypeA")).rejects.toMatchObject({
+      code: "invalid_response",
+    });
+    expect(http.entries.size).toBe(0);
+  });
+
+  it("works without the HTTP cache when it fails, and says so", async () => {
+    const warnings: string[] = [];
+    const failing: HttpCache = {
+      async get() {
+        throw new Error("disk");
+      },
+      async set() {
+        throw new Error("disk");
+      },
+    };
+    const client = new PoeNinjaClient({
+      config,
+      appVersion: "1",
+      http: failing,
+      fetch: (async () => json(responseA)) as unknown as typeof fetch,
+      sleep: async () => undefined,
+      onWarn: (m) => warnings.push(m),
+    });
+    expect(await client.exchangeOverview("L", "TypeA")).toEqual(responseA);
+    expect(warnings).toHaveLength(2);
+  });
+
   it("reads the league list", async () => {
     const { client } = setup(() => json([{ id: "Now", name: "Now" }]));
     expect(await client.leagues()).toEqual([{ id: "Now", name: "Now" }]);

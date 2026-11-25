@@ -19,7 +19,8 @@ const { league, inCurrencyItemId, prices, freshness } = await service.price({ it
   Der Client nutzt bedingte Anfragen (`If-None-Match`), die lokale Lebensdauer eines
   Preisbuchs ist `cacheTtlMinutes` (60).
 - Anfragen laufen nacheinander mit Mindestabstand (`minRequestIntervalMs`), mit
-  Timeout und Größenlimit. Ein Abruf (alle `exchangeTypes`) sind etwa 14 Anfragen pro
+  Timeout, gestreamtem Größenlimit und ohne Redirects (ein 3xx ist ein Fehler). Nach
+  einem 429 wird bis `Retry-After` (sonst `rateLimitBackoffMs`) nichts gesendet. Ein Abruf (alle `exchangeTypes`) sind etwa 14 Anfragen pro
   Stunde und Liga.
 - User-Agent identifiziert die App ohne persönliche Daten. **Offen:** Der Provider
   wünscht einen Kontakt im User-Agent; den muss der Projektinhaber wählen (öffentliche
@@ -35,14 +36,18 @@ const { league, inCurrencyItemId, prices, freshness } = await service.price({ it
 ## Ablauf
 
 1. Liga: Anfrage oder erste Liga der Provider-Liste (aktuelle Challenge-Liga).
-2. `getBook`: gespeichertes Preisbuch jünger als die TTL → ohne Netz. Sonst Abruf aller
-   Typen, Abbildung über `config/economy/item-map.json`, Speichern. Schlägt der Abruf
+2. `getBook` (gleichzeitige Aufrufer teilen sich einen Abruf; ohne Liga und bei
+   nicht abrufbarer Ligenliste gilt die Liga des zuletzt gespeicherten Buchs, als `stale`): gespeichertes Preisbuch jünger als die TTL → ohne Netz. Sonst Abruf aller
+   Typen, Abbildung über `config/economy/item-map.json`, Speichern. Weniger als
+   `minQuotes` brauchbare Preise gelten als unplausibel (`implausible_response`): das
+   alte Buch bleibt. Lässt sich das frische Buch nicht speichern, kommt es trotzdem
+   zurück, mit Warnung (`cache_error`). Schlägt der Abruf
    fehl und es gibt ein älteres Buch, kommt dieses als `stale` mit dem Fehler zurück;
    ohne Buch wird der Fehler geworfen.
 3. `priceItems`: ein direkter Preis in der Referenzwährung ist `market`, jede
    Umrechnung über eine andere Währung ist `derived` aus den verwendeten
-   Marktpreisen (schwächste Konfidenz), die Referenzwährung selbst ist
-   `economy.identity`. Kein Preis → `uncalibrated` mit Grund, nie 0.
+   Marktpreisen (schwächste Konfidenz), die Referenzwährung in sich selbst ist
+   nicht bepreisbar („uncalibrated"), weil es keine Marktquote hat. Kein Preis → `uncalibrated` mit Grund, nie 0.
 
 ## Abbildung auf Katalog-IDs
 

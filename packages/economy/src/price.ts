@@ -1,5 +1,7 @@
 import type { ItemPrice, PriceBook, PricedItemRef, PrimarySource } from "@exileforge/contracts";
 
+type MarketSourceT = Extract<PrimarySource, { kind: "market" }>;
+
 type Confidence = "high" | "medium" | "low";
 
 export const ECONOMY_FORMULA_VERSION = "1";
@@ -30,7 +32,7 @@ export function priceItems(
 ): { inCurrencyItemId: PriceBook["referenceCurrencyItemId"]; prices: ItemPrice[] } {
   const target = inCurrencyItemId ?? book.referenceCurrencyItemId;
   const targetUnit = unitOf(book, { kind: "baseItem", id: target });
-  const market = (confidence: Confidence): PrimarySource => ({
+  const market = (confidence: Confidence): MarketSourceT => ({
     kind: "market",
     provider: book.provider,
     league: book.league,
@@ -61,13 +63,22 @@ export function priceItems(
     }
     const value = { amount: unit.amount / targetUnit.amount, currencyItemId: target };
     const itemIsReference = item.kind === "baseItem" && item.id === book.referenceCurrencyItemId;
-    if (targetIsReference && !itemIsReference) {
-      return { item, price: { status: "ok", value, source: market(unit.confidence) as never } };
+    if (itemIsReference && targetIsReference) {
+      // The unit in itself is no market quote; a source for it would be made up.
+      return {
+        item,
+        price: {
+          status: "uncalibrated",
+          reason: `${item.id} is the reference currency of this price book; its price in itself is not a market quote`,
+        },
+      };
+    }
+    if (targetIsReference) {
+      return { item, price: { status: "ok", value, source: market(unit.confidence) } };
     }
     const inputs: PrimarySource[] = [];
     if (!itemIsReference) inputs.push(market(unit.confidence));
     if (!targetIsReference) inputs.push(market(targetUnit.confidence));
-    if (inputs.length === 0) inputs.push(market("high"));
     return {
       item,
       price: {
@@ -75,7 +86,7 @@ export function priceItems(
         value,
         source: {
           kind: "derived",
-          formula: itemIsReference && targetIsReference ? "economy.identity" : "economy.convert",
+          formula: "economy.convert",
           formulaVersion: ECONOMY_FORMULA_VERSION,
           inputs: inputs as [PrimarySource, ...PrimarySource[]],
         },
