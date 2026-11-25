@@ -38,6 +38,7 @@ import { releaseStageTable } from "./stages/s6-table.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 import { CraftingPlan, GearPlan, ProgressionPlan } from "@astrolabe/contracts/build";
+import { S10_REPORT_KEY, validateStep } from "./stages/s10-validate.js";
 import { S9_SECTIONS, sectionKey, sectionTask } from "./stages/s9-guide.js";
 import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
 
@@ -389,14 +390,26 @@ function planGuide(
     };
     return { kind: "task", spec: sectionTask(ctx, config, open, { chosen, target, plans }) };
   }
+  if (ctx.result(S10_REPORT_KEY) === undefined)
+    return validateStep({
+      chosen,
+      target,
+      mainSkillId: mainSkillOfRun(ctx),
+    });
   return {
     kind: "blocked",
     error: {
       code: "stage_not_implemented",
       message:
-        "S10 (validation) and S11 (publishing) are not built yet. S0 to S9 are done; their results are stored with the run.",
+        "S11 (publishing) and the return of gate findings to the causing stage are not built yet. S0 to S10 are done; their results, including the validation report, are stored with the run.",
     },
   };
+}
+
+/** The main skill of the run: the player's pick or the S0 choice; both exist once S1 has run. */
+function mainSkillOfRun(ctx: PipelineContext): string {
+  if (ctx.run.request.mainSkillId !== undefined) return ctx.run.request.mainSkillId;
+  return SkillChoice.parse(ctx.result(S0_SKILL_KEY)).mainSkillId;
 }
 
 /** Craft tasks of S8, known once the gear plan is stored. */
