@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { ItemPrice } from "@astrolabe/contracts";
+import { ItemPrice, PricedItemRef } from "@astrolabe/contracts";
 import { buildPriceBook, EconomyError, priceItems } from "../src/index.js";
-import { catalogHas, config, itemMap, RELEASE, responseA, responseB } from "./fixtures.js";
+import {
+  catalogHas,
+  catalogHasWithUniques,
+  config,
+  configWithUniques,
+  itemMap,
+  RELEASE,
+  resolveUnique,
+  responseA,
+  responseB,
+  uniqueResponse,
+} from "./fixtures.js";
 
 const build = (responses = [responseA, responseB], map = itemMap) =>
   buildPriceBook({
@@ -141,5 +152,78 @@ describe("priceItems", () => {
       "cur-a",
       "cur-b",
     ]);
+  });
+});
+
+describe("unique prices", () => {
+  const buildU = (over: Partial<Parameters<typeof buildPriceBook>[0]> = {}) =>
+    buildPriceBook({
+      config: configWithUniques,
+      itemMap,
+      catalogHas: catalogHasWithUniques,
+      dataReleaseId: RELEASE,
+      league: "TestLeague",
+      fetchedAt: "2026-11-25T00:00:00Z",
+      responses: [responseA, responseB],
+      uniqueResponses: [uniqueResponse],
+      resolveUnique,
+      ...over,
+    });
+
+  it("prices uniques in the book's reference currency, with confidence from the listing count", () => {
+    const book = buildU();
+    const quotes = book.quotes.filter((q) => q.item.kind === "uniqueItem");
+    expect(
+      quotes.map((q) => [String(q.item.id), q.amount, q.confidence, q.providerItemId]),
+    ).toEqual([
+      ["uniq-1", 2, "high", "unique:100"],
+      ["uniq-2", 0.25, "low", "unique:101"],
+    ]);
+  });
+
+  it("leaves variants, corrupted copies, unknown, ambiguous and unusable lines unmapped", () => {
+    const unmapped = buildU().unmappedProviderItemIds;
+    expect(unmapped).toEqual(
+      expect.arrayContaining([
+        "unique:102",
+        "unique:103",
+        "unique:104",
+        "unique:105",
+        "unique:106",
+      ]),
+    );
+  });
+
+  it("gives no price when two lines resolve to the same catalog unique, and lists both", () => {
+    const book = buildU();
+    expect(book.quotes.some((q) => q.item.id === "uniq-1x")).toBe(false);
+    expect(book.unmappedProviderItemIds).toEqual(
+      expect.arrayContaining(["unique:107", "unique:108"]),
+    );
+  });
+
+  it("refuses unique prices quoted in another currency than the exchange reference", () => {
+    const other = { ...uniqueResponse, core: { primary: "prov-a" } };
+    expect(() => buildU({ uniqueResponses: [other] })).toThrowError(/quoted in/);
+  });
+
+  it("keeps uniques unmapped when no resolver is given", () => {
+    const book = buildU({ resolveUnique: undefined });
+    expect(book.quotes.some((q) => q.item.kind === "uniqueItem")).toBe(false);
+    expect(book.unmappedProviderItemIds).toContain("unique:100");
+  });
+
+  it("does not use a resolved id the catalog does not have", () => {
+    const book = buildU({ catalogHas });
+    expect(book.quotes.some((q) => q.item.kind === "uniqueItem")).toBe(false);
+  });
+
+  it("answers economy.price for a unique in the reference currency (market, not derived)", () => {
+    const book = buildU();
+    const [price] = priceItems(book, [
+      PricedItemRef.parse({ kind: "uniqueItem", id: "uniq-1" }),
+    ]).prices;
+    expect(price?.price.status).toBe("ok");
+    if (price?.price.status === "ok") expect(price.price.source.kind).toBe("market");
   });
 });

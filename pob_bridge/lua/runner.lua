@@ -49,6 +49,8 @@ local STAT_KEYS = {
 	-- resistances (uncapped totals and caps)
 	"FireResistTotal", "ColdResistTotal", "LightningResistTotal", "ChaosResistTotal",
 	"FireResistOverCap", "ColdResistOverCap", "LightningResistOverCap", "ChaosResistOverCap",
+	-- resistance still missing to the cap (PoB: max(0, cap - current); 0 means at cap)
+	"MissingFireResist", "MissingColdResist", "MissingLightningResist", "MissingChaosResist",
 	-- defences
 	"Armour", "Evasion", "EffectiveMovementSpeedMod", "TotalEHP",
 }

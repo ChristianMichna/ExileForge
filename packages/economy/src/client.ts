@@ -2,7 +2,7 @@ import type { z } from "zod";
 import type { HttpCache } from "./cache.js";
 import type { EconomyConfig } from "./config.js";
 import { EconomyError } from "./errors.js";
-import { ExchangeOverviewResponse, LeaguesResponse } from "./provider.js";
+import { ExchangeOverviewResponse, LeaguesResponse, UniqueOverviewResponse } from "./provider.js";
 
 export interface ClientDeps {
   config: EconomyConfig;
@@ -50,6 +50,17 @@ export class PoeNinjaClient {
     url.searchParams.set("league", league);
     url.searchParams.set("type", type);
     return this.getJson(url.toString(), ExchangeOverviewResponse);
+  }
+
+  uniqueOverview(league: string, type: string): Promise<UniqueOverviewResponse> {
+    const path = this.deps.config.paths.uniqueOverview;
+    if (path === undefined) {
+      throw new EconomyError("invalid_response", "paths.uniqueOverview is not configured");
+    }
+    const url = new URL(this.url(path));
+    url.searchParams.set("league", league);
+    url.searchParams.set("type", type);
+    return this.getJson(url.toString(), UniqueOverviewResponse);
   }
 
   private url(path: string): string {

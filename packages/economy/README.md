@@ -20,7 +20,7 @@ const { league, inCurrencyItemId, prices, freshness } = await service.price({ it
   Preisbuchs ist `cacheTtlMinutes` (60).
 - Anfragen laufen nacheinander mit Mindestabstand (`minRequestIntervalMs`), mit
   Timeout, gestreamtem Größenlimit und ohne Redirects (ein 3xx ist ein Fehler). Nach
-  einem 429 wird bis `Retry-After` (sonst `rateLimitBackoffMs`) nichts gesendet. Ein Abruf (alle `exchangeTypes`) sind etwa 14 Anfragen pro
+  einem 429 wird bis `Retry-After` (sonst `rateLimitBackoffMs`) nichts gesendet. Ein Abruf (alle `exchangeTypes` und `uniqueTypes`) sind etwa 22 Anfragen pro
   Stunde und Liga.
 - User-Agent identifiziert die App und nennt den vom Projektinhaber gewählten Kontakt
   (E-Mail, auf seinen ausdrücklichen Wunsch; kein Git-Link). Der Produktname kommt
@@ -58,13 +58,12 @@ Daten-Release existieren, zählen; der Rest steht in `unmappedProviderItemIds`
 (zusammen mit Zeilen ohne brauchbaren Preis und doppelten Zeilen). Die Datei
 wurde am 25.11.2026 aus einem Namensabgleich gebaut: Anzeigenamen der
 poe.ninja-Exchange-Einträge (Liga Standard, alle `exchangeTypes`) gegen die
-Währungs-, Essenz- und Omen-Basen des Katalogs, nur exakte und eindeutige Treffer
-(152 Einträge, Referenzwährung `divine`). `orb-of-extraction` hat zwei Katalog-Items
-gleichen Namens; genommen ist das mit dem Tag `exchange_category:Incursion` (das
-handelbare, die Bench-Variante hat keine Börsen-Kategorie). Nicht abgebildet sind
-Einträge ohne Katalog-Item gleichen Namens (Runen, Lineage-Gems, Uncut-Gems, Idole,
-einige Fragmente); sie landen in `unmappedProviderItemIds`. Nach einem neuen
-Daten-Release den Abgleich wiederholen.
+Börsen-Basen des Katalogs (Daten-Release `poe2-0.5.5.10+r2`), nur exakte und
+eindeutige Treffer (329 Einträge, alle des damaligen Feeds; Referenzwährung `divine`).
+`orb-of-extraction` hat zwei Katalog-Items gleichen Namens; genommen ist das mit dem
+Tag `exchange_category:Incursion` (das handelbare, die Bench-Variante hat keine
+Börsen-Kategorie). Einträge, die der Provider später ergänzt, landen in
+`unmappedProviderItemIds`. Nach einem neuen Daten-Release den Abgleich wiederholen.
 Fehlt die Referenzwährung im Katalog, scheitert der Abruf mit
 `reference_currency_unmapped`, und Preise bleiben „uncalibrated".
 
@@ -73,9 +72,24 @@ Fehlt die Referenzwährung im Katalog, scheitert der Abruf mit
 Aus dem vom Provider gemeldeten Handelsvolumen mit Schwellen aus der Config
 (`high`/`medium`, darunter `low`; ohne Volumen `low`).
 
+## Unique-Preise
+
+Aus dem Stash-Overview der Provider-Doku (https://poe.ninja/docs/api, gelesen am 25.11.2026; `paths.uniqueOverview`, `uniqueTypes`). Die Zeilen tragen `id` (Zahl), `name`, `baseType`, `corrupted`, `primaryValue` und `listingCount`; `variant` fehlt, wenn es keine gibt (am 25.11.2026 einmal gegen eine echte Antwort der Liga Forbidden Rites gelesen). Die Doku nennt `primaryValue`
+dort „Estimated value in the league's primary reference currency“; das Preisbuch nimmt dafür
+`core.primary` der Exchange-Antworten, also die eigene Referenzwährung, und zeigt die Preise
+als `market`. Der Server löst Name und Basis-Typ der Zeile über den Katalog zu einer
+Unique-ID auf (`createUniqueResolver` in `apps/server`): über den Namen und den Namen
+der Basis (der Provider führt eine Zeile je Basis; eine andere Basis gleichen Namens ist
+ein anderes Item und bleibt unmapped). Ohne Basis-Typ löst nur ein eindeutiger Name auf. Zwei Zeilen für dieselbe Katalog-ID bekommen keinen Preis (beide stehen unmapped), es wird
+nicht die erste genommen. Nennt die Stash-Antwort ein eigenes `core.primary`, das von der
+Exchange-Referenz abweicht, bricht der Abruf mit `invalid_response` ab. Zeilen einer Variante oder eines
+korrumpierten Exemplars, unbekannte und mehrdeutige Namen sowie unbrauchbare Preise stehen
+mit `unique:<id>` in `unmappedProviderItemIds`. Die Konfidenz kommt aus der Anzahl
+Listings (`uniqueConfidence`, vorläufig). Eine leere Antwort (z. B. in einer Liga ohne Unique-Daten) ergibt keine Unique-Quotes; abgefragte Uniques
+sind dann `uncalibrated` mit Grund. Schlägt der Abruf eines Unique-Typs fehl, schlägt
+der ganze Refresh sichtbar fehl (stale-Fallback wie sonst), es gibt kein Buch ohne Uniques.
+
 ## Noch nicht enthalten
 
-- Preise von Uniques (Stash-Overview): Die Doku nennt die Währung von `primaryValue`
-  dort nicht; das wird nicht geraten.
-- Anbindung an den Server (`economy.price` als MCP-Werkzeug), Dateispeicherort der
-  Caches (Aufrufer übergibt das Verzeichnis).
+- Preise je Variante eines Uniques: Der Vertrag kennt nur die Unique-ID.
+- Dateispeicherort der Caches (Aufrufer übergibt das Verzeichnis).
