@@ -277,7 +277,7 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     const before = await stats(without);
     expect(power.results).toHaveLength(1);
     expect(entry?.nodeId).toBe(last);
-    expect(entry?.pathCost).toBeGreaterThanOrEqual(1);
+    expect(entry?.pathCost).toBe(1);
     expect(entry?.calcId).toBe(direct.calcId);
     for (const m of metrics) {
       expect(entry?.deltas[m]).toBe((direct.stats[m] ?? NaN) - (before.stats[m] ?? NaN));
@@ -291,6 +291,23 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
         candidates: [last as never],
       }),
     ).rejects.toMatchObject({ kind: "invalid_params" });
+  });
+
+  it("reports the path cost PoB would allocate for a passive far from the tree", async () => {
+    // removing an early node drops everything behind it; the node then needs a longer path
+    const early = facts.nodes[Math.min(3, facts.nodes.length - 1)] ?? "";
+    const without = (await patch(ops([{ op: "deallocateNodes", nodeIds: [early] }]))).handle;
+    const count = async (handle: BuildHandle): Promise<number> =>
+      readBuild((await pool.request("build.export", { handle, format: "xml" })).payload).nodes
+        .length;
+    const power = await pool.request("calc.nodePower", {
+      handle: without,
+      profile: "as-saved",
+      metrics: ["Life"],
+      candidates: [early as never],
+    });
+    const after = (await patch(ops([{ op: "allocateNodes", nodeIds: [early] }]), without)).handle;
+    expect(power.results[0]?.pathCost).toBe((await count(after)) - (await count(without)));
   });
 
   it("rejects bad ops with the op index and leaves no half-patched state", async () => {

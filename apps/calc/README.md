@@ -130,6 +130,14 @@ einem vergebenen, unbekannten oder nicht erreichbaren Knoten ist
 `invalid_params`. Scheitert PoB bei einem Passive, scheitert die ganze Anfrage
 (kein Ersatzeintrag).
 
+Hinweise für den Optimierer: PoB vergibt über den kürzesten Pfad; beginnt er an
+einem Knoten eines Waffensatzes, macht die Vergabe diese Wurzelkette zu
+gemeinsamen Knoten (die Deltas enthalten das), bei Wahlknoten werden andere
+Optionen abgewählt. Knoten im Radius eines Juwels mit unverbundener Vergabe
+kosten 1. Haupt- und Aufstiegspunkte werden nicht begrenzt: bei vollem Budget
+liefert `nodePower` trotzdem Deltas. Ein Passive, an dem PoB scheitert, fällt
+erst nach dem ganzen Durchlauf auf.
+
 Kosten (Golden `pr2-synthetic-fixture`, 2 Worker): 3883 Passives sind
 erreichbar, `tree.reachable` braucht ~30 ms, 12 Kandidaten ~5 s, also ~0,43 s je
 Passive. Ein Vollsweep ohne `candidates` dauert damit bei 2 Workern etwa 28

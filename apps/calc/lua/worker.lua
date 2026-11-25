@@ -735,10 +735,16 @@ methods["tree.reachable"] = function(params)
 	local out = {}
 	for id, node in pairs(build.spec.nodes) do
 		if not node.alloc and node.path and node.type ~= "ClassStart" and node.type ~= "AscendClassStart" then
+			-- Nodes in the radius of a jewel that allows unconnected allocation
+			-- are allocated alone (PassiveSpec:AllocNode), the path is not.
 			local cost = 0
-			for _, pathNode in ipairs(node.path) do
-				if not pathNode.alloc then
-					cost = cost + 1
+			if #node.intuitiveLeapLikesAffecting > 0 then
+				cost = 1
+			else
+				for _, pathNode in ipairs(node.path) do
+					if not pathNode.alloc then
+						cost = cost + 1
+					end
 				end
 			end
 			if cost > 0 then

@@ -383,6 +383,14 @@ export class CalcPool {
     }
     if (ids.length === 0) {
       const base = await this.request("calc.stats", { handle: p.handle, profile: p.profile });
+      const missing = p.metrics.filter((m) => !Object.hasOwn(base.stats, m));
+      if (missing.length > 0) {
+        throw new CalcServiceError(
+          "invalid_params",
+          "Metrics missing in the base calculation",
+          missing.join(", "),
+        );
+      }
       return { base, results: [] };
     }
     const batch = await this.request("calc.evalBatch", {
