@@ -41,6 +41,14 @@ export interface PobCalcOptions {
   logger: Logger;
 }
 
+/** PoB applied the patch only in part; a result would describe another build than asked for. */
+class PatchDivergedError extends Error {
+  readonly kind = "patch_diverged";
+  constructor(warnings: readonly string[]) {
+    super(`PoB did not apply the patch as planned: ${warnings.join("; ")}`);
+  }
+}
+
 /**
  * CalcPort on the PoB worker pool: loads the base build, patches it to the
  * wanted state and reads `calc.stats` per profile. Every failure becomes a
@@ -48,6 +56,7 @@ export interface PobCalcOptions {
  */
 export class PobCalc implements CalcPort {
   readonly engine = "pob" as const;
+  private closed = false;
   private readonly results = new Map<CalcId, CalcResult>();
   private readonly baseHandles = new Map<string, Promise<BuildHandle>>();
 
@@ -57,6 +66,7 @@ export class PobCalc implements CalcPort {
     state: BuildState;
     profiles: readonly CalcProfileId[];
   }): Promise<Record<CalcProfileId, CalcOutcome>> {
+    if (this.closed) throw new Error("PobCalc is closed");
     const outcomes: Record<CalcProfileId, CalcOutcome> = {};
     let prepared: { handle: BuildHandle; owned: boolean } | { error: CalcOutcome };
     try {
@@ -64,23 +74,26 @@ export class PobCalc implements CalcPort {
     } catch (error) {
       prepared = { error: this.failure(error) };
     }
-    for (const profile of input.profiles) {
-      if ("error" in prepared) {
-        outcomes[profile] = prepared.error;
-        continue;
+    try {
+      for (const profile of input.profiles) {
+        if ("error" in prepared) {
+          outcomes[profile] = prepared.error;
+          continue;
+        }
+        try {
+          const result = await this.options.pool.request("calc.stats", {
+            handle: prepared.handle,
+            profile,
+          });
+          this.results.set(result.calcId, result);
+          outcomes[profile] = { status: "ok", calcId: result.calcId };
+        } catch (error) {
+          outcomes[profile] = this.failure(error);
+        }
       }
-      try {
-        const result = await this.options.pool.request("calc.stats", {
-          handle: prepared.handle,
-          profile,
-        });
-        this.results.set(result.calcId, result);
-        outcomes[profile] = { status: "ok", calcId: result.calcId };
-      } catch (error) {
-        outcomes[profile] = this.failure(error);
-      }
+    } finally {
+      if (!("error" in prepared) && prepared.owned) await this.release(prepared.handle);
     }
-    if (!("error" in prepared) && prepared.owned) await this.release(prepared.handle);
     return outcomes;
   }
 
@@ -90,6 +103,7 @@ export class PobCalc implements CalcPort {
 
   /** Frees the cached base handles; call when the server shuts down. */
   async close(): Promise<void> {
+    this.closed = true;
     const handles = await Promise.allSettled([...this.baseHandles.values()]);
     this.baseHandles.clear();
     for (const h of handles) if (h.status === "fulfilled") await this.release(h.value);
@@ -107,9 +121,9 @@ export class PobCalc implements CalcPort {
       ops,
     });
     if (patched.warnings.length > 0) {
-      this.options.logger.info("PoB warnings while patching the build", {
-        warnings: patched.warnings,
-      });
+      // PoB dropped or changed something: the calculated build is not the wanted one.
+      await this.release(patched.handle);
+      throw new PatchDivergedError(patched.warnings);
     }
     return { handle: patched.handle, owned: true };
   }
@@ -132,7 +146,7 @@ export class PobCalc implements CalcPort {
     try {
       await this.options.pool.request("build.release", { handle });
     } catch (error) {
-      this.options.logger.info("could not release a PoB build handle", { error });
+      this.options.logger.error("could not release a PoB build handle", { error });
     }
   }
 

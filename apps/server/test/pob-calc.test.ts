@@ -16,7 +16,9 @@ const base = BuildState.parse({
 const wanted = BuildState.parse({ ...base, level: 20 });
 
 /** Records calls; answers like the pool would. Values are test placeholders, not game data. */
-function fakePool(options: { failStats?: boolean } = {}) {
+function fakePool(
+  options: { failStats?: boolean; patchWarnings?: string[]; failFirstLoad?: boolean } = {},
+) {
   const calls: { method: string; params: unknown }[] = [];
   let handles = 0;
   const pool: CalcRequester = {
@@ -25,8 +27,12 @@ function fakePool(options: { failStats?: boolean } = {}) {
       const answer = (v: unknown) => v as never;
       switch (method) {
         case "build.load":
-        case "build.applyPatch":
+          if (options.failFirstLoad && !calls.slice(0, -1).some((c) => c.method === "build.load")) {
+            throw Object.assign(new Error("load failed"), { kind: "build_load_failed" });
+          }
           return answer({ handle: `h${++handles}`, warnings: [] });
+        case "build.applyPatch":
+          return answer({ handle: `h${++handles}`, warnings: options.patchWarnings ?? [] });
         case "build.release":
           return answer({});
         case "calc.stats": {
@@ -102,5 +108,47 @@ describe("PobCalc", () => {
     const out = await calc.calculate({ state: withItem, profiles: ["as-saved", "other"] });
     expect(out["as-saved"]).toMatchObject({ status: "failed", error: { code: "patch_plan" } });
     expect(out["other"]).toMatchObject({ status: "failed", error: { code: "patch_plan" } });
+  });
+
+  it("fails when PoB reports patch warnings and still releases the patched handle", async () => {
+    const { pool, calls } = fakePool({ patchWarnings: ["dropped node"] });
+    const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });
+    const out = await calc.calculate({ state: wanted, profiles: ["as-saved"] });
+    expect(out["as-saved"]).toMatchObject({ status: "failed", error: { code: "patch_diverged" } });
+    expect(calls.map((c) => c.method)).not.toContain("calc.stats");
+    expect(calls.map((c) => c.method)).toContain("build.release");
+  });
+
+  it("releases the patched handle when calc.stats fails", async () => {
+    const { pool, calls } = fakePool({ failStats: true });
+    const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });
+    await calc.calculate({ state: wanted, profiles: ["as-saved"] });
+    expect(calls.at(-1)?.method).toBe("build.release");
+  });
+
+  it("does not cache a failed base load", async () => {
+    const { pool, calls } = fakePool({ failFirstLoad: true });
+    const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });
+    const first = await calc.calculate({ state: base, profiles: ["as-saved"] });
+    expect(first["as-saved"]).toMatchObject({
+      status: "failed",
+      error: { code: "build_load_failed" },
+    });
+    const second = await calc.calculate({ state: base, profiles: ["as-saved"] });
+    expect(second["as-saved"]).toMatchObject({ status: "ok" });
+    expect(calls.filter((c) => c.method === "build.load")).toHaveLength(2);
+  });
+
+  it("loads the base once for parallel calculations and refuses work after close", async () => {
+    const { pool, calls } = fakePool();
+    const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });
+    await Promise.all([
+      calc.calculate({ state: base, profiles: ["as-saved"] }),
+      calc.calculate({ state: base, profiles: ["as-saved"] }),
+    ]);
+    expect(calls.filter((c) => c.method === "build.load")).toHaveLength(1);
+    await calc.close();
+    expect(calls.at(-1)?.method).toBe("build.release");
+    await expect(calc.calculate({ state: base, profiles: ["as-saved"] })).rejects.toThrow(/closed/);
   });
 });
