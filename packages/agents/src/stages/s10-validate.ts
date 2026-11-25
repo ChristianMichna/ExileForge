@@ -10,8 +10,10 @@ import {
   ProgressionPlan,
   type TargetBuild,
 } from "@astrolabe/contracts/build";
+import type { StatMap } from "@astrolabe/contracts/calc";
 import { GuideDocument } from "@astrolabe/contracts/guide";
 import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
+import type { StageConfig } from "../config.js";
 import type { PipelineContext, PlanStep } from "../pipeline.js";
 import { craftKey, S8_PLAN_KEY } from "./s8-craft.js";
 import { S6_PLAN_KEY } from "./s6-progression.js";
@@ -221,16 +223,171 @@ const finding = (
 /** What a gate does not check yet; such a gate cannot pass. */
 const NOT_BUILT: Partial<Record<Finding["gate"], string>> = {
   G2: "the required calc profiles of the config and the list of unsupported mods",
-  G3: "the whole gate (attributes, level requirements, spirit, point count, tree paths)",
-  G4: "the whole gate (resistance caps and EHP thresholds per stage)",
-  G5: "the whole gate (damage thresholds per stage)",
   G6: "the continuity of skills between stages (lost gems)",
   G7: "the minimum counts of the guide parts and rares of earlier tiers",
   G8: "the whole gate (consistency of text and data, critic)",
 };
 
+type S10Config = NonNullable<StageConfig["s10"]>;
+
+/** The PoB outputs of every progression stage for the configured calc profile. */
+async function stageStats(
+  ctx: PipelineContext,
+  draft: GuideDraft,
+  profile: string,
+): Promise<
+  { stage: GuideDraft["progression"]["stages"][number]; index: number; stats?: StatMap }[]
+> {
+  const out: {
+    stage: GuideDraft["progression"]["stages"][number];
+    index: number;
+    stats?: StatMap;
+  }[] = [];
+  for (const [index, stage] of draft.progression.stages.entries()) {
+    const outcome = stage.calcs[profile];
+    const result = outcome?.status === "ok" ? await ctx.calc.getResult(outcome.calcId) : undefined;
+    out.push({ stage, index, ...(result === undefined ? {} : { stats: result.stats }) });
+  }
+  return out;
+}
+
+/** G3 (spirit), G4 (resistances, EHP) and G5 (damage) from PoB outputs and the configured thresholds. */
+async function measuredGates(
+  ctx: PipelineContext,
+  draft: GuideDraft,
+  cfg: S10Config,
+): Promise<{
+  g3: Finding[];
+  g4: Finding[];
+  g5: Finding[];
+  thresholdsSet: { ehp: boolean; dps: boolean };
+}> {
+  const g3: Finding[] = [];
+  const g4: Finding[] = [];
+  const g5: Finding[] = [];
+  const limit = (level: number) =>
+    cfg.thresholds.filter((t) => t.fromLevel <= level).sort((a, b) => b.fromLevel - a.fromLevel)[0];
+  for (const { stage, index, stats } of await stageStats(ctx, draft, cfg.calcProfile)) {
+    const path = `/progression/stages/${index}/calcs`;
+    if (stats === undefined) {
+      const msg = `Stage ${stage.key} has no readable result for profile ${cfg.calcProfile}.`;
+      g3.push(finding("G3", "stats_unavailable", msg, path, "S6"));
+      g4.push(finding("G4", "stats_unavailable", msg, path, "S6"));
+      g5.push(finding("G5", "stats_unavailable", msg, path, "S6"));
+      continue;
+    }
+    const stat = (name: string): number | undefined => stats[name];
+    const spare = stat(cfg.stats.spiritFree);
+    if (spare === undefined) {
+      g3.push(
+        finding(
+          "G3",
+          "stat_missing",
+          `PoB gave no ${cfg.stats.spiritFree} for stage ${stage.key}.`,
+          path,
+          "S6",
+        ),
+      );
+    } else if (spare < 0) {
+      g3.push(
+        finding(
+          "G3",
+          "spirit_overdrawn",
+          `Stage ${stage.key} reserves more spirit than it has.`,
+          path,
+          "S6",
+        ),
+      );
+    }
+    if (cfg.resistanceCapStageKinds.includes(stage.kind)) {
+      for (const name of cfg.stats.resistOverCap) {
+        const over = stat(name);
+        if (over === undefined) {
+          g4.push(
+            finding(
+              "G4",
+              "stat_missing",
+              `PoB gave no ${name} for stage ${stage.key}.`,
+              path,
+              "S6",
+            ),
+          );
+        } else if (over < 0) {
+          g4.push(
+            finding(
+              "G4",
+              "resistance_below_cap",
+              `Stage ${stage.key}: ${name} is below the cap.`,
+              path,
+              "S6",
+            ),
+          );
+        }
+      }
+    }
+    const t = limit(stage.state.level);
+    const ehp = stat(cfg.stats.ehp);
+    if (t?.minEhp !== undefined && (ehp === undefined || ehp < t.minEhp)) {
+      g4.push(
+        finding(
+          "G4",
+          "ehp_below_minimum",
+          `Stage ${stage.key} is below the configured EHP minimum.`,
+          path,
+          "S6",
+        ),
+      );
+    }
+    const dps = stat(cfg.stats.dps);
+    if (t?.minDps !== undefined && (dps === undefined || dps < t.minDps)) {
+      g5.push(
+        finding(
+          "G5",
+          "dps_below_minimum",
+          `Stage ${stage.key} is below the configured damage minimum.`,
+          path,
+          "S6",
+        ),
+      );
+    }
+  }
+  return {
+    g3,
+    g4,
+    g5,
+    thresholdsSet: {
+      ehp: cfg.thresholds.some((t) => t.minEhp !== undefined),
+      dps: cfg.thresholds.some((t) => t.minDps !== undefined),
+    },
+  };
+}
+
+/** What a gate still does not check, given the config; undefined if nothing is missing. */
+function gapOf(
+  gate: Finding["gate"],
+  cfg: S10Config | undefined,
+  thresholds: { ehp: boolean; dps: boolean } | undefined,
+): string | undefined {
+  if (cfg === undefined && (gate === "G3" || gate === "G4" || gate === "G5")) {
+    return `the whole gate (no "s10" block in config/agents/stages.json)`;
+  }
+  if (gate === "G3") return "attributes, level requirements, the point count and tree paths";
+  if (gate === "G4") {
+    return thresholds?.ehp === true ? undefined : "the EHP minimum (no threshold configured)";
+  }
+  if (gate === "G5") {
+    return thresholds?.dps === true ? undefined : "the damage minimum (no threshold configured)";
+  }
+  return NOT_BUILT[gate];
+}
+
 /** Runs the deterministic gates over the draft; a gate passes only if everything it covers was checked. */
-export function runGates(ctx: PipelineContext, draft: GuideDraft): GateResult[] {
+export async function runGates(
+  ctx: PipelineContext,
+  draft: GuideDraft,
+  cfg?: S10Config,
+): Promise<GateResult[]> {
+  const measured = cfg === undefined ? undefined : await measuredGates(ctx, draft, cfg);
   const g1 = draftEntities(draft)
     .filter((e) => ctx.catalog.get(e.ref) === undefined)
     .map((e) =>
@@ -289,6 +446,9 @@ export function runGates(ctx: PipelineContext, draft: GuideDraft): GateResult[] 
       ),
     );
   const found: Partial<Record<Finding["gate"], Finding[]>> = {
+    G3: measured?.g3 ?? [],
+    G4: measured?.g4 ?? [],
+    G5: measured?.g5 ?? [],
     G1: g1,
     G2: g2,
     G6: g6,
@@ -296,7 +456,7 @@ export function runGates(ctx: PipelineContext, draft: GuideDraft): GateResult[] 
   };
   return (["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"] as const).map((gate) => {
     const findings = [...(found[gate] ?? [])];
-    const gap = NOT_BUILT[gate];
+    const gap = gapOf(gate, cfg, measured?.thresholdsSet);
     if (gap !== undefined) {
       findings.push(
         finding(
@@ -311,14 +471,14 @@ export function runGates(ctx: PipelineContext, draft: GuideDraft): GateResult[] 
 }
 
 /** S10: assembles the guide draft and runs the gates; the draft and report are stored even when gates fail. */
-export function validateStep(inputs: S10Inputs): PlanStep {
+export function validateStep(inputs: S10Inputs, cfg?: S10Config): PlanStep {
   return {
     kind: "server",
     key: S10_REPORT_KEY,
     type: "S10",
     run: async (runCtx) => {
       const draft = assembleDraft(runCtx, inputs);
-      const gates = runGates(runCtx, draft);
+      const gates = await runGates(runCtx, draft, cfg);
       return JSON.parse(
         JSON.stringify({ passed: gates.every((g) => g.passed), gates, draft }),
       ) as JsonValue;

@@ -70,5 +70,22 @@
       },
       "calcProfile": "mapping"
     }
+  },
+  "s10": {
+    "$comment": "Gate inputs of S10. Stat names are PoB output names (see evals/golden). The thresholds are empty until the product owner calibrates them for the patch: with no thresholds, G4 and G5 report the missing check instead of passing.",
+    "calcProfile": "mapping",
+    "stats": {
+      "spiritFree": "SpiritUnreserved",
+      "resistOverCap": [
+        "FireResistOverCap",
+        "ColdResistOverCap",
+        "LightningResistOverCap",
+        "ChaosResistOverCap"
+      ],
+      "ehp": "TotalEHP",
+      "dps": "FullDPS"
+    },
+    "resistanceCapStageKinds": ["endgame"],
+    "thresholds": []
   }
 }

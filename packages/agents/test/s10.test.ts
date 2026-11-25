@@ -75,8 +75,8 @@ const ctx = (known: (id: string) => boolean = () => true) =>
       get: (r: { id: string }) => (known(r.id) ? {} : undefined),
     },
   }) as never as PipelineContext;
-const codes = (d: GuideDraft, c = ctx()) =>
-  runGates(c, d).flatMap((g) => g.findings.map((f) => `${g.gate}:${f.code}`));
+const codes = async (d: GuideDraft, c = ctx(), cfg?: never) =>
+  (await runGates(c, d, cfg)).flatMap((g) => g.findings.map((f) => `${g.gate}:${f.code}`));
 
 describe("S10 gates", () => {
   it("collects the references of items, plans and prose", () => {
@@ -119,16 +119,16 @@ describe("S10 gates", () => {
     );
   });
 
-  it("flags unknown entities (G1)", () => {
+  it("flags unknown entities (G1)", async () => {
     expect(
-      codes(
+      await codes(
         draft(),
         ctx((id) => id !== "M"),
       ),
     ).toContain("G1:unknown_entity");
   });
 
-  it("flags a failed stage calculation (G2)", () => {
+  it("flags a failed stage calculation (G2)", async () => {
     const d = draft({
       progression: {
         stages: [
@@ -136,26 +136,26 @@ describe("S10 gates", () => {
         ],
       },
     });
-    expect(codes(d)).toContain("G2:calc_failed");
+    expect(await codes(d)).toContain("G2:calc_failed");
   });
 
-  it("flags respecs without a cost (G6) and a rare without a crafting plan (G7)", () => {
+  it("flags respecs without a cost (G6) and a rare without a crafting plan (G7)", async () => {
     const d = draft({
       progression: { stages: [stage({ respecs: ["n1"] })] },
       crafting: [],
     });
-    expect(codes(d)).toEqual(
+    expect(await codes(d)).toEqual(
       expect.arrayContaining(["G6:respec_cost_not_measured", "G7:craft_plan_missing"]),
     );
   });
 
-  it("flags a stage without any calculation (G2)", () => {
+  it("flags a stage without any calculation (G2)", async () => {
     const d = draft({ progression: { stages: [stage({ calcs: {} })] } });
-    expect(codes(d)).toContain("G2:calc_missing");
+    expect(await codes(d)).toContain("G2:calc_missing");
   });
 
-  it("never lets a partly checked gate pass", () => {
-    const gates = runGates(ctx(), draft());
+  it("never lets a partly checked gate pass", async () => {
+    const gates = await runGates(ctx(), draft());
     for (const g of ["G2", "G6", "G7"]) {
       expect(gates.find((x) => x.gate === g)?.findings.map((f) => f.code)).toContain(
         "check_not_built",
@@ -170,10 +170,74 @@ describe("S10 gates", () => {
     ).toThrow(/unreadable/);
   });
 
-  it("never reports the unbuilt gates as passed", () => {
-    const gates = runGates(ctx(), draft());
+  it("never reports the unbuilt gates as passed", async () => {
+    const gates = await runGates(ctx(), draft());
     for (const g of ["G3", "G4", "G5", "G8"]) {
       expect(gates.find((x) => x.gate === g)?.passed).toBe(false);
+    }
+  });
+});
+
+describe("S10 measured gates", () => {
+  const cfg = {
+    calcProfile: "mapping",
+    stats: {
+      spiritFree: "Sp",
+      resistOverCap: ["FireOver", "ColdOver"],
+      ehp: "Ehp",
+      dps: "Dps",
+    },
+    resistanceCapStageKinds: ["endgame"],
+    thresholds: [{ fromLevel: 1, minEhp: 100, minDps: 1000 }],
+  };
+  const withStats = (stats: Record<string, number>) =>
+    ({
+      ...(ctx() as object),
+      calc: { getResult: () => Promise.resolve({ stats }) },
+    }) as never as PipelineContext;
+  const endgame = () =>
+    draft({
+      progression: {
+        stages: [stage({ kind: "endgame", state: { ...STATE, level: 90 } })],
+      },
+    });
+  const run = async (stats: Record<string, number>, c = cfg) =>
+    (await runGates(withStats(stats), endgame(), c as never)).flatMap((g) =>
+      g.findings.map((f) => `${g.gate}:${f.code}`),
+    );
+  const good = { Sp: 5, FireOver: 3, ColdOver: 0, Ehp: 500, Dps: 5000 };
+
+  it("passes G4 and G5 when every measured value meets the configured limits", async () => {
+    const gates = await runGates(withStats(good), endgame(), cfg as never);
+    expect(gates.find((g) => g.gate === "G4")?.passed).toBe(true);
+    expect(gates.find((g) => g.gate === "G5")?.passed).toBe(true);
+    expect(gates.find((g) => g.gate === "G3")?.passed).toBe(false);
+  });
+
+  it("flags overdrawn spirit, resistances below cap and values below the minimums", async () => {
+    const codes = await run({ Sp: -1, FireOver: -2, ColdOver: 0, Ehp: 5, Dps: 5 });
+    expect(codes).toEqual(
+      expect.arrayContaining([
+        "G3:spirit_overdrawn",
+        "G4:resistance_below_cap",
+        "G4:ehp_below_minimum",
+        "G5:dps_below_minimum",
+      ]),
+    );
+  });
+
+  it("reports a missing stat instead of assuming a value", async () => {
+    expect(await run({ Ehp: 500, Dps: 5000 })).toEqual(
+      expect.arrayContaining(["G3:stat_missing", "G4:stat_missing"]),
+    );
+  });
+
+  it("does not pass G4 or G5 without configured thresholds", async () => {
+    const gates = await runGates(withStats(good), endgame(), { ...cfg, thresholds: [] } as never);
+    for (const g of ["G4", "G5"]) {
+      expect(gates.find((x) => x.gate === g)?.findings.map((f) => f.code)).toContain(
+        "check_not_built",
+      );
     }
   });
 });
