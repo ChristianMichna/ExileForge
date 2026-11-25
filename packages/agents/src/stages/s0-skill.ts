@@ -1,7 +1,7 @@
 import { z } from "zod";
-import type { Finding } from "@exileforge/contracts/build";
-import { Rationale } from "@exileforge/contracts/build";
-import { GemId } from "@exileforge/contracts/common";
+import type { Finding } from "@astrolabe/contracts/build";
+import { Rationale } from "@astrolabe/contracts/build";
+import { GemId } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext } from "../pipeline.js";
 import { S0_SKILL } from "../prompts.js";

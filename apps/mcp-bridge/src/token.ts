@@ -20,8 +20,8 @@ export class TokenInvalidError extends Error {
 export function defaultTokenFile(env: Record<string, string | undefined>): string {
   const appData = env["APPDATA"];
   return appData !== undefined && appData !== ""
-    ? join(appData, "ExileForge", "access-token")
-    : join(homedir(), ".config", "exileforge", "access-token");
+    ? join(appData, "Astrolabe", "access-token")
+    : join(homedir(), ".config", "astrolabe", "access-token");
 }
 
 /**
@@ -36,16 +36,16 @@ export function fetchWithToken(tokenFile: string, base: FetchLike = fetch): Fetc
       token = (await readFile(tokenFile, "utf8")).trim();
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new TokenMissingError(`ExileForge access token not found at ${tokenFile}`, {
+        throw new TokenMissingError(`Astrolabe access token not found at ${tokenFile}`, {
           cause: error,
         });
       }
-      throw new TokenInvalidError(`Cannot read ExileForge access token ${tokenFile}`, {
+      throw new TokenInvalidError(`Cannot read Astrolabe access token ${tokenFile}`, {
         cause: error,
       });
     }
     if (!TOKEN_PATTERN.test(token)) {
-      throw new TokenInvalidError(`ExileForge access token file ${tokenFile} is damaged`);
+      throw new TokenInvalidError(`Astrolabe access token file ${tokenFile} is damaged`);
     }
     const headers = new Headers(init?.headers);
     headers.set("authorization", `Bearer ${token}`);

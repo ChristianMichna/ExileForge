@@ -1,6 +1,6 @@
 ---
 name: search-first
-description: Recherche vor dem Bauen – vor neuem Code, neuer Abhängigkeit oder neuem Datenimport in ExileForge prüfen, ob PoB-PoE2, das MCP-SDK, ein npm-Paket oder ein bestehendes PoE-Community-Projekt es schon kann, dann übernehmen, erweitern oder selbst bauen. Verwenden beim Start eines Features, beim Hinzufügen einer Abhängigkeit oder bevor ein Parser/Konverter/Hilfsmodul neu geschrieben wird.
+description: Recherche vor dem Bauen – vor neuem Code, neuer Abhängigkeit oder neuem Datenimport in Astrolabe prüfen, ob PoB-PoE2, das MCP-SDK, ein npm-Paket oder ein bestehendes PoE-Community-Projekt es schon kann, dann übernehmen, erweitern oder selbst bauen. Verwenden beim Start eines Features, beim Hinzufügen einer Abhängigkeit oder bevor ein Parser/Konverter/Hilfsmodul neu geschrieben wird.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/search-first),

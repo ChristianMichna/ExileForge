@@ -6,9 +6,9 @@ import {
   type Finding,
   Rationale,
   SkillSetup,
-} from "@exileforge/contracts/build";
-import type { EntityRef, JsonValue } from "@exileforge/contracts/common";
-import type { Ascendancy } from "@exileforge/contracts/catalog";
+} from "@astrolabe/contracts/build";
+import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
+import type { Ascendancy } from "@astrolabe/contracts/catalog";
 import type { PocPipelineConfig } from "../config/forge-config.js";
 import {
   defineTask,
@@ -321,7 +321,7 @@ export function createPocPipeline(config: PocPipelineConfig): Pipeline {
           reason: [
             {
               type: "text",
-              text: "The candidates are calculated. The user now picks one variant in the ExileForge app. Call forge_next again.",
+              text: "The candidates are calculated. The user now picks one variant in the Astrolabe app. Call forge_next again.",
             },
           ],
         };

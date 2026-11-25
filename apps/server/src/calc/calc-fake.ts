@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import type { BuildState, CalcOutcome } from "@exileforge/contracts/build";
-import type { CalcResult, ConfigOverrides } from "@exileforge/contracts/calc";
-import { CalcId, type CalcProfileId, type DataReleaseId } from "@exileforge/contracts/common";
+import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
+import type { CalcResult, ConfigOverrides } from "@astrolabe/contracts/calc";
+import { CalcId, type CalcProfileId, type DataReleaseId } from "@astrolabe/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 
 /** Marker version so fake results can never pass as a real PoB release. */

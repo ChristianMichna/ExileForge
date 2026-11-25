@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import type { TreeOptimizeInput } from "@exileforge/optimizer";
-import { ArchetypeCandidate, BuildRequest, SkillProfile } from "@exileforge/contracts/build";
-import { CatalogShard } from "@exileforge/contracts/catalog";
-import { CalcId } from "@exileforge/contracts/common";
+import type { TreeOptimizeInput } from "@astrolabe/optimizer";
+import {
+  ArchetypeCandidate,
+  BuildRequest,
+  BuildState,
+  SkillProfile,
+} from "@astrolabe/contracts/build";
+import { CatalogShard } from "@astrolabe/contracts/catalog";
+import { CalcId } from "@astrolabe/contracts/common";
 import { MemoryCatalog } from "../src/catalog/memory-catalog.js";
 import { PobSkeleton } from "../src/calc/skeleton.js";
 import { createMemoryLogger } from "../src/logger.js";
@@ -64,6 +69,7 @@ function setup(optimizeResult: object) {
       calcProfiles: ["as-saved"],
       objective: { weights: { FullDPS: 1 }, floors: {} },
     },
+    target: { calcProfiles: ["as-saved"], objective: { weights: { FullDPS: 1 }, floors: {} } },
     logger: createMemoryLogger(),
     optimize,
   });
@@ -93,6 +99,44 @@ describe("PobSkeleton", () => {
     expect(out.skeleton.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1", "FixN2"]);
     expect(out.calcs).toEqual({ "as-saved": { status: "ok", calcId: "calc-1" } });
     expect(calculate).toHaveBeenCalledOnce();
+  });
+
+  describe("optimizeTree (S5)", () => {
+    const state = BuildState.parse({
+      classId: "FixClassA",
+      level: 20,
+      tree: { allocated: [] },
+      skills: [],
+      items: [],
+    });
+    const done = {
+      allocated: ["FixN1", "FixN2"],
+      feasible: true,
+      violations: [],
+      failedEvaluationCount: 0,
+      stoppedBy: "budget_spent",
+    };
+    const input = { request: REQUEST, profile, candidate: cand, state, passivePoints: 7 };
+
+    it("optimises within the target budget and measures the tree", async () => {
+      const { skeleton, optimize } = setup(done);
+      const out = await skeleton.optimizeTree(input);
+      expect(optimize.mock.calls[0]?.[0]).toMatchObject({ budget: 7 });
+      expect(out.state.level).toBe(20);
+      expect(out.state.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1", "FixN2"]);
+      expect(out.calcs["as-saved"]?.status).toBe("ok");
+    });
+
+    it("fails when the objective floors cannot be met", async () => {
+      const { skeleton } = setup({ ...done, feasible: false, violations: [{ stat: "x" }] });
+      await expect(skeleton.optimizeTree(input)).rejects.toThrow(/floors/);
+    });
+
+    it("fails for a request of another data release", async () => {
+      const { skeleton } = setup(done);
+      const request = BuildRequest.parse({ ...REQUEST, dataReleaseId: "poe2-1.0.0+r1" });
+      await expect(skeleton.optimizeTree({ ...input, request })).rejects.toThrow(/catalog/);
+    });
   });
 
   it("measures with the player's calc overrides", async () => {

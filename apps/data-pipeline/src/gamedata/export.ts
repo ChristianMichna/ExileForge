@@ -12,7 +12,7 @@ import type { PatchInfo } from "./patch.ts";
 
 const execFileAsync = promisify(execFile);
 
-export const GAME_DATA_FORMAT = "exileforge-game-data/1";
+export const GAME_DATA_FORMAT = "astrolabe-game-data/1";
 const MANIFEST_FILE = "manifest.json";
 /** Written first, so an interrupted export is still recognised as an earlier output; other stages also write a manifest.json. */
 const MARKER_FILE = "game-data.marker";
@@ -128,7 +128,7 @@ export async function fetchSchemaRecord(url: string): Promise<SchemaRecord> {
   let res: Response;
   try {
     res = await fetch(url, {
-      headers: { "user-agent": "exileforge-data-pipeline" },
+      headers: { "user-agent": "astrolabe-data-pipeline" },
       signal: AbortSignal.timeout(60_000),
     });
   } catch (cause) {
@@ -159,7 +159,7 @@ export async function exportGameData(opts: ExportOptions): Promise<GameDataManif
   const out = resolve(opts.outDir);
   await prepareOutDir(out, [{ what: "the working directory", dir: process.cwd() }], MARKER_FILE);
   await writeFile(join(out, MARKER_FILE), `${GAME_DATA_FORMAT}\n`);
-  const workDir = await mkdtemp(join(tmpdir(), "exileforge-gamedata-"));
+  const workDir = await mkdtemp(join(tmpdir(), "astrolabe-gamedata-"));
   const tables: GameDataManifest["tables"] = [];
   const missing: GameDataManifest["missing"] = [];
   try {

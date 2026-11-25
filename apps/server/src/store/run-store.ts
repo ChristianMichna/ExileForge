@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
-import { CalcResult } from "@exileforge/contracts/calc";
-import { RunEvent } from "@exileforge/contracts/events";
+import { CalcResult } from "@astrolabe/contracts/calc";
+import { RunEvent } from "@astrolabe/contracts/events";
 import { RunRecord } from "../engine/run-record.js";
 
 /**

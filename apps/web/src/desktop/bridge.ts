@@ -1,6 +1,6 @@
 /*
  * Structural copy of the bridge contract in apps/desktop/src/shared/bridge.ts.
- * The Electron preload script exposes it as `window.exileforge`; in a normal
+ * The Electron preload script exposes it as `window.astrolabe`; in a normal
  * browser it is absent and the app shows the sample data only.
  */
 
@@ -53,11 +53,11 @@ export interface DesktopBridge {
 
 declare global {
   interface Window {
-    exileforge?: DesktopBridge;
+    astrolabe?: DesktopBridge;
   }
 }
 
 /** The bridge when running inside the desktop app, otherwise undefined. */
 export function getDesktopBridge(): DesktopBridge | undefined {
-  return typeof window === "undefined" ? undefined : window.exileforge;
+  return typeof window === "undefined" ? undefined : window.astrolabe;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { CraftSimRequest, CraftSimResult, Mod as ModSchema } from "@exileforge/contracts";
+import { CraftSimRequest, CraftSimResult, Mod as ModSchema } from "@astrolabe/contracts";
 import {
   CraftSimInputError,
   createSimCatalog,

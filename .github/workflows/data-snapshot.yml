@@ -51,11 +51,11 @@ jobs:
         run: tools/setup_pob.sh
 
       - name: Pipeline tests against the real PoB
-        run: pnpm exec turbo run test --filter=@exileforge/data-pipeline
+        run: pnpm exec turbo run test --filter=@astrolabe/data-pipeline
 
       - name: Build snapshot
         run: |
-          pnpm exec turbo run build --filter=@exileforge/data-pipeline
+          pnpm exec turbo run build --filter=@astrolabe/data-pipeline
           node apps/data-pipeline/dist/cli.js snapshot \
             --game-version "$GAME_VERSION" --revision "$REVISION" --out data-snapshots/current
 

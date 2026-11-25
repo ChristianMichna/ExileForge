@@ -1,4 +1,4 @@
-# @exileforge/economy
+# @astrolabe/economy
 
 Marktpreise (F-14): Client für die öffentlichen Economy-Endpunkte von poe.ninja,
 lokaler Cache, Abbildung auf Katalog-IDs und die Umrechnung für `economy.price`
@@ -26,7 +26,7 @@ const { league, inCurrencyItemId, prices, freshness } = await service.price({ it
   (E-Mail, auf seinen ausdrücklichen Wunsch; kein Git-Link). Der Produktname kommt
   über `appName` aus der Config (Platzhalter `{appName}`), eine Umbenennung ändert
   nur dieses Feld.
-- Der Provider rät Desktop-Apps, über ein eigenes Backend zu gehen. ExileForge ist
+- Der Provider rät Desktop-Apps, über ein eigenes Backend zu gehen. Astrolabe ist
   lokal ohne Backend; das Volumen ist klein (siehe oben). Das ist eine bewusste
   Abweichung und bei Beanstandung neu zu entscheiden.
 - Die Feldnamen der Antworten stammen aus der Doku; sie sind noch nicht gegen echte

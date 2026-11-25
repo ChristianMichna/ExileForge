@@ -1,6 +1,6 @@
-import type { BuildState, CalcOutcome } from "@exileforge/contracts/build";
-import type { CalcResult, ConfigOverrides } from "@exileforge/contracts/calc";
-import type { CalcId, CalcProfileId } from "@exileforge/contracts/common";
+import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
+import type { CalcResult, ConfigOverrides } from "@astrolabe/contracts/calc";
+import type { CalcId, CalcProfileId } from "@astrolabe/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 import type { RunStore } from "../store/run-store.js";
 

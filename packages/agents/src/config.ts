@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CalcProfileId } from "@exileforge/contracts/common";
+import { CalcProfileId } from "@astrolabe/contracts/common";
 
 /** Settings of the pipeline stages; lives versioned in config/agents/stages.json. */
 export const StageConfig = z.object({
@@ -33,6 +33,24 @@ export const StageConfig = z.object({
       floors: z.record(z.string().min(1), z.number()).default({}),
     }),
   }),
+  /**
+   * S5 target build. Optional on purpose: level and passive points of the
+   * endgame come from game data, not from this repository's code. Without
+   * this block the run stops at S5 with an explicit error.
+   */
+  s5: z
+    .object({
+      /** Character level of the target build. */
+      level: z.int().positive(),
+      /** Passive points the target tree may use. */
+      passivePoints: z.int().positive(),
+      calcProfiles: z.array(CalcProfileId).min(1),
+      objective: z.object({
+        weights: z.record(z.string().min(1), z.number()),
+        floors: z.record(z.string().min(1), z.number()).default({}),
+      }),
+    })
+    .optional(),
   s2: z.object({
     /** Number of archetype candidates (the plan asks for 3–6). */
     candidateCount: z.int().min(1).max(6),

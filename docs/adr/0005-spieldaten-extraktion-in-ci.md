@@ -23,7 +23,7 @@ steht nicht in PoB-Daten. Der Katalog braucht beides (Crafting-Simulator, `econo
 - Der Export hält Patch-Version, Werkzeugversion und Hash des Schemas im Manifest fest. Fehlende
   optionale Tabellen werden dort vermerkt, alles andere bricht ab.
 - Aus den Rohtabellen wird ein Katalogeintrag erst nach einem Vertrags-PR; die Rohtabellen
-  werden nicht veröffentlicht.
+  gehören nicht in ein Daten-Release. Sie liegen nur im Workflow-Artefakt (30 Tage Aufbewahrung).
 
 ## Bekannte Grenzen
 

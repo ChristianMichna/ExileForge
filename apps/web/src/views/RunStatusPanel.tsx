@@ -1,4 +1,4 @@
-import { Badge, Button, Callout, Panel, type BadgeTone } from "@exileforge/ui";
+import { Badge, Button, Callout, Panel, type BadgeTone } from "@astrolabe/ui";
 import type { RunLive } from "../live/run-state";
 import type { RunEventsState } from "../live/useRunEvents";
 

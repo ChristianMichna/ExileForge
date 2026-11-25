@@ -1,12 +1,12 @@
 {
-  "name": "@exileforge/desktop",
+  "name": "@astrolabe/desktop",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "ExileForge desktop shell (Electron): starts the local server, serves the frontend, connects Claude, installs and updates itself on Windows.",
+  "description": "Astrolabe desktop shell (Electron): starts the local server, serves the frontend, connects Claude, installs and updates itself on Windows.",
   "main": "dist/main.cjs",
-  "author": "ExileForge",
-  "homepage": "https://github.com/ChristianMichna/ExileForge",
+  "author": "Astrolabe",
+  "homepage": "https://github.com/ChristianMichna/astrolabe-poe2",
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/bundle.mjs",
     "typecheck": "tsc -p tsconfig.json",
@@ -16,8 +16,8 @@
     "dist:dir": "pnpm run build && node scripts/stage.mjs && electron-builder --win --x64 --dir --publish never"
   },
   "devDependencies": {
-    "@exileforge/contracts": "workspace:*",
-    "@exileforge/server": "workspace:*",
+    "@astrolabe/contracts": "workspace:*",
+    "@astrolabe/server": "workspace:*",
     "@types/node": "22.20.5",
     "electron": "45.5.0",
     "electron-builder": "26.18.0",

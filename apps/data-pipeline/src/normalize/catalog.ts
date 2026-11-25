@@ -6,7 +6,7 @@ import { modLines, resolveModStats } from "./mod-stats.ts";
 import type { MatchResult, StatMatcher } from "./stat-matcher.ts";
 
 /*
- * Raw PoB snapshot -> catalog entities (shape of @exileforge/contracts/catalog).
+ * Raw PoB snapshot -> catalog entities (shape of @astrolabe/contracts/catalog).
  * Rules (Christian, 2026-11-24): ids only from PoB data. Bases and uniques use
  * PoB's names as ids, gems PoB's gameId, mods the game mod id, passive nodes
  * PoB's numeric skill id, ascendancies PoB's internalId.

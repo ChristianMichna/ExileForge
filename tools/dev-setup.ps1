@@ -1,5 +1,5 @@
 # Windows counterpart of tools/dev-setup.sh: Node deps and the Playwright
-# browser for working on ExileForge natively on Windows (PowerShell 5+).
+# browser for working on Astrolabe natively on Windows (PowerShell 5+).
 # Headless PoB on Windows needs a luajit.exe next to PoB's DLLs; see
 # docs/pob-headless.md (or use WSL with tools/dev-setup.sh).
 #
@@ -33,7 +33,7 @@ pnpm install --frozen-lockfile
 if ($LASTEXITCODE -ne 0) { throw 'pnpm install failed' }
 
 Step 'Playwright Chromium'
-pnpm --filter '@exileforge/web' exec playwright install chromium
+pnpm --filter '@astrolabe/web' exec playwright install chromium
 if ($LASTEXITCODE -ne 0) { throw 'playwright install failed' }
 
 Step 'Ready'

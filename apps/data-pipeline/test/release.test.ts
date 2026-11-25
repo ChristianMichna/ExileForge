@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CatalogShard } from "@exileforge/contracts/catalog";
+import { CatalogShard } from "@astrolabe/contracts/catalog";
 import { describe, expect, it } from "vitest";
 import { buildCatalog, pipelineRevisionOf } from "../src/normalize/release.ts";
 import { sha256, writeManifest } from "../src/snapshot/snapshot.ts";
@@ -22,7 +22,7 @@ async function writeSnapshot(raw: RawFixture, releaseId = "poe2-0.1+r2"): Promis
     shards.push({ kind, path, sha256: sha256(text), count: Object.keys(entities).length });
   }
   await writeManifest(dir, {
-    format: "exileforge-raw-snapshot/1",
+    format: "astrolabe-raw-snapshot/1",
     releaseId,
     gameVersion: "0.1",
     pobVersion: "0.0.1",

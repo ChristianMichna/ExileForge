@@ -1,6 +1,6 @@
-# @exileforge/server
+# @astrolabe/server
 
-Lokaler ExileForge-Server (ADR-0004): läuft in der App, lauscht **nur auf
+Lokaler Astrolabe-Server (ADR-0004): läuft in der App, lauscht **nur auf
 `127.0.0.1`** und bietet
 
 - den **MCP-Endpunkt** `/mcp` (Streamable HTTP, zustandslos) für Claude Code
@@ -11,7 +11,7 @@ Lokaler ExileForge-Server (ADR-0004): läuft in der App, lauscht **nur auf
 ## forge-Schleife
 
 Claude bekommt nie den ganzen Auftrag, sondern je Aufruf genau eine kleine
-Aufgabe mit eigenem Antwortschema (`ForgeTask` aus `@exileforge/contracts`).
+Aufgabe mit eigenem Antwortschema (`ForgeTask` aus `@astrolabe/contracts`).
 Jede Abgabe prüft der Server sofort, in dieser Reihenfolge:
 
 1. **Schema** der Aufgabe (Zod → JSON-Pointer im Befund)
@@ -39,7 +39,7 @@ Frontend (Frage „Retry the task" / „Abort the run"). Deterministische Schrit
 
 Werkzeugnamen nutzen `_` statt `.`, weil Claude-Werkzeugnamen nur
 `[a-zA-Z0-9_-]` erlauben; die Verträge behalten die Punkt-Namen. Dazu gibt es
-den MCP-Prompt `exileforge` (Startsatz mit Sitzungscode) und Server-
+den MCP-Prompt `astrolabe` (Startsatz mit Sitzungscode) und Server-
 Instructions, die Claude anweisen, die Schleife bis `done` selbst
 weiterzuführen.
 
@@ -61,10 +61,10 @@ Schutz:
   App (`allowedOrigins`, nur exakte Origins).
 - **Zugriffstoken je Installation**: Alles außer `/api/health` verlangt
   `Authorization: Bearer <token>`. Der Server legt das Token beim ersten Start
-  an (`%APPDATA%\ExileForge\access-token`, sonst
-  `~/.config/exileforge/access-token`, nur für den Besitzer lesbar). Die
+  an (`%APPDATA%\Astrolabe\access-token`, sonst
+  `~/.config/astrolabe/access-token`, nur für den Besitzer lesbar). Die
   `.mcpb`-Brücke liest es dort; Claude Code bekommt es per
-  `claude mcp add --transport http exileforge http://127.0.0.1:47615/mcp --header "Authorization: Bearer <token>"`
+  `claude mcp add --transport http astrolabe http://127.0.0.1:47615/mcp --header "Authorization: Bearer <token>"`
   (die App zeigt den Befehl an).
 - Falsche Sitzungscodes: höchstens `attachFailuresPerMinute` je Minute.
 - Höchstens 16 offene Event-Streams, 1 MB je Anfrage.
@@ -93,10 +93,10 @@ werden (`--calc fake`), `GET /api/health` und `calc_evaluate` melden
 ## Entwicklung
 
 ```bash
-pnpm --filter @exileforge/server build
+pnpm --filter @astrolabe/server build
 node apps/server/dist/main.js --catalog <daten-release-ordner> --calc fake \
-  [--port 47615] [--db exileforge.sqlite] [--origin http://127.0.0.1:5173]
-claude mcp add --transport http exileforge http://127.0.0.1:47615/mcp --header "Authorization: Bearer $(cat ~/.config/exileforge/access-token)"
+  [--port 47615] [--db astrolabe.sqlite] [--origin http://127.0.0.1:5173]
+claude mcp add --transport http astrolabe http://127.0.0.1:47615/mcp --header "Authorization: Bearer $(cat ~/.config/astrolabe/access-token)"
 ```
 
 Zum Ausprobieren ohne Abo-Verbrauch: `npx @modelcontextprotocol/inspector`.
@@ -138,7 +138,7 @@ Quellen: [startdebugging.net](https://startdebugging.net/2026/05/fix-claude-reac
 
 ## Offen
 
-- Adapter `CalcPort` → `@exileforge/calc` (sobald BuildState → PoB existiert)
+- Adapter `CalcPort` → `@astrolabe/calc` (sobald BuildState → PoB existiert)
 - echte Stufen-Aufgaben und Prompts aus `packages/agents`, Gates G3–G8
 - Pipeline-Ergebnis als `GuideDocument`: Die PoC-Pipeline meldet `done` und
   `guide.ready` mit einer `guideId`, zu der es noch **kein** Guide-Dokument
@@ -199,3 +199,17 @@ Antwort des alten Jobs. Noch ohne Zeitlimit und Abbruch.
 `src/calc/skeleton.ts` (`PobSkeleton`) ist der `SkeletonPort` auf PoB und
 `optimizeTree`; er wird mit `PobCalc` in `start.ts` verdrahtet, sobald
 `CalcPool.baseBuild` in main ist.
+
+## Crafting und Preise als MCP-Werkzeuge
+
+`craft_simulate` (Monte-Carlo-Simulation, Paket `crafting-sim`) und `economy_price`
+(Marktpreise, Paket `economy`) sind registriert, wenn `StartOptions.craftConfigPath`
+bzw. `StartOptions.economy` gesetzt sind (Entwicklungs-Einstieg: `--craft-config`,
+Standard `config/crafting/sim.json`; `--economy <cache-dir>` schaltet die Preise ein).
+Ohne Konfiguration gibt es das Werkzeug nicht, statt einen Platzhalter zu liefern.
+Fehlschläge (unbekannte Katalog-IDs, Abruf gescheitert) sind Fehlerantworten mit Code,
+nie leere Ergebnisse. Mit Economy rechnet der Simulator Kosten aus dem Preisbuch der
+Liga der Anfrage; ohne Preise bleiben Kosten `uncalibrated`. Offen (siehe
+`packages/economy/README.md`): Abbildung der Währungs-Items und der Kontakt im
+User-Agent; bis dahin scheitert `economy_price` mit einem klaren Fehler. Die Desktop-App
+muss `economy.cacheDir` und `appVersion` setzen.

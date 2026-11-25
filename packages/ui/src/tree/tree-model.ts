@@ -2,7 +2,7 @@
 // Positions and arcs come from the data release (PassiveNode.position.point,
 // PassiveNode.arcs, PassiveGroup); nothing here knows game values. A node
 // without a point is listed in `issues` and left out, never drawn at 0,0.
-import type { PassiveGroup, PassiveNode } from "@exileforge/contracts/catalog";
+import type { PassiveGroup, PassiveNode } from "@astrolabe/contracts/catalog";
 
 /** How a node is drawn. Own shapes, no game art. */
 export type TreeNodeShape =
@@ -16,7 +16,7 @@ export type TreeNodeShape =
   | "decoration";
 
 /**
- * Node kinds of the catalog (ExileForge vocabulary from
+ * Node kinds of the catalog (Astrolabe vocabulary from
  * config/data-pipeline/normalize.json) mapped to shapes. A kind not listed
  * here is drawn as a small node and reported in `issues`.
  */

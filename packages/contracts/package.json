@@ -1,9 +1,9 @@
 {
-  "name": "@exileforge/contracts",
+  "name": "@astrolabe/contracts",
   "private": true,
   "version": "0.3.2",
   "type": "module",
-  "description": "Single source of truth for ExileForge data shapes: Zod schemas, inferred TS types and generated JSON Schema.",
+  "description": "Single source of truth for Astrolabe data shapes: Zod schemas, inferred TS types and generated JSON Schema.",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

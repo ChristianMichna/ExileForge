@@ -8,7 +8,7 @@ import {
   PassiveNode,
   StatTranslation,
   UniqueItem,
-} from "@exileforge/contracts/catalog";
+} from "@astrolabe/contracts/catalog";
 import type { z } from "zod";
 import type { CatalogEntities, Finding } from "./catalog.ts";
 

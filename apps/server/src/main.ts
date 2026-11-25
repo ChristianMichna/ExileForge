@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { startCalcPool } from "@exileforge/calc";
+import { startCalcPool } from "@astrolabe/calc";
 import { loadCatalogRelease } from "./catalog/memory-catalog.js";
 import { defaultTokenFile } from "./access-token.js";
 import { createStderrLogger } from "./logger.js";
@@ -13,13 +13,15 @@ import { DEFAULT_PORT, startServer } from "./start.js";
 const { values } = parseArgs({
   options: {
     port: { type: "string", default: String(DEFAULT_PORT) },
-    db: { type: "string", default: "exileforge.sqlite" },
+    db: { type: "string", default: "astrolabe.sqlite" },
     catalog: { type: "string" },
     config: { type: "string", default: "config/forge/forge.json" },
     stages: { type: "string", default: "config/agents/stages.json" },
     calc: { type: "string" },
     "pob-root": { type: "string", default: "." },
     optimizer: { type: "string", default: "config/optimizer/tree.json" },
+    "craft-config": { type: "string", default: "config/crafting/sim.json" },
+    economy: { type: "string" },
     origin: { type: "string", multiple: true, default: [] },
     "token-file": { type: "string", default: defaultTokenFile() },
   },
@@ -87,6 +89,17 @@ chooseCalc(catalogDir)
       configPath: values.config,
       stagesConfigPath: values.stages,
       calc,
+      craftConfigPath: values["craft-config"],
+      ...(values.economy === undefined
+        ? {}
+        : {
+            economy: {
+              configPath: "config/economy/economy.json",
+              itemMapPath: "config/economy/item-map.json",
+              cacheDir: values.economy,
+              appVersion: "dev",
+            },
+          }),
       allowedOrigins: values.origin,
       tokenFile: values["token-file"],
       logger,

@@ -32,7 +32,7 @@ async function fakeSnapshot(
     });
   }
   await writeManifest(dir, {
-    format: "exileforge-raw-snapshot/1",
+    format: "astrolabe-raw-snapshot/1",
     releaseId: id,
     gameVersion: id.slice(5, id.indexOf("+")),
     pobVersion: "fake",

@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BuildRequest } from "@exileforge/contracts/build";
-import { CatalogShard, type CatalogManifest } from "@exileforge/contracts/catalog";
-import { DataReleaseId, type JsonValue } from "@exileforge/contracts/common";
+import { BuildRequest } from "@astrolabe/contracts/build";
+import { CatalogShard, type CatalogManifest } from "@astrolabe/contracts/catalog";
+import { DataReleaseId, type JsonValue } from "@astrolabe/contracts/common";
 import { MemoryCatalog } from "../src/catalog/memory-catalog.js";
 import type { ForgeConfig } from "../src/config/forge-config.js";
 
@@ -71,7 +71,7 @@ export function fixtureCatalog(): MemoryCatalog {
 
 /** Writes the fixture release to a temp dir as manifest.json + shards. */
 export function writeFixtureRelease(): string {
-  const dir = mkdtempSync(join(tmpdir(), "exileforge-release-"));
+  const dir = mkdtempSync(join(tmpdir(), "astrolabe-release-"));
   const shards = raw.map((s) => {
     const text = JSON.stringify({ schemaVersion: 1, dataReleaseId: RELEASE, ...s });
     const path = `${s.kind}.json`;

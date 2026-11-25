@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { RunEvent } from "@exileforge/contracts/events";
+import { RunEvent } from "@astrolabe/contracts/events";
 import { applyRunEvent, EMPTY_RUN, type RunLive } from "./run-state";
 
 export type Connection = "connecting" | "live" | "reconnecting" | "closed";

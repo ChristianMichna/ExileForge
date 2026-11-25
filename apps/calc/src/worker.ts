@@ -4,13 +4,13 @@ import {
   parseCalcResult,
   type CalcMethodName,
   type CalcResultOf,
-} from "@exileforge/contracts";
+} from "@astrolabe/contracts";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { CalcServiceError } from "./errors.ts";
 import { type PobInstall, WORKER_LUA, workerLuaDir } from "./install.ts";
 
 /** Prefix of every response line; PoB itself may print to stdout too. */
-export const RESPONSE_MARKER = "@@EXILEFORGE_RPC@@";
+export const RESPONSE_MARKER = "@@ASTROLABE_RPC@@";
 /** Lines of PoB output kept for error messages. */
 const LOG_TAIL_LINES = 40;
 /** Longest stdout line accepted; a build export is at most a few MB. */

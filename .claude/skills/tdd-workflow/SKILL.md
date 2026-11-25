@@ -1,13 +1,13 @@
 ---
 name: tdd-workflow
-description: Testgetriebene Entwicklung in ExileForge mit Vitest – erst fehlschlagender Test, dann minimale Umsetzung, dann Aufräumen; mit den Testebenen des Projektplans (Unit, Vertrag, Calc-Golden, Daten, Simulator-Property-Tests, Exporte, Halluzinations-Tests) und den Fakes calc-fake und llm-replay. Verwenden bei neuer Kernlogik und bei jedem Bugfix.
+description: Testgetriebene Entwicklung in Astrolabe mit Vitest – erst fehlschlagender Test, dann minimale Umsetzung, dann Aufräumen; mit den Testebenen des Projektplans (Unit, Vertrag, Calc-Golden, Daten, Simulator-Property-Tests, Exporte, Halluzinations-Tests) und den Fakes calc-fake und llm-replay. Verwenden bei neuer Kernlogik und bei jedem Bugfix.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/tdd-workflow),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md.
      Stark gekürzt; an die Testebenen aus docs/projektplan.md angepasst. -->
 
-# TDD in ExileForge
+# TDD in Astrolabe
 
 ## Zyklus
 

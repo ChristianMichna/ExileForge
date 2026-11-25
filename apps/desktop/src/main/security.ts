@@ -1,5 +1,5 @@
 /** Custom scheme the window is loaded from; the renderer never talks to the server directly. */
-export const APP_SCHEME = "exileforge";
+export const APP_SCHEME = "astrolabe";
 export const APP_HOST = "app";
 export const APP_ORIGIN = `${APP_SCHEME}://${APP_HOST}`;
 export const APP_URL = `${APP_ORIGIN}/index.html`;

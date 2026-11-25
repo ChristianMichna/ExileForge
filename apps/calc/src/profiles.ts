@@ -1,4 +1,4 @@
-import { CalcProfileId } from "@exileforge/contracts";
+import { CalcProfileId } from "@astrolabe/contracts";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { basename, join } from "node:path";

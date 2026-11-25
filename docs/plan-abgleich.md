@@ -22,15 +22,15 @@ Der Plan will eine gehostete Web-App, PR #1 eine lokale Electron-App.
 
 Die Web-App des Plans erfüllt Christians Vorgaben sogar besser als PR #1, weil
 der **Remote-MCP-Server (Plan-Modus B)** beides verbindet: Die Freunde planen in
-claude.ai (Web, Desktop oder Handy) mit ihrem eigenen Abo, ExileForge liefert nur
+claude.ai (Web, Desktop oder Handy) mit ihrem eigenen Abo, Astrolabe liefert nur
 Werkzeuge und Rechnungen vom Server, und niemand muss etwas installieren. Damit
 fällt der Grund weg, aus dem v0.2 einen Server abgelehnt hatte (dort hätte der
 Server Claude selbst aufrufen müssen, also API-Key statt Abo).
 
 **Entscheidungen (Christian, 2026-11-24):** **Lokal, nicht in der Cloud**
-([ADR-0004](adr/0004-lokal-first.md)): ExileForge läuft als Windows-App auf dem
+([ADR-0004](adr/0004-lokal-first.md)): Astrolabe läuft als Windows-App auf dem
 eigenen PC und wird per Installer an Freunde weitergegeben; der gehostete Server
-aus dem Plan entfällt. Dazu Hybrid. ExileForge hat ein **eigenes
+aus dem Plan entfällt. Dazu Hybrid. Astrolabe hat ein **eigenes
 Frontend** für alles; nur die KI-Schritte laufen im Claude-Chat des Freundes über
 den Remote-Connector, iterativ in kleinen Aufgaben statt Single-Shot-Prompts
 ([ADR-0003](adr/0003-hybrid-frontend-und-chat.md)).
@@ -79,7 +79,7 @@ Kern, wird aber umgebaut.
 - **Auflösung:** Für Freunde ist **B der Hauptweg**. Die Pipeline wird so gebaut,
   dass ihre Stufen entweder vom Gateway (A) oder vom Claude-Client über
   `forge.next`/`forge.submit` (B) ausgeführt werden; Zustand, Gates und Rechnungen
-  liegen in beiden Fällen bei ExileForge. Das steht so schon im Plan und macht beide
+  liegen in beiden Fällen bei Astrolabe. Das steht so schon im Plan und macht beide
   Wege gleichwertig. Modus C nur für Christians eigenen Gebrauch, D bleibt aus.
 
 ### 3. MCP-Transport: lokal stdio (PR #1) gegen Remote (Plan)

@@ -6,7 +6,7 @@
 ## Kontext
 
 Der Projektplan sieht vier KI-Zugangswege vor: A BYOK, B Remote-MCP (Abo),
-C lokal mit `claude -p`, D Betreiber-Key. Christians Vorgabe: ExileForge muss mit
+C lokal mit `claude -p`, D Betreiber-Key. Christians Vorgabe: Astrolabe muss mit
 einem regulären Claude-Abo laufen.
 
 ## Entscheidung
@@ -18,7 +18,7 @@ einem regulären Claude-Abo laufen.
 - **Modus C** nur für Christians eigenen Gebrauch, nicht für Freunde verteilt,
   solange die Bedingungen für „Claude Code in Produkten" nicht geprüft sind.
 - **Modus D** bleibt aus.
-- Die Build-Pipeline (S0–S11) ist eine **Zustandsmaschine bei ExileForge**. Jede
+- Die Build-Pipeline (S0–S11) ist eine **Zustandsmaschine bei Astrolabe**. Jede
   LLM-Stufe wird in kleine Aufgaben zerlegt und entweder vom Gateway (A) ausgeführt
   oder dem Claude-Client über `forge.next` / `forge.submit` (B) gegeben
   ([ADR-0003](0003-hybrid-frontend-und-chat.md)). Schema-Validierung,

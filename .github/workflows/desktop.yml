@@ -2,7 +2,7 @@
 # - Pull requests that touch the app: build the unsigned installer and attach it
 #   as an artifact, so it can be tried on a real Windows PC.
 # - "Run workflow" with publish=true: build and publish a GitHub release
-#   (ExileForge-Setup-<version>.exe + latest.yml) that installed apps update from.
+#   (Astrolabe-Setup-<version>.exe + latest.yml) that installed apps update from.
 # The installer bundles a data release built from PoB in the first job.
 name: Desktop installer
 
@@ -59,7 +59,7 @@ jobs:
         run: tools/setup_pob.sh
       - name: Build snapshot and catalog
         run: |
-          pnpm exec turbo run build --filter=@exileforge/data-pipeline
+          pnpm exec turbo run build --filter=@astrolabe/data-pipeline
           node apps/data-pipeline/dist/cli.js snapshot \
             --game-version "$GAME_VERSION" --revision "$REVISION" --out data-snapshots/current
           node apps/data-pipeline/dist/cli.js catalog data-snapshots/current \
@@ -91,7 +91,7 @@ jobs:
           name: data-release
           path: apps/desktop/data-release
       - run: pnpm build
-      - run: pnpm --filter @exileforge/mcp-bridge pack:mcpb
+      - run: pnpm --filter @astrolabe/mcp-bridge pack:mcpb
       - name: Check the packaged files
         run: node apps/desktop/scripts/stage.mjs
       - name: Build installer
@@ -99,7 +99,7 @@ jobs:
         run: pnpm exec electron-builder --win --x64 --publish never
       - uses: actions/upload-artifact@v5
         with:
-          name: ExileForge-Setup
+          name: Astrolabe-Setup
           path: |
             apps/desktop/release/*.exe
             apps/desktop/release/latest.yml
@@ -129,7 +129,7 @@ jobs:
           name: data-release
           path: apps/desktop/data-release
       - run: pnpm build
-      - run: pnpm --filter @exileforge/mcp-bridge pack:mcpb
+      - run: pnpm --filter @astrolabe/mcp-bridge pack:mcpb
       - run: node apps/desktop/scripts/stage.mjs
       - name: Build installer and publish release
         working-directory: apps/desktop

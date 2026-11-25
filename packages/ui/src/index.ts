@@ -1,4 +1,4 @@
-// Public API of @exileforge/ui. Import "@exileforge/ui/styles.css" once at the app root.
+// Public API of @astrolabe/ui. Import "@astrolabe/ui/styles.css" once at the app root.
 export { RARITIES, RARITY_LABELS, COLOR_TOKEN_GROUPS, SPACE_STEPS, colorVar } from "./theme/tokens";
 export type { Rarity } from "./theme/tokens";
 

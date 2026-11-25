@@ -9,8 +9,8 @@ import type {
   PriceBook,
   PrimarySource,
   Source,
-} from "@exileforge/contracts";
-import { CraftSimRequest as CraftSimRequestSchema } from "@exileforge/contracts";
+} from "@astrolabe/contracts";
+import { CraftSimRequest as CraftSimRequestSchema } from "@astrolabe/contracts";
 import type { SimCatalog } from "./catalog.js";
 import type { CraftSimConfig } from "./config.js";
 import { CraftSimInputError } from "./errors.js";

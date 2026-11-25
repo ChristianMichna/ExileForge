@@ -1,6 +1,6 @@
 ---
 name: architecture-decision-records
-description: Hält Architekturentscheidungen von ExileForge als nummerierte ADRs in docs/adr/ fest (Kontext, Entscheidung, verworfene Alternativen, Folgen) und pflegt den Index. Verwenden, wenn zwischen Bibliotheken, Formaten oder Abläufen entschieden wird, eine ⚠-Annahme aus docs/architecture.md geklärt ist, oder jemand fragt, warum etwas so gebaut ist.
+description: Hält Architekturentscheidungen von Astrolabe als nummerierte ADRs in docs/adr/ fest (Kontext, Entscheidung, verworfene Alternativen, Folgen) und pflegt den Index. Verwenden, wenn zwischen Bibliotheken, Formaten oder Abläufen entschieden wird, eine ⚠-Annahme aus docs/architecture.md geklärt ist, oder jemand fragt, warum etwas so gebaut ist.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/architecture-decision-records),
@@ -9,7 +9,7 @@ description: Hält Architekturentscheidungen von ExileForge als nummerierte ADRs
 # Architekturentscheidungen (ADR)
 
 `docs/architecture.md` beschreibt den aktuellen Stand; ADRs halten fest,
-**warum** etwas so entschieden wurde. Besonders wichtig in ExileForge, weil
+**warum** etwas so entschieden wurde. Besonders wichtig in Astrolabe, weil
 viele Punkte als „⚠ Annahme" starten (PoB headless, `.build`-Format,
 Mod-Gewichte, Preisquelle, Tree-Icons, Verteilung/Abo-Regeln).
 

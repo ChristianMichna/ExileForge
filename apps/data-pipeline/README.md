@@ -1,9 +1,9 @@
-# @exileforge/data-pipeline
+# @astrolabe/data-pipeline
 
 Daten-Pipeline für den Spieldaten-Katalog (F-01, WS1). Sie baut aus dem
 gepinnten Path of Building (PoE2) einen **Roh-Snapshot**, vergleicht zwei
 Snapshots und bildet einen Snapshot auf die Katalog-Verträge
-(`@exileforge/contracts/catalog`) ab, geprüft gegen die Schemas. Das
+(`@astrolabe/contracts/catalog`) ab, geprüft gegen die Schemas. Das
 Veröffentlichen als Daten-Release folgt in einem eigenen PR.
 
 ## Ablauf
@@ -22,7 +22,7 @@ Veröffentlichen als Daten-Release folgt in einem eigenen PR.
 
 ```bash
 tools/setup_pob.sh
-pnpm --filter @exileforge/data-pipeline build
+pnpm --filter @astrolabe/data-pipeline build
 node apps/data-pipeline/dist/cli.js snapshot --game-version 0.5 --revision 1 --out data-snapshots/poe2-0.5+r1
 node apps/data-pipeline/dist/cli.js diff data-snapshots/alt data-snapshots/poe2-0.5+r1
 ```
@@ -80,7 +80,7 @@ den Text auf Stat-IDs und Rohwerte zurück, ausschließlich mit PoB-Daten:
    oder nicht passende Zeilen bleiben je Mod in `unresolved` sichtbar, nichts
    wird geraten.
 
-`exileforge-data stat-coverage <snapshot> [--out unresolved.json]` meldet die
+`astrolabe-data stat-coverage <snapshot> [--out unresolved.json]` meldet die
 Abdeckung. Stand PoB 0.23.1: 86,5 % der Zeilengruppen, 85,7 % der Mods voll
 aufgelöst. Offen: 741 `hidden` (Text ohne Zahl, z. B. reine Effekt-Zeilen; der
 Stat-Wert ist darin nicht sichtbar, die Stat-IDs stehen dabei), 435 ohne
@@ -200,7 +200,7 @@ verworfen. Ob und wie Icons in den Katalog kommen, wird separat entschieden.
 
 ## Tests
 
-`pnpm --filter @exileforge/data-pipeline test`. Diff, Konfiguration, Job und
+`pnpm --filter @astrolabe/data-pipeline test`. Diff, Konfiguration, Job und
 Snapshot-Prüfung laufen mit synthetischen Daten. Der Integrationstest gegen
 das echte PoB läuft nur, wenn `.pob/` existiert (lokal nach
 `tools/setup_pob.sh` und im Workflow `data-snapshot.yml`), sonst wird er als

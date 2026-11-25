@@ -1,4 +1,4 @@
-# @exileforge/desktop
+# @astrolabe/desktop
 
 Electron-Hülle der lokalen Windows-App (ADR-0004, F-13/F-05). Sie startet den
 lokalen Server (`apps/server`) im selben Prozess, zeigt das Frontend
@@ -10,13 +10,13 @@ Der Kern (`contracts`, `server`, `calc`, `ui`) kennt Electron nicht.
 | Datei | Aufgabe |
 | --- | --- |
 | `src/main/main.ts` | Start: Fenster, Protokoll, IPC, Server, Updates (dünner Kleber, nicht unit-getestet) |
-| `src/main/app-protocol.ts` | `exileforge://app/`: liefert das Frontend und leitet `/api/*` mit Token an den Server |
+| `src/main/app-protocol.ts` | `astrolabe://app/`: liefert das Frontend und leitet `/api/*` mit Token an den Server |
 | `src/main/security.ts` | CSP, erlaubte Ursprünge und Schemas |
 | `src/main/ipc-handlers.ts` | Aktionen des Fensters („Plan with Claude", Befehl kopieren, Erweiterung, Update) |
 | `src/main/services.ts` | startet `startServer` und prüft den Health-Check |
 | `src/main/resources.ts` | Ordnerlayout (installiert / Entwicklung), Wahl des Daten-Release |
 | `src/main/updater.ts` | `electron-updater` → Status; Installation erst nach fertigem Download |
-| `src/preload.ts`, `src/shared/bridge.ts` | schmale Brücke `window.exileforge` (Vertrag in `bridge.ts`) |
+| `src/preload.ts`, `src/shared/bridge.ts` | schmale Brücke `window.astrolabe` (Vertrag in `bridge.ts`) |
 | `electron-builder.yml`, `scripts/` | Installer |
 
 Einstellungen (Port, Fenstergröße, Claude-Link, Startsatz, Update-Takt) stehen
@@ -24,7 +24,7 @@ in `config/desktop/desktop.json`.
 
 ## Sicherheit
 
-- Das Fenster lädt über ein eigenes Protokoll (`exileforge://app/`), nicht über
+- Das Fenster lädt über ein eigenes Protokoll (`astrolabe://app/`), nicht über
   `file://` oder einen Webserver. `/api/*` leitet die Hülle an den lokalen Server
   weiter und setzt dabei das **Zugriffstoken**. Die Seite kennt das Token nie,
   und `/mcp` ist über das Fenster nicht erreichbar.
@@ -47,7 +47,7 @@ in `config/desktop/desktop.json`.
    legt den Startsatz in die Zwischenablage und öffnet Claude Desktop
    (`desktopUrl` in der Konfig). Klappt das Öffnen nicht, steht das im Fenster;
    der Satz liegt trotzdem in der Zwischenablage.
-3. **Install Claude extension** öffnet die mitgelieferte `exileforge.mcpb`,
+3. **Install Claude extension** öffnet die mitgelieferte `astrolabe.mcpb`,
    **Copy Claude Code command** kopiert `claude mcp add …`.
 4. Der Live-Status kommt aus dem Event-Stream des Laufs (SSE) und zeigt Phase,
    aktuelle Aufgabe, zurückgeschickte Antworten, Rechnungen, Fragen.
@@ -59,21 +59,21 @@ steht in der Konfig und lässt sich ändern.
 ## Entwickeln und Bauen
 
 ```bash
-pnpm --filter @exileforge/web build && pnpm --filter @exileforge/desktop dev
+pnpm --filter @astrolabe/web build && pnpm --filter @astrolabe/desktop dev
 ```
 
 `dev` baut die Hülle und startet Electron. Ohne Daten-Release endet der
 Serverstart mit einer klaren Meldung im Fenster; dann
-`EXILEFORGE_DATA_RELEASE=<Ordner mit manifest.json>` setzen (z. B.
+`ASTROLABE_DATA_RELEASE=<Ordner mit manifest.json>` setzen (z. B.
 `data-snapshots/current/catalog` aus der Daten-Pipeline).
 
 Installer (Windows):
 
 ```bash
 pnpm build
-pnpm --filter @exileforge/mcp-bridge pack:mcpb
+pnpm --filter @astrolabe/mcp-bridge pack:mcpb
 cp -r <Daten-Release> apps/desktop/data-release
-pnpm --filter @exileforge/desktop dist     # → apps/desktop/release/ExileForge-Setup-<version>.exe
+pnpm --filter @astrolabe/desktop dist     # → apps/desktop/release/Astrolabe-Setup-<version>.exe
 ```
 
 `scripts/stage.mjs` bricht mit einer Anleitung ab, wenn etwas fehlt (Frontend,

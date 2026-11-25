@@ -1,8 +1,8 @@
-# Windows installer (ExileForge-Setup.exe) with auto-update over GitHub Releases.
+# Windows installer (Astrolabe-Setup.exe) with auto-update over GitHub Releases.
 # The app is not code-signed yet: Windows SmartScreen warns on first start (see README).
-appId: app.exileforge.desktop
-productName: ExileForge
-copyright: ExileForge. Fan project, not affiliated with Grinding Gear Games.
+appId: app.astrolabe.desktop
+productName: Astrolabe
+copyright: Astrolabe. Fan project, not affiliated with Grinding Gear Games.
 directories:
   output: release
   buildResources: build
@@ -16,7 +16,7 @@ extraResources:
   - { from: ../../config/forge, to: config/forge }
   - { from: ../../config/desktop, to: config/desktop }
   - { from: ../../config/agents, to: config/agents }
-  - { from: ../mcp-bridge/dist/exileforge.mcpb, to: exileforge.mcpb }
+  - { from: ../mcp-bridge/dist/astrolabe.mcpb, to: astrolabe.mcpb }
   - { from: data-release, to: data-release }
 asar: true
 # Fuses: the exe cannot be used as a plain Node interpreter, only the signed-in asar loads.
@@ -37,9 +37,9 @@ nsis:
   deleteAppDataOnUninstall: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  artifactName: ExileForge-Setup-${version}.${ext}
+  artifactName: Astrolabe-Setup-${version}.${ext}
 publish:
   provider: github
   owner: ChristianMichna
-  repo: ExileForge
+  repo: astrolabe-poe2
   releaseType: release

@@ -315,7 +315,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--code", help="import: build code to store as builds/<ID>.xml")
     p.add_argument("--only", action="append", metavar="ID", help="limit to this build id (repeatable)")
     p.add_argument("--missing", action="store_true", help="record: only builds without expected values")
-    p.add_argument("--pob-home", help="PoB install dir (default: .pob, or EXILEFORGE_POB_HOME)")
+    p.add_argument("--pob-home", help="PoB install dir (default: .pob, or ASTROLABE_POB_HOME)")
     args = p.parse_args(argv)
     commands = {"fetch": cmd_fetch, "import": cmd_import, "record": cmd_record, "check": cmd_check}
     return commands[args.command](args)

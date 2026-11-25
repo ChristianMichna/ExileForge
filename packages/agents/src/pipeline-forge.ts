@@ -1,6 +1,7 @@
-import { SkillProfile } from "@exileforge/contracts/build";
-import type { JsonValue } from "@exileforge/contracts/common";
-import type { UserIntervention } from "@exileforge/contracts/forge";
+import { z } from "zod";
+import { type ArchetypeCandidate, SkillProfile } from "@astrolabe/contracts/build";
+import type { JsonValue } from "@astrolabe/contracts/common";
+import type { UserIntervention } from "@astrolabe/contracts/forge";
 import type { StageConfig } from "./config.js";
 import type { Pipeline, PipelineContext, PlanStep } from "./pipeline.js";
 import { S0_SKILL_KEY, SkillChoice, skillTask } from "./stages/s0-skill.js";
@@ -8,6 +9,16 @@ import { profileBase, profileTask, S1_BASE_KEY, S1_PROFILE_KEY } from "./stages/
 import { candidatesOf, candidateTask } from "./stages/s2-candidates.js";
 import { evaluationsJob, S3_KEY } from "./stages/s3-evaluate.js";
 import { S4_KEY, selectionStep, selectionWait } from "./stages/s4-select.js";
+import {
+  chosenEvaluation,
+  GemSetupSubmission,
+  gemTask,
+  S5_GEMS_KEY,
+  S5_TARGET_KEY,
+  S5_TREE_KEY,
+  targetStep,
+  treeJob,
+} from "./stages/s5-target.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 
@@ -29,7 +40,10 @@ export function createForgePipeline(config: StageConfig): Pipeline {
   return {
     id: FORGE_PIPELINE_ID,
     plannedTasks: (ctx) =>
-      (ctx.run.request.mainSkillId === undefined ? 1 : 0) + 1 + config.s2.candidateCount,
+      (ctx.run.request.mainSkillId === undefined ? 1 : 0) +
+      1 +
+      config.s2.candidateCount +
+      (config.s5 === undefined ? 0 : 1),
     validateIntervention: (intervention: UserIntervention, ctx) => {
       if (intervention.kind !== "chooseVariant") return undefined;
       if (ctx.result(S3_KEY) === undefined) {
@@ -79,32 +93,93 @@ export function createForgePipeline(config: StageConfig): Pipeline {
           spec: candidateTask(ctx, config, candidates.length + 1, candidates, profile),
         };
       }
-      if (ctx.result(S3_KEY) === undefined) {
-        const parsed = SkillProfile.safeParse(profile);
-        if (!parsed.success) {
-          return {
-            kind: "blocked",
-            error: {
-              code: "invalid_profile",
-              message: `The stored skill profile is not valid: ${parsed.error.message.slice(0, 500)}`,
-            },
-          };
-        }
-        return evaluationsJob(ctx, parsed.data, candidates);
+      const parsed = SkillProfile.safeParse(profile);
+      if (!parsed.success) {
+        return {
+          kind: "blocked",
+          error: {
+            code: "invalid_profile",
+            message: `The stored skill profile is not valid: ${parsed.error.message.slice(0, 500)}`,
+          },
+        };
       }
+      if (ctx.result(S3_KEY) === undefined) return evaluationsJob(ctx, parsed.data, candidates);
       if (ctx.result(S4_KEY) === undefined) {
         const choice = ctx.latest("chooseVariant");
         if (choice === undefined) return selectionWait(candidates);
         return selectionStep(choice.candidateKey);
       }
-      return {
-        kind: "blocked",
-        error: {
-          code: "stage_not_implemented",
-          message:
-            "S5 (target build) and the later stages are not built yet. S0 to S4 are done; their results are stored with the run.",
-        },
-      };
+      return planTarget(ctx, config, parsed.data, candidates);
+    },
+  };
+}
+
+/** S5: gem setup (Claude), endgame tree (PoB job), then the validated target. */
+function planTarget(
+  ctx: PipelineContext,
+  config: StageConfig,
+  profile: SkillProfile,
+  candidates: readonly ArchetypeCandidate[],
+): PlanStep {
+  const s5 = config.s5;
+  if (s5 === undefined) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "s5_not_configured",
+        message:
+          "S5 needs the target level and passive points of the endgame (config/agents/stages.json, block s5). They have not been set yet. S0 to S4 are done; their results are stored with the run.",
+      },
+    };
+  }
+  const selected = z.object({ candidateKey: z.string() }).safeParse(ctx.result(S4_KEY));
+  if (!selected.success) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "invalid_selection",
+        message: "The stored S4 choice is unreadable. Redo stage S4.",
+      },
+    };
+  }
+  const chosenKey = selected.data.candidateKey;
+  const chosen = candidates.find((c) => c.key === chosenKey);
+  const evaluation = chosenEvaluation(ctx, chosenKey);
+  if (chosen === undefined || evaluation === undefined) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "chosen_candidate_missing",
+        message: `The chosen candidate ${chosenKey} has no stored S2 or S3 result. Redo stage S2.`,
+      },
+    };
+  }
+  const gems = ctx.result(S5_GEMS_KEY);
+  if (gems === undefined) {
+    return { kind: "task", spec: gemTask(ctx, config, s5, chosen, evaluation) };
+  }
+  const setupParsed = GemSetupSubmission.safeParse(gems);
+  if (!setupParsed.success) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "invalid_gem_setup",
+        message: "The stored S5 gem setup is unreadable. Redo stage S5.",
+      },
+    };
+  }
+  const setup = setupParsed.data;
+  const tree = ctx.result(S5_TREE_KEY);
+  if (tree === undefined) return treeJob(ctx, s5, profile, chosen, evaluation, setup);
+  if (ctx.result(S5_TARGET_KEY) === undefined) {
+    return targetStep(chosen, tree as { state: unknown; calcs: unknown }, setup);
+  }
+  return {
+    kind: "blocked",
+    error: {
+      code: "stage_not_implemented",
+      message:
+        "S6 (progression) and the later stages are not built yet. S0 to S5 are done; their results are stored with the run.",
     },
   };
 }

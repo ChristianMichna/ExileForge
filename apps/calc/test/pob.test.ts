@@ -92,7 +92,7 @@ describe.skipIf(!havePob)("calc pool with headless Path of Building", () => {
       pool.request("calc.stats", {
         handle,
         profile: "as-saved",
-        overrides: { enemyIsBoss: "exileforge-no-such-value" },
+        overrides: { enemyIsBoss: "astrolabe-no-such-value" },
       }),
     ).rejects.toMatchObject({ kind: "invalid_params" });
     // free text would let mod lines into a calculation without a catalog id

@@ -1,5 +1,5 @@
-import { diffBuildState, PatchPlanError, type ItemTextRenderer } from "@exileforge/calc-client";
-import type { BuildState, CalcOutcome } from "@exileforge/contracts/build";
+import { diffBuildState, PatchPlanError, type ItemTextRenderer } from "@astrolabe/calc-client";
+import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
 import type {
   BuildFormat,
   BuildHandle,
@@ -7,9 +7,9 @@ import type {
   CalcParams,
   CalcResult,
   CalcResultOf,
-} from "@exileforge/contracts/calc";
-import type { ConfigOverrides } from "@exileforge/contracts/calc";
-import type { CalcId, CalcProfileId } from "@exileforge/contracts/common";
+} from "@astrolabe/contracts/calc";
+import type { ConfigOverrides } from "@astrolabe/contracts/calc";
+import type { CalcId, CalcProfileId } from "@astrolabe/contracts/common";
 import type { Logger } from "../logger.js";
 import type { CalcPort } from "../ports/calc.js";
 

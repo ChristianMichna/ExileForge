@@ -25,3 +25,13 @@ export const S2_CANDIDATE = (index: number, total: number): string =>
     "It must differ clearly from the previous candidates (other class or other ascendancy) and respect the player's preferences and exclusions.",
     NO_MEMORY_RULES,
   ].join(" ");
+
+export const S5_GEMS = (mainSkillPreset: boolean): string =>
+  [
+    "Choose the skill gem setup for the chosen archetype: exactly one setup with role main plus any secondary setups, each with supports.",
+    mainSkillPreset
+      ? "The main setup must use the player's main skill."
+      : "Pick the main skill that best fits the player's idea.",
+    "Use calc_evaluate (always with the runId) to compare setups before you submit; explain each choice in rationale without typing numbers.",
+    NO_MEMORY_RULES,
+  ].join(" ");

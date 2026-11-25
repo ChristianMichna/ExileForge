@@ -6,7 +6,7 @@ import type {
   CalcResult,
   CalcResultOf,
   PassiveNodeId,
-} from "@exileforge/contracts";
+} from "@astrolabe/contracts";
 import { describe, expect, it } from "vitest";
 import { createPobTreeEvaluator, TreePatchDivergedError } from "../src/index.ts";
 

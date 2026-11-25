@@ -41,7 +41,7 @@ schreibst keinen Code um.
 - **PixiJS:** `Application`, Texturen, Ticker und Event-Listener müssen im
   Cleanup zerstört werden (`app.destroy(true, …)`), sonst Speicherlecks beim
   Stufenwechsel. Pixi-Objekte nicht in React-State halten, sondern in Refs.
-- IPC-Abos (`window.exileforge.on…`) ohne Abmeldung.
+- IPC-Abos (`window.astrolabe.on…`) ohne Abmeldung.
 
 ### HOCH – Projektregeln
 - Angezeigte Zahlen, die nicht aus einem `CalcResult`/`Sourced<T>` kommen,

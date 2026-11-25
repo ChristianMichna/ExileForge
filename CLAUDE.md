@@ -1,4 +1,4 @@
-# CLAUDE.md – ExileForge
+# CLAUDE.md – Astrolabe
 
 Anleitung für Claude Code (und andere Agenten) in diesem Repository.
 Sprache im Repo: **Deutsch** für Doku, Commits und PR-Texte; Code, Bezeichner
@@ -9,7 +9,7 @@ Zahlenformat (`en-US`). Deutsch nur in Doku und PR-Texten.
 
 ## Worum es geht
 
-ExileForge macht aus einer Skill-Idee für **Path of Exile 2** einen
+Astrolabe macht aus einer Skill-Idee für **Path of Exile 2** einen
 vollständigen, durchgerechneten Build-Guide (Archetypen → Guide von Akt 1 bis
 Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
 Änderungen:
@@ -23,11 +23,11 @@ Endgame mit Tree, Gems, Gear, Crafting und Kosten). Lies vor größeren
 
 ## Betrieb und Stack (ADR-0004, angenommen 24.11.2026)
 
-ExileForge ist eine **lokale Windows-App**, kein gehosteter Dienst. Christians
+Astrolabe ist eine **lokale Windows-App**, kein gehosteter Dienst. Christians
 Vorgabe: läuft auf seinem PC und lässt sich per Installer an einen Freund
 weitergeben.
 
-- `apps/desktop` Electron-Hülle, Installer (`ExileForge-Setup.exe`),
+- `apps/desktop` Electron-Hülle, Installer (`Astrolabe-Setup.exe`),
   Auto-Update (`electron-updater`) über GitHub Releases
 - `apps/web` eigenes Frontend (React + Vite), Komponenten aus `packages/ui`
   (PixiJS-Tree, Item-Tooltips, React-Flow-Crafting)

@@ -13,7 +13,7 @@ function listFiles(dir: string): string[] {
 }
 
 describe("generated JSON Schema files", () => {
-  it("match the Zod schemas (run `pnpm --filter @exileforge/contracts generate`)", () => {
+  it("match the Zod schemas (run `pnpm --filter @astrolabe/contracts generate`)", () => {
     const expected = renderJsonSchemas();
     const onDisk = Object.fromEntries(
       listFiles(schemaDir).map((f) => [

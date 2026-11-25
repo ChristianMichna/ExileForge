@@ -81,12 +81,12 @@ jobs:
           copy /Y luajit.exe ..\..\PathOfBuilding-PoE2\runtime\luajit.exe
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run build --filter=@exileforge/calc...
+      - run: pnpm turbo run build --filter=@astrolabe/calc...
 
       - name: Tests (PoB required)
         env:
-          EXILEFORGE_REQUIRE_POB: "1"
-        run: pnpm --filter @exileforge/calc test
+          ASTROLABE_REQUIRE_POB: "1"
+        run: pnpm --filter @astrolabe/calc test
 
       - name: Golden builds through the calc pool
         run: node apps/calc/dist/cli.js golden

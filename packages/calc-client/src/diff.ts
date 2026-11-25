@@ -1,11 +1,11 @@
-import { PatchOp } from "@exileforge/contracts";
+import { PatchOp } from "@astrolabe/contracts";
 import type {
   BuildState,
   EquippedItem,
   ItemSpec,
   PassiveNodeId,
   SkillSetup,
-} from "@exileforge/contracts";
+} from "@astrolabe/contracts";
 import { PatchPlanError } from "./errors.ts";
 
 /**

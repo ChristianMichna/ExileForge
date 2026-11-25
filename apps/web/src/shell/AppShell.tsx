@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Badge, Sigil } from "@exileforge/ui";
+import { Badge, Sigil } from "@astrolabe/ui";
 import type { RouteId } from "./route";
 import { NAV } from "./route";
 import { getDesktopBridge } from "../desktop/bridge";
@@ -17,7 +17,7 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
         <path d="M50 1 V99 M1 50 H99" />
       </svg>
       <header className="topbar">
-        <a className="brand" href="#/" aria-label="ExileForge, go to build overview">
+        <a className="brand" href="#/" aria-label="Astrolabe, go to build overview">
           <Sigil size={36} />
           <span className="brand__name">
             Exile<span className="brand__accent">Forge</span>

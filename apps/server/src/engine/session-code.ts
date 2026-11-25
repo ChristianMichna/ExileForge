@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { SessionCode } from "@exileforge/contracts/forge";
+import { SessionCode } from "@astrolabe/contracts/forge";
 
 /** Alphabet of the session code contract: no 0/1/I/O to avoid misreading. */
 const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";

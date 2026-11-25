@@ -6,4 +6,4 @@ export {
   type PlanStep,
   type RunView,
   type TaskSpec,
-} from "@exileforge/agents";
+} from "@astrolabe/agents";

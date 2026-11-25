@@ -1,5 +1,5 @@
 {
-  "name": "@exileforge/calc-client",
+  "name": "@astrolabe/calc-client",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -19,7 +19,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@exileforge/contracts": "workspace:*"
+    "@astrolabe/contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

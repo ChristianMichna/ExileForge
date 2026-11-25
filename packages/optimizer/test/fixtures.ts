@@ -1,4 +1,4 @@
-import { PassiveNode, type PassiveNodeId } from "@exileforge/contracts";
+import { PassiveNode, type PassiveNodeId } from "@astrolabe/contracts";
 import { readFileSync } from "node:fs";
 import type { OptimizerConfig } from "../src/config.ts";
 import { parseOptimizerConfig } from "../src/config.ts";

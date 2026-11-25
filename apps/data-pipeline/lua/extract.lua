@@ -427,4 +427,4 @@ for _, kindJob in ipairs(job.kinds) do
 end
 
 writeFile(job.outDir .. "/meta.json", toJson(meta))
-print("@@EXILEFORGE_EXTRACT_OK@@")
+print("@@ASTROLABE_EXTRACT_OK@@")

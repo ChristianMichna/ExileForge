@@ -31,7 +31,7 @@ export async function buildSnapshot(opts: BuildSnapshotOptions): Promise<Snapsho
   }
 
   const manifest: SnapshotManifest = {
-    format: "exileforge-raw-snapshot/1",
+    format: "astrolabe-raw-snapshot/1",
     releaseId: id,
     gameVersion: opts.gameVersion,
     pobVersion: meta.pobVersion,

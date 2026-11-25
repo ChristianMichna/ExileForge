@@ -22,7 +22,7 @@ function fakePool(): PobPool & { closed: number } {
 }
 
 function options(pool: PobPool, optimizerConfigPath: string) {
-  const dir = mkdtempSync(join(tmpdir(), "exileforge-start-"));
+  const dir = mkdtempSync(join(tmpdir(), "astrolabe-start-"));
   return {
     port: 0,
     databasePath: join(dir, "db.sqlite"),

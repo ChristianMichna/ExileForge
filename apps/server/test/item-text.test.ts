@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ItemSpec } from "@exileforge/contracts/build";
-import { CatalogShard } from "@exileforge/contracts/catalog";
+import { ItemSpec } from "@astrolabe/contracts/build";
+import { CatalogShard } from "@astrolabe/contracts/catalog";
 import { MemoryCatalog } from "../src/catalog/memory-catalog.js";
 import { createItemRenderer } from "../src/calc/item-text.js";
 import { RELEASE } from "./fixtures.js";
@@ -95,7 +95,7 @@ describe("createItemRenderer", () => {
     );
     expect(text.split("\n")).toEqual([
       "Rarity: RARE",
-      "Fixture Base (ExileForge)",
+      "Fixture Base (Astrolabe)",
       "Fixture Base",
       "Item Level: 80",
       "Implicits: 1",

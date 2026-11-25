@@ -1,18 +1,20 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { BuildState } from "@exileforge/contracts/build";
-import { type CalcProfileId, EntityKind, EntityRef } from "@exileforge/contracts/common";
-import { ForgeTools, RunId, SessionCode } from "@exileforge/contracts/forge";
+import { BuildState } from "@astrolabe/contracts/build";
+import { type CalcProfileId, EntityKind, EntityRef } from "@astrolabe/contracts/common";
+import { CraftTools, EconomyTools } from "@astrolabe/contracts";
+import { ForgeTools, RunId, SessionCode } from "@astrolabe/contracts/forge";
 import { entityFindings, stateEntities } from "../engine/checks.js";
 import { ForgeError } from "../engine/errors.js";
 import type { ForgeEngine } from "../engine/forge-engine.js";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { Logger } from "../logger.js";
+import type { CraftPort, EconomyPort } from "../tools/craft-economy.js";
 
 /** Name of the MCP server as Claude shows it. */
-export const MCP_SERVER_NAME = "exileforge";
+export const MCP_SERVER_NAME = "astrolabe";
 
 /**
  * Claude's tool names allow only [a-zA-Z0-9_-], so the contract names
@@ -22,7 +24,7 @@ export const mcpToolName = (contractName: string): string => contractName.replac
 
 const MAX_CATALOG_RESULTS = 50;
 
-export const SERVER_INSTRUCTIONS = `ExileForge plans Path of Exile 2 builds in many small, checked steps. You are the planner; the ExileForge app on this computer is the source of truth.
+export const SERVER_INSTRUCTIONS = `Astrolabe plans Path of Exile 2 builds in many small, checked steps. You are the planner; the Astrolabe app on this computer is the source of truth.
 
 How to work:
 1. When the user gives a session code (like 7F3K-QX), call forge_attach with it.
@@ -41,6 +43,10 @@ export interface ForgeMcpDeps {
   /** Long-poll time of forge_next, named in its description. */
   waitLongPollSeconds: number;
   logger: Logger;
+  /** craft.simulate; the tool exists only when this is set. */
+  craft?: CraftPort;
+  /** economy.price; the tool exists only when this is set. */
+  economy?: EconomyPort;
 }
 
 /** Builds a fresh MCP server (one per HTTP request in stateless mode). */
@@ -186,12 +192,36 @@ export function createForgeMcpServer(deps: ForgeMcpDeps): McpServer {
       }),
   );
 
+  const { craft, economy } = deps;
+  if (craft !== undefined) {
+    server.registerTool(
+      mcpToolName("craft.simulate"),
+      {
+        description: `${CraftTools["craft.simulate"].description} Numbers in the result are measured; reference them, never type them.`,
+        inputSchema: CraftTools["craft.simulate"].input,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      (input) => run(() => craft(input)),
+    );
+  }
+  if (economy !== undefined) {
+    server.registerTool(
+      mcpToolName("economy.price"),
+      {
+        description: EconomyTools["economy.price"].description,
+        inputSchema: EconomyTools["economy.price"].input,
+        annotations: { readOnlyHint: true, openWorldHint: true },
+      },
+      (input) => run(() => economy(input)),
+    );
+  }
+
   server.registerPrompt(
     MCP_SERVER_NAME,
     {
-      title: "Start ExileForge session",
+      title: "Start Astrolabe session",
       description:
-        "Start or continue an ExileForge planning session with the code shown in the app.",
+        "Start or continue an Astrolabe planning session with the code shown in the app.",
       argsSchema: { code: SessionCode },
     },
     ({ code }) => ({
@@ -200,7 +230,7 @@ export function createForgeMcpServer(deps: ForgeMcpDeps): McpServer {
           role: "user",
           content: {
             type: "text",
-            text: `Start ExileForge session ${code}. Call forge_attach with this code and work through all tasks with forge_submit and forge_next until the run is done. Keep going without waiting for me unless the app needs me.`,
+            text: `Start Astrolabe session ${code}. Call forge_attach with this code and work through all tasks with forge_submit and forge_next until the run is done. Keep going without waiting for me unless the app needs me.`,
           },
         },
       ],
@@ -241,7 +271,7 @@ async function handle(fn: () => Promise<unknown>, logger: Logger): Promise<CallT
           text: JSON.stringify({
             error: {
               code: "internal",
-              message: "ExileForge hit an internal error. The app log has details.",
+              message: "Astrolabe hit an internal error. The app log has details.",
             },
           }),
         },

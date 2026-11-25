@@ -4,7 +4,7 @@ import {
   CATALOG_SCHEMA_VERSION,
   CatalogManifest,
   CatalogShard,
-} from "@exileforge/contracts/catalog";
+} from "@astrolabe/contracts/catalog";
 import { z } from "zod";
 import type { Json } from "../json.ts";
 import { prepareOutDir } from "../out-dir.ts";

@@ -1,9 +1,9 @@
 {
-  "name": "@exileforge/agents",
+  "name": "@astrolabe/agents",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Pipeline stages of ExileForge as small checked tasks with their own response schema (prompts, task specs, stage planning). Runs under apps/server (forge loop) and later under the BYOK gateway.",
+  "description": "Pipeline stages of Astrolabe as small checked tasks with their own response schema (prompts, task specs, stage planning). Runs under apps/server (forge loop) and later under the BYOK gateway.",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,7 +19,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@exileforge/contracts": "workspace:*",
+    "@astrolabe/contracts": "workspace:*",
     "zod": "4.6.7"
   },
   "devDependencies": {

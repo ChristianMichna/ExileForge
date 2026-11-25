@@ -11,7 +11,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "witch_spark_lvl60.xml"
 try:
     POB = PathOfBuilding()
 except PoBError:
-    if os.environ.get("EXILEFORGE_REQUIRE_POB"):  # CI: never skip silently
+    if os.environ.get("ASTROLABE_REQUIRE_POB"):  # CI: never skip silently
         raise
     POB = None
 

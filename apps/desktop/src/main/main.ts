@@ -11,7 +11,7 @@ import {
 } from "electron";
 import { autoUpdater } from "electron-updater";
 import { join } from "node:path";
-import { createStderrLogger } from "@exileforge/server";
+import { createStderrLogger } from "@astrolabe/server";
 import { IPC } from "../shared/bridge.js";
 import { createAppProtocolHandler } from "./app-protocol.js";
 import { loadDesktopConfig, type DesktopConfig } from "./config.js";
@@ -24,8 +24,8 @@ import { startUpdates, type UpdateController } from "./updater.js";
 
 const logger = createStderrLogger("desktop");
 
-// The window and the userData folder (%APPDATA%\ExileForge) are named after the app.
-app.setName("ExileForge");
+// The window and the userData folder (%APPDATA%\Astrolabe) are named after the app.
+app.setName("Astrolabe");
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -123,7 +123,7 @@ async function boot(): Promise<void> {
 
   // Server start comes after the window so the person sees progress or the error, not nothing.
   try {
-    const catalogDir = await findDataRelease(dirs, process.env["EXILEFORGE_DATA_RELEASE"]);
+    const catalogDir = await findDataRelease(dirs, process.env["ASTROLABE_DATA_RELEASE"]);
     services = await startServices({
       port: config.port,
       databasePath: dirs.databasePath,
@@ -232,7 +232,7 @@ function registerIpc(handlers: ReturnType<typeof createHandlers>, status: Status
 function fatal(error: unknown): void {
   logger.error("startup failed", { error });
   dialog.showErrorBox(
-    "ExileForge could not start",
+    "Astrolabe could not start",
     error instanceof Error ? error.message : "Unknown error",
   );
   app.quit();
