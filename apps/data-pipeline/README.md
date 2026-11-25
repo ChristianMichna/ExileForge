@@ -204,12 +204,14 @@ Stand PoB 0.23.1: 0 Fehler, 479 Warnungen, rund 2,5 s. Offene Stat-Zeilen:
 | Art                      | unmatched | ambiguous | lossy | hidden |
 | ------------------------ | --------- | --------- | ----- | ------ |
 | Mod                      | 411       | 14        | 138   | 741    |
-| Unique (von 4167 Zeilen) | 1476      | 492       | 54    | 335    |
+| Unique (von 4167 Zeilen) | 1476      | 91        | 54    | 335    |
 | Passive                  | 131       | 555       | 25    | 467    |
 
 Bei Uniques fehlen PoB Trade-Hashes; mehrdeutig ist vor allem lokal gegen
 global (gleicher Text), nicht passend sind v. a. PoB-eigene Zeilen wie
-„Allocates …", „Grants Skill: …" und Radius-Zeilen von Juwelen.
+„Allocates …" (874 von 1476), „Grants Skill: …" (117) und Radius-Zeilen von Juwelen (25).
+„Allocates" nennt einen Passiv-Knoten beim Namen; der Vertrag hat dafür kein Feld an
+Unique-Mods, es bräuchte eine Vertragsänderung.
 
 Eine mehrdeutige Unique-Zeile wird nach Beleg aus den Daten aufgelöst: Eine Beschreibung
 zählt, wenn ein Mod mit einem ihrer Stats auf der Basis des Uniques spawnen kann. Dabei
@@ -218,7 +220,8 @@ Basis hat, bestimmt das Gewicht; 0 heißt kein Spawn. Genau ein Treffer entschei
 oder mehrere Treffer lassen die Zeile mehrdeutig. Der Beleg ist indirekt (ein Stat, den es
 nur auf Uniques gibt, hat keinen), deshalb zählt `uniqueLinesDisambiguated` in der
 Zusammenfassung von `findings.json` jede so getroffene Entscheidung. Die Zahlen in der
-Tabelle oben sind der Stand vor dieser Regel.
+Tabelle oben enthalten die Regel (Release r4: 401 von 492 mehrdeutigen Zeilen
+aufgelöst; vorher 492).
 
 ## Crafting-Daten aus den Update-Servern
 
