@@ -64,6 +64,11 @@ Spielgrafik: Punkt (klein), Raute (Attribut), Doppelring (Notable), Stern
 im Ring (Keystone), Fadenkreuz (Jewel-Sockel), Skalenring (Klassenstart),
 gravierte Rosette (reine Bildknoten, `decoration`).
 
+Der Renderer zeichnet auf Anforderung (ein Frame nach jeder Änderung von
+Kamera, Hervorhebung oder Fokus), nicht in einer Dauerschleife: der Tree ist
+groß, und ein laufender Ticker hielt Software-WebGL (CI, Rechner ohne GPU)
+so beschäftigt, dass Screenshots nie stabil wurden.
+
 | Teil | Datei | Aufgabe |
 |---|---|---|
 | Modell | `tree/tree-model.ts` | `buildTreeView(nodes, groups, { include })` aus `PassiveNode`/`PassiveGroup` des Katalogs: Punkte, Bögen, Kanten (einmal je Paar, keine über Aufstiegsklassen hinweg), Grenzen. Knoten ohne Punkt oder mit unbekannter Art stehen in `issues`, nie bei 0,0 |
