@@ -4,7 +4,7 @@ import { readGameDataManifest, readGameDataTable } from "../gamedata/export.ts";
 import type { Json } from "../json.ts";
 import type { Finding, NormalizeConfig } from "./catalog.ts";
 
-type ReleaseFacts = Pick<DataRelease, "maxCharacterLevel" | "passivePoints">;
+type ReleaseFacts = Pick<DataRelease, "maxCharacterLevel" | "passivePoints" | "itemSlots">;
 
 const levelRow = z.object({ Level: z.int().positive() });
 const questRow = z.object({
@@ -17,6 +17,81 @@ const questRow = z.object({
   AreaLevel: z.int().positive(),
   questPoints: z.int().positive().optional(),
 });
+
+const slotRow = z.object({
+  order: z.int().positive(),
+  label: z.string().min(1),
+  weaponSet: z.union([z.literal(1), z.literal(2)]).optional(),
+  // Lua cannot tell an empty list from an empty table; the extractor writes `{}` for none
+  itemClasses: z.union([
+    z.array(z.string().min(1)),
+    z
+      .object({})
+      .strict()
+      .transform((): string[] => []),
+  ]),
+  partialBases: z.array(z.string().min(1)).optional(),
+  dependsOnSlot: z.string().min(1).optional(),
+  optional: z.boolean().optional(),
+});
+
+/**
+ * Slots as PoB defines them, in PoB's order. Every class and base a slot names
+ * must exist in the catalog and every slot it depends on must be listed
+ * (errors); a catalog class that no slot accepts is a warning, since that may
+ * be right (jewels live in tree sockets) or a gap in what PoB was asked.
+ */
+export function itemSlotsFrom(
+  rawSlots: Record<string, Json>,
+  known: { itemClasses: ReadonlySet<string>; baseClassOf: ReadonlyMap<string, string> },
+): {
+  slots: NonNullable<DataRelease["itemSlots"]>["slots"];
+  errors: Finding[];
+  warnings: Finding[];
+} {
+  const errors: Finding[] = [];
+  const parsed = Object.entries(rawSlots).map(([id, raw]) => {
+    const row = slotRow.safeParse(raw);
+    if (!row.success) throw new Error(`item slot ${id} is malformed`, { cause: row.error });
+    return { id, ...row.data };
+  });
+  parsed.sort((a, b) => a.order - b.order);
+  const ids = new Set(parsed.map((s) => s.id));
+  const covered = new Set<string>();
+  const baseClass = (baseId: string): string | undefined => known.baseClassOf.get(baseId);
+  for (const slot of parsed) {
+    for (const c of slot.itemClasses) {
+      covered.add(c);
+      if (!known.itemClasses.has(c))
+        errors.push({
+          kind: "itemSlot",
+          id: slot.id,
+          message: `item class ${c} has no base item in the catalog`,
+        });
+    }
+    for (const b of slot.partialBases ?? []) {
+      const cls = baseClass(b);
+      if (cls === undefined)
+        errors.push({ kind: "itemSlot", id: slot.id, message: `base ${b} is not in the catalog` });
+      else covered.add(cls);
+    }
+    if (slot.dependsOnSlot !== undefined && !ids.has(slot.dependsOnSlot))
+      errors.push({
+        kind: "itemSlot",
+        id: slot.id,
+        message: `depends on slot ${slot.dependsOnSlot}, which is not listed`,
+      });
+  }
+  const warnings = [...known.itemClasses]
+    .filter((c) => !covered.has(c))
+    .sort()
+    .map((c) => ({
+      kind: "itemSlot",
+      id: c,
+      message: `no equipment slot accepts item class ${c}`,
+    }));
+  return { slots: parsed, errors, warnings };
+}
 
 /** Highest level of the `ExperienceLevels` table of the game data. */
 export async function readMaxCharacterLevel(gameDataDir: string, table: string): Promise<number> {
@@ -67,11 +142,17 @@ export function weaponSetPointsByAct(
 export async function buildReleaseFacts(opts: {
   config: NormalizeConfig["releaseFacts"];
   questRewards: Record<string, Json>;
+  itemSlots: Record<string, Json>;
+  known: { itemClasses: ReadonlySet<string>; baseClassOf: ReadonlyMap<string, string> };
   gameDataDir?: string;
-}): Promise<{ facts: ReleaseFacts; findings: Finding[] }> {
+}): Promise<{ facts: ReleaseFacts; findings: Finding[]; errors: Finding[] }> {
   const { config } = opts;
   const facts: ReleaseFacts = {};
   const findings: Finding[] = [];
+
+  const { slots, errors, warnings } = itemSlotsFrom(opts.itemSlots, opts.known);
+  findings.push(...warnings);
+  facts.itemSlots = { slots, origin: "pob-code" };
 
   if (opts.gameDataDir === undefined) {
     findings.push({
@@ -99,5 +180,5 @@ export async function buildReleaseFacts(opts: {
       weaponSetByAct: { acts, origin: "pob-data" },
     };
   }
-  return { facts, findings };
+  return { facts, findings, errors };
 }

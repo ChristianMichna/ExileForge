@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EntityKind } from "../common/ids.js";
+import { ClassificationId, EntityKind } from "../common/ids.js";
 import { JsonValue } from "../common/json.js";
 import {
   DataReleaseId,
@@ -87,6 +87,57 @@ export const PassivePoints = z
   });
 export type PassivePoints = z.infer<typeof PassivePoints>;
 
+/**
+ * An equipment slot as PoB names it (the same string PoB uses for an equipped
+ * item's slot). Jewel sockets are not listed. What a slot accepts is what PoB's
+ * own slot check accepts, read when the release is built.
+ */
+export const ItemSlot = z
+  .object({
+    /** PoB slot name, e.g. "Body Armour" or "Ring 2". */
+    id: z.string().min(1),
+    /** Position in PoB's slot list (1-based), for display order. */
+    order: z.int().positive(),
+    /** Display name from PoB; several slots may share one (e.g. a weapon slot and its swap slot). */
+    label: z.string().min(1),
+    /** Weapon set the slot belongs to (1 = main set, 2 = swap set); absent for non-weapon slots. */
+    weaponSet: z.union([z.literal(1), z.literal(2)]).optional(),
+    /** Base item classes (`BaseItem.itemClass`) of which PoB accepts every base. */
+    itemClasses: z.array(ClassificationId),
+    /**
+     * Bases of classes that PoB accepts only for some bases (e.g. life flasks
+     * in one flask slot, arm limbs in an arm slot), as `BaseItem` ids.
+     */
+    partialBases: z.array(z.string().min(1)).optional(),
+    /**
+     * Set when PoB's rule for this slot depends on the item in another slot
+     * (the off-hand depends on the main hand). `itemClasses` then lists every
+     * class PoB accepts in some state of that slot; whether a class fits right
+     * now is PoB's rule and must be checked with PoB.
+     */
+    dependsOnSlot: z.string().min(1).optional(),
+    /** The slot exists only under a build condition PoB checks (e.g. an extra ring slot). */
+    optional: z.boolean().optional(),
+  })
+  .refine((s) => s.itemClasses.length > 0 || (s.partialBases?.length ?? 0) > 0, {
+    message: "a slot accepts something",
+    path: ["itemClasses"],
+  });
+export type ItemSlot = z.infer<typeof ItemSlot>;
+
+export const ItemSlots = z
+  .object({ slots: z.array(ItemSlot).min(1), origin: ReleaseFactOrigin })
+  .superRefine((v, ctx) => {
+    const seen = new Set<string>();
+    v.slots.forEach((slot, i) => {
+      if (seen.has(slot.id)) {
+        ctx.addIssue({ code: "custom", path: ["slots", i, "id"], message: "duplicate slot" });
+      }
+      seen.add(slot.id);
+    });
+  });
+export type ItemSlots = z.infer<typeof ItemSlots>;
+
 export const DataRelease = z
   .object({
     id: DataReleaseId,
@@ -98,6 +149,8 @@ export const DataRelease = z
     /** Absent (never 0) when the pipeline could not read the value; consumers block visibly. */
     maxCharacterLevel: MaxCharacterLevel.optional(),
     passivePoints: PassivePoints.optional(),
+    /** Equipment slots and the item classes each accepts; absent when PoB could not be asked. */
+    itemSlots: ItemSlots.optional(),
     createdAt: IsoDateTime,
     previousReleaseId: DataReleaseId.optional(),
     /** Path of the CatalogDiff against previousReleaseId, inside the release. */

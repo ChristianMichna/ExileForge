@@ -113,6 +113,47 @@ describe("DataRelease progression facts", () => {
   });
 });
 
+describe("DataRelease item slots", () => {
+  const head = { id: "Fake Head", order: 1, label: "Fake Head", itemClasses: ["Fake Helm"] };
+  const hand = {
+    id: "Fake Hand",
+    order: 2,
+    label: "Fake Hand",
+    weaponSet: 1,
+    itemClasses: ["Fake Blade", "Fake Wand"],
+    dependsOnSlot: "Fake Main",
+    optional: true,
+  };
+  const slots = { origin: "pob-code", slots: [head, hand] };
+
+  it("accepts slots with the item classes they take", () => {
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: slots }).success).toBe(true);
+  });
+
+  it("accepts a slot that takes only some bases of a class", () => {
+    const flask = {
+      id: "Fake Flask",
+      order: 1,
+      label: "F",
+      itemClasses: [],
+      partialBases: ["Fake Life Flask"],
+    };
+    expect(
+      DataRelease.safeParse({ ...validRelease, itemSlots: { origin: "pob-code", slots: [flask] } })
+        .success,
+    ).toBe(true);
+  });
+
+  it("rejects duplicate slots, slots that take nothing and a bad weapon set", () => {
+    const dup = { ...slots, slots: [head, head] };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: dup }).success).toBe(false);
+    const none = { ...slots, slots: [{ ...head, itemClasses: [] }] };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: none }).success).toBe(false);
+    const set3 = { ...slots, slots: [{ ...hand, weaponSet: 3 }] };
+    expect(DataRelease.safeParse({ ...validRelease, itemSlots: set3 }).success).toBe(false);
+  });
+});
+
 describe("DataRelease", () => {
   it("rejects a gameVersion that does not match the id", () => {
     const r = DataRelease.safeParse({ ...validRelease, gameVersion: "9.8.6" });

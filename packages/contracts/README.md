@@ -79,6 +79,10 @@ JSON-Pointer-Pfaden (Grundlage für F-19).
 sie nicht lesen konnte, nie als `0`. Jeder Wert nennt seinen Ursprung (`game-data`,
 `pob-data`, `pob-code`). Punkte aus Items oder Knoten gehören nicht ins Release.
 
+`DataRelease.itemSlots` listet die Ausrüstungsplätze mit PoBs Slot-Namen (wie in
+`EquippedItem.slot`) und den Basis-Klassen (`BaseItem.itemClass`), die PoB je Slot
+annimmt. Juwelen-Sockel gehören zum Passivbaum und stehen nicht darin.
+
 ## Calc-RPC
 
 JSON-RPC 2.0, eine Zeile JSON je Nachricht über stdin/stdout des

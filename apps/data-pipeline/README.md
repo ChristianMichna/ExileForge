@@ -101,12 +101,22 @@ plus `manifest.json` (`CatalogManifest`). Steuerung über
 Mod-Stufen, Eigenschaftsgruppen); nichts davon ist im Code an eine Spielversion
 gebunden.
 
-Release-Fakten für S5 im `DataRelease`: `maxCharacterLevel` (höchste Stufe der
+Release-Fakten für S5 und S7 im `DataRelease` (siehe unten zu `itemSlots`): `maxCharacterLevel` (höchste Stufe der
 Game-Data-Tabelle aus `releaseFacts.maxLevelTable`, Ursprung `game-data`; nur mit
 `--game-data <dir>`) und `passivePoints` (Hauptbaum-Punkte je Stufe als Regel aus
 PoB-Code, Ursprung `pob-code`; Waffensatz-Punkte je Akt aus PoB `QuestRewards.lua`,
 Ursprung `pob-data`). Gibt PoB keine Quest-Belohnung mit Punkten an, entfällt `passivePoints` ganz. Was nicht gelesen werden kann, fehlt im Release und steht als
 Warnung in `findings.json`, nie als `0`.
+
+`itemSlots` listet die Ausrüstungsplätze in PoBs Reihenfolge mit PoBs Slot-Namen
+(wie in `EquippedItem.slot`). Was ein Slot annimmt, fragt der Extraktor bei PoBs
+eigener Slot-Prüfung ab: `itemClasses` sind Klassen, von denen PoB jede Basis nimmt,
+`partialBases` Basen aus Klassen, die PoB nur teilweise nimmt (Lebens- und
+Manaflaschen, Arme und Beine). Die Nebenhand hängt in PoB vom Gegenstand in der
+Haupthand ab (`dependsOnSlot`); ihre Klassen sind die Vereinigung über alle Zustände.
+`optional` markiert Slots, die PoB nur unter einer Build-Bedingung zeigt (Ring 3).
+Klassen, die kein Slot annimmt (Juwelen, Fallen-Werkzeuge), stehen als Warnung in
+`findings.json`. Juwelen-Sockel stehen nicht in der Liste.
 
 IDs (Entscheidung: nur PoB-Daten, keine dat-/GGPK-Extraktion):
 
