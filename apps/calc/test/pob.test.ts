@@ -79,6 +79,8 @@ describe.skipIf(!havePob)("calc pool with headless Path of Building", () => {
       profile: "test-override",
       overrides: { enemyIsBoss: "Uber" },
     });
+    expect(overridden.overrides).toEqual({ enemyIsBoss: "Uber" });
+    expect(profileOnly.overrides).toBeUndefined();
     expect(overridden.calcId).not.toBe(profileOnly.calcId);
     expect(overridden.stats.CombinedDPS).not.toBe(profileOnly.stats.CombinedDPS);
     expect(sameAgain.calcId).toBe(overridden.calcId);
@@ -91,6 +93,14 @@ describe.skipIf(!havePob)("calc pool with headless Path of Building", () => {
         handle,
         profile: "as-saved",
         overrides: { enemyIsBoss: "exileforge-no-such-value" },
+      }),
+    ).rejects.toMatchObject({ kind: "invalid_params" });
+    // free text would let mod lines into a calculation without a catalog id
+    await expect(
+      pool.request("calc.stats", {
+        handle,
+        profile: "as-saved",
+        overrides: { customMods: "+1000 to maximum Life" },
       }),
     ).rejects.toMatchObject({ kind: "invalid_params" });
     await pool.request("build.release", { handle });

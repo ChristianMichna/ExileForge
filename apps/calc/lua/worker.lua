@@ -219,12 +219,16 @@ end
 -- Checks one Config tab option against PoB's own option list
 -- (Modules/ConfigOptions.lua) and returns a message when it does not fit.
 local INTEGER_TYPES = { count = true, integer = true, countAllowZero = true }
-local function configValueProblem(key, v)
+local function configValueProblem(key, v, isOverride)
 	local varData = varByName[key]
 	if not varData then
 		return "Path of Building has no config option " .. tostring(key)
 	end
 	local t = varData.type
+	-- Free text (e.g. custom mods) would let any mod line into a calculation without a catalog id.
+	if isOverride and t == "text" then
+		return "config option " .. key .. " takes free text and cannot be overridden"
+	end
 	local valid
 	if t == "check" then
 		valid = type(v) == "boolean"
@@ -263,10 +267,14 @@ local function sortedOverrides(overrides)
 end
 
 -- Canonical text of the overrides; part of the calc id and of the load cache key.
+-- Every part is length-prefixed, so no value can imitate another key, and
+-- numbers keep all 17 significant digits.
 local function overridesKey(overrides)
 	local parts = {}
 	for _, key in ipairs(sortedOverrides(overrides)) do
-		parts[#parts + 1] = key .. "=" .. type(overrides[key]) .. ":" .. tostring(overrides[key])
+		local value = overrides[key]
+		local text = type(value) == "number" and string.format("%.17g", value) or tostring(value)
+		parts[#parts + 1] = string.format("%d:%s=%s:%d:%s", #key, key, type(value), #text, text)
 	end
 	return table.concat(parts, ";")
 end
@@ -290,7 +298,7 @@ local function applyProfile(profileId, overrides)
 		input[entry.key] = entry.value
 	end
 	for _, key in ipairs(keys) do
-		local problem = configValueProblem(key, overrides[key])
+		local problem = configValueProblem(key, overrides[key], true)
 		if problem then
 			fail("invalid_params", "Config override does not fit Path of Building", problem)
 		end
@@ -871,6 +879,7 @@ methods["calc.stats"] = function(params)
 		inputHash = state.inputHash,
 		computedAt = utcNow(),
 		mainSkill = mainSkill,
+		overrides = overridesKey(params.overrides) ~= "" and setmetatable(params.overrides, { __jsontype = "object" }) or nil,
 		stats = setmetatable(stats, { __jsontype = "object" }),
 		warnings = setmetatable(warnings, { __jsontype = "array" }),
 		unsupportedMods = setmetatable(collectUnsupported(), { __jsontype = "array" }),

@@ -27,6 +27,8 @@ export const CalcResult = z.object({
   computedAt: IsoDateTime,
   /** PoB's main skill selection, as PoB names it. */
   mainSkill: z.string().min(1).optional(),
+  /** The player's overrides of the calc profile this result was calculated with; absent = the profile alone. */
+  overrides: z.record(z.string().min(1), z.union([z.boolean(), z.number(), z.string()])).optional(),
   stats: StatMap,
   /** PoB notices, e.g. unmet requirements. */
   warnings: z.array(z.string()),

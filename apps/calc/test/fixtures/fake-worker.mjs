@@ -106,7 +106,8 @@ const handlers = {
     if (xml.includes("failCalc")) return rpcError(id, "calc_failed", "Fake calc failure");
     const inputHash = sha(xml);
     return {
-      calcId: `calc-${sha(`${inputHash}|${p.profile}`).slice(0, 40)}`,
+      calcId: `calc-${sha(`${inputHash}|${p.profile}|${JSON.stringify(p.overrides ?? {})}`).slice(0, 40)}`,
+      ...(p.overrides === undefined ? {} : { overrides: p.overrides }),
       pobVersion: "0.0.1",
       dataReleaseId: init.dataReleaseId ?? "poe2-0.5+r0",
       calcProfile: p.profile,

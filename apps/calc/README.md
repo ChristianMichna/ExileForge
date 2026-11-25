@@ -212,10 +212,14 @@ Patch (~0,3 s) plus Neuladen (~0,5 s), verteilt auf die Worker.
   Option passen (`check` = boolean, Zahlen, `list` = einer der Listenwerte).
   Leeres `config` = genau die im Build gespeicherte Konfiguration.
   Standardprofile: `as-saved` (Build wie gespeichert), `mapping` (normaler
-  Gegner) und `pinnacle` (Pinnacle-Boss). Jede Stufe rechnet mit festen
-  Standardprofilen (Einstellung in `config/agents/stages.json`).
-- Overrides: `calc.stats`, `calc.evalBatch`, `calc.nodePower` und
-  `calc.itemPower` nehmen optional `overrides` (PoB-Optionsname → Wert) an.
+  Gegner) und `pinnacle` (Pinnacle-Boss). Welche Profile eine Stufe
+  verwendet, legt der Server fest (kommt mit dem Server-PR).
+- Overrides: `calc.stats`, `calc.evalBatch` und `calc.nodePower` (und der
+  Vertrag von `calc.itemPower`, der noch nicht implementiert ist) nehmen
+  optional `overrides` (PoB-Optionsname → Wert) an. Freitext-Optionen (z. B.
+  `customMods`) sind als Override gesperrt, weil sie beliebige Mod-Zeilen ohne
+  Katalog-ID einschleusen würden. Das Ergebnis nennt die verwendeten Overrides
+  im Feld `overrides`.
   Sie gelten nach dem Profil und gewinnen gegen dieses; so passt der Spieler
   Gegner, Bedingungen und Buffs an. Dieselbe Prüfung wie bei Profilen, und sie
   gehen in die `calcId` ein (ohne Overrides bleibt die `calcId` wie vorher).

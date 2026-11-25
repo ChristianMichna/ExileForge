@@ -41,6 +41,20 @@
           "type": "string",
           "minLength": 1
         },
+        "overrides": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": [
+              "boolean",
+              "number",
+              "string"
+            ]
+          }
+        },
         "stats": {
           "type": "object",
           "propertyNames": {

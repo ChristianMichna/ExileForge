@@ -5,6 +5,7 @@ import {
   CalcMethods,
   CalcRequest,
   CalcResponse,
+  ConfigOverrides,
   PatchOp,
   parseCalcParams,
   parseCalcResult,
@@ -154,5 +155,22 @@ describe("JSON-RPC envelope", () => {
         error: { code: 1, message: "x", data: { kind: "made_up" } },
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("ConfigOverrides", () => {
+  it("accepts option names with boolean, number and string values", () => {
+    expect(ConfigOverrides.parse({ enemyIsBoss: "Uber", enemyLevel: 80, someFlag: true })).toEqual({
+      enemyIsBoss: "Uber",
+      enemyLevel: 80,
+      someFlag: true,
+    });
+  });
+
+  it("rejects empty names, other value types and more than 64 entries", () => {
+    expect(() => ConfigOverrides.parse({ "": 1 })).toThrow();
+    expect(() => ConfigOverrides.parse({ a: null })).toThrow();
+    const many = Object.fromEntries(Array.from({ length: 65 }, (_, i) => [`o${i}`, i]));
+    expect(() => ConfigOverrides.parse(many)).toThrow();
   });
 });
