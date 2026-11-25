@@ -55,6 +55,7 @@ export async function startServer(
     catalog,
     calc,
     config,
+    logger: options.logger,
     pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
     calcProfiles: config.pipelines.poc.calcProfiles,
   });

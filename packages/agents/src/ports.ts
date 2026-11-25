@@ -1,3 +1,9 @@
+import type {
+  ArchetypeCandidate,
+  ArchetypeEvaluation,
+  BuildRequest,
+  SkillProfile,
+} from "@exileforge/contracts/build";
 import type { BuildState, CalcOutcome } from "@exileforge/contracts/build";
 import type { CalcResult } from "@exileforge/contracts/calc";
 import type {
@@ -51,4 +57,20 @@ export interface CatalogPort {
   list(kind: EntityKind): CatalogEntry[];
   /** Whether any mod, passive node or gem of the release uses this stat id. */
   hasStat(statId: string): boolean;
+}
+
+/** Input of one skeleton build (S3). */
+export interface SkeletonRequest {
+  request: BuildRequest;
+  profile: SkillProfile;
+  candidate: ArchetypeCandidate;
+}
+
+/**
+ * Builds and measures the skeleton build of one candidate: short tree
+ * optimisation plus the main skill with supports, every number from PoB.
+ * Only present when the real engine runs; calc-fake cannot provide it.
+ */
+export interface SkeletonPort {
+  evaluate(input: SkeletonRequest): Promise<ArchetypeEvaluation>;
 }

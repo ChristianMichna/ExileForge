@@ -2,7 +2,7 @@ import type { z } from "zod";
 import type { BuildRequest, Finding, RichText, TaskType } from "@exileforge/contracts/build";
 import type { EntityRef, JsonValue } from "@exileforge/contracts/common";
 import type { UserIntervention } from "@exileforge/contracts/forge";
-import type { CalcPort, CatalogPort } from "./ports.js";
+import type { CalcPort, CatalogPort, SkeletonPort } from "./ports.js";
 
 /** The part of a stored run that pipelines may read. */
 export interface RunView {
@@ -17,6 +17,8 @@ export interface PipelineContext {
   readonly catalog: CatalogPort;
   /** Calc access; every calculation is reported as a live event. */
   readonly calc: CalcPort;
+  /** Skeleton builds for S3; absent unless the real PoB engine runs. */
+  readonly skeleton?: SkeletonPort;
   /** Latest intervention of a kind, e.g. the current variant choice. */
   latest<K extends UserIntervention["kind"]>(
     kind: K,
@@ -62,6 +64,20 @@ export type PlanStep =
       kind: "server";
       key: string;
       type: TaskType;
+      run(ctx: PipelineContext): Promise<JsonValue>;
+    }
+  /**
+   * Deterministic work that may take minutes (PoB optimisation). The engine runs
+   * it in the background and tells Claude to wait; the result is stored under
+   * `key` when done and a failure fails the run. `run` must be restartable: it
+   * starts again after a server restart.
+   */
+  | {
+      kind: "job";
+      key: string;
+      type: TaskType;
+      /** Shown to Claude and the app while the job runs, e.g. "Calculating the skeleton builds". */
+      label: string;
       run(ctx: PipelineContext): Promise<JsonValue>;
     }
   | { kind: "wait_user"; reason: RichText }
