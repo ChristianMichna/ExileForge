@@ -211,6 +211,12 @@ Bei Uniques fehlen PoB Trade-Hashes; mehrdeutig ist vor allem lokal gegen
 global (gleicher Text), nicht passend sind v. a. PoB-eigene Zeilen wie
 „Allocates …", „Grants Skill: …" und Radius-Zeilen von Juwelen.
 
+Eine mehrdeutige Unique-Zeile wird nach Beleg aus den Daten aufgelöst: Es zählt eine
+Beschreibung, wenn ein Mod mit einem ihrer Stats auf einem Tag der Basis des Uniques
+erscheinen kann (Spawn-Gewicht über 0, ohne `default`). Genau ein Treffer entscheidet,
+kein oder mehrere Treffer lassen die Zeile mehrdeutig. Die Zahlen oben sind der Stand
+vor dieser Regel.
+
 ## Crafting-Daten aus den Update-Servern
 
 PoB kennt Währungen und Omens nicht und Essences nur zum Teil. Christian hat am

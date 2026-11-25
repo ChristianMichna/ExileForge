@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCatalog } from "../src/normalize/catalog.ts";
+import { disambiguate, normalizeCatalog } from "../src/normalize/catalog.ts";
 import { StatMatcher } from "../src/normalize/stat-matcher.ts";
 import { validateCatalog } from "../src/normalize/validate.ts";
 import { cfg, rawSnapshot, type RawFixture } from "./fixtures/raw-catalog.ts";
@@ -423,5 +423,42 @@ describe("validateCatalog", () => {
     (byId(entities.baseItem, "Fake Ring") as unknown as { itemClass: string }).itemClass = "";
     const messages = validateCatalog(entities).errors.map((e) => e.message);
     expect(messages).toContain('baseItemId → unknown baseItem "Fake Ring"');
+  });
+});
+
+describe("disambiguate", () => {
+  const res = {
+    status: "ambiguous" as const,
+    line: "(5-10)% increased Glow",
+    descriptionIds: ["d:1", "d:2"],
+    candidates: [
+      { descriptionId: "d:1", stats: [{ statId: "glow", min: 5, max: 10 }] },
+      { descriptionId: "d:2", stats: [{ statId: "local_glow", min: 5, max: 10 }] },
+    ],
+  };
+  const spawn = new Map([
+    ["glow", new Set(["gloves"])],
+    ["local_glow", new Set(["weapon", "bow"])],
+  ]);
+
+  it("takes the one candidate whose stat can spawn on the base", () => {
+    expect(disambiguate(res, new Set(["bow", "weapon"]), spawn)).toEqual({
+      status: "matched",
+      descriptionId: "d:2",
+      stats: [{ statId: "local_glow", min: 5, max: 10 }],
+    });
+  });
+
+  it("stays ambiguous without evidence, with evidence for both, or without a base", () => {
+    expect(disambiguate(res, new Set(["amulet"]), spawn)).toBeUndefined();
+    expect(disambiguate(res, new Set(["gloves", "bow"]), spawn)).toBeUndefined();
+    expect(disambiguate(res, undefined, spawn)).toBeUndefined();
+    expect(
+      disambiguate(
+        { status: "ambiguous", line: res.line, descriptionIds: res.descriptionIds },
+        new Set(["bow"]),
+        spawn,
+      ),
+    ).toBeUndefined();
   });
 });

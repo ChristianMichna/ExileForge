@@ -398,11 +398,39 @@ function normalizeBaseItems(
 
 // ---------------------------------------------------------------- uniques
 
+/**
+ * Decides between descriptions that render the same text (typically a local
+ * and a global stat) from evidence in the data: a candidate counts when a mod
+ * with one of its stats can spawn on a tag of the item's base. Only a single
+ * candidate with evidence is taken; none or several stay ambiguous.
+ */
+/** Array view of a normalized (already typed) field. */
+const rows = (v: unknown): Json[] => (Array.isArray(v) ? (v as Json[]) : []);
+
+export function disambiguate(
+  res: Extract<MatchResult, { status: "ambiguous" }>,
+  baseTags: ReadonlySet<string> | undefined,
+  spawnTags: ReadonlyMap<string, ReadonlySet<string>>,
+): MatchResult | undefined {
+  if (!baseTags || !res.candidates) return undefined;
+  const withEvidence = res.candidates.filter((c) =>
+    c.stats.some((st) => {
+      const tags = spawnTags.get(st.statId);
+      return tags !== undefined && [...baseTags].some((t) => tags.has(t));
+    }),
+  );
+  const [only] = withEvidence;
+  if (withEvidence.length !== 1 || !only) return undefined;
+  return { status: "matched", descriptionId: only.descriptionId, stats: only.stats };
+}
+
 function normalizeUniques(
   raw: RawKinds,
   matcher: StatMatcher,
   cfg: NormalizeConfig,
   ctx: Context,
+  bases: ReadonlyMap<string, ReadonlySet<string>>,
+  spawnTags: ReadonlyMap<string, ReadonlySet<string>>,
 ): Record<string, unknown>[] {
   const uniques = kindOf(raw, "uniques");
   return Object.keys(uniques)
@@ -427,7 +455,9 @@ function normalizeUniques(
           ctx.warn("uniqueItem", id, `line "${text}" dropped: none of its variants exist`);
           continue;
         }
-        const [res] = matcher.matchLines([text], cfg.statScopes.mod) as [MatchResult];
+        let [res] = matcher.matchLines([text], cfg.statScopes.mod) as [MatchResult];
+        if (res.status === "ambiguous")
+          res = disambiguate(res, bases.get(str(u.baseName) ?? ""), spawnTags) ?? res;
         const unresolved = unresolvedOf(res, [text]);
         if (unresolved) ctx.countUnresolved("uniqueItem", unresolved.reason);
         mods.push({
@@ -918,11 +948,28 @@ export function normalizeCatalog(
 ): NormalizeResult {
   const ctx = new Context();
   const tree = normalizeTree(raw, matchers.passiveNode, cfg, ctx);
+  const baseItem = normalizeBaseItems(raw, cfg, ctx);
+  const mod = normalizeMods(raw, matchers.mod, cfg, ctx);
+  const bases = new Map(
+    baseItem.map((b) => [String(b.id), new Set(rows(b.tags).map(String))] as const),
+  );
+  const spawnTags = new Map<string, Set<string>>();
+  for (const m of mod) {
+    const tags = rows(m.spawnWeights)
+      .map(obj)
+      .filter((w) => Number(w.weight) > 0 && w.tag !== "default")
+      .map((w) => String(w.tag));
+    for (const st of rows(m.stats).map(obj)) {
+      const set = spawnTags.get(String(st.statId)) ?? new Set<string>();
+      for (const t of tags) set.add(t);
+      spawnTags.set(String(st.statId), set);
+    }
+  }
   const entities: CatalogEntities = {
-    baseItem: normalizeBaseItems(raw, cfg, ctx),
-    mod: normalizeMods(raw, matchers.mod, cfg, ctx),
+    baseItem,
+    mod,
     craftingAction: [],
-    uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx),
+    uniqueItem: normalizeUniques(raw, matchers.mod, cfg, ctx, bases, spawnTags),
     gem: normalizeGems(raw, ctx),
     ...tree,
     statTranslation: normalizeStatTranslations(raw, cfg, ctx),
