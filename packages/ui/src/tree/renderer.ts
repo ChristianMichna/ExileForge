@@ -118,6 +118,7 @@ export class TreeRenderer {
   };
   private camera: TreeCamera = { scale: 0.03, x: 0, y: 0 };
   private redrawQueued = false;
+  private renderQueued = false;
   private drawnScale = 0;
   private drag: { x: number; y: number; moved: boolean } | null = null;
   private destroyed = false;
@@ -160,6 +161,10 @@ export class TreeRenderer {
         preference: "webgl",
         resolution: Math.min(window.devicePixelRatio || 1, 2),
         autoDensity: true,
+        // frames are drawn on demand (see invalidate): the tree is large and a
+        // continuous ticker keeps software WebGL busy even while nothing moves
+        autoStart: false,
+        sharedTicker: false,
       });
       app.canvas.setAttribute("aria-hidden", "true");
       host.appendChild(app.canvas);
@@ -268,8 +273,19 @@ export class TreeRenderer {
     this.options.onCamera?.(camera);
   }
 
+  /** Draws one frame on the next animation frame; many changes share it. */
+  private invalidate(): void {
+    if (this.renderQueued || this.destroyed) return;
+    this.renderQueued = true;
+    requestAnimationFrame(() => {
+      this.renderQueued = false;
+      if (!this.destroyed) this.app.render();
+    });
+  }
+
   /** Widths and minimum sizes depend on the zoom; redraw once per frame at most. */
   private queueRedraw(): void {
+    this.invalidate();
     if (this.redrawQueued || this.destroyed) return;
     this.redrawQueued = true;
     requestAnimationFrame(() => {
@@ -402,6 +418,7 @@ export class TreeRenderer {
   }
 
   private drawStatic(): void {
+    this.invalidate();
     const { view } = this.options;
     const c = this.palette;
     this.drawnScale = this.camera.scale;
@@ -525,6 +542,7 @@ export class TreeRenderer {
 
   /** Allocation, new points, respecs, search hits and focus. */
   private drawActive(): void {
+    this.invalidate();
     const { view } = this.options;
     const h = this.highlight;
     const c = this.palette;
@@ -594,6 +612,7 @@ export class TreeRenderer {
   }
 
   private drawFocus(): void {
+    this.invalidate();
     const g = this.focusLayer.clear();
     const focus = this.focus ? this.options.view.nodes.get(this.focus) : undefined;
     if (!focus) return;
