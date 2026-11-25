@@ -61,6 +61,25 @@ describe("releaseStageTable", () => {
     ]);
   });
 
+  it("keeps the points of acts past the maximum level in the last stage", () => {
+    const rows = releaseStageTable(
+      release([
+        { act: 1, areaLevel: 30, points: 1 },
+        { act: 2, areaLevel: 40, points: 1 },
+      ]),
+    );
+    expect(rows).toEqual([
+      {
+        key: "act-1",
+        label: "Act 1",
+        kind: "campaign",
+        act: 1,
+        levelRange: [1, 20],
+        passivePoints: 21,
+      },
+    ]);
+  });
+
   it("returns an error text instead of a default table without release facts", () => {
     expect(typeof releaseStageTable(undefined)).toBe("string");
     expect(typeof releaseStageTable({ id: "x" } as unknown as DataRelease)).toBe("string");

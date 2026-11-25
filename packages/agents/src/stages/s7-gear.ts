@@ -29,6 +29,8 @@ export interface SlotRule {
   partialBases?: readonly string[];
   /** The slot's rule depends on another slot; classes are then a necessary condition only. */
   dependsOnSlot?: string;
+  /** 2 = swap weapon set; such slots are not required by default. */
+  weaponSet?: 1 | 2;
 }
 
 /** S7 settings with the slots resolved against the release. */
@@ -52,9 +54,15 @@ export function resolveS7(
     classes: s.itemClasses,
     ...(s.partialBases === undefined ? {} : { partialBases: s.partialBases }),
     ...(s.dependsOnSlot === undefined ? {} : { dependsOnSlot: s.dependsOnSlot }),
+    ...(s.weaponSet === undefined ? {} : { weaponSet: s.weaponSet }),
   }));
   let slots: SlotRule[];
   if (base.slots !== undefined) {
+    const unknownIds =
+      rules.length === 0 ? [] : base.slots.filter((id) => !rules.some((r) => r.id === id));
+    if (unknownIds.length > 0) {
+      return `The s7 slot override names slots the release does not have: ${unknownIds.join(", ")}.`;
+    }
     slots = base.slots.map((id) => rules.find((r) => r.id === id) ?? { id });
   } else if (rules.length > 0) {
     slots = rules;
@@ -68,7 +76,9 @@ export function resolveS7(
   );
   const requiredSlots =
     base.requiredSlots ??
-    slots.filter((s) => s.dependsOnSlot === undefined && !optional.has(s.id)).map((s) => s.id);
+    slots
+      .filter((s) => s.dependsOnSlot === undefined && s.weaponSet !== 2 && !optional.has(s.id))
+      .map((s) => s.id);
   return { tiers: base.tiers, calcProfiles: base.calcProfiles, slots, requiredSlots };
 }
 
@@ -215,15 +225,33 @@ export function gearTask(
         const rule = s7.slots.find((x) => x.id === s.slot);
         if (rule?.classes === undefined) return;
         const base = baseOf(s.target, checkCtx);
-        if (base?.itemClass === undefined) return; // unknown ids are reported by G1
+        if (base?.itemClass === undefined) {
+          findings.push({
+            gate: "G1",
+            severity: "error",
+            code: "base_unresolved",
+            message: `The base item class of this item could not be read from the catalog, so the slot cannot be checked.`,
+            path: `/slots/${i}/target`,
+          });
+          return;
+        }
         const fits =
           rule.classes.includes(base.itemClass) || (rule.partialBases ?? []).includes(base.id);
+        if (fits && rule.dependsOnSlot !== undefined) {
+          findings.push({
+            gate: "G3",
+            severity: "warning",
+            code: "dependent_slot_unchecked",
+            message: `Whether this item fits slot ${s.slot} depends on the item in ${rule.dependsOnSlot}; only the class union is checked here.`,
+            path: `/slots/${i}/target`,
+          });
+        }
         if (!fits) {
           findings.push({
             gate: "G3",
             severity: "error",
             code: "item_not_allowed_in_slot",
-            message: `Slot ${s.slot} does not accept items of class ${base.itemClass}. Accepted classes: ${rule.classes.join(", ")}.`,
+            message: `Slot ${s.slot} does not accept items of class ${base.itemClass}. Accepted classes: ${rule.classes.join(", ") || "(none)"}${rule.partialBases === undefined ? "" : `; accepted bases: ${rule.partialBases.join(", ")}`}.`,
             path: `/slots/${i}/target`,
           });
         }
@@ -252,7 +280,7 @@ export function gearTask(
           ),
         ),
       );
-      if (findings.length > 0) return findings;
+      if (findings.some((f) => f.severity === "error")) return findings;
       const outcomes = await checkCtx.calc.calculate({
         state: geared(target.state, c),
         profiles: s7.calcProfiles,

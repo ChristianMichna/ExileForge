@@ -112,7 +112,12 @@ describe("S7 gear", () => {
           request: { exclusions: [], mode: { ssf: over.ssf ?? false, hardcore: false } },
           interventions: [],
         },
-        catalog: { get: () => (over.known === false ? undefined : {}) },
+        catalog: {
+          get: () =>
+            over.known === false
+              ? undefined
+              : { entity: { itemClass: "ClassX", baseItemId: "FixBase" } },
+        },
         calc: over.calc ?? {
           calculate: () => Promise.resolve({ default: { status: "ok", calcId: "calc-1" } }),
         },
@@ -159,6 +164,18 @@ describe("S7 gear", () => {
       const partial: ItemSpec = { ...(crafted as object), baseItemId: "FixPartial" } as never;
       const ok = { slots: [choice("SlotA", partial), choice("SlotB", unique)] };
       expect(await make().check?.(ok, ctx)).toEqual([]);
+    });
+
+    it("flags an item whose base class cannot be resolved", async () => {
+      const noBase = {
+        ...(checkCtx() as object),
+        catalog: { get: () => ({ entity: {} }) },
+      } as never;
+      const bad = await make().check?.(
+        { slots: [choice("SlotA", unique), choice("SlotB", unique)] },
+        noBase,
+      );
+      expect(bad?.map((f) => f.code)).toEqual(["base_unresolved"]);
     });
 
     it("rejects trade items in solo self-found mode", async () => {
@@ -229,6 +246,16 @@ describe("resolveS7", () => {
   it("names a missing slot list or unknown required slot instead of guessing", () => {
     expect(typeof resolveS7(base, undefined)).toBe("string");
     expect(resolveS7({ ...base, requiredSlots: ["Z"] }, release([slot("A", 1)]))).toMatch(/Z/);
+  });
+
+  it("rejects an override slot the release does not have", () => {
+    expect(resolveS7({ ...base, slots: ["Typo"] }, release([slot("A", 1)]))).toMatch(/Typo/);
+  });
+
+  it("does not require swap weapon set slots by default", () => {
+    const out = resolveS7(base, release([slot("A", 1), slot("A Swap", 2, { weaponSet: 2 })]));
+    if (typeof out === "string") throw new Error(out);
+    expect(out.requiredSlots).toEqual(["A"]);
   });
 
   it("lets the config override the slots without class rules", () => {

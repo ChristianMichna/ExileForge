@@ -39,13 +39,19 @@ export function releaseStageTable(release: DataRelease | undefined): S6Row[] | s
     });
     previousEnd = end;
   }
+  const total = levelPoints(max.value) + weaponSet;
+  const last = rows.at(-1);
+  if (last !== undefined && previousEnd >= max.value && last.passivePoints !== total) {
+    // Acts past the maximum level add their points to the last stage, so it matches S5.
+    rows[rows.length - 1] = { ...last, passivePoints: total };
+  }
   if (previousEnd < max.value) {
     rows.push({
       key: "endgame",
       label: "Endgame",
       kind: "endgame",
       levelRange: [previousEnd + 1, max.value],
-      passivePoints: levelPoints(max.value) + weaponSet,
+      passivePoints: total,
     });
   }
   return rows;
