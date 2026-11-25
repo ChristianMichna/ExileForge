@@ -525,6 +525,7 @@ export class ForgeEngine {
     const numbers = await richTextFindings(ctx.calc, spec.richText?.(data) ?? [], {
       dataReleaseId: ctx.catalog.dataReleaseId,
       calcProfiles: this.options.calcProfiles,
+      overrides: ctx.run.request.calcOverrides,
     });
     if (numbers.length > 0) return { findings: numbers, value: null };
     const own = (await spec.check?.(data, ctx)) ?? [];
@@ -554,10 +555,21 @@ export class ForgeEngine {
   }
 
   private buildContext(r: RunRecord, calc: CalcPort): PipelineContext {
+    // Every number of a run is calculated with the player's overrides of the calc profile.
+    const overrides = r.request.calcOverrides;
+    const runCalc: CalcPort =
+      Object.keys(overrides).length === 0
+        ? calc
+        : {
+            engine: calc.engine,
+            getResult: (id) => calc.getResult(id),
+            calculate: (input) =>
+              calc.calculate({ ...input, overrides: { ...overrides, ...input.overrides } }),
+          };
     return {
       run: r,
       catalog: this.options.catalog,
-      calc,
+      calc: runCalc,
       ...(this.options.skeleton === undefined ? {} : { skeleton: this.options.skeleton }),
       latest: <K extends UserIntervention["kind"]>(kind: K) => {
         for (let i = r.interventions.length - 1; i >= 0; i -= 1) {

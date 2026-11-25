@@ -203,7 +203,7 @@ export function createPocPipeline(config: PocPipelineConfig): Pipeline {
         ctx.run.request.mainSkillId === undefined
           ? "Pick the main skill that best fits the player's idea."
           : "The main setup must use the player's main skill.",
-        "Use calc_evaluate to compare setups before you submit; explain each choice in rationale without typing numbers.",
+        "Use calc_evaluate (with the runId) to compare setups before you submit; explain each choice in rationale without typing numbers.",
       ].join(" "),
       context: { request: requestContext(ctx), chosen, skeletonEvaluation: evaluation },
       schema: GemSetupSubmission,

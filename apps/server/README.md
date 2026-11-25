@@ -173,10 +173,18 @@ Standard-Roll; Socketables, Uniques mit ungewählter Variante, fehlende Texte
 und unbekannte Raritäten führen zu einem Fehler statt zu einem abweichenden
 Item. `src/calc/base-builds.ts` (`ClassBaseBuilds`) liefert den Ausgangs-Build
 je Klasse aus `BaseBuildSource` (PoB erzeugt ihn; `CalcPool.baseBuild` folgt
-im PoB-Thread). Das Server-Profil ist `as-saved`.
+im PoB-Thread).
 
-Noch nicht in `start.ts` verdrahtet (`--calc fake` bleibt Pflicht), bis
-`CalcPool.baseBuild` in main ist.
+Calc-Profile: Die Stufen rechnen mit festen Standardprofilen aus
+`config/agents/stages.json` (S3: `mapping` und `pinnacle`, das erste ist das
+Profil des Baum-Optimierers). Der Spieler passt Gegner und Buffs über
+`BuildRequest.calcOverrides` an (PoB-Optionsnamen, Freitext gesperrt). Die
+Engine hängt sie an jede Berechnung eines Laufs, auch an die des Optimierers;
+sie gewinnen gegen das Profil und gegen `BuildState.config`. Ein Ändern der
+Overrides während eines Laufs gibt es noch nicht (die App setzt sie beim
+Anlegen).
+
+`--calc pob` startet den echten PoB-Pool (`--pob-root`, `--optimizer`).
 
 ## Hintergrund-Jobs und S3
 

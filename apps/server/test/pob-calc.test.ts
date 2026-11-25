@@ -63,6 +63,18 @@ const bases = {
 };
 
 describe("PobCalc", () => {
+  it("sends only the player's overrides; the state's own config does not choose the enemy", async () => {
+    const { pool, calls } = fakePool();
+    const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });
+    const state = { ...wanted, config: { enemyIsBoss: "Boss" } };
+    await calc.calculate({ state, profiles: ["as-saved"], overrides: { enemyLevel: 80 } });
+    const stats = calls.find((c) => c.method === "calc.stats");
+    expect((stats?.params as { overrides?: unknown }).overrides).toEqual({ enemyLevel: 80 });
+    calls.length = 0;
+    await calc.calculate({ state, profiles: ["as-saved"] });
+    expect(JSON.stringify(calls.find((c) => c.method === "calc.stats"))).not.toContain("overrides");
+  });
+
   it("patches the base to the wanted state, calculates per profile and releases the patched handle", async () => {
     const { pool, calls } = fakePool();
     const calc = new PobCalc({ pool, bases, logger: createMemoryLogger() });

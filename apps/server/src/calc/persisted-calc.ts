@@ -1,5 +1,5 @@
 import type { BuildState, CalcOutcome } from "@exileforge/contracts/build";
-import type { CalcResult } from "@exileforge/contracts/calc";
+import type { CalcResult, ConfigOverrides } from "@exileforge/contracts/calc";
 import type { CalcId, CalcProfileId } from "@exileforge/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 import type { RunStore } from "../store/run-store.js";
@@ -21,6 +21,7 @@ export class PersistedCalc implements CalcPort {
   async calculate(input: {
     state: BuildState;
     profiles: readonly CalcProfileId[];
+    overrides?: ConfigOverrides;
   }): Promise<Record<CalcProfileId, CalcOutcome>> {
     const outcomes = await this.inner.calculate(input);
     for (const outcome of Object.values(outcomes)) {

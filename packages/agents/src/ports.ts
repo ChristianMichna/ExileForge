@@ -5,7 +5,7 @@ import type {
   SkillProfile,
 } from "@exileforge/contracts/build";
 import type { BuildState, CalcOutcome } from "@exileforge/contracts/build";
-import type { CalcResult } from "@exileforge/contracts/calc";
+import type { CalcResult, ConfigOverrides } from "@exileforge/contracts/calc";
 import type {
   CalcId,
   CalcProfileId,
@@ -26,6 +26,8 @@ export interface CalcPort {
   calculate(input: {
     state: BuildState;
     profiles: readonly CalcProfileId[];
+    /** The player's overrides of the calc profiles; they win over `state.config`. */
+    overrides?: ConfigOverrides;
   }): Promise<Record<CalcProfileId, CalcOutcome>>;
   /** Result of an earlier calculation; undefined if the id is unknown. */
   getResult(calcId: CalcId): Promise<CalcResult | undefined>;
