@@ -1,0 +1,29 @@
+{
+  "$comment": "Game-data tables read from the update servers in CI (F-01, approved by Christian 2026-11-25 for crafting data only: currencies, essences, omens). Table and column names follow the community dat schema (pathofexile-dat). A table with required=false may be absent from a patch; that is recorded in the manifest, never filled in.",
+  "patchServer": {
+    "host": "patch.pathofexile2.com",
+    "port": 13060,
+    "handshake": [1, 7],
+    "timeoutMs": 30000
+  },
+  "schemaUrl": "https://github.com/poe-tool-dev/dat-schema/releases/download/latest/schema.min.json",
+  "language": "English",
+  "toolTimeoutMs": 300000,
+  "tables": [
+    { "name": "BaseItemTypes", "columns": ["Id", "Name", "ItemClass", "DropLevel"] },
+    { "name": "ItemClasses", "columns": ["Id", "Name"] },
+    {
+      "name": "CurrencyItems",
+      "columns": ["BaseItemType", "StackSize", "CurrencyUseType", "Action", "Description"]
+    },
+    { "name": "Omens", "columns": ["BaseItemType"], "required": false },
+    { "name": "AchievementOmenTypes", "columns": ["BaseItemType"] },
+    { "name": "Essences", "columns": ["BaseItemType", "Tier", "Perfect", "UpgradeResult"] },
+    {
+      "name": "TieredCurrency",
+      "columns": ["BaseItemType", "Tier", "MinimumModLevel", "LowerTierBaseItemType"]
+    },
+    { "name": "CurrencyExchange", "columns": ["Item", "Category", "SubCategory"] },
+    { "name": "CurrencyExchangeCategories", "columns": ["Id", "Name"] }
+  ]
+}

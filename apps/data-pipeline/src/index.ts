@@ -33,3 +33,19 @@ export {
 } from "./normalize/catalog.ts";
 export { buildCatalog, type CatalogBuildResult } from "./normalize/release.ts";
 export { validateCatalog, type ValidationResult } from "./normalize/validate.ts";
+export {
+  gameDataConfigSchema,
+  loadGameDataConfig,
+  type GameDataConfig,
+} from "./gamedata/config.ts";
+export {
+  exportGameData,
+  gameDataManifestSchema,
+  readGameDataManifest,
+  readGameDataTable,
+  resolveDatTool,
+  TableMissingError,
+  type GameDataManifest,
+  type GameDataRow,
+} from "./gamedata/export.ts";
+export { parsePatchReply, queryPatchServer, type PatchInfo } from "./gamedata/patch.ts";
