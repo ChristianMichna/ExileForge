@@ -181,10 +181,20 @@ export class ForgeEngine {
     });
   }
 
+  /**
+   * Called before the calc pool closes: running jobs become stale, so the failure the closing
+   * pool causes is not stored in the run. The runs stay as they are and the next planning
+   * restarts the job.
+   */
+  stopJobs(): void {
+    this.jobs.clear();
+  }
+
   /** Something the user did in the app; goes into the feedback queue of the run. */
   async intervene(runId: string, intervention: UserIntervention): Promise<RunStatus> {
     return this.mutate(runId, async (tx) => {
       const r = tx.record;
+      this.reviveIfResumable(tx, intervention);
       this.assertActive(r);
       const ctx = this.context(tx);
       const pipelineError = this.pipelineOf(r).validateIntervention?.(intervention, ctx);
@@ -703,6 +713,26 @@ export class ForgeEngine {
     };
     tx.record.current = null;
     tx.setPhase("failed");
+  }
+
+  /**
+   * A run that stopped on a problem the player can retry continues when they ask for it:
+   * `resume` after a failed job runs the job again, `redoStage` after failed jobs, used-up
+   * returns or a failed validation redoes the stage with fresh returns. Everything stored stays.
+   */
+  private reviveIfResumable(tx: Tx, intervention: UserIntervention): void {
+    const r = tx.record;
+    if (r.phase !== "failed") return;
+    const code = r.error?.code;
+    const retryable =
+      (intervention.kind === "resume" && code === "job_failed") ||
+      (intervention.kind === "redoStage" &&
+        (code === "job_failed" || code === "returns_exhausted" || code === "validation_failed"));
+    if (!retryable) return;
+    delete r.error;
+    r.current = null;
+    if (intervention.kind === "redoStage") r.returns = {};
+    tx.setPhase("planning");
   }
 
   private assertActive(r: RunRecord): void {

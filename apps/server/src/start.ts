@@ -188,6 +188,7 @@ async function startServerOwningPool(
     accessToken,
   });
   app.addHook("onClose", async () => {
+    engine.stopJobs();
     try {
       await pobCalc?.close();
       if (options.calc !== "fake") await options.calc.pool.close();

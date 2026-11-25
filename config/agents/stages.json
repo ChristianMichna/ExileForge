@@ -47,7 +47,7 @@
     }
   },
   "s7": {
-    "$comment": "DEFAULT budget tiers (ascending) and calc profiles, editable by the product owner. Tier ids must match the intake form (apps/web/src/config/intake-defaults.json). The item slots come from the data release.",
+    "$comment": "DEFAULT budget tiers (ascending) and calc profiles, editable by the product owner. Tier ids must match the intake form (apps/web/src/config/intake-defaults.json). The item slots come from the data release; requiredSlots leaves out Arm and Leg (PoB lists them without a build condition, but they hold league-mechanic limbs, PoB data file incursionlimb), so every tier fills the rest.",
     "tiers": [
       {
         "id": "start",
@@ -61,6 +61,22 @@
         "id": "endgame",
         "label": "Endgame"
       }
+    ],
+    "requiredSlots": [
+      "Weapon 1",
+      "Helmet",
+      "Body Armour",
+      "Gloves",
+      "Boots",
+      "Amulet",
+      "Ring 1",
+      "Ring 2",
+      "Belt",
+      "Charm 1",
+      "Charm 2",
+      "Charm 3",
+      "Flask 1",
+      "Flask 2"
     ],
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
