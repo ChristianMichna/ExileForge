@@ -258,6 +258,8 @@ und seine SHA-256-Datei. Zwei Jobs: der Build läuft mit Lesezugriff, nur der
 Veröffentlichen-Job hat Schreibrechte und führt nur die GitHub-CLI aus. Eingaben werden
 geprüft; `game-version` muss der Patch-Version des Update-Servers entsprechen, und
 ein vorhandener Tag oder ein vorhandenes Release wird nie überschrieben. Rohtabellen der
-Game-Data gehören nicht ins Release (ADR-0005). Noch offen: ein Katalog-Diff gegen das
-vorige Release (`CatalogDiff`); heute gibt es den Diff nur zwischen zwei Roh-Snapshots
-(`diff`-Befehl).
+Game-Data gehören nicht ins Release (ADR-0005). Mit der Eingabe `previous-tag` (Tag des vorigen Daten-Releases) hängt der Lauf
+`diff.json` (`CatalogDiff`) an den Katalog und trägt `previousReleaseId` und `diffPath`
+im Manifest ein. Der Befehl dafür ist `catalog-diff <von> <nach>` (Katalog-Ordner,
+Shard-Hashes werden geprüft; gleiche Arten auf beiden Seiten sind Pflicht). Der Befehl
+`diff` vergleicht dagegen zwei Roh-Snapshots.

@@ -6,6 +6,7 @@ import { loadPobSources } from "./config.ts";
 import { loadGameDataConfig } from "./gamedata/config.ts";
 import { exportGameData, fetchSchemaRecord, resolveDatTool } from "./gamedata/export.ts";
 import { queryPatchServer } from "./gamedata/patch.ts";
+import { summarizeCatalogDiff, writeCatalogDiff } from "./diff/catalog-diff.ts";
 import { diffSnapshots, summarizeDiff } from "./diff/snapshot-diff.ts";
 import { pobInstallFromHome } from "./pob/extract.ts";
 import { loadNormalizeConfig } from "./normalize/catalog.ts";
@@ -34,6 +35,9 @@ const USAGE = `astrolabe-data <command>
       current patch from the update servers and write them with a manifest.
       Needs network access; meant for CI.
 
+  catalog-diff <fromCatalogDir> <toCatalogDir>
+      Compare two built catalogs; writes diff.json into <toCatalogDir> and records it
+      (previousReleaseId, diffPath) in that catalog's manifest.json.
   diff <fromDir> <toDir> [--out <dir>]
       Compare two snapshots; writes diff.json and diff.md to --out (default: <toDir>).
 `;
@@ -164,6 +168,19 @@ async function main(argv: string[]): Promise<void> {
     console.warn(`game data of patch ${manifest.patch.version} (${tool.name} ${tool.version})`);
     for (const t of manifest.tables) console.warn(`  ${t.name}: ${String(t.count)} rows`);
     for (const m of manifest.missing) console.warn(`  missing: ${m.name} (${m.reason})`);
+    return;
+  }
+  if (command === "catalog-diff") {
+    const { positionals } = parseArgs({
+      args: rest,
+      options: {},
+      allowPositionals: true,
+      strict: true,
+    });
+    const [fromDir, toDir] = positionals;
+    if (!fromDir || !toDir || positionals.length !== 2) fail(USAGE);
+    const diff = await writeCatalogDiff(resolve(fromDir), resolve(toDir));
+    console.warn(summarizeCatalogDiff(diff));
     return;
   }
   if (command === "diff") {
