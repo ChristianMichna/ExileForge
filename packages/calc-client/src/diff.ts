@@ -1,9 +1,9 @@
+import { PatchOp } from "@exileforge/contracts";
 import type {
   BuildState,
   EquippedItem,
   ItemSpec,
   PassiveNodeId,
-  PatchOp,
   SkillSetup,
 } from "@exileforge/contracts";
 import { PatchPlanError } from "./errors.ts";
@@ -56,7 +56,14 @@ function allocatedNodes(state: BuildState): Map<PassiveNodeId, number> {
   return nodes;
 }
 
-function treeOps(from: BuildState, to: BuildState): PatchOp[] {
+/**
+ * `resync`: PoB drops passives that lose their connection when the class or
+ * ascendancy changes, and deallocating a node also drops everything hanging
+ * off it. In those cases the target tree is allocated in full (nodes that are
+ * still allocated are left alone by the worker), so the result does not
+ * depend on what PoB removed on the way.
+ */
+function treeOps(from: BuildState, to: BuildState, resync: boolean): PatchOp[] {
   const before = allocatedNodes(from);
   const after = allocatedNodes(to);
   const remove: PassiveNodeId[] = [];
@@ -65,8 +72,9 @@ function treeOps(from: BuildState, to: BuildState): PatchOp[] {
     // a node that moves to another weapon set is removed and allocated again
     if (!after.has(id) || after.get(id) !== set) remove.push(id);
   }
+  const full = resync || remove.length > 0;
   for (const [id, set] of after) {
-    if (before.get(id) === set) continue;
+    if (!full && before.get(id) === set) continue;
     add.set(set, [...(add.get(set) ?? []), id]);
   }
   const ops: PatchOp[] = [];
@@ -97,13 +105,18 @@ function skillOps(from: BuildState, to: BuildState): PatchOp[] {
   }
   for (const [key, skill] of after) {
     const old = before.get(key);
-    if (old && canonical(old) === canonical(skill)) continue;
-    ops.push(setSkillOp(skill));
+    const op = setSkillOp(skill);
+    // `role` is a decision for the guide; no patch op carries it
+    if (old && canonical(setSkillOp(old)) === canonical(op)) continue;
+    ops.push(op);
   }
   return ops;
 }
 
 function setSkillOp(skill: SkillSetup): PatchOp {
+  if (skill.weaponSet !== undefined) {
+    throw new PatchPlanError("Path of Building has no weapon sets for skill groups", skill.key);
+  }
   return {
     op: "setSkill",
     groupKey: skill.key,
@@ -111,7 +124,6 @@ function setSkillOp(skill: SkillSetup): PatchOp {
     level: skill.gem.level,
     quality: skill.gem.quality,
     supports: skill.supports.map((s) => ({ gemId: s.gemId, level: s.level, quality: s.quality })),
-    ...(skill.weaponSet === undefined ? {} : { weaponSet: skill.weaponSet }),
   };
 }
 
@@ -132,7 +144,14 @@ function itemOps(from: BuildState, to: BuildState, options: DiffOptions): PatchO
     if (!options.renderItem) {
       throw new PatchPlanError("Item changed but no item text renderer was given", slot);
     }
-    ops.push({ op: "setItem", slot, itemText: options.renderItem(equipped.item, slot) });
+    const op = { op: "setItem", slot, itemText: options.renderItem(equipped.item, slot) };
+    const checked = PatchOp.safeParse(op);
+    if (!checked.success) {
+      throw new PatchPlanError("Item text renderer returned an unusable text", slot, {
+        cause: checked.error,
+      });
+    }
+    ops.push(checked.data);
   }
   return ops;
 }
@@ -164,16 +183,18 @@ export function diffBuildState(
   options: DiffOptions = {},
 ): PatchOp[] {
   const ops: PatchOp[] = [];
-  if (from.classId !== to.classId) ops.push({ op: "setClass", classId: to.classId });
-  if (from.ascendancyId !== to.ascendancyId || (ops.length > 0 && to.ascendancyId)) {
-    if (!to.ascendancyId) {
-      throw new PatchPlanError("An ascendancy cannot be removed by a patch", from.ascendancyId);
-    }
+  const classChanged = from.classId !== to.classId;
+  const ascendancyChanged = from.ascendancyId !== to.ascendancyId;
+  if (classChanged) ops.push({ op: "setClass", classId: to.classId });
+  // a class change resets the ascendancy in PoB, so it is set again when wanted
+  if (to.ascendancyId && (classChanged || ascendancyChanged)) {
     ops.push({ op: "setAscendancy", ascendancyId: to.ascendancyId });
+  } else if (!to.ascendancyId && from.ascendancyId && !classChanged) {
+    throw new PatchPlanError("An ascendancy cannot be removed by a patch", from.ascendancyId);
   }
   if (from.level !== to.level) ops.push({ op: "setLevel", level: to.level });
   ops.push(
-    ...treeOps(from, to),
+    ...treeOps(from, to, classChanged || ascendancyChanged),
     ...skillOps(from, to),
     ...itemOps(from, to, options),
     ...configOps(from, to),

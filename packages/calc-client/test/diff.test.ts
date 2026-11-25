@@ -51,10 +51,32 @@ describe("diffBuildState", () => {
     expect(ops).toEqual([
       { op: "setClass", classId: "other-class" },
       { op: "setAscendancy", ascendancyId: "fixture-ascendancy" },
+      // PoB drops unconnected passives on a class change: the whole tree again
+      { op: "allocateNodes", nodeIds: ["1", "2", "9"] },
+      { op: "allocateNodes", nodeIds: ["3"], weaponSet: 1 },
+    ]);
+    expect(diffBuildState(base, edit({ classId: "other-class", ascendancyId: undefined }))).toEqual(
+      [
+        { op: "setClass", classId: "other-class" },
+        { op: "allocateNodes", nodeIds: ["1", "2", "9"] },
+        { op: "allocateNodes", nodeIds: ["3"], weaponSet: 1 },
+      ],
+    );
+  });
+
+  it("allocates only new nodes when nothing is removed", () => {
+    const to = edit({
+      tree: {
+        allocated: [...base.tree.allocated, { nodeId: "4", weaponSet: 2 }],
+        ascendancy: ["9"],
+      },
+    });
+    expect(diffBuildState(base, to)).toEqual([
+      { op: "allocateNodes", nodeIds: ["4"], weaponSet: 2 },
     ]);
   });
 
-  it("deallocates before allocating and groups new nodes by weapon set", () => {
+  it("deallocates before allocating the whole target tree, by weapon set", () => {
     const to = edit({
       tree: {
         allocated: [{ nodeId: "1" }, { nodeId: "4", weaponSet: 2 }, { nodeId: "5" }],
@@ -63,7 +85,8 @@ describe("diffBuildState", () => {
     });
     expect(diffBuildState(base, to)).toEqual([
       { op: "deallocateNodes", nodeIds: ["2", "3"] },
-      { op: "allocateNodes", nodeIds: ["5", "10"] },
+      // deallocating drops dependent nodes in PoB, so every target node is allocated again
+      { op: "allocateNodes", nodeIds: ["1", "5", "9", "10"] },
       { op: "allocateNodes", nodeIds: ["4"], weaponSet: 2 },
     ]);
   });
@@ -77,6 +100,7 @@ describe("diffBuildState", () => {
     });
     expect(diffBuildState(base, to)).toEqual([
       { op: "deallocateNodes", nodeIds: ["3"] },
+      { op: "allocateNodes", nodeIds: ["1", "2", "9"] },
       { op: "allocateNodes", nodeIds: ["3"], weaponSet: 2 },
     ]);
   });
@@ -133,6 +157,20 @@ describe("diffBuildState", () => {
     expect(diffBuildState(base, edit({ config: { optionA: false } }))).toEqual([
       { op: "setConfig", key: "optionA", value: false },
     ]);
+  });
+
+  it("ignores a changed skill role, which no op carries", () => {
+    const to = edit({ skills: [{ ...base.skills[0], role: "secondary" }] });
+    expect(diffBuildState(base, to)).toEqual([]);
+  });
+
+  it("refuses weapon sets on skills and unusable item text", () => {
+    const withSet = edit({ skills: [{ ...base.skills[0], weaponSet: 1 }] });
+    expect(() => diffBuildState(base, withSet)).toThrow(PatchPlanError);
+    const to = edit({
+      items: [{ slot: "FixtureSlot", item: { kind: "unique", uniqueId: "unique-c" } }],
+    });
+    expect(() => diffBuildState(base, to, { renderItem: () => "" })).toThrow(PatchPlanError);
   });
 
   it("throws for changes no op can express", () => {

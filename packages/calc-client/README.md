@@ -17,8 +17,16 @@ const { handle } = await pool.request("build.applyPatch", { handle: base, ops })
 
 - Reihenfolge der Ops: Klasse, Ascendancy, Level, Passive (erst abwählen, dann
   vergeben, Waffensatz 0 zuerst), Skills, Items, Config.
-- Nach einem Klassenwechsel wird die Ascendancy erneut gesetzt, weil PoB sie
-  beim Wechsel verwirft.
+- Nach einem Klassenwechsel wird die Ascendancy erneut gesetzt (PoB verwirft sie).
+  Bei Klassen- oder Ascendancy-Wechsel und sobald Knoten abgewählt werden, wird
+  der ganze Zielbaum erneut vergeben, weil PoB dabei abhängige Knoten entfernt;
+  bereits vergebene Knoten bleiben unverändert. PoB vergibt beim Vergeben den
+  kürzesten Pfad, dabei können Zwischenknoten entstehen, die nicht in `to`
+  stehen. Wer den Baum exakt prüfen will, exportiert den neuen Zustand
+  (`build.export`) und gleicht ihn mit `to` ab.
+- `SkillSetup.role` und `weaponSet` für Skills: `role` trägt keine Op (ändert
+  sich nur sie, entsteht keine Op); `weaponSet` an Skills kennt PoB nicht und
+  scheitert mit `PatchPlanError`.
 - Skills werden über `SkillSetup.key` als `groupKey` verfolgt; Items über den Slot.
 - Gleiche Zustände ergeben eine leere Liste.
 - `renderItem(item, slot)` erzeugt den PoB-Itemtext aus einer `ItemSpec`. Das
