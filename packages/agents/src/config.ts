@@ -137,7 +137,18 @@ export const StageConfig = z.object({
         }),
       calcProfiles: z.array(CalcProfileId).min(1),
       /** Weights of the PoB outputs that rank gear upgrades (gain per cost). */
-      objective: z.object({ weights: z.record(z.string().min(1), z.number()) }),
+      objective: z.object({
+        /** PoB outputs that rank upgrades; at least one, finite. */
+        weights: z
+          .record(z.string().min(1), z.number().finite())
+          .refine((w) => Object.keys(w).length > 0, { message: "needs at least one weight" }),
+        /** The calc profile the ranking is measured with; one of `calcProfiles`. */
+        calcProfile: CalcProfileId,
+      }),
+    })
+    .refine((c) => c.calcProfiles.includes(c.objective.calcProfile), {
+      message: "objective.calcProfile must be one of calcProfiles",
+      path: ["objective", "calcProfile"],
     })
     .optional(),
   s2: z.object({

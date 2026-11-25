@@ -9,7 +9,7 @@ const s7: S7Config = {
   requiredSlots: ["SlotA", "SlotB"],
   tiers: [{ id: "low", label: "Low" }],
   calcProfiles: ["default"],
-  objective: { weights: { M: 1 } },
+  objective: { weights: { M: 1 }, calcProfile: "default" },
 };
 const unique: ItemSpec = { kind: "unique", uniqueId: "FixUnique" as never };
 const crafted: ItemSpec = {
@@ -61,7 +61,12 @@ function fakeCalc() {
     calculate: vi.fn((input: { state: BuildState }) => {
       n += 1;
       const calcId = `calc-${n}`;
-      results.set(calcId, { stats: { M: 100 + 10 * input.state.items.length } });
+      results.set(calcId, {
+        stats: {
+          M: 100 + 10 * input.state.items.length,
+          N: 50 + 5 * input.state.items.length,
+        },
+      });
       return Promise.resolve({ default: { status: "ok", calcId } });
     }),
     getResult: (id: string) => {
@@ -81,7 +86,9 @@ function fakeCalc() {
   };
 }
 
-const run = async (opts: { economy?: unknown; choice?: unknown[] } = {}) => {
+const run = async (
+  opts: { economy?: unknown; choice?: unknown[]; weights?: Record<string, number> } = {},
+) => {
   const stored = { slots: opts.choice ?? [entry("SlotA", unique), entry("SlotB", crafted)] };
   const ctx = {
     run: { request: { dataReleaseId: "poe2-1.0.0+r1" } },
@@ -89,7 +96,11 @@ const run = async (opts: { economy?: unknown; choice?: unknown[] } = {}) => {
     economy: opts.economy,
     result: () => stored,
   } as never as PipelineContext;
-  const step = planJob(ctx, s7, s7.tiers, {} as never, target);
+  const cfg: S7Config = {
+    ...s7,
+    objective: { weights: opts.weights ?? s7.objective.weights, calcProfile: "default" },
+  };
+  const step = planJob(ctx, cfg, s7.tiers, {} as never, target);
   if (step.kind !== "job") throw new Error("expected a job");
   return (await step.run(ctx)) as {
     tiers: {
@@ -141,5 +152,59 @@ describe("S7 plan job", () => {
       status: "failed",
       error: { code: "price_fetch_failed" },
     });
+  });
+
+  it("treats a stale price book as uncalibrated and a failed fetch as failed in the ranking", async () => {
+    const stale = {
+      price: () =>
+        Promise.resolve({
+          league: "L",
+          inCurrencyItemId: "FixCurrency",
+          freshness: "stale",
+          prices: [{ item: { kind: "uniqueItem", id: "FixUnique" }, price: marketPrice }],
+        }),
+    };
+    const a = await run({ economy: stale });
+    expect(a.tiers[0]?.slots[0]?.cost.status).toBe("uncalibrated");
+    const failing = { price: () => Promise.reject(new Error("offline")) };
+    const b = await run({ economy: failing });
+    expect(b.tiers[0]?.upgradeOrder.find((u) => u.slot === "SlotA")?.gainPerCost.status).toBe(
+      "failed",
+    );
+  });
+
+  it("reports an incomplete objective instead of ranking a partial gain", async () => {
+    const economy = {
+      price: () =>
+        Promise.resolve({
+          league: "L",
+          inCurrencyItemId: "FixCurrency",
+          freshness: "fresh",
+          prices: [{ item: { kind: "uniqueItem", id: "FixUnique" }, price: marketPrice }],
+        }),
+    };
+    const plan = await run({ economy, weights: { M: 1, Missing: 1 } });
+    const ratio = plan.tiers[0]?.upgradeOrder.find((u) => u.slot === "SlotA")?.gainPerCost;
+    expect(ratio?.status).toBe("uncalibrated");
+  });
+
+  it("adds the weights of several stats and keeps them in the formula version", async () => {
+    const economy = {
+      price: () =>
+        Promise.resolve({
+          league: "L",
+          inCurrencyItemId: "FixCurrency",
+          freshness: "fresh",
+          prices: [{ item: { kind: "uniqueItem", id: "FixUnique" }, price: marketPrice }],
+        }),
+    };
+    const plan = await run({ economy, weights: { M: 1, N: 2 } });
+    const ratio = plan.tiers[0]?.upgradeOrder[0]?.gainPerCost as unknown as {
+      value: number;
+      source: { formulaVersion: string };
+    };
+    // M: 10/120, N: 2 * 5/60 per price 4
+    expect(ratio.value).toBeCloseTo((10 / 120 + (2 * 5) / 60) / 4, 6);
+    expect(ratio.source.formulaVersion).toContain("M=1,N=2");
   });
 });

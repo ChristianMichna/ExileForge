@@ -7,10 +7,10 @@ import {
 } from "@astrolabe/contracts/build";
 import type { ItemPrice, PricedItemRef } from "@astrolabe/contracts";
 import type { CalcId, JsonValue, PrimarySource } from "@astrolabe/contracts/common";
-
-type PobSource = Extract<PrimarySource, { kind: "pob" }>;
 import type { PipelineContext, PlanStep } from "../pipeline.js";
 import { GearChoice, gearKey, geared, type S7Config } from "./s7-gear.js";
+
+type PobSource = Extract<PrimarySource, { kind: "pob" }>;
 
 export const S7_PLAN_KEY = "S7.plan";
 
@@ -18,7 +18,12 @@ export const S7_PLAN_KEY = "S7.plan";
 export const GAIN_PER_COST_FORMULA = "gear.gain-per-cost";
 export const GAIN_PER_COST_VERSION = "1";
 
-type MeasuredPrice = GearPlan["tiers"][number]["slots"][number]["cost"];
+/** The economy.price contract limit per call. */
+const PRICE_CHUNK = 200;
+
+type Tier = GearPlan["tiers"][number];
+type MeasuredPrice = Tier["slots"][number]["cost"];
+type Ratio = Tier["upgradeOrder"][number]["gainPerCost"];
 
 /** The market ref of an item, if it has one; crafted rares are priced by S8. */
 function pricedRef(item: ItemSpec): PricedItemRef | undefined {
@@ -26,6 +31,14 @@ function pricedRef(item: ItemSpec): PricedItemRef | undefined {
 }
 
 const refKey = (r: PricedItemRef): string => `${r.kind}:${r.id}`;
+
+/** Stable text of the weights, so the formula version changes when they do. */
+function weightsKey(weights: Record<string, number>): string {
+  return Object.entries(weights)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join(",");
+}
 
 /** S7 part 2: prices and the upgrade order of every tier, measured with PoB and the economy. */
 export function planJob(
@@ -41,8 +54,7 @@ export function planJob(
     type: "S7.plan",
     label: "pricing the gear and ranking upgrades with Path of Building",
     run: async (runCtx) => {
-      const profile = s7.calcProfiles[0];
-      if (profile === undefined) throw new Error("S7 has no calc profile");
+      const profile = s7.objective.calcProfile;
       const choices = tiers.map((tier) => {
         const parsed = GearChoice.safeParse(runCtx.result(gearKey(tier.id)));
         if (!parsed.success) {
@@ -53,7 +65,7 @@ export function planJob(
         return { tier, choice: parsed.data };
       });
 
-      // One price call for all unique items of all tiers.
+      // Unique items of all tiers, priced in as few calls as the contract allows.
       const refs = new Map<string, PricedItemRef>();
       for (const { choice } of choices) {
         for (const slot of choice.slots) {
@@ -63,25 +75,26 @@ export function planJob(
       }
       const prices = new Map<string, MeasuredPrice>();
       let priceError: { code: string; message: string } | undefined;
-      let noService = false;
-      if (refs.size > 0) {
-        if (runCtx.economy === undefined) {
-          noService = true;
-        } else {
-          try {
+      let staleBook = false;
+      const noService = refs.size > 0 && runCtx.economy === undefined;
+      if (refs.size > 0 && runCtx.economy !== undefined) {
+        const all = [...refs.values()];
+        try {
+          for (let i = 0; i < all.length; i += PRICE_CHUNK) {
             const answer = await runCtx.economy.price({
               ...(runCtx.run.request.league === undefined
                 ? {}
                 : { league: runCtx.run.request.league }),
-              items: [...refs.values()],
+              items: all.slice(i, i + PRICE_CHUNK),
             });
+            if (answer.freshness === "stale") staleBook = true;
             answer.prices.forEach((p: ItemPrice) => prices.set(refKey(p.item), p.price));
-          } catch (cause) {
-            priceError = {
-              code: "price_fetch_failed",
-              message: cause instanceof Error ? cause.message : String(cause),
-            };
           }
+        } catch (cause) {
+          priceError = {
+            code: "price_fetch_failed",
+            message: cause instanceof Error ? cause.message : String(cause),
+          };
         }
       }
       const priceOf = (item: ItemSpec): MeasuredPrice => {
@@ -96,6 +109,12 @@ export function planJob(
         if (noService) {
           return { status: "uncalibrated", reason: "No economy service is configured." };
         }
+        if (staleBook) {
+          return {
+            status: "uncalibrated",
+            reason: "The price refresh failed and only an older price book exists.",
+          };
+        }
         return (
           prices.get(refKey(ref)) ?? {
             status: "uncalibrated",
@@ -106,11 +125,7 @@ export function planJob(
 
       const measure = async (
         state: BuildState,
-      ): Promise<{
-        calcId: CalcId;
-        stats: Record<string, number>;
-        source: PobSource;
-      }> => {
+      ): Promise<{ stats: Record<string, number>; source: PobSource }> => {
         const outcome = (await runCtx.calc.calculate({ state, profiles: [profile] }))[profile];
         if (outcome === undefined || outcome.status === "failed") {
           throw new Error(
@@ -120,28 +135,27 @@ export function planJob(
         const result = await runCtx.calc.getResult(outcome.calcId);
         if (result === undefined) throw new Error(`Calc result ${outcome.calcId} is not stored`);
         return {
-          calcId: outcome.calcId,
           stats: result.stats,
           source: {
             kind: "pob",
             pobVersion: result.pobVersion,
             dataReleaseId: result.dataReleaseId,
             calcProfile: result.calcProfile,
-            calcId: outcome.calcId,
+            calcId: outcome.calcId as CalcId,
           },
         };
       };
       const weights = Object.entries(s7.objective.weights);
+      const formulaVersion = `${GAIN_PER_COST_VERSION}:${weightsKey(s7.objective.weights)}`;
+      // Taking a slot away also takes away the slots that depend on it (the off-hand of a weapon).
+      const removed = (slot: string): Set<string> =>
+        new Set([slot, ...s7.slots.filter((s) => s.dependsOnSlot === slot).map((s) => s.id)]);
 
-      const out = [];
+      const out: Tier[] = [];
       for (const { tier, choice } of choices) {
         const withAll = await measure(geared(target.state, choice));
-        const slots = [];
-        const upgrades: {
-          slot: string;
-          ratio: GearPlan["tiers"][number]["upgradeOrder"][number]["gainPerCost"];
-          sort: number;
-        }[] = [];
+        const slots: Tier["slots"] = [];
+        const upgrades: { slot: string; ratio: Ratio; sort: number }[] = [];
         for (const entry of choice.slots) {
           const cost = priceOf(entry.target);
           slots.push({
@@ -152,47 +166,69 @@ export function planJob(
             acquisition: entry.acquisition,
             cost,
           });
-          const without = await measure(
-            geared(target.state, { slots: choice.slots.filter((s) => s.slot !== entry.slot) }),
-          );
-          let gain = 0;
-          let counted = 0;
-          for (const [stat, weight] of weights) {
-            const a = withAll.stats[stat];
-            const b = without.stats[stat];
-            if (a === undefined || b === undefined || a === 0) continue;
-            gain += (weight * (a - b)) / Math.abs(a);
-            counted += 1;
+          if (cost.status === "failed") {
+            upgrades.push({
+              slot: entry.slot,
+              sort: Number.NEGATIVE_INFINITY,
+              ratio: { status: "failed", error: cost.error },
+            });
+            continue;
           }
-          if (counted === 0) {
-            throw new Error(
-              `None of the objective stats ${weights.map(([k]) => k).join(", ")} is in the calculation of slot ${entry.slot}`,
-            );
-          }
-          if (cost.status !== "ok" || cost.value.amount <= 0) {
+          if (cost.status === "uncalibrated" || cost.value.amount <= 0) {
             upgrades.push({
               slot: entry.slot,
               sort: Number.NEGATIVE_INFINITY,
               ratio: {
                 status: "uncalibrated",
                 reason:
-                  cost.status === "ok"
-                    ? "The item has no positive price to divide by."
-                    : "The gain per cost needs a price, and this item has none.",
+                  cost.status === "uncalibrated"
+                    ? `The gain per cost needs a price: ${cost.reason}`
+                    : "The item has no positive price to divide by.",
               },
             });
             continue;
           }
+          const gone = removed(entry.slot);
+          const without = await measure(
+            geared(target.state, { slots: choice.slots.filter((s) => !gone.has(s.slot)) }),
+          );
+          let gain = 0;
+          let incomplete: string | undefined;
+          for (const [stat, weight] of weights) {
+            const a = withAll.stats[stat];
+            const b = without.stats[stat];
+            if (a === undefined || b === undefined) {
+              incomplete = `${stat} is missing in the calculation`;
+              break;
+            }
+            if (a === 0) {
+              incomplete = `${stat} is zero with the item, so the relative gain is undefined`;
+              break;
+            }
+            gain += (weight * (a - b)) / Math.abs(a);
+          }
+          if (incomplete !== undefined) {
+            upgrades.push({
+              slot: entry.slot,
+              sort: Number.NEGATIVE_INFINITY,
+              ratio: {
+                status: "uncalibrated",
+                reason: `The objective is incomplete: ${incomplete}.`,
+              },
+            });
+            continue;
+          }
+          const value = gain / cost.value.amount;
           upgrades.push({
             slot: entry.slot,
-            sort: gain / cost.value.amount,
+            sort: value,
             ratio: {
               status: "ok",
-              value: gain / cost.value.amount,
+              value,
               source: {
                 kind: "derived",
                 formula: GAIN_PER_COST_FORMULA,
-                formulaVersion: GAIN_PER_COST_VERSION,
+                formulaVersion,
                 inputs: [
                   withAll.source,
                   without.source,

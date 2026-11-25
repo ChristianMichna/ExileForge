@@ -67,7 +67,8 @@
       "weights": {
         "FullDPS": 1,
         "TotalEHP": 0.4
-      }
+      },
+      "calcProfile": "mapping"
     }
   }
 }

@@ -5,6 +5,7 @@ import type { UserIntervention } from "@astrolabe/contracts/forge";
 import type {
   CalcPort,
   CatalogPort,
+  CraftSimPort,
   PricePort,
   ProgressionPort,
   SkeletonPort,
@@ -32,6 +33,8 @@ export interface PipelineContext {
   readonly progression?: ProgressionPort;
   /** Market prices for S7; absent without an economy service (prices are then uncalibrated). */
   readonly economy?: PricePort;
+  /** Crafting simulation for S8. */
+  readonly craft?: CraftSimPort;
   /** Latest intervention of a kind, e.g. the current variant choice. */
   latest<K extends UserIntervention["kind"]>(
     kind: K,

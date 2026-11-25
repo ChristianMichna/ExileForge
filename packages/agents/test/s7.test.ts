@@ -22,7 +22,7 @@ const s7: S7Config = {
     { id: "high", label: "High" },
   ],
   calcProfiles: ["default"],
-  objective: { weights: { M: 1 } },
+  objective: { weights: { M: 1 }, calcProfile: "default" },
 };
 const unique: ItemSpec = { kind: "unique", uniqueId: "FixUnique" as never };
 const crafted: ItemSpec = {
@@ -47,7 +47,11 @@ describe("s7 config", () => {
       { id: "a", label: "A" },
       { id: "a", label: "B" },
     ];
-    const cfg = { calcProfiles: ["default"], objective: { weights: { M: 1 } }, tiers };
+    const cfg = {
+      calcProfiles: ["default"],
+      objective: { weights: { M: 1 }, calcProfile: "default" },
+      tiers,
+    };
     expect(StageConfig.shape.s7.safeParse(cfg).success).toBe(false);
     expect(StageConfig.shape.s7.safeParse({ ...cfg, tiers: tiers.slice(0, 1) }).success).toBe(true);
   });
@@ -219,7 +223,11 @@ describe("S7 request check", () => {
 });
 
 describe("resolveS7", () => {
-  const base = { tiers: s7.tiers, calcProfiles: ["default"], objective: { weights: { M: 1 } } };
+  const base = {
+    tiers: s7.tiers,
+    calcProfiles: ["default"],
+    objective: { weights: { M: 1 }, calcProfile: "default" },
+  };
   const release = (slots: object[]) =>
     ({ id: "poe2-fix+r1", itemSlots: { slots, origin: "pob-data" } }) as never;
   const slot = (id: string, order: number, extra: object = {}) => ({

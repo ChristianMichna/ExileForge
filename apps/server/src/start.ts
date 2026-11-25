@@ -134,6 +134,10 @@ async function startServerOwningPool(
     options.economy === undefined
       ? undefined
       : await createEconomy(options.economy, catalog, options.logger);
+  const craft =
+    options.craftConfigPath === undefined
+      ? undefined
+      : await createCraft(options.craftConfigPath, catalog, economy, options.logger);
   const engine = new ForgeEngine({
     store,
     catalog,
@@ -141,23 +145,34 @@ async function startServerOwningPool(
     config,
     logger: options.logger,
     ...(skeleton === undefined ? {} : { skeleton, target: skeleton, progression: skeleton }),
+    ...(craft === undefined ? {} : { craft: { simulate: craft } }),
     ...(economy === undefined
       ? {}
       : {
           economy: {
             price: async (input) => {
               const answer = await economy.price(input);
-              return { league: answer.league, prices: answer.prices };
+              if (answer.freshness === "stale") {
+                options.logger.error(
+                  "prices come from an older price book because the refresh failed",
+                  {
+                    fetchedAt: answer.fetchedAt,
+                    refreshError: answer.refreshError,
+                  },
+                );
+              }
+              return {
+                league: answer.league,
+                inCurrencyItemId: answer.inCurrencyItemId,
+                freshness: answer.freshness,
+                prices: answer.prices,
+              };
             },
           },
         }),
     pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
     calcProfiles: knownProfiles,
   });
-  const craft =
-    options.craftConfigPath === undefined
-      ? undefined
-      : await createCraft(options.craftConfigPath, catalog, economy, options.logger);
   const app = createApp({
     ...(craft === undefined ? {} : { craft }),
     ...(economy === undefined ? {} : { economy: economy.price }),

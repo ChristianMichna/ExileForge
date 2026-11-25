@@ -6,7 +6,12 @@ import type {
   TargetBuild,
 } from "@astrolabe/contracts/build";
 import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
-import type { ItemPrice, PricedItemRef } from "@astrolabe/contracts";
+import type {
+  CraftSimRequest,
+  CraftSimResult,
+  ItemPrice,
+  PricedItemRef,
+} from "@astrolabe/contracts";
 import type { DataRelease } from "@astrolabe/contracts/catalog";
 import type { CalcResult, ConfigOverrides } from "@astrolabe/contracts/calc";
 import type {
@@ -140,6 +145,15 @@ export interface ProgressionPort {
 export interface PricePort {
   price(input: { league?: string; items: PricedItemRef[] }): Promise<{
     league: string;
+    /** Currency item the prices are given in. */
+    inCurrencyItemId: string;
+    /** "stale": the refresh failed and an older price book was used. */
+    freshness: "fresh" | "stale";
     prices: ItemPrice[];
   }>;
+}
+
+/** Crafting simulation for S8; absent without a loaded catalog with crafting rules. */
+export interface CraftSimPort {
+  simulate(request: CraftSimRequest): Promise<CraftSimResult>;
 }
