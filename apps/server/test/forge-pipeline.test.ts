@@ -461,6 +461,37 @@ describe("forge pipeline (agents)", () => {
       );
     });
 
+    it("runs a failed job again when the player resumes the run", async () => {
+      let calls = 0;
+      const run = vi.fn(() =>
+        ++calls === 1 ? Promise.reject(new Error("pob down")) : Promise.resolve({}),
+      );
+      const engine = setup(jobPipeline(run));
+      const { runId, sessionCode } = await engine.createRun(REQUEST, "job");
+      await engine.attach(sessionCode);
+      await vi.waitFor(async () => expect((await engine.next(runId)).kind).toBe("failed"));
+      await engine.intervene(runId, { kind: "resume" });
+      await vi.waitFor(async () => expect((await engine.next(runId)).kind).toBe("done"));
+      expect(run).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not store the failure a closing pool causes, and restarts the job later", async () => {
+      let fail: (e: Error) => void = () => undefined;
+      let calls = 0;
+      const run = vi.fn(() =>
+        ++calls === 1 ? new Promise((_, reject) => (fail = reject)) : Promise.resolve({}),
+      );
+      const engine = setup(jobPipeline(run));
+      const { runId, sessionCode } = await engine.createRun(REQUEST, "job");
+      await engine.attach(sessionCode);
+      engine.stopJobs();
+      fail(new Error("pool closed"));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect((await engine.view(runId)).phase).not.toBe("failed");
+      await vi.waitFor(async () => expect((await engine.next(runId)).kind).toBe("done"));
+      expect(run).toHaveBeenCalledTimes(2);
+    });
+
     it("drops the answer of a job whose stage was redone meanwhile", async () => {
       let release: (v: unknown) => void = () => undefined;
       const run = vi.fn(() => new Promise((resolve) => (release = resolve)));

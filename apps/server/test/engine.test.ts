@@ -444,6 +444,9 @@ describe("returning a stage", () => {
     // The second submission is sent back again, but only one return is allowed.
     const out2 = await e.submit({ runId, taskId: again.taskId, attempt: 1, payload: { x: "b" } });
     expect(out2.next).toMatchObject({ kind: "failed", error: { code: "returns_exhausted" } });
+    // The player can redo the stage: the run continues with fresh returns.
+    await e.intervene(runId, { kind: "redoStage", stage: "S2" });
+    expect(task(await e.next(runId)).type).toBe("S2.a");
   });
 
   it("fails at once when the returned stage has nothing to drop", async () => {
