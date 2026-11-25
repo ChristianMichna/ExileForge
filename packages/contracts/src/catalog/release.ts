@@ -44,8 +44,11 @@ export const MaxCharacterLevel = z.object({
 export type MaxCharacterLevel = z.infer<typeof MaxCharacterLevel>;
 
 /**
- * Passive points usable in the main tree. Each level from `fromLevel` up to
- * the maximum level grants `perLevel` points. Points from items or nodes
+ * Passive points of a release, as PoB counts them (Build.lua): each level from
+ * `fromLevel` up to the maximum level grants `perLevel` points, and quest
+ * rewards add `weaponSetByAct` points on top. PoB's limit for allocated nodes is
+ * level points plus all weapon set points (`usedMax`); a consumer must add both
+ * and must not cap the main tree at the level points alone. Points from items or nodes
  * ("Grants N Passive Skill Points") are a build matter, not part of the release.
  */
 export const PassivePoints = z

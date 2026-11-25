@@ -79,9 +79,11 @@ export async function buildCatalog(
   for (const kind of RAW_KINDS) raw[kind] = await readShard(snapshotDir, snap, kind);
   const matcher = new StatMatcher(raw.statDescriptions ?? {});
   const norm = normalizeCatalog(raw, { mod: matcher, passiveNode: matcher }, cfg.config);
+  const questRewards = raw.questRewards;
+  if (!questRewards) throw new Error(`snapshot ${snap.releaseId} has no questRewards shard`);
   const { facts, findings: factFindings } = await buildReleaseFacts({
     config: cfg.config.releaseFacts,
-    questRewards: raw.questRewards ?? {},
+    questRewards,
     ...(extra.gameDataDir === undefined ? {} : { gameDataDir: extra.gameDataDir }),
   });
   const validation = validateCatalog(norm.entities);

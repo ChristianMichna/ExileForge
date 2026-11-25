@@ -170,6 +170,14 @@ describe("release facts", () => {
     );
   });
 
+  it("fails when PoB marks quest rewards with a Type (its rule would need mirroring)", async () => {
+    const raw = rawSnapshot();
+    (raw.questRewards["0002"] as Record<string, unknown>).Type = "Cruel";
+    const snap = await writeSnapshot(raw);
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    await expect(buildCatalog(snap, out, factsConfig, NOW)).rejects.toThrow(/quest reward 0002/);
+  });
+
   it("fails on a level table that is not the configured one", async () => {
     const snap = await writeSnapshot(rawSnapshot());
     const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");

@@ -8,6 +8,11 @@ type ReleaseFacts = Pick<DataRelease, "maxCharacterLevel" | "passivePoints">;
 
 const levelRow = z.object({ Level: z.int().positive() });
 const questRow = z.object({
+  /**
+   * PoB (Build.lua) counts a reward of Type "Cruel" as an act of its own. Today's data has no
+   * Type; if it appears, the counting rule would need to be mirrored, so it is an error here.
+   */
+  Type: z.never().optional(),
   Act: z.int().positive(),
   AreaLevel: z.int().positive(),
   questPoints: z.int().positive().optional(),
