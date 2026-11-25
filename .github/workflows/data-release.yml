@@ -1,7 +1,10 @@
 # Publishes a data release (F-01): builds the catalog like data-snapshot.yml and
-# attaches it to a GitHub release of this repository. Started by hand; the
-# release is a pre-release unless `prerelease` is switched off. Release id and
-# tag follow the contract (poe2-<game version>+r<revision>).
+# attaches it to a GitHub release of this repository. Started by hand from main;
+# the release is a pre-release unless `prerelease` is switched off. Release id
+# poe2-<game version>+r<revision> (contract); the tag and file names use
+# "-" instead of "+".
+# Two jobs: the build runs third-party tools and has read access only; the
+# publish job has write access and runs nothing but the GitHub CLI.
 name: Data release
 
 on:
@@ -11,7 +14,7 @@ on:
         description: "Game version, must equal the patch the game-data step reads, e.g. 0.5.5.10"
         required: true
       revision:
-        description: "Pipeline revision for this game version"
+        description: "Pipeline revision for this game version (whole number, no leading zero)"
         required: true
         default: "1"
       prerelease:
@@ -20,19 +23,40 @@ on:
         default: true
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: data-release-${{ inputs.game-version }}-${{ inputs.revision }}
+  cancel-in-progress: false
 
 jobs:
-  release:
+  build:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
       GAME_VERSION: ${{ inputs.game-version }}
       REVISION: ${{ inputs.revision }}
-      PRERELEASE: ${{ inputs.prerelease }}
-      GH_TOKEN: ${{ github.token }}
+      # the integration test must not be skipped here
+      REQUIRE_POB: "1"
     steps:
+      - name: Check the inputs and that the release does not exist yet
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GAME_VERSION" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]] || { echo "game-version '$GAME_VERSION' is not a version" >&2; exit 1; }
+          [[ "$REVISION" =~ ^[1-9][0-9]*$ ]] || { echo "revision '$REVISION' is not a whole number without leading zero" >&2; exit 1; }
+          tag="data-poe2-${GAME_VERSION}-r${REVISION}"
+          status=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" -i 2>&1 | head -n1 || true)
+          if [[ "$status" != *"404"* ]]; then
+            echo "tag $tag exists or could not be checked ($status); data releases are immutable" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
@@ -42,6 +66,9 @@ jobs:
 
       - name: Set up headless PoB
         run: tools/setup_pob.sh
+
+      - name: Pipeline tests against the real PoB
+        run: pnpm exec turbo run test --filter=@astrolabe/data-pipeline
 
       - name: Build pipeline and snapshot
         run: |
@@ -70,20 +97,50 @@ jobs:
             --out data-snapshots/current/catalog \
             --game-data data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Create the GitHub release
+      - name: Pack the catalog
         run: |
           set -euo pipefail
-          id="poe2-${GAME_VERSION}+r${REVISION}"
-          tag="data-poe2-${GAME_VERSION}-r${REVISION}"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo "release $tag already exists; data releases are immutable" >&2
-            exit 1
-          fi
           # catalog only: shards, manifest, findings; raw game tables stay out (ADR-0005)
-          tar -C data-snapshots/current/catalog -czf "catalog-${id}.tar.gz" .
+          id=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("data-snapshots/current/catalog/manifest.json","utf8")).release.id)')
+          expected="poe2-${GAME_VERSION}+r${REVISION}"
+          [ "$id" = "$expected" ] || { echo "manifest release id '$id' differs from '$expected'" >&2; exit 1; }
+          mkdir -p out
+          tar -C data-snapshots/current/catalog -czf out/catalog.tar.gz .
+          (cd out && sha256sum catalog.tar.gz > catalog.tar.gz.sha256)
+          echo "$id" > out/release-id.txt
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: data-release
+          path: out/
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      PRERELEASE: ${{ inputs.prerelease }}
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: data-release
+          path: out
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          id=$(cat out/release-id.txt)
+          tag="data-${id//+/-}"
+          (cd out && sha256sum --check catalog.tar.gz.sha256)
+          mv out/catalog.tar.gz "out/catalog-${id//+/-}.tar.gz"
+          mv out/catalog.tar.gz.sha256 "out/catalog-${id//+/-}.tar.gz.sha256"
           flags=()
           if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
-          gh release create "$tag" "catalog-${id}.tar.gz" \
-            --target "$GITHUB_SHA" --title "Data release $id" \
-            --notes "Catalog of data release $id. Built by .github/workflows/data-release.yml from the pinned PoB data and the game-data tables (docs/adr/0005). Unofficial; contains no game assets." \
+          gh release create "$tag" out/catalog-*.tar.gz out/catalog-*.sha256 \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Data release $id" \
+            --notes "Catalog of data release $id (SHA-256 in the attached .sha256 file). Built by .github/workflows/data-release.yml from Path of Building PoE2 data (MIT) and game-data tables read with pathofexile-dat (MIT) and the community dat-schema; docs/adr/0005. Astrolabe is an unofficial fan project, not affiliated with or endorsed by Grinding Gear Games. The release contains no game assets; findings.json lists what the pipeline could not resolve." \
             "${flags[@]}"
