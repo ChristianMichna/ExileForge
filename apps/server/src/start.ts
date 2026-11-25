@@ -1,4 +1,6 @@
+import { readFile } from "node:fs/promises";
 import type { FastifyInstance } from "fastify";
+import { createForgePipeline, StageConfig } from "@exileforge/agents";
 import { loadOrCreateAccessToken } from "./access-token.js";
 import { CalcFake } from "./calc/calc-fake.js";
 import { PersistedCalc } from "./calc/persisted-calc.js";
@@ -21,6 +23,8 @@ export interface StartOptions {
   catalogDir: string;
   /** config/forge/forge.json */
   configPath: string;
+  /** config/agents/stages.json (settings of the planning stages) */
+  stagesConfigPath: string;
   /**
    * Only "fake" exists until the PoB worker pool is wired in. It must be
    * chosen explicitly so fantasy values never appear by accident.
@@ -37,6 +41,7 @@ export async function startServer(
   options: StartOptions,
 ): Promise<{ app: FastifyInstance; store: RunStore; url: string }> {
   const config = await loadForgeConfig(options.configPath);
+  const stages = await loadStageConfig(options.stagesConfigPath);
   const catalog = await loadCatalogRelease(options.catalogDir);
   const fake = new CalcFake({ dataReleaseId: catalog.dataReleaseId });
   options.logger.info("calc engine is calc-fake: values are not from Path of Building", {
@@ -50,7 +55,7 @@ export async function startServer(
     catalog,
     calc,
     config,
-    pipelines: [createPocPipeline(config.pipelines.poc)],
+    pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
     calcProfiles: config.pipelines.poc.calcProfiles,
   });
   const app = createApp({
@@ -70,4 +75,18 @@ export async function startServer(
   const url = `http://${LOOPBACK_HOST}:${options.port}`;
   options.logger.info("listening", { url, mcp: `${url}/mcp`, tokenFile: options.tokenFile });
   return { app, store, url };
+}
+
+async function loadStageConfig(path: string): Promise<StageConfig> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(await readFile(path, "utf8"));
+  } catch (error) {
+    throw new Error(`Cannot read stage config ${path}`, { cause: error });
+  }
+  const parsed = StageConfig.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(`Invalid stage config ${path}: ${parsed.error.message}`);
+  }
+  return parsed.data;
 }

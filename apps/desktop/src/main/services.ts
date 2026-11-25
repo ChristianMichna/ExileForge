@@ -26,6 +26,7 @@ export interface StartServicesOptions {
   databasePath: string;
   catalogDir: string;
   forgeConfigPath: string;
+  stagesConfigPath: string;
   logger?: Logger;
 }
 
@@ -47,6 +48,7 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
       databasePath: options.databasePath,
       catalogDir: options.catalogDir,
       configPath: options.forgeConfigPath,
+      stagesConfigPath: options.stagesConfigPath,
       calc: "fake",
       allowedOrigins: [],
       tokenFile,

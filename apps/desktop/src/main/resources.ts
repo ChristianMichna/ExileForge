@@ -6,6 +6,7 @@ export interface AppDirs {
   readonly resourcesRoot: string;
   readonly webRoot: string;
   readonly forgeConfigPath: string;
+  readonly stagesConfigPath: string;
   readonly desktopConfigPath: string;
   readonly extensionPath: string;
   /** Data releases the app downloaded itself: <userData>/data-releases/<release id>/ */
@@ -29,6 +30,7 @@ export function resolveAppDirs(opts: {
     resourcesRoot: root,
     webRoot: opts.packaged ? join(root, "web") : join(root, "apps", "web", "dist"),
     forgeConfigPath: join(root, "config", "forge", "forge.json"),
+    stagesConfigPath: join(root, "config", "agents", "stages.json"),
     desktopConfigPath: join(root, "config", "desktop", "desktop.json"),
     extensionPath: opts.packaged
       ? join(root, "exileforge.mcpb")

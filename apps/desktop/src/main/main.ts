@@ -129,6 +129,7 @@ async function boot(): Promise<void> {
       databasePath: dirs.databasePath,
       catalogDir,
       forgeConfigPath: dirs.forgeConfigPath,
+      stagesConfigPath: dirs.stagesConfigPath,
       logger,
     });
     status.setServer({

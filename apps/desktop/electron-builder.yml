@@ -15,6 +15,7 @@ extraResources:
   - { from: ../web/dist, to: web }
   - { from: ../../config/forge, to: config/forge }
   - { from: ../../config/desktop, to: config/desktop }
+  - { from: ../../config/agents, to: config/agents }
   - { from: ../mcp-bridge/dist/exileforge.mcpb, to: exileforge.mcpb }
   - { from: data-release, to: data-release }
 asar: true
