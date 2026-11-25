@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BudgetTierId } from "@astrolabe/contracts/build";
 import { CalcProfileId } from "@astrolabe/contracts/common";
 
 /** Settings of the pipeline stages; lives versioned in config/agents/stages.json. */
@@ -111,6 +112,26 @@ export const StageConfig = z.object({
         weights: z.record(z.string().min(1), z.number()),
         floors: z.record(z.string().min(1), z.number()).default({}),
       }),
+    })
+    .optional(),
+  /**
+   * S7 gear. Optional on purpose, like s5 and s6: the item slots come from the
+   * release (PoB slot ids), the budget tiers are an editable default that the
+   * product owner adjusts. Without this block the run stops at S7 with an
+   * explicit error.
+   */
+  s7: z
+    .object({
+      /** Slot ids exactly as the release names them (also `EquippedItem.slot`). */
+      slots: z.array(z.string().min(1)).min(1),
+      /** Budget tiers in ascending order; the request names tiers by id. */
+      tiers: z
+        .array(z.object({ id: BudgetTierId, label: z.string().min(1).max(120) }))
+        .min(1)
+        .refine((t) => new Set(t.map((x) => x.id)).size === t.length, {
+          message: "duplicate tier id",
+        }),
+      calcProfiles: z.array(CalcProfileId).min(1),
     })
     .optional(),
   s2: z.object({

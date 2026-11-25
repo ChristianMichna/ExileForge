@@ -31,6 +31,7 @@ import {
 } from "./stages/s6-progression.js";
 import { TargetBuild } from "@astrolabe/contracts/build";
 import type { ProgressionStageTree } from "./ports.js";
+import { gearKey, gearTask, tiersOf } from "./stages/s7-gear.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 
@@ -56,7 +57,8 @@ export function createForgePipeline(config: StageConfig): Pipeline {
       1 +
       config.s2.candidateCount +
       (config.s5 === undefined ? 0 : 1) +
-      (config.s6 === undefined ? 0 : 1),
+      (config.s6 === undefined ? 0 : 1) +
+      (config.s7 === undefined ? 0 : config.s7.tiers.length),
     validateIntervention: (intervention: UserIntervention, ctx) => {
       if (intervention.kind !== "chooseVariant") return undefined;
       if (ctx.result(S3_KEY) === undefined) {
@@ -246,12 +248,46 @@ function planProgression(
     };
   }
   if (ctx.result(S6_PLAN_KEY) === undefined) return planStep(s6, trees, parsedNotes.data);
+  return planGear(ctx, config, chosen, target.data);
+}
+
+/** S7: the gear of each budget tier (Claude, checked with PoB); prices and upgrade order follow. */
+function planGear(
+  ctx: PipelineContext,
+  config: StageConfig,
+  chosen: ArchetypeCandidate,
+  target: TargetBuild,
+): PlanStep {
+  const s7 = config.s7;
+  if (s7 === undefined) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "s7_not_configured",
+        message:
+          "S7 needs the gear slots of the release and the budget tiers (config/agents/stages.json, block s7). They have not been set yet. S0 to S6 are done; their results are stored with the run.",
+      },
+    };
+  }
+  const tiers = tiersOf(s7, ctx.run.request.budget.endgame);
+  if (tiers === undefined) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "unknown_budget_tier",
+        message: `The requested endgame budget tier ${ctx.run.request.budget.endgame} is not in the configured tiers.`,
+      },
+    };
+  }
+  const open = tiers.find((t) => ctx.result(gearKey(t.id)) === undefined);
+  if (open !== undefined)
+    return { kind: "task", spec: gearTask(ctx, config, s7, open, chosen, target) };
   return {
     kind: "blocked",
     error: {
       code: "stage_not_implemented",
       message:
-        "S7 (gear) and the later stages are not built yet. S0 to S6 are done; their results are stored with the run.",
+        "Prices and the upgrade order of S7 and the later stages are not built yet. S0 to S7 gear choices are done; their results are stored with the run.",
     },
   };
 }
