@@ -624,13 +624,18 @@ describe("unique lines that allocate a passive", () => {
     expect(mod).toMatchObject({ allocatesNodeId: "2", variantIds: ["2"] });
   });
 
-  it("requires a capture group in the pattern", () => {
-    const bad = { ...cfg, uniqueLines: { allocatesPattern: "^Allocates .+$" } };
-    expect(normalizeConfigSchema.safeParse(bad).success).toBe(false);
-    expect(
-      normalizeConfigSchema.safeParse({ ...cfg, uniqueLines: { allocatesPattern: "(" } }).success,
-    ).toBe(false);
-  });
+  it.each(["allocatesPattern", "grantsPattern"] as const)(
+    "requires a valid pattern with a capture group (%s)",
+    (key) => {
+      const withPattern = (pattern: string) => ({
+        ...cfg,
+        uniqueLines: { ...cfg.uniqueLines, [key]: pattern },
+      });
+      expect(normalizeConfigSchema.safeParse(withPattern("^No group .+$")).success).toBe(false);
+      expect(normalizeConfigSchema.safeParse(withPattern("(")).success).toBe(false);
+      expect(normalizeConfigSchema.safeParse(withPattern("^Name (.+)$")).success).toBe(true);
+    },
+  );
 
   it("rejects an allocated node that is not in the catalog", () => {
     const { entities } = run();
@@ -685,6 +690,30 @@ describe("unique lines that grant a skill", () => {
     expect(validateCatalog(entities).errors.map((e) => e.message)).toContain(
       'mods.grantsGemId → unknown gem "Nope"',
     );
+  });
+
+  it("reports a skill name shared by several gems as ambiguous", () => {
+    const raw = rawSnapshot();
+    const gems = raw.gems as Record<string, Record<string, unknown>>;
+    const levels = raw.gemLevels as Record<string, Record<string, unknown>>;
+    gems["Metadata/Fake/GemB"] = {
+      ...gems["Metadata/Fake/GemA"],
+      gameId: "Metadata/Fake/Game/GemB",
+    };
+    levels["Metadata/Fake/GemB"] = { ...levels["Metadata/Fake/GemA"] };
+    raw.uniques["Granter, Fake Ring"] = {
+      title: "Granter",
+      baseName: "Fake Ring",
+      variants: [],
+      implicitModLines: {},
+      explicitModLines: [{ line: "Grants Skill: Gem A" }],
+    };
+    const { entities, warnings, summary } = run(raw);
+    const [mod] = modsOf(entities);
+    expect(mod).toMatchObject({ unresolved: [{ reason: "ambiguous" }] });
+    expect(mod).not.toHaveProperty("grantsGemId");
+    expect(summary.uniqueLinesGrantingSkill).toBe(0);
+    expect(warnings.map((w) => w.message).join("\n")).toMatch(/2 gems named "Gem A"/);
   });
 
   it("keeps an unknown skill name and a multi-line text visible as unresolved", () => {

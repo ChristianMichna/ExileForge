@@ -6,7 +6,7 @@
     "passiveNode": "passive_skill_stat_descriptions"
   },
   "uniqueLines": {
-    "$comment": "PoB writes unique lines that allocate a passive as this text (first capture group = node name), as generated for the unique jewel Megalomaniac (PoB data Uniques/Special/Generated.lua). Trusted repo configuration, not network input. A name shared by several nodes or by none leaves the line unresolved.",
+    "$comment": "PoB writes unique lines that allocate a passive as this text (first capture group = node name), as generated for the unique jewel Megalomaniac (PoB data Uniques/Special/Generated.lua). Trusted repo configuration, not network input. A name shared by several nodes or by none leaves the line unresolved. grantsPattern: PoB writes granted skills as \"Grants Skill: [Level (a-b) ]<skill name>\" (PoB data Uniques/*.lua); the level range is not kept in grantsGemId, it stays in the line text.",
     "allocatesPattern": "^Allocates (.+)$",
     "grantsPattern": "^Grants Skill: (?:Level \\([0-9]+-[0-9]+\\) )?(.+)$"
   },

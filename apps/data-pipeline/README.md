@@ -220,8 +220,9 @@ Knoten-IDs, nichts wird geraten; ein unbekannter Name bleibt `unmatched`. Erwart
 0.23.1: 872 von 874 Zeilen zugeordnet. `validateCatalog` prüft, dass der Knoten
 existiert. Genauso ordnet `uniqueLines.grantsPattern` Zeilen „Grants Skill: <Name>" dem
 Gem mit genau diesem Namen zu (`grantsGemId`, contracts 0.9.0, Zähler
-`uniqueLinesGrantingSkill`); Name unbekannt, mehrfach vergeben oder mehrzeiliger Text bleibt
-unaufgelöst. Erwartet für Release r6: 111 von 117 Zeilen.
+`uniqueLinesGrantingSkill`); Der Stufenbereich („Level (1-20)") steht nur im `text`, nicht im Feld. Ein mehrfach
+vergebener Name wird `ambiguous` mit Warnung; ein unbekannter Name oder mehrzeiliger Text
+geht an den Stat-Matcher (normalerweise `unmatched`). Erwartet für Release r6: 111 von 117 Zeilen.
 
 Eine mehrdeutige Unique-Zeile wird nach Beleg aus den Daten aufgelöst: Eine Beschreibung
 zählt, wenn ein Mod mit einem ihrer Stats auf der Basis des Uniques spawnen kann. Dabei

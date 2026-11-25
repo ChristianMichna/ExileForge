@@ -542,8 +542,11 @@ function normalizeUniques(
           ctx.warn("uniqueItem", id, `line "${text}" dropped: none of its variants exist`);
           continue;
         }
-        const reference = named.find((n) => n.pattern.exec(text)?.[1] !== undefined);
-        const refName = reference?.pattern.exec(text)?.[1]?.trim();
+        const hit = named
+          .map((n) => ({ n, name: n.pattern.exec(text)?.[1] }))
+          .find((h) => h.name !== undefined);
+        const reference = hit?.n;
+        const refName = hit?.name?.trim();
         const refIds = reference && refName !== undefined ? reference.ids.get(refName) : undefined;
         if (reference && refName !== undefined && refIds && refIds.length > 1) {
           // several entities share the name: say so, never pick one
@@ -1088,7 +1091,7 @@ export function normalizeCatalog(
   const gem = normalizeGems(raw, ctx);
   const gemIdsByName = new Map<string, string[]>();
   for (const g of gem) {
-    if (typeof g.name !== "string") continue;
+    if (typeof g.name !== "string") continue; // requireStr already reported it
     const ids = gemIdsByName.get(g.name) ?? [];
     ids.push(String(g.id));
     gemIdsByName.set(g.name, ids);
