@@ -274,7 +274,12 @@ end
 --  * partialBases: bases of types that PoB accepts only for some bases (e.g. life flasks)
 --  * dependsOnSlot: Weapon 2 slots depend on the item in Weapon 1; itemClasses is then the union
 --    over all Weapon 1 types and keystone states PoB distinguishes
---  * optional: PoB shows the slot only under a build condition (a custom shown function)
+--  * optional: PoB shows the slot only under a build condition (a custom shown function); a
+--    shown function that cannot run without a calculated build counts as such a condition
+-- The keystone flags and weapon tags below mirror ItemsTab:IsItemValidForSlot and
+-- ValidateWeaponSlots in PoB's Classes/ItemsTab.lua; a new flag there needs a new state here.
+-- While running, the loader sets tab.items[-1] and the Weapon 1 selection of the shared
+-- build state and restores both afterwards.
 loaders["itemSlots"] = function()
 	local tab = build.itemsTab
 	local slots = {}
