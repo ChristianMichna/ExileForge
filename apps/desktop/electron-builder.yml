@@ -1,0 +1,45 @@
+# Windows installer (ExileForge-Setup.exe) with auto-update over GitHub Releases.
+# The app is not code-signed yet: Windows SmartScreen warns on first start (see README).
+appId: app.exileforge.desktop
+productName: ExileForge
+copyright: ExileForge. Fan project, not affiliated with Grinding Gear Games.
+directories:
+  output: release
+  buildResources: build
+# Main process and preload are single bundles (scripts/bundle.mjs): no node_modules in the installer.
+files:
+  - dist/main.cjs
+  - dist/preload.cjs
+  - package.json
+extraResources:
+  - { from: ../web/dist, to: web }
+  - { from: ../../config/forge, to: config/forge }
+  - { from: ../../config/desktop, to: config/desktop }
+  - { from: ../../config/agents, to: config/agents }
+  - { from: ../mcp-bridge/dist/exileforge.mcpb, to: exileforge.mcpb }
+  - { from: data-release, to: data-release }
+asar: true
+# Fuses: the exe cannot be used as a plain Node interpreter, only the signed-in asar loads.
+electronFuses:
+  runAsNode: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+  enableEmbeddedAsarIntegrityValidation: true
+win:
+  target:
+    - { target: nsis, arch: [x64] }
+  icon: build/icon.png
+  # No publisherName: without a signature electron-updater verifies the file hash from latest.yml only.
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  artifactName: ExileForge-Setup-${version}.${ext}
+publish:
+  provider: github
+  owner: ChristianMichna
+  repo: ExileForge
+  releaseType: release

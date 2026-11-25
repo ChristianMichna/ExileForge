@@ -13,9 +13,11 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@exileforge/contracts": "workspace:*",
     "@exileforge/ui": "workspace:*",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
