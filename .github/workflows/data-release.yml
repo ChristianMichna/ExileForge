@@ -105,8 +105,9 @@ jobs:
           expected="poe2-${GAME_VERSION}+r${REVISION}"
           [ "$id" = "$expected" ] || { echo "manifest release id '$id' differs from '$expected'" >&2; exit 1; }
           mkdir -p out
-          tar -C data-snapshots/current/catalog -czf out/catalog.tar.gz .
-          (cd out && sha256sum catalog.tar.gz > catalog.tar.gz.sha256)
+          file="catalog-${id//+/-}.tar.gz"
+          tar -C data-snapshots/current/catalog -czf "out/$file" .
+          (cd out && sha256sum "$file" > "$file.sha256")
           echo "$id" > out/release-id.txt
 
       - uses: actions/upload-artifact@v5
@@ -135,9 +136,12 @@ jobs:
           set -euo pipefail
           id=$(cat out/release-id.txt)
           tag="data-${id//+/-}"
-          (cd out && sha256sum --check catalog.tar.gz.sha256)
-          mv out/catalog.tar.gz "out/catalog-${id//+/-}.tar.gz"
-          mv out/catalog.tar.gz.sha256 "out/catalog-${id//+/-}.tar.gz.sha256"
+          (cd out && sha256sum --check catalog-*.sha256)
+          # the tag may have been created since the build started
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "tag $tag exists now; data releases are immutable" >&2
+            exit 1
+          fi
           flags=()
           if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
           gh release create "$tag" out/catalog-*.tar.gz out/catalog-*.sha256 \

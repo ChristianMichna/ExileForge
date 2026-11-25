@@ -80,6 +80,7 @@ jobs:
 
       - name: List currency-like base items (id | name | tags)
         run: |
+          set -o pipefail
           node -e '
             const fs = require("fs");
             const shard = JSON.parse(fs.readFileSync("data-snapshots/current/catalog/baseItem.json", "utf8"));
