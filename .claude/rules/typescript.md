@@ -7,7 +7,7 @@ paths:
 <!-- Verdichtet aus everything-claude-code (rules/typescript/*.md),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md. -->
 
-# TypeScript-Regeln für ExileForge
+# TypeScript-Regeln für Astrolabe
 
 - `strict: true`; Lockerungen nur mit Kommentar und ADR.
 - Exportierte Funktionen mit Parameter- und Rückgabetypen; lokale Typen

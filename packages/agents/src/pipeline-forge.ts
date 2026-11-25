@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { type ArchetypeCandidate, SkillProfile } from "@exileforge/contracts/build";
-import type { JsonValue } from "@exileforge/contracts/common";
-import type { UserIntervention } from "@exileforge/contracts/forge";
+import { type ArchetypeCandidate, SkillProfile } from "@astrolabe/contracts/build";
+import type { JsonValue } from "@astrolabe/contracts/common";
+import type { UserIntervention } from "@astrolabe/contracts/forge";
 import type { StageConfig } from "./config.js";
 import type { Pipeline, PipelineContext, PlanStep } from "./pipeline.js";
 import { S0_SKILL_KEY, SkillChoice, skillTask } from "./stages/s0-skill.js";

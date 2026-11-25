@@ -7,20 +7,18 @@ import { CalcPool, loadCalcProfiles, loadPoolConfig, pobInstallFromHome } from "
 /*
  * Shared setup for integration tests against the real, pinned Path of
  * Building. They need tools/setup_pob.sh (or the Windows setup in CI).
- * Without PoB they are skipped, unless EXILEFORGE_REQUIRE_POB=1 (CI), where
+ * Without PoB they are skipped, unless ASTROLABE_REQUIRE_POB=1 (CI), where
  * a missing PoB fails.
  */
 
 export const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
-export const install = pobInstallFromHome(
-  process.env.EXILEFORGE_POB_HOME ?? join(repoRoot, ".pob"),
-);
+export const install = pobInstallFromHome(process.env.ASTROLABE_POB_HOME ?? join(repoRoot, ".pob"));
 export const havePob =
   existsSync(install.luajit) && existsSync(join(install.srcDir, "HeadlessWrapper.lua"));
 
-if (process.env.EXILEFORGE_REQUIRE_POB === "1" && !havePob) {
+if (process.env.ASTROLABE_REQUIRE_POB === "1" && !havePob) {
   throw new Error(
-    `EXILEFORGE_REQUIRE_POB=1 but no PoB install at ${install.srcDir} / ${install.luajit}`,
+    `ASTROLABE_REQUIRE_POB=1 but no PoB install at ${install.srcDir} / ${install.luajit}`,
   );
 }
 

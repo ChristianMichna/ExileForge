@@ -1,4 +1,4 @@
-import type { ItemPrice, PriceBook, PricedItemRef, PrimarySource } from "@exileforge/contracts";
+import type { ItemPrice, PriceBook, PricedItemRef, PrimarySource } from "@astrolabe/contracts";
 
 type MarketSourceT = Extract<PrimarySource, { kind: "market" }>;
 

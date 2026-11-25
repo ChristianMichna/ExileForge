@@ -1,6 +1,6 @@
-# @exileforge/contracts
+# @astrolabe/contracts
 
-Einzige maßgebliche Quelle für die Datenformen von ExileForge (Leitprinzip
+Einzige maßgebliche Quelle für die Datenformen von Astrolabe (Leitprinzip
 „Verträge zuerst", Skill `contract-first`). Zod-Schemas, daraus abgeleitete
 TS-Typen (`z.infer`) und generierte JSON-Schema-Dateien unter `schemas/`.
 Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
@@ -9,15 +9,15 @@ Andere Pakete koppeln nur hierüber; Änderungen laufen als eigener Vertrags-PR.
 
 | Export | Inhalt | Konsumenten |
 | --- | --- | --- |
-| `@exileforge/contracts/common` | Katalog-IDs (gebrandet je Art), `DataReleaseId`, `PobVersion`, `CalcProfileId`, `CalcId`, Herkunft `Source`, `sourced()`, `measured()`, `CalcRef` | alle |
-| `@exileforge/contracts/catalog` | `BaseItem`, `Mod`, `UniqueItem`, `Gem`, `PassiveNode` (mit `position.point` und `arcs`), `PassiveGroup`, `CharacterClass`, `Ascendancy`, `CraftingAction`, `StatTranslation`, `DataRelease`, `CatalogManifest`, `CatalogShard`, `CatalogDiff` | data-pipeline, catalog-sdk, ui |
-| `@exileforge/contracts/calc` | `CalcResult`, `PatchOp`, `CalcMethods` (JSON-RPC: `meta.version`, `build.*`, `calc.*`), `parseCalcParams`, `parseCalcResult` | calc, calc-client, optimizer |
-| `@exileforge/contracts/build` | `BuildRequest` (S0), `BuildState`, `ItemSpec`, `RichText`, Stufen-Ergebnisse `SkillProfile` (S1), `ArchetypeCandidate`/`ArchetypeEvaluation` (S2/S3), `TargetBuild` (S5), `ProgressionPlan` (S6), `GearPlan` (S7), `CraftingPlan` (S8), `Finding` (mit `returnTo` für den gezielten Rücksprung), `ValidationReport` (S10) | agents, optimizer, crafting-sim, ui |
-| `@exileforge/contracts/guide` | `GuideDocument` mit den 11 Pflichtbausteinen des Plans, `PublishedGuide` (S11, nur mit bestandenem Prüfbericht) | agents, exporters, ui |
-| `@exileforge/contracts/forge` | MCP-Werkzeuge `forge.attach/next/submit/ask_user/status`, `ForgeTask`, `ForgeStep`, `UserIntervention` | server, mcp-bridge, llm-gateway |
-| `@exileforge/contracts/economy` | `PriceBook`, `PriceQuote`, Werkzeug `economy.price` (liefert auch `fetchedAt`, `freshness` fresh/stale und bei stale `refreshError`; Preise als `measured`: `market`, bei Umrechnung `derived`; Items per `PricedItemRef` (Basis oder Unique)) | economy, server, crafting-sim |
-| `@exileforge/contracts/craft` | `CraftSimRequest`/`CraftSimResult`, `CraftStrategy`, `CraftGoal`, Werkzeug `craft.simulate` | crafting-sim, server, agents |
-| `@exileforge/contracts/events` | `RunEvent` (Live-Status per SSE, `seq` je Lauf) | server, web |
+| `@astrolabe/contracts/common` | Katalog-IDs (gebrandet je Art), `DataReleaseId`, `PobVersion`, `CalcProfileId`, `CalcId`, Herkunft `Source`, `sourced()`, `measured()`, `CalcRef` | alle |
+| `@astrolabe/contracts/catalog` | `BaseItem`, `Mod`, `UniqueItem`, `Gem`, `PassiveNode` (mit `position.point` und `arcs`), `PassiveGroup`, `CharacterClass`, `Ascendancy`, `CraftingAction`, `StatTranslation`, `DataRelease`, `CatalogManifest`, `CatalogShard`, `CatalogDiff` | data-pipeline, catalog-sdk, ui |
+| `@astrolabe/contracts/calc` | `CalcResult`, `PatchOp`, `CalcMethods` (JSON-RPC: `meta.version`, `build.*`, `calc.*`), `parseCalcParams`, `parseCalcResult` | calc, calc-client, optimizer |
+| `@astrolabe/contracts/build` | `BuildRequest` (S0), `BuildState`, `ItemSpec`, `RichText`, Stufen-Ergebnisse `SkillProfile` (S1), `ArchetypeCandidate`/`ArchetypeEvaluation` (S2/S3), `TargetBuild` (S5), `ProgressionPlan` (S6), `GearPlan` (S7), `CraftingPlan` (S8), `Finding` (mit `returnTo` für den gezielten Rücksprung), `ValidationReport` (S10) | agents, optimizer, crafting-sim, ui |
+| `@astrolabe/contracts/guide` | `GuideDocument` mit den 11 Pflichtbausteinen des Plans, `PublishedGuide` (S11, nur mit bestandenem Prüfbericht) | agents, exporters, ui |
+| `@astrolabe/contracts/forge` | MCP-Werkzeuge `forge.attach/next/submit/ask_user/status`, `ForgeTask`, `ForgeStep`, `UserIntervention` | server, mcp-bridge, llm-gateway |
+| `@astrolabe/contracts/economy` | `PriceBook`, `PriceQuote`, Werkzeug `economy.price` (liefert auch `fetchedAt`, `freshness` fresh/stale und bei stale `refreshError`; Preise als `measured`: `market`, bei Umrechnung `derived`; Items per `PricedItemRef` (Basis oder Unique)) | economy, server, crafting-sim |
+| `@astrolabe/contracts/craft` | `CraftSimRequest`/`CraftSimResult`, `CraftStrategy`, `CraftGoal`, Werkzeug `craft.simulate` | crafting-sim, server, agents |
+| `@astrolabe/contracts/events` | `RunEvent` (Live-Status per SSE, `seq` je Lauf) | server, web |
 
 Fehlende Quelldaten werden nicht erfunden: `BaseItem.dropLevel` und
 `Ascendancy.pointUnlocks` sind optional; Mod-Zeilen, deren Werte sich nicht
@@ -32,7 +32,7 @@ wird `EntityKind` per Vertrags-PR erweitert. Der Zahlen-Linter muss neben
 `text`-Segmenten auch Titel, Stufen-Labels und `forge.ask_user`-Fragen
 prüfen.
 
-Noch offen: IPC Electron-Main ⇄ Renderer, Teilen-Datei `.exileforge.json`,
+Noch offen: IPC Electron-Main ⇄ Renderer, Teilen-Datei `.astrolabe.json`,
 `.build`-Export (eigene Vertrags-PRs, sobald die Konsumenten feststehen).
 
 ## Zahlen in KI-Ausgaben
@@ -91,8 +91,8 @@ geladenen PoB-Daten für Cache-Schlüssel. Feste Protokollgrenzen:
 ## Befehle
 
 ```bash
-pnpm --filter @exileforge/contracts test       # Vertragstests + Schema-Snapshot
-pnpm --filter @exileforge/contracts generate   # schemas/ neu erzeugen (nicht von Hand ändern)
+pnpm --filter @astrolabe/contracts test       # Vertragstests + Schema-Snapshot
+pnpm --filter @astrolabe/contracts generate   # schemas/ neu erzeugen (nicht von Hand ändern)
 ```
 
 Fixtures in `test/fixtures/` sind erfunden (`Fixture/…`) und enthalten kein

@@ -111,7 +111,7 @@ starten in jeder Claude-Code-Session im Repo, lokal wie in der Cloud.
 | **typescript-lsp** (Plugin aus `claude-plugins-official`, `.claude/settings.json`) | eingerichtet | Typfehler, Definitionen und Referenzen direkt nach jedem Edit statt erst bei `pnpm typecheck`. Spart viele Runden in einem strikt typisierten Monorepo. Braucht `typescript-language-server`, das `tools/dev-setup.sh` installiert. |
 | **GitHub** | in Claude-Code-Cloud schon da; lokal Vorschlag | PRs, CI-Logs und Artefakte lesen. Lokal braucht der offizielle GitHub-MCP-Server ein Token, deshalb nicht in `.mcp.json`. Wer lokal will: Plugin `github` aus `claude-plugins-official` mit eigenem Token. |
 | **Context7** (`.mcp.json`, Remote-Server `mcp.context7.com`) | eingerichtet | Aktuelle Doku zu Electron, Vite, Fastify, PixiJS, React Flow, MCP-SDK, Zod statt Modellgedächtnis; passt zur Regel „search-first". Der Gratis-Key kommt nur aus der Umgebungsvariable `CONTEXT7_API_KEY` (nie ins Repo); ohne Key läuft es mit niedrigerem Limit. Key holen: context7.com → Dashboard → API Key. Lokal unter Windows: `setx CONTEXT7_API_KEY "<key>"`, dann Claude neu starten. Cloud: in der Cloud-Umgebung `mcp.context7.com` erlauben und `CONTEXT7_API_KEY` als Variable eintragen. |
-| **ExileForge-MCP selbst** | später | Sobald `apps/server` den MCP-Endpunkt hat, per `claude mcp add --transport http` gegen die laufende App testen (Skill `mcp-server-patterns`). |
+| **Astrolabe-MCP selbst** | später | Sobald `apps/server` den MCP-Endpunkt hat, per `claude mcp add --transport http` gegen die laufende App testen (Skill `mcp-server-patterns`). |
 
 Bewusst weggelassen: Datenbank-MCPs (SQLite ist lokal und klein, Tests
 reichen), Browser-Automatisierung der eigenen Chrome-Instanz (Playwright

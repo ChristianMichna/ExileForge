@@ -28,7 +28,7 @@ describe("claude helpers", () => {
 
   it("builds the Claude Code command with URL and token", () => {
     expect(buildClaudeCodeCommand("http://127.0.0.1:47615", "tok")).toBe(
-      'claude mcp add --transport http exileforge http://127.0.0.1:47615/mcp --header "Authorization: Bearer tok"',
+      'claude mcp add --transport http astrolabe http://127.0.0.1:47615/mcp --header "Authorization: Bearer tok"',
     );
   });
 

@@ -1,6 +1,6 @@
 ---
 name: poe-ui-design
-description: Gestaltet und prüft die ExileForge-Oberfläche im eigenen Dark-Fantasy-Stil für PoE-Spieler – Design-Tokens, Typografie, Item-Karten, Tree-Darstellung, Crafting-Flow, Zahlen mit Herkunft – und erkennt generischen KI-Look. Verwenden beim Anlegen des Design-Systems, bei neuen UI-Komponenten und bei Reviews von Styling-Änderungen in apps/ui.
+description: Gestaltet und prüft die Astrolabe-Oberfläche im eigenen Dark-Fantasy-Stil für PoE-Spieler – Design-Tokens, Typografie, Item-Karten, Tree-Darstellung, Crafting-Flow, Zahlen mit Herkunft – und erkennt generischen KI-Look. Verwenden beim Anlegen des Design-Systems, bei neuen UI-Komponenten und bei Reviews von Styling-Änderungen in apps/ui.
 ---
 
 <!-- Teilweise adaptiert aus everything-claude-code (skills/design-system:

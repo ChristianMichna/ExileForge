@@ -1,9 +1,9 @@
 {
-  "name": "@exileforge/ui",
+  "name": "@astrolabe/ui",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "ExileForge design system: tokens, fonts, ornaments and React components in a custom dark-fantasy style.",
+  "description": "Astrolabe design system: tokens, fonts, ornaments and React components in a custom dark-fantasy style.",
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css"
@@ -17,7 +17,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@exileforge/contracts": "workspace:*",
+    "@astrolabe/contracts": "workspace:*",
     "@fontsource/alegreya-sans": "5.2.5",
     "@fontsource/ibm-plex-mono": "5.2.5",
     "@fontsource/marcellus-sc": "5.2.5",

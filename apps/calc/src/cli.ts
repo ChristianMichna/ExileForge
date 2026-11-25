@@ -6,7 +6,7 @@ import { parseArgs, promisify } from "node:util";
 import { checkGoldenBuilds } from "./golden.ts";
 import { pobInstallFromHome, startCalcPool, type CalcPool } from "./index.ts";
 
-const USAGE = `exileforge-calc <command>   (run from the repository root)
+const USAGE = `astrolabe-calc <command>   (run from the repository root)
 
   stats <file.xml | build code | -> [--profile as-saved] [--main-skill NAME] [--json]
       Calculate one build with Path of Building and print the main stats.

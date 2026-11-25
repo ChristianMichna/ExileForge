@@ -5,16 +5,15 @@ import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 
 /** Shown to Claude (and so to the user) when the app is not reachable. */
 export const APP_NOT_RUNNING =
-  "The ExileForge app is not running or not reachable. Start ExileForge on this computer, then try again.";
+  "The Astrolabe app is not running or not reachable. Start Astrolabe on this computer, then try again.";
 /** The app answered but refused the access token. */
 export const TOKEN_REJECTED =
-  "The ExileForge app refused the access token. Reconnect Claude from the ExileForge app (Connect with Claude), then try again.";
+  "The Astrolabe app refused the access token. Reconnect Claude from the Astrolabe app (Connect with Claude), then try again.";
 /** The token file is unreadable or damaged. */
 export const TOKEN_DAMAGED =
-  "The ExileForge access token on this computer is damaged. Restart the ExileForge app and reconnect Claude from it.";
+  "The Astrolabe access token on this computer is damaged. Restart the Astrolabe app and reconnect Claude from it.";
 /** Anything else the app answered with. */
-export const APP_ERROR =
-  "The ExileForge app answered with an error. Check the app, then try again.";
+export const APP_ERROR = "The Astrolabe app answered with an error. Check the app, then try again.";
 
 /** JSON-RPC server error code for "app not reachable" (implementation-defined range). */
 export const APP_UNREACHABLE_CODE = -32001;
@@ -25,7 +24,7 @@ export interface BridgeLogger {
 
 /**
  * Forwards MCP messages unchanged between Claude Desktop (local, stdio) and
- * the ExileForge app (remote, HTTP on 127.0.0.1). No tool logic, no data of
+ * the Astrolabe app (remote, HTTP on 127.0.0.1). No tool logic, no data of
  * its own. If the app cannot be reached, requests get a clear error instead
  * of hanging; notifications are dropped and logged.
  */
@@ -36,7 +35,7 @@ export async function startBridge(
 ): Promise<{ close(): Promise<void> }> {
   local.onmessage = (message: JSONRPCMessage) => {
     remote.send(message).catch((error: unknown) => {
-      logger.error("forwarding to the ExileForge app failed", { error: describe(error) });
+      logger.error("forwarding to the Astrolabe app failed", { error: describe(error) });
       if ("id" in message && "method" in message) {
         local
           .send({

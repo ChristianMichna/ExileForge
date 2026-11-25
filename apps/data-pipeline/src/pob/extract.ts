@@ -8,7 +8,7 @@ import type { PobSources } from "../config.ts";
 import { buildExtractJob } from "./job.ts";
 
 export const EXTRACT_LUA = fileURLToPath(new URL("../../lua/extract.lua", import.meta.url));
-const OK_MARKER = "@@EXILEFORGE_EXTRACT_OK@@";
+const OK_MARKER = "@@ASTROLABE_EXTRACT_OK@@";
 
 /** Layout of a PoB install as created by tools/setup_pob.sh (or the Windows setup). */
 export interface PobInstall {
@@ -22,11 +22,11 @@ export interface PobInstall {
 export function pobInstallFromHome(pobHome: string): PobInstall {
   const home = resolve(pobHome);
   const srcDir = join(home, "PathOfBuilding-PoE2", "src");
-  const override = process.env.EXILEFORGE_LUAJIT;
+  const override = process.env.ASTROLABE_LUAJIT;
   if (process.platform === "win32") {
     // PoB ships no luajit.exe; our Windows setup (tools/build_windows_luajit.sh,
     // windows-pob.yml) builds one and puts it next to PoB's lua51.dll, the same
-    // place pob_bridge expects it. EXILEFORGE_LUAJIT overrides the path.
+    // place pob_bridge expects it. ASTROLABE_LUAJIT overrides the path.
     return {
       srcDir,
       luajit: override ?? join(home, "PathOfBuilding-PoE2", "runtime", "luajit.exe"),
@@ -88,7 +88,7 @@ export async function extractRaw(
   await mkdir(out, { recursive: true });
   const job = await buildExtractJob(sources, pob.srcDir, out.replaceAll("\\", "/"));
   // the job holds absolute paths, so it stays out of the (hashed) output
-  const jobDir = await mkdtemp(join(tmpdir(), "exileforge-extract-"));
+  const jobDir = await mkdtemp(join(tmpdir(), "astrolabe-extract-"));
   const jobPath = join(jobDir, "job.json");
   let res: Awaited<ReturnType<typeof run>>;
   try {

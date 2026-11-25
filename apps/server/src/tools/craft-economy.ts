@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
 import type { z } from "zod";
-import type { BaseItem, CraftingAction, Mod, PriceBook } from "@exileforge/contracts";
-import type { CraftSimRequest, CraftSimResult, EconomyTools } from "@exileforge/contracts";
+import type { BaseItem, CraftingAction, Mod, PriceBook } from "@astrolabe/contracts";
+import type { CraftSimRequest, CraftSimResult, EconomyTools } from "@astrolabe/contracts";
 import {
   createSimCatalog,
   CraftSimInputError,
   parseCraftSimConfig,
   simulate,
-} from "@exileforge/crafting-sim";
+} from "@astrolabe/crafting-sim";
 import {
   EconomyError,
   EconomyService,
@@ -16,7 +16,7 @@ import {
   parseEconomyConfig,
   parseItemMap,
   PoeNinjaClient,
-} from "@exileforge/economy";
+} from "@astrolabe/economy";
 import { ForgeError } from "../engine/errors.js";
 import type { Logger } from "../logger.js";
 import type { CatalogPort } from "../ports/catalog.js";

@@ -2,9 +2,9 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { RunEvent } from "@exileforge/contracts/events";
-import type { ForgeStep } from "@exileforge/contracts/forge";
-import { ForgeTools } from "@exileforge/contracts/forge";
+import { RunEvent } from "@astrolabe/contracts/events";
+import type { ForgeStep } from "@astrolabe/contracts/forge";
+import { ForgeTools } from "@astrolabe/contracts/forge";
 import { CalcFake } from "../src/calc/calc-fake.js";
 import { PersistedCalc } from "../src/calc/persisted-calc.js";
 import type { ForgeConfig } from "../src/config/forge-config.js";
@@ -372,7 +372,7 @@ describe("forge loop", () => {
   });
 
   it("keeps the run across a restart (SQLite file)", async () => {
-    const dbPath = join(mkdtempSync(join(tmpdir(), "exileforge-db-")), "runs.sqlite");
+    const dbPath = join(mkdtempSync(join(tmpdir(), "astrolabe-db-")), "runs.sqlite");
     const first = setup({ dbPath });
     const { runId, sessionCode } = await first.engine.createRun(REQUEST, "poc");
     const t = task((await first.engine.attach(sessionCode)).next);

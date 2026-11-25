@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CalcProfileId } from "@exileforge/contracts/common";
+import { CalcProfileId } from "@astrolabe/contracts/common";
 
 /** Settings of the pipeline stages; lives versioned in config/agents/stages.json. */
 export const StageConfig = z.object({

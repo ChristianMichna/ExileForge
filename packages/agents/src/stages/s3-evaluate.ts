@@ -1,6 +1,6 @@
-import type { SkillProfile } from "@exileforge/contracts/build";
-import { ArchetypeEvaluation, type ArchetypeCandidate } from "@exileforge/contracts/build";
-import type { JsonValue } from "@exileforge/contracts/common";
+import type { SkillProfile } from "@astrolabe/contracts/build";
+import { ArchetypeEvaluation, type ArchetypeCandidate } from "@astrolabe/contracts/build";
+import type { JsonValue } from "@astrolabe/contracts/common";
 import type { PipelineContext, PlanStep } from "../pipeline.js";
 
 export const S3_KEY = "S3.evaluations";

@@ -1,6 +1,6 @@
-import { BuildState } from "@exileforge/contracts/build";
-import type { BuildFormat } from "@exileforge/contracts/calc";
-import type { CharacterClassId } from "@exileforge/contracts/common";
+import { BuildState } from "@astrolabe/contracts/build";
+import type { BuildFormat } from "@astrolabe/contracts/calc";
+import type { CharacterClassId } from "@astrolabe/contracts/common";
 import type { BaseBuild, BaseBuildProvider } from "./pob-calc.js";
 
 /**

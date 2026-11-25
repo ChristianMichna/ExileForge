@@ -1,1 +1,1 @@
-export type { CalcEngineKind, CalcPort } from "@exileforge/agents";
+export type { CalcEngineKind, CalcPort } from "@astrolabe/agents";

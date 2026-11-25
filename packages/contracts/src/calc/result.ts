@@ -16,7 +16,7 @@ import {
 export const StatMap = z.record(z.string().min(1), z.number());
 export type StatMap = z.infer<typeof StatMap>;
 
-/** Result of one PoB calculation. Every engine number in ExileForge points here via calcId. */
+/** Result of one PoB calculation. Every engine number in Astrolabe points here via calcId. */
 export const CalcResult = z.object({
   calcId: CalcId,
   pobVersion: PobVersion,

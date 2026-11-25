@@ -1,5 +1,5 @@
-import type { ItemTextRenderer } from "@exileforge/calc-client";
-import type { BaseItem, Mod, UniqueItem } from "@exileforge/contracts/catalog";
+import type { ItemTextRenderer } from "@astrolabe/calc-client";
+import type { BaseItem, Mod, UniqueItem } from "@astrolabe/contracts/catalog";
 import type { CatalogPort } from "../ports/catalog.js";
 
 /*
@@ -84,7 +84,7 @@ export function createItemRenderer(catalog: CatalogPort): ItemTextRenderer {
         `Rarity: ${rarity}`,
         ...(rarity === "NORMAL" || rarity === "MAGIC"
           ? [base.name]
-          : [`${base.name} (ExileForge)`, base.name]),
+          : [`${base.name} (Astrolabe)`, base.name]),
         ...(item.itemLevel === undefined ? [] : [`Item Level: ${item.itemLevel}`]),
         `Implicits: ${implicits.length}`,
         ...implicits,

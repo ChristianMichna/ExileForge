@@ -1,10 +1,10 @@
-# ExileForge – Projektplan: KI-Buildgenerator für Path of Exile 2 (1.0)
+# Astrolabe – Projektplan: KI-Buildgenerator für Path of Exile 2 (1.0)
 
 Nov 24, 2026 · @Christian · Arbeitstitel, Konzeptversion 1.0
 
 ## Management Summary
 
-ExileForge ist eine Web-Anwendung, die aus einem einzigen Wunsch des Spielers ("Ich will einen Build um Skill X") einen vollständigen, rechnerisch geprüften Build mit Leveling-, Gear- und Crafting-Guide für Path of Exile 2 erzeugt. Die KI plant und schreibt, aber jede Zahl im Guide stammt aus der echten Path-of-Building-Engine (PoE2-Fork), die headless als Rechendienst läuft.
+Astrolabe ist eine Web-Anwendung, die aus einem einzigen Wunsch des Spielers ("Ich will einen Build um Skill X") einen vollständigen, rechnerisch geprüften Build mit Leveling-, Gear- und Crafting-Guide für Path of Exile 2 erzeugt. Die KI plant und schreibt, aber jede Zahl im Guide stammt aus der echten Path-of-Building-Engine (PoE2-Fork), die headless als Rechendienst läuft.
 
 PoE2 1.0 erscheint am 11. Dezember 2026, also in 17 Tagen. Das ist zu knapp für ein fertiges Produkt zum Launch. Das Ziel bis dahin ist deshalb "Day-0-Readiness": Datenpipeline, Katalog und Rechenkern stehen und können die 1.0-Daten einlesen, sobald das Spiel und das passende PoB-Release verfügbar sind. Der KI-Buildgenerator folgt in den Wochen danach.
 
@@ -37,7 +37,7 @@ Vier externe Fakten bestimmen die Architektur: der 1.0-Umfang, die Anthropic-Reg
 
 ### Rahmenbedingungen und ihre Konsequenzen
 
-| Thema | Fakt | Konsequenz für ExileForge |
+| Thema | Fakt | Konsequenz für Astrolabe |
 | --- | --- | --- |
 | Claude-Abo in Fremd-Apps | Anthropic erlaubt Drittentwicklern nicht, Claude.ai-Login anzubieten oder Anfragen über Free/Pro/Max-Zugangsdaten für ihre Nutzer zu leiten; Credentials oder Session-Tokens dürfen nicht gesammelt, gespeichert oder durchgereicht werden ([Legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)). | Die Website bekommt **keinen** "Mit Claude anmelden"-Button. Abo-Nutzung nur über Anthropic-eigene Clients (MCP-Server-Modus) oder den unveränderten Claude-Code-Binary, in den sich der Nutzer selbst einloggt. Details im Abschnitt KI-Schicht. |
 | Claude Code in Produkten | Erlaubt unter den Commercial Terms, wenn der Binary unverändert läuft und jeder Endnutzer mit eigenem API-Key oder eigenem Abo authentifiziert ([Legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)). | Option "Lokaler Modus / Self-Hosted" ist zulässig, muss aber vor dem öffentlichen Betrieb rechtlich geprüft werden. |
@@ -51,15 +51,15 @@ Vier externe Fakten bestimmen die Architektur: der 1.0-Umfang, die Anthropic-Reg
 
 ### Zeitliche Ausgangslage
 
-PoB-PoE2 muss für 1.0 selbst erst aktualisiert werden (neuer Tree, neue Klassen, neue Mechaniken wie Stances). Bis dieses Update erscheint, kann ExileForge für 1.0 nichts zuverlässig berechnen. Die Roadmap plant diese Abhängigkeit ausdrücklich ein.
+PoB-PoE2 muss für 1.0 selbst erst aktualisiert werden (neuer Tree, neue Klassen, neue Mechaniken wie Stances). Bis dieses Update erscheint, kann Astrolabe für 1.0 nichts zuverlässig berechnen. Die Roadmap plant diese Abhängigkeit ausdrücklich ein.
 
 ## Produktvision, Zielgruppen & User Journeys
 
-Vision: "Von der Skill-Idee zum spielbaren, durchgerechneten Build in einer Sitzung, inklusive des Weges dorthin." ExileForge ersetzt nicht Path of Building, sondern übernimmt die Arbeit, die heute zwischen PoB, Trade-Seite, Wiki und Content-Creator-Guides verteilt ist.
+Vision: "Von der Skill-Idee zum spielbaren, durchgerechneten Build in einer Sitzung, inklusive des Weges dorthin." Astrolabe ersetzt nicht Path of Building, sondern übernimmt die Arbeit, die heute zwischen PoB, Trade-Seite, Wiki und Content-Creator-Guides verteilt ist.
 
 ### Zielgruppen
 
-| Persona | Bedarf | Was ExileForge liefert |
+| Persona | Bedarf | Was Astrolabe liefert |
 | --- | --- | --- |
 | Theorycrafter | Ungewöhnliche Skills ausprobieren, schnell die Decke eines Archetyps finden | Mehrere Archetypen pro Skill mit verifizierten Zahlen, editierbare PoB-Exporte, Sensitivitätsanalysen |
 | League-Starter | Ein sicherer Start ohne viel Handel, klarer Leveling-Pfad | Kampagnen-Plan Akt 1–6, Budget-Stufen, SSF-taugliche Varianten |
@@ -161,7 +161,7 @@ Gewichtete Punkte für Abdeckung und Tiefe: Begründungsdichte je Entscheidung, 
 
 ## Systemarchitektur
 
-ExileForge besteht aus sechs Diensten um zwei gemeinsame Wahrheiten herum: den versionierten Katalog und den Calc-Service. Alles ist TypeScript außer dem PoB-Kern (Lua), damit Schemas einmal definiert und überall typsicher genutzt werden.
+Astrolabe besteht aus sechs Diensten um zwei gemeinsame Wahrheiten herum: den versionierten Katalog und den Calc-Service. Alles ist TypeScript außer dem PoB-Kern (Lua), damit Schemas einmal definiert und überall typsicher genutzt werden.
 
 &#91;embedded content: Systemarchitektur · 11 Bausteine, 2 gemeinsame Datenquellen\]
 
@@ -188,7 +188,7 @@ Web und MCP sind zwei gleichwertige Eingänge in dieselbe Pipeline; Katalog und 
 ### Repository-Struktur
 
 ```
-exileforge/
+astrolabe/
   apps/
     web/              Next.js-Frontend
     api/              öffentliche REST-API (Fastify)
@@ -259,7 +259,7 @@ Neben den Strukturdaten gibt es eine versionierte Wissensbasis (Postgres + pgvec
 
 ## Rechenkern: Path of Building PoE2 headless
 
-Der Calc-Service führt eine unveränderte PoB-PoE2-Version als Pool von LuaJIT-Prozessen aus und bietet ihre Rechenlogik über JSON-RPC an. Die Machbarkeit ist durch bestehende Projekte belegt: [pob2-mcp](https://glama.ai/mcp/servers/o6yigxw097) treibt einen unveränderten PoB-PoE2-Checkout über eine eigene `bootstrap.lua` und eine JSON-Brücke an, und [pob-mcp](https://mcpservers.org/id/servers/juddisjudd/pob-mcp) bringt einen eigenen HeadlessWrapper mit, weil installierte PoB-Releases diesen nicht enthalten. ExileForge übernimmt dieses Muster, schreibt die Brücke aber selbst für Durchsatz und Batch-Betrieb.
+Der Calc-Service führt eine unveränderte PoB-PoE2-Version als Pool von LuaJIT-Prozessen aus und bietet ihre Rechenlogik über JSON-RPC an. Die Machbarkeit ist durch bestehende Projekte belegt: [pob2-mcp](https://glama.ai/mcp/servers/o6yigxw097) treibt einen unveränderten PoB-PoE2-Checkout über eine eigene `bootstrap.lua` und eine JSON-Brücke an, und [pob-mcp](https://mcpservers.org/id/servers/juddisjudd/pob-mcp) bringt einen eigenen HeadlessWrapper mit, weil installierte PoB-Releases diesen nicht enthalten. Astrolabe übernimmt dieses Muster, schreibt die Brücke aber selbst für Durchsatz und Batch-Betrieb.
 
 ### Aufbau
 
@@ -293,7 +293,7 @@ Zahlen sind nur vergleichbar, wenn die Gegner- und Situationsannahmen fest sind.
 ### Grenzen und Umgang damit
 
 - PoB unterstützt nicht jede Mechanik vollständig. `calc.validate` liefert die Liste nicht geparster Mods; der Guide weist sie aus, und die KI darf zu diesen Effekten keine Zahlen behaupten.
-- PoB-PoE2 braucht nach einem großen Patch Zeit für Updates. Bis zum passenden Release ist ExileForge für diese Version im Modus "Katalog only".
+- PoB-PoE2 braucht nach einem großen Patch Zeit für Updates. Bis zum passenden Release ist Astrolabe für diese Version im Modus "Katalog only".
 - Gefundene Rechenfehler werden als Issue oder PR an das PoB-Projekt gemeldet, nicht lokal gepatcht.
 
 ### Upgrade-Ablauf für neue PoB-Releases
@@ -311,11 +311,11 @@ Die Pipeline spricht nie direkt mit einem Anbieter, sondern mit dem `llm-gateway
 | Modus | Wie es funktioniert | Wer zahlt | Regelkonformität |
 | --- | --- | --- | --- |
 | A. BYOK (Website) | Nutzer hinterlegt API-Key eines Anbieters: Anthropic, OpenAI, Google, OpenRouter oder einen OpenAI-kompatiblen Endpunkt (z. B. lokales Ollama/vLLM). Die Pipeline läuft serverseitig. | Nutzer über seinen Anbieter | Unkritisch. Max-, Ultra- und Team-Abonnenten können die monatlichen API-Credits ihres Abos über einen Console-Key nutzen. |
-| B. MCP (Abo-kompatibel) | ExileForge stellt einen Remote-MCP-Server bereit. Nutzer verbindet ihn als Connector in claude.ai, Claude Desktop oder Claude Code. Claude führt die Pipeline, ExileForge liefert Tools, Daten, Rechnungen und Gates. | Nutzer über sein Claude-Abo | Konform: Anmeldung und Abrechnung bleiben vollständig bei Anthropic, ExileForge sieht keine Zugangsdaten. |
+| B. MCP (Abo-kompatibel) | Astrolabe stellt einen Remote-MCP-Server bereit. Nutzer verbindet ihn als Connector in claude.ai, Claude Desktop oder Claude Code. Claude führt die Pipeline, Astrolabe liefert Tools, Daten, Rechnungen und Gates. | Nutzer über sein Claude-Abo | Konform: Anmeldung und Abrechnung bleiben vollständig bei Anthropic, Astrolabe sieht keine Zugangsdaten. |
 | C. Lokal / Self-Hosted | Docker-Compose-Paket auf dem Rechner des Nutzers. Die Worker können den unveränderten Claude-Code-CLI (`claude -p`) nutzen, in den sich der Nutzer selbst über Anthropics Flow eingeloggt hat. | Nutzer über sein Abo | Für eigenen Gebrauch vorgesehen. Wer das Paket als Produkt verteilt, muss die Bedingungen für Claude Code in Produkten erfüllen (unveränderter Binary, eigene Authentifizierung pro Nutzer). Vor Veröffentlichung rechtlich prüfen. |
 | D. Betreiber-Key (optional) | Kontingentierter Gratis-Zugang mit günstigem Modell für Einsteiger. | Betreiber | Unkritisch, aber Kostenrisiko. Nur mit hartem Tages-Budget. |
 
-**Modus B im Detail:** Der MCP-Server bietet neben Einzel-Tools einen geführten Workflow: `forge.start(skillId, preferences)` legt serverseitig einen Pipeline-Zustand an und gibt die nächste Aufgabe mit Anweisungen zurück; jedes `forge.submit(stage, payload)` wird validiert (Schema + Gates) und liefert die nächste Aufgabe oder konkrete Korrekturhinweise. So bleibt die Qualitätskontrolle bei ExileForge, auch wenn das Modell im Client läuft. Der fertige Guide erscheint als Link auf der Website.
+**Modus B im Detail:** Der MCP-Server bietet neben Einzel-Tools einen geführten Workflow: `forge.start(skillId, preferences)` legt serverseitig einen Pipeline-Zustand an und gibt die nächste Aufgabe mit Anweisungen zurück; jedes `forge.submit(stage, payload)` wird validiert (Schema + Gates) und liefert die nächste Aufgabe oder konkrete Korrekturhinweise. So bleibt die Qualitätskontrolle bei Astrolabe, auch wenn das Modell im Client läuft. Der fertige Guide erscheint als Link auf der Website.
 
 ### Modell-Routing
 
@@ -469,11 +469,11 @@ Der wertvollste Export ist die `.build`-Datei, weil der Spieler den Guide damit 
 
 | Export / Integration | Inhalt | Hinweise |
 | --- | --- | --- |
-| `.build` (In-Game Build Planner) | Passives mit `level_interval` und `weapon_set`, Skills mit Supports und Level-Intervallen, Inventar-Hinweise je Slot, Notizen in der Markup-Syntax des Formats | Format ist "Version 1 (Experimental)"; Meta-Gems werden nicht unterstützt; IDs gegen die Tabellen prüfen, da das offizielle Beispiel uneinheitliche Pfade enthält. Export-Tests gegen das Schema in CI. Der Nutzer legt die Datei selbst in den BuildPlanner-Ordner; ExileForge schreibt nichts in Spielverzeichnisse. |
+| `.build` (In-Game Build Planner) | Passives mit `level_interval` und `weapon_set`, Skills mit Supports und Level-Intervallen, Inventar-Hinweise je Slot, Notizen in der Markup-Syntax des Formats | Format ist "Version 1 (Experimental)"; Meta-Gems werden nicht unterstützt; IDs gegen die Tabellen prüfen, da das offizielle Beispiel uneinheitliche Pfade enthält. Export-Tests gegen das Schema in CI. Der Nutzer legt die Datei selbst in den BuildPlanner-Ordner; Astrolabe schreibt nichts in Spielverzeichnisse. |
 | PoB-Code je Stufe | Vollständiger PoB-Export pro Progressionsstufe | Aus dem Calc-Service, damit identisch mit den angezeigten Zahlen |
 | Markdown / PDF | Lesbarer Guide für Foren, Discord, Druck | PDF serverseitig gerendert |
 | Öffentlicher Guide-Link | Teilbare Seite mit Versionsstempel | Mit "veraltet"-Banner, wenn die Revalidierung Abweichungen meldet |
-| MCP-Server | Tools: Katalog, Calc, Optimierer, Crafting, Guide-Workflow; Ressourcen: Daten-Release-Infos | stdio für lokal, Streamable HTTP für Remote; Nutzer-Authentifizierung beim ExileForge-Konto per OAuth des eigenen Dienstes |
+| MCP-Server | Tools: Katalog, Calc, Optimierer, Crafting, Guide-Workflow; Ressourcen: Daten-Release-Infos | stdio für lokal, Streamable HTTP für Remote; Nutzer-Authentifizierung beim Astrolabe-Konto per OAuth des eigenen Dienstes |
 | Öffentliche REST-API (später) | Lesender Katalog-Zugriff für Community-Tools | Rate Limits, API-Keys, gleiche Daten-Releases |
 | Import | PoB-Code, pobb.in-Link, `.build`-Datei | OAuth-Charakterimport erst, wenn GGG Registrierungen wieder annimmt |
 
@@ -599,7 +599,7 @@ Diese Punkte muss der Projektinhaber vor oder während Phase 0 entscheiden; die 
 - [ ] **Betreiber-Key (Modus D):** Gratis-Kontingent ja oder nein, und mit welchem Tagesbudget?
 - [ ] **Standardmodell und Standardanbieter** für BYOK-Empfehlungen; Annahme: Anthropic als Referenz, finale Empfehlung aus dem Modellvergleich.
 - [ ] **Sprache:** UI zunächst Deutsch und Englisch? Guides in der Sprache des Nutzers? Annahme: Englisch zuerst (Spielbegriffe), Deutsch als zweite Sprache.
-- [ ] **Projektname** und Domain ("ExileForge" ist ein Arbeitstitel; Markenprüfung nötig).
+- [ ] **Projektname** und Domain ("Astrolabe" ist ein Arbeitstitel; Markenprüfung nötig).
 - [ ] **Kooperationen:** Anfrage an die Betreiber von poe2db und an das PoB-Team (Feedback, Datenaustausch, gegenseitige Verlinkung)?
 - [ ] **Hosting-Budget** für Calc-Worker in der Launch-Phase.
 

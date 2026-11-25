@@ -21,6 +21,6 @@ describe("access token", () => {
   });
 
   it("uses %APPDATA% on Windows-style environments", () => {
-    expect(defaultTokenFile({ APPDATA: "C:\\Users\\x\\AppData\\Roaming" })).toContain("ExileForge");
+    expect(defaultTokenFile({ APPDATA: "C:\\Users\\x\\AppData\\Roaming" })).toContain("Astrolabe");
   });
 });

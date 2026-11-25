@@ -1,4 +1,4 @@
-import type { PriceBook } from "@exileforge/contracts";
+import type { PriceBook } from "@astrolabe/contracts";
 import type { EconomyConfig, ItemMap } from "../src/index.js";
 import type { ExchangeOverviewResponse } from "../src/provider.js";
 

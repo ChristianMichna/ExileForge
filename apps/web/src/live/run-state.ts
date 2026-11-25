@@ -1,4 +1,4 @@
-import type { RunEvent } from "@exileforge/contracts/events";
+import type { RunEvent } from "@astrolabe/contracts/events";
 
 /** What the status strip shows about a run, derived from its event stream only. */
 export interface RunLive {

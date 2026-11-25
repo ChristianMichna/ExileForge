@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { BuildState } from "@exileforge/contracts/build";
-import type { CalcMethodName, CalcParams, CalcResult } from "@exileforge/contracts/calc";
-import { CalcId, PobVersion, Sha256 } from "@exileforge/contracts/common";
+import { BuildState } from "@astrolabe/contracts/build";
+import type { CalcMethodName, CalcParams, CalcResult } from "@astrolabe/contracts/calc";
+import { CalcId, PobVersion, Sha256 } from "@astrolabe/contracts/common";
 import { PobCalc, type CalcRequester } from "../src/calc/pob-calc.js";
 import { createMemoryLogger } from "../src/logger.js";
 import { RELEASE } from "./fixtures.js";

@@ -8,13 +8,13 @@ const TOKEN_PATTERN = /^[0-9a-f]{64}$/;
 
 /**
  * Default location of the access token, shared with the .mcpb bridge:
- * %APPDATA%\ExileForge\access-token on Windows, ~/.config/exileforge elsewhere.
+ * %APPDATA%\Astrolabe\access-token on Windows, ~/.config/astrolabe elsewhere.
  */
 export function defaultTokenFile(env: Record<string, string | undefined> = process.env): string {
   const appData = env["APPDATA"];
   return appData !== undefined && appData !== ""
-    ? join(appData, "ExileForge", "access-token")
-    : join(homedir(), ".config", "exileforge", "access-token");
+    ? join(appData, "Astrolabe", "access-token")
+    : join(homedir(), ".config", "astrolabe", "access-token");
 }
 
 /** Reads the per-installation token, creating it (owner-only file) on first start. */

@@ -1,9 +1,9 @@
 {
-  "name": "@exileforge/optimizer",
+  "name": "@astrolabe/optimizer",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Deterministic optimizers of ExileForge (F-09): passive tree search and progression order, scored only by Path of Building calculations.",
+  "description": "Deterministic optimizers of Astrolabe (F-09): passive tree search and progression order, scored only by Path of Building calculations.",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,7 +19,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@exileforge/contracts": "workspace:*",
+    "@astrolabe/contracts": "workspace:*",
     "zod": "4.6.7"
   },
   "devDependencies": {

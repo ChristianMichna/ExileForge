@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { Badge, Button, Callout, Panel } from "@exileforge/ui";
-import { BuildRequest } from "@exileforge/contracts/build";
+import { Badge, Button, Callout, Panel } from "@astrolabe/ui";
+import { BuildRequest } from "@astrolabe/contracts/build";
 import { ApiError, createRun, type CreatedRun } from "../api/client";
 import intake from "../config/intake-defaults.json";
 import { getDesktopBridge, type OpenClaudeResult } from "../desktop/bridge";
@@ -9,7 +9,7 @@ import { useRunEvents } from "../live/useRunEvents";
 import { PageHeader } from "../shell/PageHeader";
 import { RunStatusPanel } from "./RunStatusPanel";
 
-const RUN_KEY = "exileforge.activeRunId";
+const RUN_KEY = "astrolabe.activeRunId";
 
 function loadRunId(): string | undefined {
   try {
@@ -39,7 +39,7 @@ export function PlanWithClaude() {
       />
       {desktop.kind === "browser" ? (
         <Callout tone="warning" title="Planning needs the desktop app">
-          This page runs in a normal browser. Open ExileForge from its installer or the desktop
+          This page runs in a normal browser. Open Astrolabe from its installer or the desktop
           shortcut to plan builds.
         </Callout>
       ) : desktop.kind === "loading" ? (
@@ -304,7 +304,7 @@ function ConnectClaude({ runId, created }: { runId: string; created: CreatedRun 
     <Panel kicker="Step 2" title="Connect Claude">
       <div className="connect">
         <p>
-          Claude Desktop does the planning. ExileForge checks every answer with Path of Building and
+          Claude Desktop does the planning. Astrolabe checks every answer with Path of Building and
           sends it back if something does not hold.
         </p>
         <div className="connect__actions">

@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { BuildRequest, CalcOutcome, Finding, RichText } from "@exileforge/contracts/build";
-import type { CalcProfileId, JsonValue } from "@exileforge/contracts/common";
-import type { RunEvent } from "@exileforge/contracts/events";
+import type { BuildRequest, CalcOutcome, Finding, RichText } from "@astrolabe/contracts/build";
+import type { CalcProfileId, JsonValue } from "@astrolabe/contracts/common";
+import type { RunEvent } from "@astrolabe/contracts/events";
 import {
   RunId,
   type ForgeStep,
@@ -12,9 +12,9 @@ import {
   type SessionCode,
   TaskId,
   type UserIntervention,
-} from "@exileforge/contracts/forge";
+} from "@astrolabe/contracts/forge";
 import type { ForgeConfig } from "../config/forge-config.js";
-import type { SkeletonPort, TargetPort } from "@exileforge/agents";
+import type { SkeletonPort, TargetPort } from "@astrolabe/agents";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { RunStore } from "../store/run-store.js";
@@ -261,7 +261,7 @@ export class ForgeEngine {
     if (this.attachFailures.length >= this.options.config.attachFailuresPerMinute) {
       throw new ForgeError(
         "too_many_attempts",
-        "Too many wrong session codes. Wait a minute and use the code shown in the ExileForge app.",
+        "Too many wrong session codes. Wait a minute and use the code shown in the Astrolabe app.",
       );
     }
     const record = this.options.store.findBySessionCode(code);
@@ -269,13 +269,13 @@ export class ForgeEngine {
       this.attachFailures.push(nowMs);
       throw new ForgeError(
         "unknown_session_code",
-        "Unknown session code. Copy the current code from the ExileForge app.",
+        "Unknown session code. Copy the current code from the Astrolabe app.",
       );
     }
     if (Date.parse(record.sessionCode.expiresAt) < this.now().getTime()) {
       throw new ForgeError(
         "session_code_expired",
-        "The session code has expired. Ask the user for a new code from the ExileForge app.",
+        "The session code has expired. Ask the user for a new code from the Astrolabe app.",
       );
     }
     return this.mutate(record.runId, async (tx) => {
@@ -413,13 +413,13 @@ export class ForgeEngine {
         };
       }
       if (r.phase === "paused") {
-        return this.wait("The user paused the run in the ExileForge app. Call forge_next again.");
+        return this.wait("The user paused the run in the Astrolabe app. Call forge_next again.");
       }
       const open = r.asks.find((a) => a.answer === undefined);
       if (open !== undefined) {
         tx.setPhase("waiting_user");
         return this.wait(
-          `Waiting for the user to answer in the ExileForge app: ${open.question} Call forge_next again.`,
+          `Waiting for the user to answer in the Astrolabe app: ${open.question} Call forge_next again.`,
         );
       }
 
@@ -439,7 +439,7 @@ export class ForgeEngine {
         case "job": {
           tx.setPhase("planning");
           if (this.jobs.get(r.runId)?.key !== step.key) this.startJob(r, step);
-          return this.wait(`ExileForge is working: ${step.label}. Call forge_next again.`);
+          return this.wait(`Astrolabe is working: ${step.label}. Call forge_next again.`);
         }
         case "wait_user":
           tx.setPhase("waiting_user");

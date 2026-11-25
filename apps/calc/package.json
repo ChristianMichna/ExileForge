@@ -1,5 +1,5 @@
 {
-  "name": "@exileforge/calc",
+  "name": "@astrolabe/calc",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,7 +11,7 @@
     }
   },
   "bin": {
-    "exileforge-calc": "./dist/cli.js"
+    "astrolabe-calc": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -24,7 +24,7 @@
     "cli": "node --experimental-strip-types src/cli.ts"
   },
   "dependencies": {
-    "@exileforge/contracts": "workspace:*",
+    "@astrolabe/contracts": "workspace:*",
     "zod": "4.6.7"
   },
   "devDependencies": {

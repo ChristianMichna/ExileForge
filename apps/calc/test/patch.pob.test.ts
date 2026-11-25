@@ -3,7 +3,7 @@ import {
   type BuildHandle,
   type CalcResult,
   type PatchOp,
-} from "@exileforge/contracts";
+} from "@astrolabe/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CalcPool } from "../src/index.ts";
 import { golden, havePob, startPobPool } from "./pob-setup.ts";
@@ -152,7 +152,7 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
       ops([
         {
           op: "setSkill",
-          groupKey: "exileforge-test",
+          groupKey: "astrolabe-test",
           gemId: facts.gemId,
           level: 1,
           quality: 0,
@@ -160,11 +160,11 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
         },
       ]),
     );
-    const res = await stats(handle, "as-saved", "exileforge-test");
-    expect(res.mainSkill).toBe("exileforge-test");
+    const res = await stats(handle, "as-saved", "astrolabe-test");
+    expect(res.mainSkill).toBe("astrolabe-test");
     expect(res.stats.CombinedDPS).toBeGreaterThan(0);
     expect(res.stats.CombinedDPS).not.toBe(baseResult.stats.CombinedDPS);
-    const removed = await patch(ops([{ op: "removeSkill", groupKey: "exileforge-test" }]), handle);
+    const removed = await patch(ops([{ op: "removeSkill", groupKey: "astrolabe-test" }]), handle);
     expect((await stats(removed.handle)).stats).toEqual(baseResult.stats);
   });
 
@@ -205,7 +205,7 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
       [
         {
           op: "setSkill",
-          groupKey: "exileforge-test",
+          groupKey: "astrolabe-test",
           gemId: facts.gemId,
           level: 1,
           quality: 0,
@@ -249,7 +249,7 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
       metrics,
       candidates: [
         { key: "level", ops: ops([{ op: "setLevel", level: 61 }]) },
-        { key: "broken", ops: ops([{ op: "setClass", classId: "exileforge-no-such-class" }]) },
+        { key: "broken", ops: ops([{ op: "setClass", classId: "astrolabe-no-such-class" }]) },
       ],
     });
     expect(res.base.calcId).toBe(baseResult.calcId);
@@ -332,7 +332,7 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
       template.payload,
     );
     await expect(
-      pool.baseBuild(CharacterClassId.parse("exileforge-no-such-class")),
+      pool.baseBuild(CharacterClassId.parse("astrolabe-no-such-class")),
     ).rejects.toMatchObject({
       kind: "invalid_params",
     });
@@ -358,14 +358,14 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
         ],
         /op 2 \(allocateNodes\)/,
       ],
-      [[{ op: "setClass", classId: "exileforge-no-such-class" }], /op 1 \(setClass\)/],
-      [[{ op: "setAscendancy", ascendancyId: "exileforge-no-such-ascendancy" }], /op 1/],
+      [[{ op: "setClass", classId: "astrolabe-no-such-class" }], /op 1 \(setClass\)/],
+      [[{ op: "setAscendancy", ascendancyId: "astrolabe-no-such-ascendancy" }], /op 1/],
       [
         [
           {
             op: "setSkill",
             groupKey: "x",
-            gemId: "exileforge/no-such-gem",
+            gemId: "astrolabe/no-such-gem",
             level: 1,
             quality: 0,
             supports: [],
@@ -373,8 +373,8 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
         ],
         /op 1/,
       ],
-      [[{ op: "removeSkill", groupKey: "exileforge-no-such-group" }], /op 1/],
-      [[{ op: "setItem", slot: "exileforge-no-such-slot", itemText: "x" }], /op 1/],
+      [[{ op: "removeSkill", groupKey: "astrolabe-no-such-group" }], /op 1/],
+      [[{ op: "setItem", slot: "astrolabe-no-such-slot", itemText: "x" }], /op 1/],
       [[{ op: "allocateNodes", nodeIds: [facts.nodes[0] ?? ""], weaponSet: 7 }], /op 1/],
       [[{ op: "setLevel", level: 101 }], /op 1/],
       [
@@ -392,8 +392,8 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
         /op 1/,
       ],
       [[{ op: "setItem", slot: facts.slots[0]?.name ?? "", itemText: "not an item" }], /op 1/],
-      [[{ op: "setConfig", key: "exileforgeNoSuchOption", value: true }], /op 1/],
-      [[{ op: "setConfig", key: "enemyIsBoss", value: "exileforge-no-such-value" }], /op 1/],
+      [[{ op: "setConfig", key: "astrolabeNoSuchOption", value: true }], /op 1/],
+      [[{ op: "setConfig", key: "enemyIsBoss", value: "astrolabe-no-such-value" }], /op 1/],
     ];
     for (const [o, detail] of bad) {
       await expect(patch(ops(o))).rejects.toMatchObject({

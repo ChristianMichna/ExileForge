@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CraftingRule } from "@exileforge/contracts";
+import type { CraftingRule } from "@astrolabe/contracts";
 
 /*
  * Vocabulary of crafting rule ops (CraftingRule.op + params). This package

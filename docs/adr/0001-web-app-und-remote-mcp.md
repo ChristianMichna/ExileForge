@@ -17,7 +17,7 @@ Connector verbinden.
 
 ## Entscheidung
 
-1. ExileForge ist eine **Web-App** (Next.js) mit API und Calc-Service auf einem
+1. Astrolabe ist eine **Web-App** (Next.js) mit API und Calc-Service auf einem
    Server in der EU, wie im Projektplan beschrieben.
 2. Die Abo-Nutzung läuft über einen **Remote-MCP-Server** (Streamable HTTP), den
    jeder Freund einmal als Connector in claude.ai einträgt. Das eigene Frontend

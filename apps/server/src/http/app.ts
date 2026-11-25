@@ -2,9 +2,9 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
-import { BuildRequest } from "@exileforge/contracts/build";
-import type { RunEvent } from "@exileforge/contracts/events";
-import { UserIntervention } from "@exileforge/contracts/forge";
+import { BuildRequest } from "@astrolabe/contracts/build";
+import type { RunEvent } from "@astrolabe/contracts/events";
+import { UserIntervention } from "@astrolabe/contracts/forge";
 import { ForgeError } from "../engine/errors.js";
 import type { ForgeEngine } from "../engine/forge-engine.js";
 import type { Logger } from "../logger.js";
@@ -75,7 +75,7 @@ export function createApp(options: AppOptions): FastifyInstance {
         error: {
           code: "unauthorized",
           message:
-            "Missing or wrong ExileForge access token. Reconnect Claude from the ExileForge app.",
+            "Missing or wrong Astrolabe access token. Reconnect Claude from the Astrolabe app.",
         },
       });
     }

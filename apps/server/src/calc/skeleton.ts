@@ -4,7 +4,7 @@ import type {
   TargetPort,
   TargetRequest,
   TargetTree,
-} from "@exileforge/agents";
+} from "@astrolabe/agents";
 import {
   optimizeTree,
   TreeGraph,
@@ -12,11 +12,11 @@ import {
   type CalcRequester as OptimizerPool,
   type OptimizerConfig,
   type TreeOptimizeResult,
-} from "@exileforge/optimizer";
-import { ArchetypeEvaluation, BuildState } from "@exileforge/contracts/build";
-import type { CharacterClass, PassiveNode } from "@exileforge/contracts/catalog";
-import type { PassiveNodeId } from "@exileforge/contracts/common";
-import type { CalcProfileId } from "@exileforge/contracts/common";
+} from "@astrolabe/optimizer";
+import { ArchetypeEvaluation, BuildState } from "@astrolabe/contracts/build";
+import type { CharacterClass, PassiveNode } from "@astrolabe/contracts/catalog";
+import type { PassiveNodeId } from "@astrolabe/contracts/common";
+import type { CalcProfileId } from "@astrolabe/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { Logger } from "../logger.js";

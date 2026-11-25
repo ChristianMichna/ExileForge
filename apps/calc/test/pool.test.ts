@@ -6,7 +6,7 @@ import {
   PassiveNodeId,
   type CalcMethodName,
   type CalcParams,
-} from "@exileforge/contracts";
+} from "@astrolabe/contracts";
 import {
   CalcPool,
   CalcServiceError,

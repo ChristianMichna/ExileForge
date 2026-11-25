@@ -1,4 +1,4 @@
-import type { PassiveNodeId } from "@exileforge/contracts";
+import type { PassiveNodeId } from "@astrolabe/contracts";
 
 /** PoB output values of one tree state, keyed by PoB metric name. */
 export type Metrics = Readonly<Record<string, number>>;

@@ -5,7 +5,7 @@ import {
   loadOrCreateAccessToken,
   startServer,
   type Logger,
-} from "@exileforge/server";
+} from "@astrolabe/server";
 
 const Health = z.object({
   calcEngine: z.enum(["fake", "pob"]),
@@ -57,7 +57,7 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
       throw new Error(
-        `Port ${options.port} is already in use. Close the other program or ExileForge window that uses it.`,
+        `Port ${options.port} is already in use. Close the other program or Astrolabe window that uses it.`,
         { cause: error },
       );
     }

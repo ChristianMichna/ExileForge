@@ -1,9 +1,9 @@
-# @exileforge/calc
+# @astrolabe/calc
 
 Calc-Service (F-04, WS2): ein Pool dauerhaft laufender LuaJIT-Prozesse mit dem
 unveränderten, gepinnten Path of Building (PoE2), gesteuert von einem
 Node-Supervisor in TypeScript. Er erfüllt den Calc-RPC-Vertrag aus
-`@exileforge/contracts` (`CalcMethods`) und löst zur Laufzeit den
+`@astrolabe/contracts` (`CalcMethods`) und löst zur Laufzeit den
 Python-Wrapper `pob_bridge` ab: Nutzer brauchen kein Python.
 
 Jede Zahl kommt aus PoB. Der Supervisor rechnet keine Spielwerte, er
@@ -27,7 +27,7 @@ den Vertrag.
 ## Benutzung
 
 ```ts
-import { startCalcPool } from "@exileforge/calc";
+import { startCalcPool } from "@astrolabe/calc";
 
 const pool = await startCalcPool({ root: "." }); // config/ und .pob/ unter root
 const { handle } = await pool.request("build.load", { format: "code", payload: code });
@@ -43,7 +43,7 @@ Ergebnis mit den Zod-Schemas des Vertrags. Fehler sind `CalcServiceError` mit
 `build_load_failed`, `calc_failed`, `timeout`, `worker_crashed`,
 `protocol_mismatch`, `unknown_method`).
 
-Kommandozeile (aus dem Repo-Wurzelverzeichnis, nach `pnpm --filter @exileforge/calc build`):
+Kommandozeile (aus dem Repo-Wurzelverzeichnis, nach `pnpm --filter @astrolabe/calc build`):
 
 ```bash
 node apps/calc/dist/cli.js stats tests/fixtures/witch_spark_lvl60.xml
@@ -60,12 +60,12 @@ CalcPool (Node)                         PobWorker × N (LuaJIT, cwd = PoB/src)
    ├ Zod-Prüfung (Vertrag)                  ├ HeadlessWrapper.lua (PoB, einmal geladen)
    ├ Build-Code ⇄ XML (zlib)   ──JSON-RPC──▶ ├ build.load / export / release
    ├ Handle-Register (XML je Handle)  stdin  ├ calc.stats (+ Profil, mainSkill)
-   ├ Warteschlange, Worker-Wahl      ◀────── └ Antwortzeilen mit @@EXILEFORGE_RPC@@
+   ├ Warteschlange, Worker-Wahl      ◀────── └ Antwortzeilen mit @@ASTROLABE_RPC@@
    └ Timeout, Neustart, Recycling     stdout   (PoB-Logs → stderr)
 ```
 
 - **Protokoll:** JSON-RPC 2.0, ein JSON-Objekt pro Zeile. Antworten tragen den
-  Präfix `@@EXILEFORGE_RPC@@`, weil PoB selbst auf stdout schreiben kann;
+  Präfix `@@ASTROLABE_RPC@@`, weil PoB selbst auf stdout schreiben kann;
   `print()` leitet der Worker auf stderr um. Beim Start fragt der Supervisor
   `meta.version` ab und lehnt eine andere `CALC_PROTOCOL_VERSION` ab.
 - **Ein Auftrag pro Worker:** PoB hat genau ein Build-Objekt. Der Supervisor
@@ -251,7 +251,7 @@ Aufgabe der nächsten PRs. `workerMemoryMb` steht auf 500.
 ## Tests
 
 ```bash
-pnpm --filter @exileforge/calc test
+pnpm --filter @astrolabe/calc test
 ```
 
 - `test/pool.test.ts`: Supervisor gegen einen Fake-Worker
@@ -264,7 +264,7 @@ pnpm --filter @exileforge/calc test
 - `test/pob.test.ts`: gegen das echte PoB: alle Golden Builds, gleiche Zahlen
   für XML, Code und re-exportiertes XML, Profil ohne Seiteneffekt, `mainSkill`,
   fehlerhafte Builds und Profile, abgeschossener Worker. Ohne `.pob/`
-  übersprungen; mit `EXILEFORGE_REQUIRE_POB=1` (CI) ist fehlendes PoB ein
+  übersprungen; mit `ASTROLABE_REQUIRE_POB=1` (CI) ist fehlendes PoB ein
   Fehler.
 - CI: `.github/workflows/calc.yml` unter Linux und Windows (nativ, MSVC-
   `luajit.exe` neben PoBs `lua51.dll`), dazu Golden Builds über den Pool und
@@ -272,7 +272,7 @@ pnpm --filter @exileforge/calc test
 
 ## Offen
 
-- Vertrags-PR: Antwort-Marker `@@EXILEFORGE_RPC@@` im Kommentar von
+- Vertrags-PR: Antwort-Marker `@@ASTROLABE_RPC@@` im Kommentar von
   `calc/rpc.ts` festhalten und das Profil-Dateiformat (`CalcProfileFile`) nach
   `packages/contracts` verschieben.
 - Echtes Daten-Release durchreichen, sobald die App Daten-Releases lädt; bis

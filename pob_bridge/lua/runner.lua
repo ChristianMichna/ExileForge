@@ -14,7 +14,7 @@ arg1 = arg1 or arg[2]
 arg2 = arg2 or arg[3]
 arg3 = arg3 or arg[4]
 
-local RESULT_MARKER = "@@EXILEFORGE_RESULT@@"
+local RESULT_MARKER = "@@ASTROLABE_RESULT@@"
 
 package.path = bridgeDir .. "/?.lua;../runtime/lua/?.lua;../runtime/lua/?/init.lua;" .. package.path
 

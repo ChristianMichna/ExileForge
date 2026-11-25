@@ -1,4 +1,4 @@
-# ExileForge – Datenmodell eines Builds (Entwurf v0.2)
+# Astrolabe – Datenmodell eines Builds (Entwurf v0.2)
 
 Stand: 2026-11-24. Notation als TypeScript-Typen, weil das am lesbarsten ist.
 Quelle der Wahrheit sind laut [Projektplan](projektplan.md) **Zod-Schemas in
@@ -344,7 +344,7 @@ interface PatchStatus {
 
 ## Abbildung auf die `.build`-Datei
 
-| ExileForge | `.build` |
+| Astrolabe | `.build` |
 | --- | --- |
 | `Guide.stages[].tree.allocated[].ggId` | `passives[].id` |
 | `AllocatedNode.weaponSet` | `passives[].weapon_set` |

@@ -19,7 +19,7 @@ from xml.etree import ElementTree
 from dataclasses import dataclass
 from pathlib import Path
 
-RESULT_MARKER = "@@EXILEFORGE_RESULT@@"
+RESULT_MARKER = "@@ASTROLABE_RESULT@@"
 LUA_DIR = Path(__file__).resolve().parent / "lua"
 DEFAULT_POB_HOME = Path(__file__).resolve().parent.parent / ".pob"
 
@@ -73,7 +73,7 @@ def resolve_build_input(value: str, timeout: float = 20.0) -> str:
         for pattern, raw_url in _BUILD_SITES:
             m = pattern.search(value)
             if m:
-                req = urllib.request.Request(raw_url.format(m.group(1)), headers={"User-Agent": "ExileForge"})
+                req = urllib.request.Request(raw_url.format(m.group(1)), headers={"User-Agent": "Astrolabe"})
                 try:
                     with urllib.request.urlopen(req, timeout=timeout) as resp:
                         return decode_build_code(resp.read().decode("utf-8"))
@@ -105,10 +105,10 @@ class PathOfBuilding:
     timeout: float = 120.0
 
     def __post_init__(self) -> None:
-        self.home = Path(os.environ.get("EXILEFORGE_POB_HOME", self.home)).resolve()
+        self.home = Path(os.environ.get("ASTROLABE_POB_HOME", self.home)).resolve()
         self.src = self.home / "PathOfBuilding-PoE2" / "src"
-        if os.environ.get("EXILEFORGE_LUAJIT"):
-            self.luajit = Path(os.environ["EXILEFORGE_LUAJIT"])
+        if os.environ.get("ASTROLABE_LUAJIT"):
+            self.luajit = Path(os.environ["ASTROLABE_LUAJIT"])
         elif os.name == "nt":
             # Windows: luajit.exe sits next to PoB's own lua51.dll / lua-utf8.dll
             self.luajit = self.home / "PathOfBuilding-PoE2" / "runtime" / "luajit.exe"

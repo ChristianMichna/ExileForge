@@ -1,4 +1,4 @@
-import type { PassiveNodeId } from "@exileforge/contracts";
+import type { PassiveNodeId } from "@astrolabe/contracts";
 import { describe, expect, it } from "vitest";
 import { optimizeProgression } from "../src/index.ts";
 import { config, FakeEvaluator, graphOf, type FakeModel } from "./fixtures.ts";

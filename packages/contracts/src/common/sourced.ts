@@ -3,7 +3,7 @@ import { EntityRef } from "./ids.js";
 import { CalcId, CalcProfileId, DataReleaseId, IsoDateTime, PobVersion } from "./version.js";
 
 /*
- * Principle "no number without engine": every number ExileForge shows carries
+ * Principle "no number without engine": every number Astrolabe shows carries
  * its origin. LLM outputs never contain such numbers; they reference them
  * (CalcRef) and the app fills them in.
  */
@@ -43,7 +43,7 @@ export const PrimarySource = z.discriminatedUnion("kind", [
 ]);
 export type PrimarySource = z.infer<typeof PrimarySource>;
 
-/** Number computed deterministically by ExileForge from other sourced numbers. */
+/** Number computed deterministically by Astrolabe from other sourced numbers. */
 export const DerivedSource = z.object({
   kind: z.literal("derived"),
   /** Id of the deterministic formula, e.g. "crafting.expected-cost" – owned by the computing package. */

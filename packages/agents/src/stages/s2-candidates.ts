@@ -1,6 +1,6 @@
-import { ArchetypeCandidate, type Finding } from "@exileforge/contracts/build";
-import type { Ascendancy } from "@exileforge/contracts/catalog";
-import type { EntityRef, JsonValue } from "@exileforge/contracts/common";
+import { ArchetypeCandidate, type Finding } from "@astrolabe/contracts/build";
+import type { Ascendancy } from "@astrolabe/contracts/catalog";
+import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext } from "../pipeline.js";
 import { S2_CANDIDATE } from "../prompts.js";

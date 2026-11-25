@@ -61,11 +61,11 @@ export interface DesktopBridge {
 }
 
 export const IPC = {
-  getStatus: "exileforge:status:get",
-  statusChanged: "exileforge:status:changed",
-  openClaude: "exileforge:claude:open",
-  copyClaudeCodeCommand: "exileforge:claude:copy-command",
-  installClaudeExtension: "exileforge:claude:install-extension",
-  checkForUpdates: "exileforge:update:check",
-  installUpdate: "exileforge:update:install",
+  getStatus: "astrolabe:status:get",
+  statusChanged: "astrolabe:status:changed",
+  openClaude: "astrolabe:claude:open",
+  copyClaudeCodeCommand: "astrolabe:claude:copy-command",
+  installClaudeExtension: "astrolabe:claude:install-extension",
+  checkForUpdates: "astrolabe:update:check",
+  installUpdate: "astrolabe:update:install",
 } as const;

@@ -8,7 +8,7 @@
   Pipeline S0–S10 als Zustandsmaschine)
 
 > **Hinweis:** Abschnitte 1 und 2 (gehosteter Betrieb, Remote-Connector mit OAuth)
-> sind durch [ADR-0004](0004-lokal-first.md) ersetzt: ExileForge läuft lokal, Claude
+> sind durch [ADR-0004](0004-lokal-first.md) ersetzt: Astrolabe läuft lokal, Claude
 > verbindet sich über eine Claude-Desktop-Erweiterung. Abschnitte 3–4 gelten weiter
 > (Start und PoC-Liste sind auf lokal angepasst).
 
@@ -28,8 +28,8 @@ Single-Shot-Prompts** (ein großer Auftrag, eine große Antwort).
 1. **Das Frontend ist der Ort, an dem der Nutzer arbeitet.** Intake, Auswahl,
    Eingriffe, Fortschritt, Guide, Export und Patch-Bericht passieren dort.
 2. **Der Claude-Chat ist nur der Motor** für die LLM-Stufen. Er wird aus dem
-   Frontend gestartet und arbeitet über den ExileForge-Remote-Connector.
-3. **ExileForge führt, Claude arbeitet kleine Aufgaben ab.** Jede LLM-Stufe der
+   Frontend gestartet und arbeitet über den Astrolabe-Remote-Connector.
+3. **Astrolabe führt, Claude arbeitet kleine Aufgaben ab.** Jede LLM-Stufe der
    Pipeline wird in viele kleine Aufgaben zerlegt. Claude bekommt nie den ganzen
    Build-Auftrag auf einmal.
 4. **Jede Abgabe wird sofort mit PoB und den Gates geprüft.** Fehler gehen als
@@ -48,14 +48,14 @@ nur Connectors erreichen, die im Internet erreichbar sind. Ein lokaler Modus
 ## 2. Connector: Transport und Anmeldung
 
 - **Transport:** MCP über Streamable HTTP, ein Endpunkt `https://<host>/mcp`.
-- **Anmeldung:** Der Nutzer hat ein **ExileForge-Konto** (eigener Login, z. B.
+- **Anmeldung:** Der Nutzer hat ein **Astrolabe-Konto** (eigener Login, z. B.
   E-Mail-Link oder Discord). Beim Eintragen des Connectors in claude.ai läuft
   der OAuth-Ablauf der MCP-Spezifikation: Claude leitet auf die
-  ExileForge-Anmeldeseite, der Nutzer bestätigt, Claude erhält ein
-  ExileForge-Zugriffstoken. Damit weiß ExileForge, **welcher ExileForge-Nutzer**
+  Astrolabe-Anmeldeseite, der Nutzer bestätigt, Claude erhält ein
+  Astrolabe-Zugriffstoken. Damit weiß Astrolabe, **welcher Astrolabe-Nutzer**
   hinter einem Werkzeugaufruf steht.
-- ExileForge bekommt dabei **nie** Claude-Zugangsdaten zu sehen; das Token gilt
-  nur für ExileForge.
+- Astrolabe bekommt dabei **nie** Claude-Zugangsdaten zu sehen; das Token gilt
+  nur für Astrolabe.
 - **⚠ Annahme:** claude.ai-Custom-Connectors unterstützen OAuth für Remote-MCP
   (laut Anthropic-Hilfe ja; im PoC mit echtem Konto prüfen). Rückfall:
   persönlicher Connector-Link mit geheimem Token in der URL.
@@ -69,20 +69,20 @@ nur Connectors erreichen, die im Internet erreichbar sind. Ein lokaler Modus
 2. Der Server legt einen Pipeline-Lauf an (`runId`) und erzeugt einen kurzen
    **Sitzungscode** (z. B. `7F3K-QX`), 30 Minuten gültig.
 3. Das Frontend öffnet **Claude Desktop** (Deep Link, falls vorhanden) und zeigt
-   den Startsatz „Starte ExileForge-Sitzung 7F3K-QX." mit Kopieren-Knopf. Für
+   den Startsatz „Starte Astrolabe-Sitzung 7F3K-QX." mit Kopieren-Knopf. Für
    Claude Code zeigt es den passenden Befehl bzw. Startsatz. claude.ai im Browser
    geht lokal nicht, weil es den Server auf `127.0.0.1` nicht erreicht (ADR-0004).
    **⚠ Annahme:** Claude Desktop lässt sich per Deep Link mit vorausgefülltem
    Text öffnen. Falls nicht: nur Kopieren-Knopf.
 4. Claude ruft `forge.attach(code)` auf. Der lokale Server prüft den Code
    (kein Konto, kein OAuth), und gibt die erste Aufgabe.
-   Ein mitgelieferter MCP-Prompt (`/exileforge`) und die Werkzeugbeschreibungen
+   Ein mitgelieferter MCP-Prompt (`/astrolabe`) und die Werkzeugbeschreibungen
    sagen Claude, dass es die Schleife bis `done` fortsetzen soll.
 
 ### Arbeitsschleife
 
 ```
-Claude                         ExileForge                       Frontend
+Claude                         Astrolabe                       Frontend
   │ forge.next(runId) ───────▶ nächste Aufgabe + Kontext         Schritt "S5.3 läuft"
   │                            + Antwortschema + Feedback
   │ (denkt, nutzt Lese-/Rechen-Werkzeuge: calc.eval, catalog.search …)

@@ -1,4 +1,4 @@
-# @exileforge/optimizer
+# @astrolabe/optimizer
 
 Deterministische Optimierer (F-09, WS3). Ohne KI lauffähig; die KI liefert nur
 Zielfunktion, Constraints und Prioritäten. **Jede Zahl misst Path of Building**
@@ -89,5 +89,5 @@ liefern gleiche Ergebnisse; Zustände werden je Lauf nur einmal berechnet
 ## Tests
 
 ```bash
-pnpm --filter @exileforge/optimizer test
+pnpm --filter @astrolabe/optimizer test
 ```

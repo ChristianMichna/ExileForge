@@ -38,7 +38,7 @@ importers:
 
   apps/calc:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       zod:
@@ -57,7 +57,7 @@ importers:
 
   apps/data-pipeline:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       zod:
@@ -76,10 +76,10 @@ importers:
 
   apps/desktop:
     devDependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@exileforge/server':
+      '@astrolabe/server':
         specifier: workspace:*
         version: link:../server
       '@types/node':
@@ -133,25 +133,25 @@ importers:
 
   apps/server:
     dependencies:
-      '@exileforge/agents':
+      '@astrolabe/agents':
         specifier: workspace:*
         version: link:../../packages/agents
-      '@exileforge/calc':
+      '@astrolabe/calc':
         specifier: workspace:*
         version: link:../calc
-      '@exileforge/calc-client':
+      '@astrolabe/calc-client':
         specifier: workspace:*
         version: link:../../packages/calc-client
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@exileforge/crafting-sim':
+      '@astrolabe/crafting-sim':
         specifier: workspace:*
         version: link:../../packages/crafting-sim
-      '@exileforge/economy':
+      '@astrolabe/economy':
         specifier: workspace:*
         version: link:../../packages/economy
-      '@exileforge/optimizer':
+      '@astrolabe/optimizer':
         specifier: workspace:*
         version: link:../../packages/optimizer
       '@modelcontextprotocol/sdk':
@@ -176,10 +176,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@exileforge/ui':
+      '@astrolabe/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       react:
@@ -225,7 +225,7 @@ importers:
 
   packages/agents:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -244,7 +244,7 @@ importers:
 
   packages/calc-client:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
@@ -276,7 +276,7 @@ importers:
 
   packages/crafting-sim:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -295,7 +295,7 @@ importers:
 
   packages/economy:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -314,7 +314,7 @@ importers:
 
   packages/optimizer:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -333,7 +333,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@exileforge/contracts':
+      '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../contracts
       '@fontsource/alegreya-sans':

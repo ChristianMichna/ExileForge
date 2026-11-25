@@ -1,5 +1,5 @@
-import type { PriceBook, PricedItemRef } from "@exileforge/contracts";
-import { PriceBook as PriceBookSchema } from "@exileforge/contracts";
+import type { PriceBook, PricedItemRef } from "@astrolabe/contracts";
+import { PriceBook as PriceBookSchema } from "@astrolabe/contracts";
 import { buildPriceBook } from "./book.js";
 import type { BookStore } from "./cache.js";
 import type { PoeNinjaClient } from "./client.js";

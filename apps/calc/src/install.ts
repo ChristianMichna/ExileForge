@@ -21,12 +21,12 @@ export interface PobInstall {
 /**
  * Layout created by tools/setup_pob.sh (Linux/macOS) or the Windows setup:
  * on Windows luajit.exe sits next to PoB's own lua51.dll and lua-utf8.dll in
- * runtime/. EXILEFORGE_LUAJIT overrides the LuaJIT path.
+ * runtime/. ASTROLABE_LUAJIT overrides the LuaJIT path.
  */
 export function pobInstallFromHome(pobHome: string): PobInstall {
   const home = resolve(pobHome);
   const srcDir = join(home, "PathOfBuilding-PoE2", "src");
-  const override = process.env.EXILEFORGE_LUAJIT;
+  const override = process.env.ASTROLABE_LUAJIT;
   if (process.platform === "win32") {
     return {
       srcDir,

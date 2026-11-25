@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
-import { CalcProfileId } from "@exileforge/contracts/common";
+import { CalcProfileId } from "@astrolabe/contracts/common";
 
 /**
  * Claude Desktop cancels MCP calls after about 60 s; a long-poll must end well

@@ -78,10 +78,10 @@ jobs:
       - run: pnpm build
       - name: Compare screenshots
         if: env.UPDATE != 'true'
-        run: pnpm --filter @exileforge/web e2e
+        run: pnpm --filter @astrolabe/web e2e
       - name: Re-render baselines
         if: env.UPDATE == 'true'
-        run: pnpm --filter @exileforge/web e2e --update-snapshots=all
+        run: pnpm --filter @astrolabe/web e2e --update-snapshots=all
       - name: Commit new baselines
         if: >-
           env.UPDATE == 'true' &&

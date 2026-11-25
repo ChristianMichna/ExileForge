@@ -8,7 +8,7 @@ model: sonnet
 <!-- Adaptiert aus everything-claude-code (agents/silent-failure-hunter.md),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md. -->
 
-Null Toleranz für stille Fehler. In ExileForge ist ein still verschluckter
+Null Toleranz für stille Fehler. In Astrolabe ist ein still verschluckter
 Fehler besonders gefährlich: Er erzeugt einen Guide mit falschen Zahlen, der
 korrekt aussieht. Du meldest Befunde, du änderst keinen Code.
 
@@ -18,7 +18,7 @@ korrekt aussieht. Du meldest Befunde, du änderst keinen Code.
 - `catch {}`, `catch (e) { return null }`, `.catch(() => [])`.
 - Fehler werden zu `undefined`/leeren Arrays ohne Kontext.
 
-### 2. Gefährliche Ersatzwerte (ExileForge-spezifisch, HOCH)
+### 2. Gefährliche Ersatzwerte (Astrolabe-spezifisch, HOCH)
 - PoB-Rechnung fehlgeschlagen → `dps: 0`, `life: 0` oder letzter bekannter
   Wert ohne Kennzeichnung.
 - Preis nicht abrufbar → `0` Chaos oder alter Cache-Wert ohne `fetchedAt`.

@@ -90,7 +90,7 @@ export type ForgeStep = z.infer<typeof ForgeStep>;
 
 export const ForgeTools = {
   "forge.attach": {
-    description: "Attach to an ExileForge run with the session code shown in the app.",
+    description: "Attach to an Astrolabe run with the session code shown in the app.",
     input: z.object({ code: SessionCode }),
     output: z.object({ runId: RunId, status: RunStatus, next: ForgeStep }),
   },
@@ -119,7 +119,7 @@ export const ForgeTools = {
     ]),
   },
   "forge.ask_user": {
-    description: "Ask the user a question; it appears as a card in the ExileForge app.",
+    description: "Ask the user a question; it appears as a card in the Astrolabe app.",
     input: z.object({
       runId: RunId,
       taskId: TaskId,

@@ -1,5 +1,5 @@
 {
   "id": "test-bad-key",
   "description": "Test profile with an option PoB does not have.",
-  "config": [{ "key": "exileforgeNoSuchOption", "value": true }]
+  "config": [{ "key": "astrolabeNoSuchOption", "value": true }]
 }

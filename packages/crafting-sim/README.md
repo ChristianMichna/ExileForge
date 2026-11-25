@@ -1,4 +1,4 @@
-# @exileforge/crafting-sim
+# @astrolabe/crafting-sim
 
 Crafting-Simulator (F-15): Monte Carlo über die deklarativen `CraftingAction`-Regeln
 und die Mod-Gewichte eines Daten-Release. Vertrag: `craft.simulate`

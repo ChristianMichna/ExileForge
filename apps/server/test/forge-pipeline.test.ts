@@ -4,9 +4,9 @@ import {
   type Pipeline,
   type SkeletonPort,
   type StageConfig,
-} from "@exileforge/agents";
-import { BuildRequest, BuildState } from "@exileforge/contracts/build";
-import type { ForgeStep } from "@exileforge/contracts/forge";
+} from "@astrolabe/agents";
+import { BuildRequest, BuildState } from "@astrolabe/contracts/build";
+import type { ForgeStep } from "@astrolabe/contracts/forge";
 import { CalcFake } from "../src/calc/calc-fake.js";
 import { ForgeEngine } from "../src/engine/forge-engine.js";
 import { RunStore } from "../src/store/run-store.js";

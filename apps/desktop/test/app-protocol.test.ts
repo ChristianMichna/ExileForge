@@ -31,7 +31,7 @@ function handler(overrides: { fetch?: typeof fetch; ready?: boolean } = {}) {
     }),
   };
 }
-const req = (path: string, init?: RequestInit) => new Request(`exileforge://app${path}`, init);
+const req = (path: string, init?: RequestInit) => new Request(`astrolabe://app${path}`, init);
 
 describe("static files", () => {
   it("serves index.html at / with CSP and nosniff", async () => {

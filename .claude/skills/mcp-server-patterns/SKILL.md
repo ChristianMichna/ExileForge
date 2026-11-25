@@ -1,13 +1,13 @@
 ---
 name: mcp-server-patterns
-description: Baut und erweitert den MCP-Endpunkt von ExileForge (lokaler Server in der App, 127.0.0.1) und die Claude-Desktop-Erweiterung (.mcpb, stdio-Brücke) mit dem TypeScript-MCP-SDK – forge.attach/next/submit-Aufgabenschleife, Lese- und Rechenwerkzeuge (catalog.*, calc.*, optimize.*, craft.*, economy.price), Zod-Schemas, strukturierte Befunde. Verwenden beim Anlegen oder Ändern von MCP-Tools/Prompts oder beim Debuggen der Anbindung an Claude Desktop/Claude Code.
+description: Baut und erweitert den MCP-Endpunkt von Astrolabe (lokaler Server in der App, 127.0.0.1) und die Claude-Desktop-Erweiterung (.mcpb, stdio-Brücke) mit dem TypeScript-MCP-SDK – forge.attach/next/submit-Aufgabenschleife, Lese- und Rechenwerkzeuge (catalog.*, calc.*, optimize.*, craft.*, economy.price), Zod-Schemas, strukturierte Befunde. Verwenden beim Anlegen oder Ändern von MCP-Tools/Prompts oder beim Debuggen der Anbindung an Claude Desktop/Claude Code.
 ---
 
 <!-- Adaptiert aus everything-claude-code (skills/mcp-server-patterns),
      MIT, © 2026 Affaan Mustafa. Siehe .claude/THIRD_PARTY_NOTICES.md.
      Ergänzt: lokaler Betrieb nach ADR-0004, forge.*-Aufgabenschleife nach ADR-0003. -->
 
-# MCP-Muster für ExileForge
+# MCP-Muster für Astrolabe
 
 Der MCP-Endpunkt ist die **einzige** Tür, durch die Claude an Spieldaten und
 Zahlen kommt. Geplant wird im Claude Desktop oder Claude Code des Nutzers mit
@@ -20,7 +20,7 @@ fehlt oder schlecht beschrieben ist, erfindet das Modell sonst selbst.
 Claude Desktop ── stdio ── apps/mcp-bridge (.mcpb) ── HTTP ──┐
 Claude Code ───────── HTTP (claude mcp add --transport http) ─┤
                                                               ▼
-                     ExileForge-App: apps/server auf 127.0.0.1/mcp
+                     Astrolabe-App: apps/server auf 127.0.0.1/mcp
                      (Pipeline-Zustandsmaschine, Calc, Katalog, SQLite)
 ```
 
@@ -30,7 +30,7 @@ Claude Code ───────── HTTP (claude mcp add --transport http) �
 - **Nur `127.0.0.1`**, nie `0.0.0.0`; kein öffentlicher Endpunkt, kein Konto,
   kein OAuth. Der Sitzungscode wählt nur den Lauf.
 - Läuft die App nicht, antwortet die Brücke mit einem klaren Fehler
-  („ExileForge-App starten"), statt zu hängen.
+  („Astrolabe-App starten"), statt zu hängen.
 - **Beim Freund ohne Entwicklerwerkzeuge**: Brücke als `.mcpb` per Doppelklick;
   kein Python, kein git, keine globale Node-Installation voraussetzen.
 
@@ -46,7 +46,7 @@ Claude Code ───────── HTTP (claude mcp add --transport http) �
 - Rückfragen sind Aufgaben vom Typ `ask_user`; das Frontend zeigt sie als Karte.
   Eingriffe aus dem Frontend kommen über die Feedback-Warteschlange in die
   nächste Aufgabe.
-- Werkzeugbeschreibungen und der MCP-Prompt (`/exileforge`) sagen Claude, die
+- Werkzeugbeschreibungen und der MCP-Prompt (`/astrolabe`) sagen Claude, die
   Schleife bis `done` fortzusetzen.
 
 ## Grundsätze für jedes Tool

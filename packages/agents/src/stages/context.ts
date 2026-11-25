@@ -1,4 +1,4 @@
-import type { JsonValue } from "@exileforge/contracts/common";
+import type { JsonValue } from "@astrolabe/contracts/common";
 import type { PipelineContext } from "../pipeline.js";
 
 /** The request as task context: what the player wants, without ids of the run. */

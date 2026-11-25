@@ -3,7 +3,7 @@
 // values (marked as provenance "sample", fixture "calc-fake"). Nothing is
 // game data and nothing may be copied into the catalog or a real guide.
 // Real views get their data from packages/contracts once that lands.
-import type { ItemView, ProvenanceView, ValueState } from "@exileforge/ui";
+import type { ItemView, ProvenanceView, ValueState } from "@astrolabe/ui";
 
 const SAMPLE: ProvenanceView = { kind: "sample", fixture: "calc-fake" };
 

@@ -56,7 +56,7 @@ describe("data release lookup", () => {
       userData: "/u",
     });
     expect(d.webRoot).toBe(join("/repo", "apps", "web", "dist"));
-    expect(d.databasePath).toBe(join("/u", "exileforge.sqlite"));
+    expect(d.databasePath).toBe(join("/u", "astrolabe.sqlite"));
   });
 });
 

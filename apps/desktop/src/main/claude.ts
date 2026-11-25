@@ -11,7 +11,7 @@ export function buildStartSentence(template: string, code: string): string {
  * never returned to page code.
  */
 export function buildClaudeCodeCommand(serverUrl: string, token: string): string {
-  return `claude mcp add --transport http exileforge ${serverUrl}/mcp --header "Authorization: Bearer ${token}"`;
+  return `claude mcp add --transport http astrolabe ${serverUrl}/mcp --header "Authorization: Bearer ${token}"`;
 }
 
 export interface OpenClaudeOutcome {

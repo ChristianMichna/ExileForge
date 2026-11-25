@@ -12,20 +12,20 @@
 
 ## Kontext
 
-Wichtigstes Ziel ist, dass ExileForge **auf Christians eigenem PC** läuft und er es
+Wichtigstes Ziel ist, dass Astrolabe **auf Christians eigenem PC** läuft und er es
 **bei Bedarf einfach einem Freund schicken** kann. Ein öffentlicher Dienst ist
 kein Ziel. Ein gehosteter Server würde Kosten, Betrieb, Konten und OAuth bedeuten,
 ohne dass es dafür einen Bedarf gibt.
 
 ## Prüfung: Funktioniert der Hybrid ohne Server?
 
-Ja. Die Hybrid-Schleife braucht nur, dass Claude die ExileForge-Werkzeuge
+Ja. Die Hybrid-Schleife braucht nur, dass Claude die Astrolabe-Werkzeuge
 erreicht und das Frontend denselben Laufzustand sieht. Das geht lokal:
 
-| Claude-Client | Weg zu ExileForge | Lokal möglich? |
+| Claude-Client | Weg zu Astrolabe | Lokal möglich? |
 | --- | --- | --- |
 | **Claude Desktop** | Lokaler MCP-Server als Erweiterung (`.mcpb`, Doppelklick), stdio | **Ja, Hauptweg** |
-| **Claude Code** | `claude mcp add --transport http exileforge http://127.0.0.1:<port>/mcp` | Ja |
+| **Claude Code** | `claude mcp add --transport http astrolabe http://127.0.0.1:<port>/mcp` | Ja |
 | claude.ai im Browser / Handy-App | Nur öffentlich erreichbare Connectors | Nein (bräuchte Hosting) |
 
 ## Entscheidung
@@ -43,10 +43,10 @@ erreicht und das Frontend denselben Laufzustand sieht. Das geht lokal:
    Claude Desktop wird geöffnet, Startsatz mit Sitzungscode zum Kopieren,
    `forge.attach` → Schleife. Kein OAuth und kein Konto nötig: alles bleibt auf
    dem PC, der Sitzungscode wählt nur den Lauf.
-4. **Weitergabe an Freunde:** Installer (`ExileForge-Setup.exe`) über GitHub
+4. **Weitergabe an Freunde:** Installer (`Astrolabe-Setup.exe`) über GitHub
    Releases, Auto-Update über `electron-updater`. Der Freund braucht nur
    Claude Desktop mit seinem eigenen Abo. Builds lassen sich als Datei
-   (`.exileforge.json`) und als `.build` weitergeben.
+   (`.astrolabe.json`) und als `.build` weitergeben.
 5. **Daten und Patches:** Daten-Releases (Katalog, Icons, ID-Tabellen) baut die
    Daten-Pipeline in GitHub Actions und veröffentlicht sie als Release-Dateien.
    Die App lädt neue Daten-Releases und PoB-Versionen selbst nach, ohne neuen

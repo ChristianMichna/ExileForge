@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { RunEvent } from "@exileforge/contracts/events";
+import { RunEvent } from "@astrolabe/contracts/events";
 import { CalcFake } from "../src/calc/calc-fake.js";
 import { ForgeEngine } from "../src/engine/forge-engine.js";
 import { createApp, LOOPBACK_HOST } from "../src/http/app.js";
@@ -92,7 +92,7 @@ describe("local HTTP server", () => {
     ]);
     for (const name of names) expect(name).toMatch(/^[a-zA-Z0-9_-]{1,64}$/);
     const { prompts } = await client.listPrompts();
-    expect(prompts.map((p) => p.name)).toEqual(["exileforge"]);
+    expect(prompts.map((p) => p.name)).toEqual(["astrolabe"]);
     expect(client.getInstructions()).toContain("forge_attach");
   });
 

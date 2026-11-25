@@ -1,9 +1,9 @@
 {
-  "name": "@exileforge/web",
+  "name": "@astrolabe/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "ExileForge frontend (React + Vite): app shell, build overview and design-system gallery on sample data.",
+  "description": "Astrolabe frontend (React + Vite): app shell, build overview and design-system gallery on sample data.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,8 +13,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@exileforge/contracts": "workspace:*",
-    "@exileforge/ui": "workspace:*",
+    "@astrolabe/contracts": "workspace:*",
+    "@astrolabe/ui": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "zod": "4.6.7"

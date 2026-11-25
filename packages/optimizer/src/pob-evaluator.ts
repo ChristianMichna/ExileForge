@@ -8,7 +8,7 @@ import type {
   ConfigOverrides,
   PassiveNodeId,
   PatchOp,
-} from "@exileforge/contracts";
+} from "@astrolabe/contracts";
 import { OptimizerError } from "./errors.ts";
 import type { EvalOutcome, Metrics, NodePowerEntry, TreeEvaluator } from "./types.ts";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BuildState } from "@exileforge/contracts/build";
+import { BuildState } from "@astrolabe/contracts/build";
 import { ClassBaseBuilds } from "../src/calc/base-builds.js";
 
 const state = BuildState.parse({
