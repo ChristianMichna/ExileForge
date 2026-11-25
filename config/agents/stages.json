@@ -23,5 +23,52 @@
       "floors": {}
     },
     "gemLevel": 1
+  },
+  "s5": {
+    "$comment": "Calc profiles and tree objective of the endgame build, same as the skeleton's until the product owner sets other ones. Level and passive points come from the data release.",
+    "calcProfiles": ["mapping", "pinnacle"],
+    "objective": {
+      "weights": {
+        "FullDPS": 1,
+        "TotalEHP": 0.4
+      },
+      "floors": {}
+    }
+  },
+  "s6": {
+    "$comment": "Calc profiles and tree objective of the progression, same as the skeleton's until the product owner sets other ones. The stage table (acts, level bands, passive points) is derived from the data release; a `stages` list here would override it.",
+    "calcProfiles": ["mapping", "pinnacle"],
+    "objective": {
+      "weights": {
+        "FullDPS": 1,
+        "TotalEHP": 0.4
+      },
+      "floors": {}
+    }
+  },
+  "s7": {
+    "$comment": "DEFAULT budget tiers (ascending) and calc profiles, editable by the product owner. Tier ids must match the intake form (apps/web/src/config/intake-defaults.json). The item slots come from the data release.",
+    "tiers": [
+      {
+        "id": "start",
+        "label": "League start"
+      },
+      {
+        "id": "mid",
+        "label": "Mid"
+      },
+      {
+        "id": "endgame",
+        "label": "Endgame"
+      }
+    ],
+    "calcProfiles": ["mapping", "pinnacle"],
+    "objective": {
+      "weights": {
+        "FullDPS": 1,
+        "TotalEHP": 0.4
+      },
+      "calcProfile": "mapping"
+    }
   }
 }

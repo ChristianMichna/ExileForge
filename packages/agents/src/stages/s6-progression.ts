@@ -16,13 +16,14 @@ import type { ProgressionStageTree } from "../ports.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext, type PlanStep } from "../pipeline.js";
 import { S6_NOTES } from "../prompts.js";
 import { requestContext } from "./context.js";
+import type { S6Row } from "./s6-table.js";
 
 export const S6_STAGES_KEY = "S6.stages";
 export const S6_NOTES_KEY = "S6.notes";
 export const S6_PLAN_KEY = "S6.plan";
 
 /** S6 settings; absent when the stage table has not been set yet. */
-export type S6Config = NonNullable<StageConfig["s6"]>;
+export type S6Config = Omit<NonNullable<StageConfig["s6"]>, "stages"> & { stages: S6Row[] };
 
 /** Stored result of the S6.stages job; checked again when read back. */
 export const StoredStages = z.array(

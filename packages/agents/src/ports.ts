@@ -5,7 +5,15 @@ import type {
   SkillProfile,
   TargetBuild,
 } from "@astrolabe/contracts/build";
+import type { BaseItemId } from "@astrolabe/contracts/common";
 import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
+import type {
+  CraftSimRequest,
+  CraftSimResult,
+  ItemPrice,
+  PricedItemRef,
+} from "@astrolabe/contracts";
+import type { DataRelease } from "@astrolabe/contracts/catalog";
 import type { CalcResult, ConfigOverrides } from "@astrolabe/contracts/calc";
 import type {
   CalcId,
@@ -54,6 +62,8 @@ export interface CatalogQuery {
 /** Read access to the catalog of one data release (gate G1, catalog tools, deterministic steps). */
 export interface CatalogPort {
   readonly dataReleaseId: DataReleaseId;
+  /** The release record with its facts (max level, passive points); absent in fixtures without one. */
+  readonly release?: DataRelease | undefined;
   get(ref: EntityRef): CatalogEntry | undefined;
   search(query: CatalogQuery): CatalogEntry[];
   /** All entries of a kind in catalog order. */
@@ -130,4 +140,21 @@ export interface ProgressionStageTree {
  */
 export interface ProgressionPort {
   optimizeProgression(input: ProgressionRequest): Promise<ProgressionStageTree[]>;
+}
+
+/** Market prices for S7: a thin view of `economy.price`; absent without an economy service. */
+export interface PricePort {
+  price(input: { league?: string; items: PricedItemRef[] }): Promise<{
+    league: string;
+    /** Currency item the prices are given in. */
+    inCurrencyItemId: BaseItemId;
+    /** "stale": the refresh failed and an older price book was used. */
+    freshness: "fresh" | "stale";
+    prices: ItemPrice[];
+  }>;
+}
+
+/** Crafting simulation for S8; absent without a loaded catalog with crafting rules. */
+export interface CraftSimPort {
+  simulate(request: CraftSimRequest): Promise<CraftSimResult>;
 }

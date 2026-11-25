@@ -555,3 +555,101 @@ describe("result shape", () => {
     expect(() => parseCraftSimConfig(raw)).not.toThrow();
   });
 });
+
+describe("add-specific-mod", () => {
+  const fixed = (
+    modByItemClass: Record<string, string>,
+    limits?: Record<string, number>,
+    preconditions: { op: string; params: Record<string, unknown> }[] = [
+      { op: "require-rarity", params: { rarities: ["rarity-x"] } },
+    ],
+  ) =>
+    action(
+      "act-fixed",
+      [{ op: "add-specific-mod", params: { modByItemClass, ...(limits ? { limits } : {}) } }],
+      { preconditions },
+    );
+  const runFixed = (
+    act: ReturnType<typeof action>,
+    over: { baseClass?: string; modIds?: string[]; mods?: ReturnType<typeof mod>[] } = {},
+  ) =>
+    simulate(
+      request({
+        start: { ...start, modIds: over.modIds ?? [] },
+        goal: { clauses: [{ anyOfModIds: ["mod-b"] }] },
+        strategy: { steps: [{ order: 0, actionIds: ["act-fixed"], onFail: { action: "accept" } }] },
+        runs: 1000,
+      }),
+      {
+        catalog: createSimCatalog({
+          baseItems: [{ ...base, itemClass: over.baseClass ?? "class-y" }],
+          mods: over.mods ?? [mod("mod-a", 1), mod("mod-b", 1)],
+          actions: [act],
+        }),
+        config,
+      },
+    );
+
+  it("adds the mod of the base item's class, not the first entry", () => {
+    const r = runFixed(fixed({ "class-x": "mod-a", "class-y": "mod-b" }));
+    expect(outcomesOf(r).succeeded).toBe(1000);
+  });
+
+  it("is uncalibrated, with a reason, for a class without an entry", () => {
+    const r = runFixed(fixed({ "class-x": "mod-a" }));
+    expect(r.successChance.status).toBe("uncalibrated");
+    expect(JSON.stringify(r.successChance)).toContain("item class class-y");
+    expect(r.outcomes).toBeUndefined();
+  });
+
+  it("is uncalibrated without a rarity rule instead of running on any rarity", () => {
+    const r = runFixed(fixed({ "class-y": "mod-b" }, undefined, []));
+    expect(r.successChance.status).toBe("uncalibrated");
+    expect(JSON.stringify(r.successChance)).toContain("require-rarity");
+    expect(r.outcomes).toBeUndefined();
+  });
+
+  it("is blocked on a rarity the rule does not allow", () => {
+    const act = fixed({ "class-y": "mod-b" }, undefined, [
+      { op: "require-rarity", params: { rarities: ["rarity-other"] } },
+    ]);
+    expect(outcomesOf(runFixed(act)).succeeded).toBe(0);
+  });
+
+  it("is uncalibrated when the mod is not in the data release", () => {
+    const r = runFixed(fixed({ "class-y": "mod-missing" }));
+    expect(r.successChance.status).toBe("uncalibrated");
+    expect(JSON.stringify(r.successChance)).toContain("mod-missing");
+  });
+
+  it("is blocked when a mod of the same group is already on the item", () => {
+    const grouped = [mod("mod-a", 1, { groups: ["g"] }), mod("mod-b", 1, { groups: ["g"] })];
+    const r = runFixed(fixed({ "class-y": "mod-b" }), { modIds: ["mod-a"], mods: grouped });
+    expect(outcomesOf(r).succeeded).toBe(0);
+  });
+
+  it("is blocked when the same mod is already on the item", () => {
+    const r = runFixed(fixed({ "class-y": "mod-b" }), { modIds: ["mod-b"] });
+    expect(outcomesOf(r).blocked).toBe(1000);
+  });
+
+  it("is blocked when the generation type has reached the given limit", () => {
+    const act = fixed({ "class-y": "mod-b" }, { "gen-p": 1 });
+    expect(outcomesOf(runFixed(act, { modIds: ["mod-a"] })).succeeded).toBe(0);
+    expect(outcomesOf(runFixed(act)).succeeded).toBe(1000);
+  });
+
+  it("names the fields it used as sources, not spawn weights", () => {
+    const r = runFixed(fixed({ "class-y": "mod-b" }));
+    if (r.successChance.status !== "ok" || r.successChance.source.kind !== "derived") {
+      throw new Error("expected a derived chance");
+    }
+    const fields = r.successChance.source.inputs.flatMap((i) =>
+      i.kind === "gamedata" ? [`${i.entity.kind}:${i.entity.id}${i.field}`] : [],
+    );
+    expect(fields).toContain("baseItem:base-alpha/itemClass");
+    expect(fields).toContain("mod:mod-b/groups");
+    expect(fields).toContain("mod:mod-b/generationType");
+    expect(fields).not.toContain("mod:mod-b/spawnWeights");
+  });
+});

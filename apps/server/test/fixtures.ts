@@ -1,3 +1,4 @@
+import type { DataRelease } from "@astrolabe/contracts/catalog";
 import { createHash } from "node:crypto";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -65,8 +66,8 @@ export const SHARDS = raw.map((s) =>
   CatalogShard.parse({ schemaVersion: 1, dataReleaseId: RELEASE, ...s }),
 );
 
-export function fixtureCatalog(): MemoryCatalog {
-  return new MemoryCatalog(RELEASE, SHARDS);
+export function fixtureCatalog(release?: DataRelease): MemoryCatalog {
+  return new MemoryCatalog(RELEASE, SHARDS, release);
 }
 
 /** Writes the fixture release to a temp dir as manifest.json + shards. */
