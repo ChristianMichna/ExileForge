@@ -533,3 +533,55 @@ describe("disambiguate", () => {
     expect(summary.uniqueLinesDisambiguated).toBe(1);
   });
 });
+
+describe("unique lines that allocate a passive", () => {
+  const unique = (lines: string[]) => ({
+    title: "Allocator",
+    baseName: "Fake Ring",
+    variants: [],
+    implicitModLines: {},
+    explicitModLines: lines.map((line) => ({ line })),
+  });
+
+  it("maps a unique node name to its id and counts it", () => {
+    const raw = rawSnapshot();
+    raw.uniques["Allocator, Fake Ring"] = unique(["Allocates Big"]);
+    const { entities, summary, errors } = run(raw);
+    const node = byId<{ id: string; name: string }>(entities.passiveNode, "2");
+    expect(node?.name).toBe("Big");
+    const [mod] =
+      byId<{ id: string; mods: Record<string, unknown>[] }>(
+        entities.uniqueItem,
+        "Allocator, Fake Ring",
+      )?.mods ?? [];
+    expect(mod).toEqual({ stats: [], text: "Allocates Big", allocatesNodeId: "2" });
+    expect(summary.uniqueLinesAllocatingNode).toBe(1);
+    expect(errors).toEqual([]);
+    expect(validateCatalog(entities).errors).toEqual([]);
+  });
+
+  it("keeps an unknown or shared name visible as unresolved", () => {
+    const raw = rawSnapshot();
+    raw.uniques["Allocator, Fake Ring"] = unique(["Allocates Nowhere"]);
+    const { entities, summary } = run(raw);
+    const [mod] =
+      byId<{ id: string; mods: Record<string, unknown>[] }>(
+        entities.uniqueItem,
+        "Allocator, Fake Ring",
+      )?.mods ?? [];
+    expect(mod).toMatchObject({ unresolved: [{ text: "Allocates Nowhere", reason: "unmatched" }] });
+    expect(mod).not.toHaveProperty("allocatesNodeId");
+    expect(summary.uniqueLinesAllocatingNode).toBe(0);
+  });
+
+  it("rejects an allocated node that is not in the catalog", () => {
+    const { entities } = run();
+    (entities.uniqueItem[0] as { mods: Record<string, unknown>[] }).mods.push({
+      stats: [],
+      allocatesNodeId: "404",
+    });
+    expect(validateCatalog(entities).errors.map((e) => e.message)).toContain(
+      'mods.allocatesNodeId → unknown passiveNode "404"',
+    );
+  });
+});

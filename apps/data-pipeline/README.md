@@ -211,7 +211,11 @@ Bei Uniques fehlen PoB Trade-Hashes; mehrdeutig ist vor allem lokal gegen
 global (gleicher Text), nicht passend sind v. a. PoB-eigene Zeilen wie
 „Allocates …" (874 von 1476), „Grants Skill: …" (117) und Radius-Zeilen von Juwelen (25).
 „Allocates" nennt einen Passiv-Knoten beim Namen; der Vertrag hat dafür kein Feld an
-Unique-Mods, es bräuchte eine Vertragsänderung.
+Unique-Mods (inzwischen: `allocatesNodeId`, contracts 0.7.0). Die Pipeline ordnet
+solche Zeilen über `uniqueLines.allocatesPattern` (Konfiguration) dem Knoten mit genau
+diesem Namen zu und zählt sie in `uniqueLinesAllocatingNode`; ein unbekannter oder
+mehrfach vergebener Name bleibt `unmatched`. `validateCatalog` prüft, dass der Knoten
+existiert.
 
 Eine mehrdeutige Unique-Zeile wird nach Beleg aus den Daten aufgelöst: Eine Beschreibung
 zählt, wenn ein Mod mit einem ihrer Stats auf der Basis des Uniques spawnen kann. Dabei
