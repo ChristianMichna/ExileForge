@@ -272,10 +272,26 @@ export class CalcPool {
         "build.applyPatch",
         await worker.call("build.applyPatch", { handle: wh, ops: p.ops }, timeout),
       );
-      const exported = workerResult(
-        "build.export",
-        await worker.call("build.export", { handle: res.handle, format: "xml" }, timeout),
-      );
+      let exported;
+      try {
+        exported = workerResult(
+          "build.export",
+          await worker.call("build.export", { handle: res.handle, format: "xml" }, timeout),
+        );
+      } catch (error) {
+        // The patched state is useless without its XML; do not keep it in the worker.
+        await worker
+          .call("build.release", { handle: res.handle }, timeout)
+          .catch((releaseError: unknown) => {
+            this.emit({
+              type: "release-failed",
+              slot: slot.index,
+              handle: res.handle,
+              error: releaseError,
+            });
+          });
+        throw error;
+      }
       this.builds.set(handle, { xml: exported.payload });
       slot.handles.set(handle, res.handle);
       return { handle, warnings: res.warnings };

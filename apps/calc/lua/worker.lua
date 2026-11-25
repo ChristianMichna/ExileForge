@@ -488,13 +488,19 @@ local function nodeById(id)
 	return node
 end
 
+-- Groups are addressed by their label, like the main skill. A label shared by
+-- several groups is ambiguous and rejected instead of silently taking the first.
 local function findGroup(groupKey)
+	local found, foundGroup
 	for index, group in ipairs(build.skillsTab.socketGroupList) do
-		if group.label == groupKey then
-			return index, group
+		if (group.displayLabel or group.label) == groupKey then
+			if found then
+				fail("invalid_params", "Several skill groups have this label", groupKey)
+			end
+			found, foundGroup = index, group
 		end
 	end
-	return nil
+	return found, foundGroup
 end
 
 local function gemInstance(spec, wantSupport)
@@ -567,12 +573,22 @@ patchOps.setAscendancy = function(op)
 	fail("invalid_params", "Ascendancy does not belong to the build's class", tostring(op.ascendancyId))
 end
 
-patchOps.allocateNodes = function(op)
+patchOps.allocateNodes = function(op, warnings)
 	local spec = build.spec
+	-- PoB knows the weapon sets 1 and 2 (PassiveSpec allocMode); 0 is the plain tree.
+	if op.weaponSet ~= nil and op.weaponSet ~= 1 and op.weaponSet ~= 2 then
+		fail("invalid_params", "Path of Building only knows weapon sets 1 and 2", tostring(op.weaponSet))
+	end
 	spec.allocMode = op.weaponSet or 0
 	for _, id in ipairs(op.nodeIds) do
 		local node = nodeById(id)
-		if not node.alloc then
+		if node.alloc then
+			-- Already allocated: PoB keeps the node as it is (keystones, ascendancy
+			-- and sockets are always set-less), so say so instead of doing nothing.
+			if (node.allocMode or 0) ~= spec.allocMode then
+				warnings[#warnings + 1] = "Passive node " .. tostring(id) .. " was already allocated in another weapon set or none; left unchanged"
+			end
+		else
 			spec:AllocNode(node)
 			if not node.alloc then
 				spec.allocMode = 0
@@ -608,8 +624,11 @@ patchOps.setSkill = function(op)
 		gemList = gems,
 	}
 	build.skillsTab:ProcessSocketGroup(group)
-	local index = findGroup(op.groupKey)
+	local index, old = findGroup(op.groupKey)
 	if index then
+		if old.source then
+			fail("invalid_params", "This skill group is created by an equipped item and cannot be replaced", op.groupKey)
+		end
 		build.skillsTab.socketGroupList[index] = group
 	else
 		table.insert(build.skillsTab.socketGroupList, group)
@@ -621,9 +640,21 @@ patchOps.removeSkill = function(op)
 	if not index then
 		fail("invalid_params", "No skill group with this key", op.groupKey)
 	end
-	table.remove(build.skillsTab.socketGroupList, index)
-	if build.mainSocketGroup > #build.skillsTab.socketGroupList then
-		build.mainSocketGroup = math.max(1, #build.skillsTab.socketGroupList)
+	local list = build.skillsTab.socketGroupList
+	if list[index].source then
+		fail("invalid_params", "This skill group is created by an equipped item and cannot be removed", op.groupKey)
+	end
+	table.remove(list, index)
+	-- Same bookkeeping as PoB's skill list control when a group is deleted.
+	if build.mainSocketGroup > index then
+		build.mainSocketGroup = build.mainSocketGroup - 1
+	end
+	local input = build.calcsTab.input
+	if input.skill_number and input.skill_number > index then
+		input.skill_number = input.skill_number - 1
+	end
+	if build.mainSocketGroup > #list then
+		build.mainSocketGroup = math.max(1, #list)
 	end
 end
 
@@ -665,15 +696,17 @@ methods["build.applyPatch"] = function(params)
 	current = nil
 	local warnings = {}
 	for i, op in ipairs(params.ops) do
+		local where = "op " .. i .. " (" .. tostring(op.op) .. ")"
 		local apply = patchOps[op.op]
 		if not apply then
-			fail("invalid_params", "Unknown patch op", tostring(op.op))
+			fail("invalid_params", "Unknown patch op", where)
 		end
 		local ok, err = pcall(apply, op, warnings)
 		if not ok then
-			if getmetatable(err) == RpcError then
-				err.detail = "op " .. i .. " (" .. op.op .. ")" .. (err.detail and ": " .. err.detail or "")
+			if getmetatable(err) ~= RpcError then
+				err = setmetatable({ kind = "calc_failed", message = "Path of Building raised an error", detail = debug.traceback(tostring(err), 2) }, RpcError)
 			end
+			err.detail = where .. (err.detail and ": " .. err.detail or "")
 			error(err, 0)
 		end
 	end
@@ -684,7 +717,10 @@ methods["build.applyPatch"] = function(params)
 		fail("calc_failed", "Path of Building reported an error after the patch", prompt)
 	end
 	local handle = addState(build:SaveDB("ExileForge"))
-	current = { handle = handle }
+	-- PoB now holds the patched object, but numbers must belong to the stored
+	-- XML (the hash). Leaving current unset makes the next calc load that XML,
+	-- so memory state and export/reload can never differ.
+	current = nil
 	return { handle = handle, warnings = setmetatable(warnings, { __jsontype = "array" }) }
 end
 

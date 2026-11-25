@@ -119,8 +119,12 @@ CalcPool (Node)                         PobWorker × N (LuaJIT, cwd = PoB/src)
 ## `build.applyPatch`
 
 Ein Patch wendet eine Liste von Ops auf eine Kopie des Builds an und liefert
-einen **neuen Handle**; der alte Zustand bleibt unverändert. Jede Op nutzt
-dieselbe PoB-Funktion wie das passende Bedienelement in PoB. Scheitert eine
+einen **neuen Handle**; der alte Zustand bleibt unverändert. Die Ops nutzen
+PoBs eigene Funktionen (bei `setSkill`/`removeSkill` mit denselben Regeln wie
+die Skill-Liste: Gruppen aus ausgerüsteten Items sind geschützt, die
+Hauptgruppe wandert mit). Die Zahlen eines Patch-Zustands gehören immer zum
+gespeicherten XML: der nächste Rechenlauf lädt es frisch (+~0,5 s), statt auf
+dem im Speicher veränderten Build zu rechnen. Scheitert eine
 Op, scheitert der ganze Patch (`invalid_params` mit `op <n> (<name>)` im
 Detail), und es entsteht kein halber Zustand.
 
@@ -129,9 +133,9 @@ Detail), und es entsteht kein halber Zustand.
 | `setLevel` | Charakterstufe, schaltet die automatische Stufe ab | – |
 | `setClass` | `PassiveSpec:SelectClass`; nicht verbundene Passives verwirft PoB, das steht dann in `warnings` | Klassenname (`characterClass.id`) |
 | `setAscendancy` | `PassiveSpec:SelectAscendClass` | `internalId` der Ascendancy (`ascendancy.id`) |
-| `allocateNodes` | `PassiveSpec:AllocNode` mit PoBs Pfadsuche; optional `weaponSet` (PoBs `allocMode`). Nicht erreichbar = Fehler | Knoten-ID (`passiveNode.id`) |
+| `allocateNodes` | `PassiveSpec:AllocNode` mit PoBs Pfadsuche; optional `weaponSet` (PoBs `allocMode`, nur 1 oder 2). Nicht erreichbar = Fehler; schon vergebene Knoten bleiben unverändert (Warnung bei anderem Set) | Knoten-ID (`passiveNode.id`) |
 | `deallocateNodes` | `PassiveSpec:DeallocNode`, inklusive abhängiger Knoten | Knoten-ID |
-| `setSkill` | ersetzt oder ergänzt die Skill-Gruppe mit dem Label `groupKey`; aktive Gem plus Supports, geprüft gegen PoBs Gem-Daten. `weaponSet` kennt PoB für Gruppen nicht, er wird abgelehnt | Gem-Metadata-ID (`gem.id`) |
+| `setSkill` | ersetzt oder ergänzt die Skill-Gruppe mit dem Label `groupKey` (mehrdeutiges Label = `invalid_params`, Gruppen ohne Label sind nicht ansprechbar); aktive Gem plus Supports, geprüft gegen PoBs Gem-Daten. `weaponSet` kennt PoB für Gruppen nicht, er wird abgelehnt | Gem-Metadata-ID (`gem.id`) |
 | `removeSkill` | entfernt die Gruppe mit dem Label `groupKey` | – |
 | `setItem` | liest den Item-Text mit PoBs Item-Parser, prüft den Slot, rüstet aus | PoB-Slotname |
 | `removeItem` | leert den Slot | PoB-Slotname |

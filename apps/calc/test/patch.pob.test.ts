@@ -61,6 +61,16 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
   const patch = (ops: PatchOp[], handle = base) =>
     pool.request("build.applyPatch", { handle, ops });
   const ops = (o: unknown[]): PatchOp[] => o as PatchOp[];
+  /** The numbers of a state must not depend on whether PoB holds it in memory or loaded it from its XML. */
+  const expectRoundTrip = async (handle: BuildHandle): Promise<void> => {
+    const inMemory = await stats(handle);
+    const exported = await pool.request("build.export", { handle, format: "xml" });
+    const reloaded = await pool.request("build.load", { format: "xml", payload: exported.payload });
+    const again = await stats(reloaded.handle);
+    expect(again.stats).toEqual(inMemory.stats);
+    expect(again.calcId).toBe(inMemory.calcId);
+    await pool.request("build.release", { handle: reloaded.handle });
+  };
 
   beforeAll(async () => {
     pool = await startPobPool(2);
@@ -175,6 +185,44 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     });
   });
 
+  it("gives the same numbers in memory and after reload for every kind of op", async () => {
+    const last = facts.nodes[facts.nodes.length - 1] ?? "";
+    const slot = facts.slots[0];
+    if (!slot) throw new Error("fixture has no equipped item");
+    const variants: unknown[][] = [
+      [{ op: "setConfig", key: "enemyIsBoss", value: "None" }],
+      [{ op: "deallocateNodes", nodeIds: [last] }],
+      [
+        { op: "deallocateNodes", nodeIds: [last] },
+        { op: "allocateNodes", nodeIds: [last], weaponSet: 1 },
+      ],
+      [{ op: "removeItem", slot: slot.name }],
+      [
+        {
+          op: "setSkill",
+          groupKey: "exileforge-test",
+          gemId: facts.gemId,
+          level: 1,
+          quality: 0,
+          supports: [],
+        },
+      ],
+    ];
+    for (const o of variants) {
+      const { handle } = await patch(ops(o));
+      await expectRoundTrip(handle);
+    }
+  });
+
+  it("keeps profile and main skill out of the patched build", async () => {
+    const viaProfile = await stats(base, "test-override");
+    expect(viaProfile.stats).not.toEqual(baseResult.stats);
+    const { handle } = await patch(ops([{ op: "setLevel", level: 61 }]));
+    const plain = await patch(ops([{ op: "setLevel", level: 61 }]), base);
+    expect((await stats(handle)).stats).toEqual((await stats(plain.handle)).stats);
+    expect((await stats(handle)).calcProfile).toBe("as-saved");
+  });
+
   it("rejects bad ops with the op index and leaves no half-patched state", async () => {
     const bad: [unknown[], RegExp][] = [
       [
@@ -201,6 +249,23 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
       ],
       [[{ op: "removeSkill", groupKey: "exileforge-no-such-group" }], /op 1/],
       [[{ op: "setItem", slot: "exileforge-no-such-slot", itemText: "x" }], /op 1/],
+      [[{ op: "allocateNodes", nodeIds: [facts.nodes[0] ?? ""], weaponSet: 7 }], /op 1/],
+      [[{ op: "setLevel", level: 101 }], /op 1/],
+      [
+        [
+          {
+            op: "setSkill",
+            groupKey: "x",
+            gemId: facts.gemId,
+            level: 1,
+            quality: 0,
+            supports: [],
+            weaponSet: 1,
+          },
+        ],
+        /op 1/,
+      ],
+      [[{ op: "setItem", slot: facts.slots[0]?.name ?? "", itemText: "not an item" }], /op 1/],
       [[{ op: "setConfig", key: "exileforgeNoSuchOption", value: true }], /op 1/],
       [[{ op: "setConfig", key: "enemyIsBoss", value: "exileforge-no-such-value" }], /op 1/],
     ];
