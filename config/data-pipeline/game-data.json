@@ -48,6 +48,14 @@
       "columns": ["Id", "Name"]
     },
     {
+      "name": "PassiveSkills",
+      "columns": ["Id", "Name", "PassiveSkillGraphId"]
+    },
+    {
+      "name": "Inventories",
+      "columns": ["Id"]
+    },
+    {
       "name": "ExperienceLevels",
       "columns": ["Id", "Level", "Experience"]
     }

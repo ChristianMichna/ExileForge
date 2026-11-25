@@ -18,6 +18,7 @@ import {
 } from "./catalog.ts";
 import { currencyBaseItems } from "./currency.ts";
 import { essenceActions } from "./essence.ts";
+import { applyGameIds } from "./game-ids.ts";
 import { buildReleaseFacts } from "./release-facts.ts";
 import { StatMatcher } from "./stat-matcher.ts";
 import { validateCatalog } from "./validate.ts";
@@ -146,8 +147,40 @@ export async function buildCatalog(
     norm.entities.craftingAction.push(...res.actions);
     essenceFindings.push(...res.findings);
   }
+  const gameIdFindings: Finding[] = [];
+  const gameIdErrors: Finding[] = [];
+  let gameIdSummary: NormalizeSummary["gameIds"];
+  if (extra.gameDataDir === undefined) {
+    gameIdFindings.push({
+      kind: "gameId",
+      id: "all",
+      message: "no game data given, game ids of passives and slots are left out",
+    });
+  } else if (facts.itemSlots) {
+    const ids = await applyGameIds({
+      gameDataDir: extra.gameDataDir,
+      config: cfg.config.gameIds,
+      passiveNodes: norm.entities.passiveNode as { name: string; pobNodeId?: number }[],
+      slots: facts.itemSlots.slots,
+    });
+    norm.entities.passiveNode = norm.entities.passiveNode.map((n, i) => {
+      const gameId = ids.passiveGameIds[i];
+      return gameId === undefined ? n : { ...n, gameId };
+    });
+    facts.itemSlots = { ...facts.itemSlots, slots: ids.slots };
+    facts.gameIds = { origin: "game-data" };
+    gameIdFindings.push(...ids.findings);
+    gameIdErrors.push(...ids.errors);
+    gameIdSummary = ids.summary;
+  }
   const validation = validateCatalog(norm.entities);
-  const errors = [...norm.errors, ...validation.errors, ...factErrors, ...currencyErrors];
+  const errors = [
+    ...norm.errors,
+    ...validation.errors,
+    ...factErrors,
+    ...currencyErrors,
+    ...gameIdErrors,
+  ];
 
   const out = resolve(outDir);
   await prepareOutDir(
@@ -163,9 +196,15 @@ export async function buildCatalog(
     JSON.stringify(
       {
         releaseId: snap.releaseId,
-        summary: norm.summary,
+        summary: { ...norm.summary, ...(gameIdSummary ? { gameIds: gameIdSummary } : {}) },
         errors,
-        warnings: [...norm.warnings, ...factFindings, ...currencyFindings, ...essenceFindings],
+        warnings: [
+          ...norm.warnings,
+          ...factFindings,
+          ...currencyFindings,
+          ...essenceFindings,
+          ...gameIdFindings,
+        ],
         unresolved: norm.unresolved,
         hiddenStatGroups: norm.hiddenStatGroups,
       },
@@ -225,7 +264,13 @@ export async function buildCatalog(
   await writeFile(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   return {
     manifest,
-    warnings: [...norm.warnings, ...factFindings, ...currencyFindings, ...essenceFindings],
-    summary: norm.summary,
+    warnings: [
+      ...norm.warnings,
+      ...factFindings,
+      ...currencyFindings,
+      ...essenceFindings,
+      ...gameIdFindings,
+    ],
+    summary: { ...norm.summary, ...(gameIdSummary ? { gameIds: gameIdSummary } : {}) },
   };
 }

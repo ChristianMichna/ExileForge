@@ -4,7 +4,7 @@ import { normalizeConfigSchema } from "../../src/normalize/catalog.ts";
 
 // Synthetic raw snapshot in PoB's shape. All names, ids, texts and numbers
 // are invented; only the field layout follows PoB.
-export const cfg = normalizeConfigSchema.parse(
+const realCfg = normalizeConfigSchema.parse(
   JSON.parse(
     readFileSync(
       fileURLToPath(new URL("../../../../config/data-pipeline/normalize.json", import.meta.url)),
@@ -12,6 +12,18 @@ export const cfg = normalizeConfigSchema.parse(
     ),
   ),
 );
+
+// the real config maps real slot names; the fixture has invented slots and inventory rows
+export const cfg = {
+  ...realCfg,
+  gameIds: {
+    ...realCfg.gameIds,
+    slots: {
+      ...realCfg.gameIds.slots,
+      map: { "Fake Hand 2": "FixtureHand2", "Fake Finger": "FixtureFinger" },
+    },
+  },
+};
 const scope = cfg.statScopes.mod;
 
 export function rawSnapshot() {

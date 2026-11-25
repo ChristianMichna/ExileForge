@@ -120,6 +120,15 @@ describe("release facts", () => {
     const gameDataDir = await writeGameData([1, 2, 7, 5]);
     const { manifest } = await buildCatalog(snap, out, factsConfig, NOW, { gameDataDir });
     expect(manifest.release.maxCharacterLevel).toEqual({ value: 7, origin: "game-data" });
+    expect(manifest.release.gameIds).toEqual({ origin: "game-data" });
+    const nodes = CatalogShard.parse(
+      JSON.parse(await readFile(join(out, "passiveNode.json"), "utf8")),
+    ).entities as { pobNodeId?: number; gameId?: string }[];
+    expect(Object.fromEntries(nodes.map((n) => [n.pobNodeId, n.gameId]))).toMatchObject({
+      1: "fixture_start",
+      2: "fixture_big",
+    });
+    expect(manifest.release.itemSlots?.slots.map((s) => s.gameId)).toContain("FixtureHand2");
     const shard = CatalogShard.parse(
       JSON.parse(await readFile(join(out, "baseItem.json"), "utf8")),
     );

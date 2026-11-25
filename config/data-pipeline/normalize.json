@@ -46,10 +46,41 @@
       "omen": "omen"
     }
   },
+  "gameIds": {
+    "$comment": "Game ids for the .build export (game data read in CI, approved by Christian 2026-11-26). Passives: the PassiveSkills row with the same node id (column PassiveSkillGraphId in the dat schema, the column PoB's export script calls PassiveSkillNodeId) and the same name; no match, several rows or another name leave the id out and are counted. Slots: PoB slot name -> Inventories.Id. The pairing is by position in the game table (set 1: Weapon1/Offhand1, swap set: Weapon2/Offhand2), NOT yet verified in the game; flasks, charms, arms and legs have no counterpart row that this pipeline can confirm and stay unmapped.",
+    "passives": {
+      "table": "PassiveSkills",
+      "idColumn": "Id",
+      "nameColumn": "Name",
+      "nodeIdColumn": "PassiveSkillGraphId"
+    },
+    "slots": {
+      "table": "Inventories",
+      "idColumn": "Id",
+      "map": {
+        "Weapon 1": "Weapon1",
+        "Weapon 2": "Offhand1",
+        "Weapon 1 Swap": "Weapon2",
+        "Weapon 2 Swap": "Offhand2",
+        "Helmet": "Helm1",
+        "Body Armour": "BodyArmour1",
+        "Gloves": "Gloves1",
+        "Boots": "Boots1",
+        "Amulet": "Amulet1",
+        "Ring 1": "Ring1",
+        "Ring 2": "Ring2",
+        "Ring 3": "Ring3",
+        "Belt": "Belt1"
+      }
+    }
+  },
   "releaseFacts": {
     "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on. classifications: PoB lists them in its code, damage types as dmgTypeList (Modules/CalcPerform.lua, CalcDefence.lua) and defence layers as the resourceList entries with defence = true (Modules/CalcDefence.lua), v0.23.1; the release id is the snake-case name and must be a mod tag of the release. Known limit: PoB hard-codes level 100 / 99 points, so a different maxCharacterLevel in the game data would not be reflected by PoB.",
     "maxLevelTable": "ExperienceLevels",
-    "mainTree": { "perLevel": 1, "fromLevel": 2 },
+    "mainTree": {
+      "perLevel": 1,
+      "fromLevel": 2
+    },
     "classifications": {
       "damageTypes": ["Physical", "Lightning", "Cold", "Fire", "Chaos"],
       "defenceLayers": ["Armour", "Evasion", "EnergyShield"]

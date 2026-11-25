@@ -87,6 +87,33 @@ export const normalizeConfigSchema = z
           .strict(),
       })
       .strict(),
+    gameIds: z
+      .object({
+        $comment: z.string().optional(),
+        /** Passive nodes: the table row with the node's id and name gives `PassiveNode.gameId`. */
+        passives: z
+          .object({
+            table: z.string().min(1),
+            idColumn: z.string().min(1),
+            nameColumn: z.string().min(1),
+            /** Column holding the numeric node id PoB uses (`PassiveNode.pobNodeId`). */
+            nodeIdColumn: z.string().min(1),
+          })
+          .strict(),
+        /**
+         * Slots: PoB slot name -> id in the inventory table. A slot that is not
+         * listed gets no game id (counted in the findings); a listed id that the
+         * table lacks is an error.
+         */
+        slots: z
+          .object({
+            table: z.string().min(1),
+            idColumn: z.string().min(1),
+            map: z.record(z.string().min(1), z.string().min(1)),
+          })
+          .strict(),
+      })
+      .strict(),
     releaseFacts: z
       .object({
         $comment: z.string().optional(),
@@ -176,6 +203,13 @@ export interface NormalizeSummary {
   modsWithHiddenStatGroups: number;
   /** unique lines whose ambiguous text was decided by spawn evidence of the base */
   uniqueLinesDisambiguated: number;
+  /** game ids matched to passive nodes and slots; absent when no game data was given */
+  gameIds?: {
+    passivesWithGameId: number;
+    passivesWithoutGameId: number;
+    slotsWithGameId: number;
+    slotsWithoutGameId: number;
+  };
   /** unique lines resolved to one passive node by its name ("Allocates <node>") */
   uniqueLinesAllocatingNode: number;
   /** unique lines resolved to one gem by the skill name ("Grants Skill: <skill>") */
