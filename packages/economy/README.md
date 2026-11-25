@@ -22,9 +22,10 @@ const { league, inCurrencyItemId, prices, freshness } = await service.price({ it
   Timeout, gestreamtem Größenlimit und ohne Redirects (ein 3xx ist ein Fehler). Nach
   einem 429 wird bis `Retry-After` (sonst `rateLimitBackoffMs`) nichts gesendet. Ein Abruf (alle `exchangeTypes`) sind etwa 14 Anfragen pro
   Stunde und Liga.
-- User-Agent identifiziert die App ohne persönliche Daten. **Offen:** Der Provider
-  wünscht einen Kontakt im User-Agent; den muss der Projektinhaber wählen (öffentliche
-  Adresse), er steht deshalb noch nicht in der Config.
+- User-Agent identifiziert die App und nennt den vom Projektinhaber gewählten Kontakt
+  (E-Mail, auf seinen ausdrücklichen Wunsch; kein Git-Link). Der Produktname kommt
+  über `appName` aus der Config (Platzhalter `{appName}`), eine Umbenennung ändert
+  nur dieses Feld.
 - Der Provider rät Desktop-Apps, über ein eigenes Backend zu gehen. ExileForge ist
   lokal ohne Backend; das Volumen ist klein (siehe oben). Das ist eine bewusste
   Abweichung und bei Beanstandung neu zu entscheiden.

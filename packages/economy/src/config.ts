@@ -21,6 +21,8 @@ export const EconomyConfig = z
     provider: z.string().min(1),
     baseUrl: z.url().refine((u) => u.startsWith("https://"), "must be https"),
     game: z.string().regex(/^[a-z0-9]+$/),
+    /** Product name used for the {appName} placeholder; change it here when the app is renamed. */
+    appName: z.string().min(1),
     userAgent: z.string().min(1),
     paths: z.object({ leagues: apiPath, exchangeOverview: apiPath }),
     exchangeTypes: z.array(z.string().min(1)).min(1),
