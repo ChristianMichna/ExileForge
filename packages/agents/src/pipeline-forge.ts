@@ -35,7 +35,7 @@ import {
 import { TargetBuild } from "@astrolabe/contracts/build";
 import type { ProgressionStageTree } from "./ports.js";
 import { releaseStageTable } from "./stages/s6-table.js";
-import { gearKey, gearTask, tiersOf } from "./stages/s7-gear.js";
+import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 
@@ -282,16 +282,20 @@ function planGear(
   chosen: ArchetypeCandidate,
   target: TargetBuild,
 ): PlanStep {
-  const s7 = config.s7;
-  if (s7 === undefined) {
+  const s7Base = config.s7;
+  if (s7Base === undefined) {
     return {
       kind: "blocked",
       error: {
         code: "s7_not_configured",
         message:
-          "S7 needs the gear slots of the release and the budget tiers (config/agents/stages.json, block s7). They have not been set yet. S0 to S6 are done; their results are stored with the run.",
+          "S7 needs the budget tiers and calc profiles of the gear stage (config/agents/stages.json, block s7). They have not been set yet. S0 to S6 are done; their results are stored with the run.",
       },
     };
+  }
+  const s7 = resolveS7(s7Base, ctx.catalog.release);
+  if (typeof s7 === "string") {
+    return { kind: "blocked", error: { code: "release_facts_missing", message: s7 } };
   }
   const tiers = tiersOf(s7, ctx.run.request.budget);
   if (tiers === undefined) {

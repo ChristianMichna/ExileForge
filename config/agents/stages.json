@@ -45,5 +45,23 @@
       },
       "floors": {}
     }
+  },
+  "s7": {
+    "$comment": "DEFAULT budget tiers (ascending) and calc profiles, editable by the product owner. Tier ids must match the intake form (apps/web/src/config/intake-defaults.json). The item slots come from the data release.",
+    "tiers": [
+      {
+        "id": "start",
+        "label": "League start"
+      },
+      {
+        "id": "mid",
+        "label": "Mid"
+      },
+      {
+        "id": "endgame",
+        "label": "Endgame"
+      }
+    ],
+    "calcProfiles": ["mapping", "pinnacle"]
   }
 }

@@ -41,9 +41,17 @@ export function targetSize(release: DataRelease | undefined): TargetSize | strin
   const max = release?.maxCharacterLevel;
   const points = release?.passivePoints;
   if (release === undefined || max === undefined || points === undefined) {
-    return `Data release ${release?.id ?? "(unknown)"} has no maximum character level or passive point rules; S5 cannot size the endgame build. Rebuild the release with the data pipeline.`;
+    const missing = [
+      ...(release === undefined ? ["the release record"] : []),
+      ...(max === undefined ? ["maxCharacterLevel"] : []),
+      ...(points === undefined ? ["passivePoints"] : []),
+    ].join(" and ");
+    return `Data release ${release?.id ?? "(unknown)"} lacks ${missing}; S5 cannot size the endgame build. A newer data release is needed.`;
   }
-  const levels = Math.max(0, max.value - points.mainTree.fromLevel + 1);
+  if (points.mainTree.fromLevel > max.value) {
+    return `Data release ${release.id} grants main tree points from level ${points.mainTree.fromLevel}, above its maximum level ${max.value}; the release facts are inconsistent.`;
+  }
+  const levels = max.value - points.mainTree.fromLevel + 1;
   const weaponSet = points.weaponSetByAct.acts.reduce((sum, a) => sum + a.points, 0);
   return { level: max.value, passivePoints: levels * points.mainTree.perLevel + weaponSet };
 }
