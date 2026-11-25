@@ -64,7 +64,8 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
 /** Honest connection state: sample data in a browser, real server state in the desktop app. */
 function StatusBadges() {
   const desktop = useDesktopStatus();
-  if (desktop.kind === "browser" || desktop.kind === "loading") {
+  if (desktop.kind === "loading") return <Badge tone="neutral">Starting</Badge>;
+  if (desktop.kind === "browser") {
     return (
       <>
         <Badge tone="accent">Sample data</Badge>

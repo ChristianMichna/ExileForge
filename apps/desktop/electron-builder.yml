@@ -18,6 +18,12 @@ extraResources:
   - { from: ../mcp-bridge/dist/exileforge.mcpb, to: exileforge.mcpb }
   - { from: data-release, to: data-release }
 asar: true
+# Fuses: the exe cannot be used as a plain Node interpreter, only the signed-in asar loads.
+electronFuses:
+  runAsNode: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+  enableEmbeddedAsarIntegrityValidation: true
 win:
   target:
     - { target: nsis, arch: [x64] }

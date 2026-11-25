@@ -2,7 +2,7 @@ import { isAllowedExternalUrl } from "./security.js";
 
 /** Fills the `{code}` placeholder of the configured start sentence. */
 export function buildStartSentence(template: string, code: string): string {
-  return template.replace("{code}", code);
+  return template.replace("{code}", () => code);
 }
 
 /**

@@ -61,10 +61,11 @@ function deps(overrides: Partial<HandlerDeps> = {}): HandlerDeps & { clipboard: 
       server: { state: "starting" },
       update: { state: "idle" },
     }),
-    server: () => ({ url: "http://127.0.0.1:47615", token: "tok" }),
+    server: () => ({ url: "http://127.0.0.1:47615", token: "s3cr3t-value" }),
     fetch: async () =>
       new Response(JSON.stringify({ sessionCode: "AB12-CD", expiresAt: "2026-01-01T00:00:00Z" })),
     clipboardWrite: (t) => clipboard.push(t),
+    clipboardRead: () => clipboard.at(-1) ?? "",
     openExternal: async () => undefined,
     openPath: async () => "",
     extensionPath: "x.mcpb",
@@ -110,8 +111,8 @@ describe("ipc handlers", () => {
     const d = deps();
     const result = createHandlers(d).copyClaudeCodeCommand();
     expect(result.ok).toBe(true);
-    expect(JSON.stringify(result)).not.toContain("tok");
-    expect(d.clipboard[0]).toContain("Bearer tok");
+    expect(JSON.stringify(result)).not.toContain("s3cr3t-value");
+    expect(d.clipboard[0]).toContain("Bearer s3cr3t-value");
   });
 
   it("explains when the extension file cannot be opened", async () => {

@@ -16,7 +16,8 @@ export interface UpdaterPort {
 }
 
 export interface UpdateController {
-  check(): Promise<void>;
+  /** "failed" carries the reason; errors also show in the status. */
+  check(): Promise<{ result: "checked" | "already-downloaded" | "failed"; message?: string }>;
   installNow(): boolean;
   stop(): void;
 }
@@ -37,7 +38,8 @@ export function startUpdates(opts: UpdateOptions): UpdateController {
   const { updater, setState } = opts;
   let downloaded = false;
   updater.autoDownload = true;
-  updater.autoInstallOnAppQuit = true;
+  // Without a code signature nothing is installed unasked: only the explicit restart button installs.
+  updater.autoInstallOnAppQuit = false;
   updater.on("checking-for-update", () => setState({ state: "checking" }));
   updater.on("update-not-available", () => setState({ state: "idle" }));
   updater.on("update-available", () => setState({ state: "downloading", percent: 0 }));
@@ -50,15 +52,16 @@ export function startUpdates(opts: UpdateOptions): UpdateController {
   });
   updater.on("error", (error) => setState({ state: "failed", message: error.message }));
 
-  const check = async () => {
-    if (downloaded) return;
+  const check: UpdateController["check"] = async () => {
+    if (downloaded) return { result: "already-downloaded" };
     try {
       await updater.checkForUpdates();
+      return { result: "checked" };
     } catch (error) {
-      setState({
-        state: "failed",
-        message: error instanceof Error ? error.message : "Update check failed",
-      });
+      const message = error instanceof Error ? error.message : "Update check failed";
+      console.error("update check failed", error);
+      setState({ state: "failed", message });
+      return { result: "failed", message };
     }
   };
   const first = setTimeout(() => void check(), opts.firstCheckDelayMs);

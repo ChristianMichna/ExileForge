@@ -4,8 +4,12 @@ import { buildClaudeCodeCommand, buildStartSentence, openClaudeDesktop } from ".
 import type { DesktopConfig } from "./config.js";
 import type { UpdateController } from "./updater.js";
 
+/** How long the Claude Code command (with token) may stay on the clipboard. */
+const CLIPBOARD_CLEAR_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 10_000;
+const ServerError = z.object({ error: z.object({ message: z.string() }) });
 const RunIdArg = z.string().min(1).max(100);
-const SessionCodeReply = z.object({ sessionCode: z.string().min(1), expiresAt: z.string().min(1) });
+const SessionCodeReply = z.object({ sessionCode: z.string().min(1), expiresAt: z.iso.datetime() });
 
 export interface HandlerDeps {
   config: DesktopConfig;
@@ -14,6 +18,7 @@ export interface HandlerDeps {
   server(): { url: string; token: string } | undefined;
   fetch: typeof fetch;
   clipboardWrite(text: string): void;
+  clipboardRead(): string | Promise<string>;
   openExternal(url: string): Promise<void>;
   /** Opens a local file with its associated app; resolves to an error text or "". */
   openPath(path: string): Promise<string>;
@@ -32,12 +37,22 @@ export function createHandlers(deps: HandlerDeps) {
       if (server === undefined) throw new Error("The local server is not running.");
       const response = await deps.fetch(
         `${server.url}/api/runs/${encodeURIComponent(runId)}/session-code`,
-        { method: "POST", headers: { authorization: `Bearer ${server.token}` } },
+        {
+          method: "POST",
+          headers: { authorization: `Bearer ${server.token}` },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        },
       );
       if (!response.ok) {
-        throw new Error(`The server refused to issue a session code (HTTP ${response.status}).`);
+        const detail = await response.json().catch(() => undefined);
+        const message = ServerError.safeParse(detail);
+        throw new Error(
+          `The server refused to issue a session code: ${message.success ? message.data.error.message : `HTTP ${response.status}`}`,
+        );
       }
-      const issued = SessionCodeReply.parse(await response.json());
+      const parsed = SessionCodeReply.safeParse(await response.json());
+      if (!parsed.success) throw new Error("The server sent an unexpected session code answer.");
+      const issued = parsed.data;
       const startSentence = buildStartSentence(
         deps.config.claude.startSentence,
         issued.sessionCode,
@@ -60,10 +75,21 @@ export function createHandlers(deps: HandlerDeps) {
     copyClaudeCodeCommand(): ActionResult {
       const server = deps.server();
       if (server === undefined) return { ok: false, message: "The local server is not running." };
-      deps.clipboardWrite(buildClaudeCodeCommand(server.url, server.token));
+      const command = buildClaudeCodeCommand(server.url, server.token);
+      deps.clipboardWrite(command);
+      // The command holds the token: remove it from the clipboard again unless something else was copied.
+      const timer = setTimeout(() => {
+        void Promise.resolve(deps.clipboardRead())
+          .then((current) => {
+            if (current === command) deps.clipboardWrite("");
+          })
+          .catch((error: unknown) => console.error("clipboard clear failed", error));
+      }, CLIPBOARD_CLEAR_MS);
+      timer.unref();
       return {
         ok: true,
-        message: "Command copied. Paste it into a terminal where Claude Code is installed.",
+        message:
+          "Command copied (it contains your access token and leaves the clipboard after 60 seconds). Paste it into a terminal where Claude Code is installed.",
       };
     },
 
@@ -85,8 +111,20 @@ export function createHandlers(deps: HandlerDeps) {
       if (updates === undefined) {
         return { ok: false, message: "Updates are only available in the installed app." };
       }
-      await updates.check();
-      return { ok: true, message: "Checking for updates." };
+      const outcome = await updates.check();
+      if (outcome.result === "failed") {
+        return {
+          ok: false,
+          message: `The update check failed: ${outcome.message ?? "unknown error"}`,
+        };
+      }
+      return {
+        ok: true,
+        message:
+          outcome.result === "already-downloaded"
+            ? "An update is already downloaded. Restart to install it."
+            : "Checking for updates.",
+      };
     },
 
     installUpdate(): ActionResult {

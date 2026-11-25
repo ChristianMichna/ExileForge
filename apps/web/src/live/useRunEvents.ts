@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { RunEvent } from "@exileforge/contracts/events";
 import { applyRunEvent, EMPTY_RUN, type RunLive } from "./run-state";
 
-export type Connection = "connecting" | "live" | "reconnecting";
+export type Connection = "connecting" | "live" | "reconnecting" | "closed";
 
 export interface RunEventsState {
   readonly run: RunLive;
@@ -40,7 +40,12 @@ export function useRunEvents(runId: string | undefined): RunEventsState {
     if (runId === undefined) return;
     const source = new EventSource(`/api/runs/${encodeURIComponent(runId)}/events`);
     source.onopen = () => setState((s) => ({ ...s, connection: "live" }));
-    source.onerror = () => setState((s) => ({ ...s, connection: "reconnecting" }));
+    // A closed source never reconnects (e.g. 404 for an unknown run): say so instead of waiting.
+    source.onerror = () =>
+      setState((s) => ({
+        ...s,
+        connection: source.readyState === EventSource.CLOSED ? "closed" : "reconnecting",
+      }));
     const onMessage = (message: MessageEvent<string>) => {
       let json: unknown;
       try {

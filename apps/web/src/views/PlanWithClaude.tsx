@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Badge, Button, Callout, Panel } from "@exileforge/ui";
-import type { BuildRequest } from "@exileforge/contracts/build";
+import { BuildRequest } from "@exileforge/contracts/build";
 import { ApiError, createRun, type CreatedRun } from "../api/client";
 import intake from "../config/intake-defaults.json";
 import { getDesktopBridge, type OpenClaudeResult } from "../desktop/bridge";
@@ -136,8 +136,8 @@ function IntakeForm({
     event.preventDefault();
     setBusy(true);
     setError(undefined);
-    const request: BuildRequest = {
-      dataReleaseId: dataReleaseId as BuildRequest["dataReleaseId"],
+    const candidate = {
+      dataReleaseId,
       skillIdea: idea.trim(),
       mode: { hardcore, ssf },
       budget: { leveling, endgame },
@@ -150,8 +150,14 @@ function IntakeForm({
       },
       exclusions: [],
     };
+    const request = BuildRequest.safeParse(candidate);
+    if (!request.success) {
+      setError(`The form does not match the build request contract: ${request.error.message}`);
+      setBusy(false);
+      return;
+    }
     try {
-      onCreated(await createRun(request));
+      onCreated(await createRun(request.data));
     } catch (e) {
       setError(
         e instanceof ApiError || e instanceof Error ? e.message : "The run could not be created.",
@@ -282,6 +288,8 @@ function ConnectClaude({ runId, created }: { runId: string; created: CreatedRun 
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
+    setResult(undefined);
+    setNote(undefined);
     try {
       await action();
     } catch (e) {
@@ -305,7 +313,6 @@ function ConnectClaude({ runId, created }: { runId: string; created: CreatedRun 
             busy={busy}
             onClick={() =>
               void run(async () => {
-                setNote(undefined);
                 setResult(await bridge.openClaude(runId));
               })
             }
@@ -314,12 +321,14 @@ function ConnectClaude({ runId, created }: { runId: string; created: CreatedRun 
           </Button>
           <Button
             variant="secondary"
+            disabled={busy}
             onClick={() => void run(async () => setNote(await bridge.installClaudeExtension()))}
           >
             Install Claude extension
           </Button>
           <Button
             variant="secondary"
+            disabled={busy}
             onClick={() => void run(async () => setNote(await bridge.copyClaudeCodeCommand()))}
           >
             Copy Claude Code command

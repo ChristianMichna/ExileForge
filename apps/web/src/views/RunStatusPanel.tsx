@@ -1,7 +1,8 @@
 import { Badge, Button, Callout, Panel, type BadgeTone } from "@exileforge/ui";
+import type { RunLive } from "../live/run-state";
 import type { RunEventsState } from "../live/useRunEvents";
 
-const PHASE_LABEL: Record<string, { label: string; tone: BadgeTone }> = {
+const PHASE_LABEL: Record<RunLive["phase"], { label: string; tone: BadgeTone }> = {
   created: { label: "Waiting for Claude", tone: "neutral" },
   planning: { label: "Claude is planning", tone: "accent" },
   waiting_user: { label: "Waiting for you", tone: "warning" },
@@ -19,7 +20,7 @@ export function RunStatusPanel({
   onNewRun: () => void;
 }) {
   const { run, connection, protocolError } = state;
-  const phase = PHASE_LABEL[run.phase] ?? { label: run.phase, tone: "neutral" as BadgeTone };
+  const phase = PHASE_LABEL[run.phase];
   return (
     <Panel
       kicker="Live status"
@@ -30,10 +31,14 @@ export function RunStatusPanel({
         </Button>
       }
     >
-      <div className="run-status" aria-live="polite">
+      <div className="run-status">
         <div className="run-status__row">
           <Badge tone={phase.tone}>{phase.label}</Badge>
-          {connection !== "live" ? (
+          {connection === "closed" ? (
+            <Callout tone="danger" title="This run is no longer available">
+              The server does not know this run (for example after a reinstall). Start a new run.
+            </Callout>
+          ) : connection !== "live" ? (
             <Badge tone="warning">
               {connection === "connecting" ? "Connecting…" : "Reconnecting…"}
             </Badge>

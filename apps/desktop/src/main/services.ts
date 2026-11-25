@@ -64,7 +64,9 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
   const token = await loadOrCreateAccessToken(tokenFile);
   let health: z.infer<typeof Health>;
   try {
-    const response = await fetch(`${started.url}/api/health`);
+    const response = await fetch(`${started.url}/api/health`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     health = Health.parse(await response.json());
   } catch (error) {

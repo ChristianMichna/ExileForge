@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { extname, join, relative, resolve, sep } from "node:path";
+import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { CONTENT_SECURITY_POLICY } from "./security.js";
 
 /** Largest request body the proxy forwards; matches the server's own limit. */
@@ -61,10 +61,10 @@ async function serveFile(root: string, pathname: string): Promise<Response> {
   } catch {
     return error(400, "bad_path");
   }
-  if (decoded.includes("\0") || decoded.includes("\\")) return error(400, "bad_path");
+  if (/[\0\\:]/.test(decoded)) return error(400, "bad_path");
   const target = resolve(join(root, decoded === "/" ? "index.html" : decoded));
   const rel = relative(root, target);
-  if (rel === "" || rel.startsWith("..") || rel.split(sep).includes("..")) {
+  if (rel === "" || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
     return error(404, "not_found");
   }
   try {
@@ -117,7 +117,8 @@ async function forwardToServer(
     });
   } catch (cause) {
     if (request.signal.aborted) return error(499, "client_closed");
-    return error(502, "server_unreachable", cause instanceof Error ? cause.message : undefined);
+    console.error("api proxy: server unreachable", cause);
+    return error(502, "server_unreachable");
   }
   const out = new Headers({ "x-content-type-options": "nosniff" });
   for (const name of FORWARDED_RESPONSE_HEADERS) {

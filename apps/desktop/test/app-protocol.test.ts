@@ -113,7 +113,7 @@ describe("api proxy", () => {
       },
     }).handle(req("/api/health"));
     expect(res.status).toBe(502);
-    expect(await res.text()).toContain("ECONNREFUSED");
+    expect(await res.text()).not.toContain("ECONNREFUSED");
   });
 
   it("passes server errors through with their status", async () => {

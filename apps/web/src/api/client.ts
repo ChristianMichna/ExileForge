@@ -9,7 +9,7 @@ import type { BuildRequest } from "@exileforge/contracts/build";
 const CreatedRun = z.object({
   runId: z.string().min(1),
   sessionCode: z.string().min(1),
-  expiresAt: z.string().min(1),
+  expiresAt: z.iso.datetime(),
 });
 export type CreatedRun = z.infer<typeof CreatedRun>;
 

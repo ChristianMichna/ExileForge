@@ -84,7 +84,7 @@ automatisch: bei PRs als Artefakt zum Ausprobieren, per „Run workflow" mit
 ## Auto-Update
 
 `electron-updater` prüft GitHub Releases (15 s nach dem Start, dann alle 6 h,
-einstellbar), lädt im Hintergrund und installiert beim Beenden oder per Knopf
+einstellbar), lädt im Hintergrund und installiert nur per Knopf
 „Update … restart" in der Kopfzeile. Fehler erscheinen als Status, nie still.
 Für ein Release: Version in `apps/desktop/package.json` erhöhen, dann den
 Workflow mit `publish` starten.

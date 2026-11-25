@@ -28,10 +28,15 @@ export function useDesktopStatus(): DesktopStatus {
       })
       .catch((error: unknown) => {
         if (active) {
-          setState({
-            kind: "unreachable",
-            message: error instanceof Error ? error.message : "The app status is unavailable.",
-          });
+          setState((prev) =>
+            prev.kind === "desktop"
+              ? prev
+              : {
+                  kind: "unreachable",
+                  message:
+                    error instanceof Error ? error.message : "The app status is unavailable.",
+                },
+          );
         }
       });
     return () => {

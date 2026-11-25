@@ -55,11 +55,23 @@ if (!app.requestSingleInstanceLock()) {
     contents.on("will-navigate", (event, url) => {
       if (!isAppUrl(url)) event.preventDefault();
     });
+    contents.on("will-redirect", (event, url) => {
+      if (!isAppUrl(url)) event.preventDefault();
+    });
     contents.on("will-attach-webview", (event) => event.preventDefault());
   });
   app.on("window-all-closed", () => app.quit());
-  app.on("before-quit", () => {
+  let stopped = false;
+  app.on("before-quit", (event) => {
     updates?.stop();
+    if (stopped || services === undefined) return;
+    // Let the server and SQLite close cleanly before the process ends.
+    event.preventDefault();
+    stopped = true;
+    void services
+      .stop()
+      .catch((error: unknown) => logger.error("server stop failed", { error }))
+      .finally(() => app.quit());
   });
   void app.whenReady().then(boot).catch(fatal);
 }
@@ -93,6 +105,7 @@ async function boot(): Promise<void> {
       services === undefined ? undefined : { url: services.url, token: services.token },
     fetch: (input, init) => net.fetch(input as string, init),
     clipboardWrite: (text) => clipboard.writeText(text),
+    clipboardRead: () => clipboard.readText(),
     openExternal: (url) => shell.openExternal(url),
     openPath: (path) => shell.openPath(path),
     extensionPath: dirs.extensionPath,
@@ -141,9 +154,6 @@ async function boot(): Promise<void> {
     });
     status.setUpdate({ state: "idle" });
   }
-  app.on("will-quit", () => {
-    void services?.stop().catch((error: unknown) => logger.error("server stop failed", { error }));
-  });
 }
 
 function createWindow(config: DesktopConfig): BrowserWindow {
@@ -173,7 +183,8 @@ function hardenSession(serverPrefix: string): void {
   ses.setPermissionCheckHandler(() => false);
   ses.webRequest.onBeforeRequest((details, callback) => {
     const url = details.url;
-    // The app's own origin, and the local server which only the main process (net.fetch) reaches.
+    // The app's own origin and the local server. net.fetch from the main process passes this
+    // filter too (checked); the page itself is held back by its CSP (connect-src 'self').
     const allowed =
       isAppUrl(url) ||
       url.startsWith(serverPrefix) ||
