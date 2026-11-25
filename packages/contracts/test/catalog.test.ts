@@ -114,29 +114,42 @@ describe("DataRelease progression facts", () => {
 });
 
 describe("DataRelease item slots", () => {
-  const slots = {
-    origin: "pob-code",
-    slots: [
-      { id: "Fake Head", label: "Fake Head", itemClasses: ["Fake Helm"] },
-      {
-        id: "Fake Hand",
-        label: "Fake Hand",
-        weaponSet: 1,
-        itemClasses: ["Fake Blade", "Fake Wand"],
-      },
-    ],
+  const head = { id: "Fake Head", order: 1, label: "Fake Head", itemClasses: ["Fake Helm"] };
+  const hand = {
+    id: "Fake Hand",
+    order: 2,
+    label: "Fake Hand",
+    weaponSet: 1,
+    itemClasses: ["Fake Blade", "Fake Wand"],
+    dependsOnSlot: "Fake Main",
+    optional: true,
   };
+  const slots = { origin: "pob-code", slots: [head, hand] };
 
   it("accepts slots with the item classes they take", () => {
     expect(DataRelease.safeParse({ ...validRelease, itemSlots: slots }).success).toBe(true);
   });
 
-  it("rejects duplicate slots, empty class lists and a bad weapon set", () => {
-    const dup = { ...slots, slots: [slots.slots[0], slots.slots[0]] };
+  it("accepts a slot that takes only some bases of a class", () => {
+    const flask = {
+      id: "Fake Flask",
+      order: 1,
+      label: "F",
+      itemClasses: [],
+      partialBases: ["Fake Life Flask"],
+    };
+    expect(
+      DataRelease.safeParse({ ...validRelease, itemSlots: { origin: "pob-code", slots: [flask] } })
+        .success,
+    ).toBe(true);
+  });
+
+  it("rejects duplicate slots, slots that take nothing and a bad weapon set", () => {
+    const dup = { ...slots, slots: [head, head] };
     expect(DataRelease.safeParse({ ...validRelease, itemSlots: dup }).success).toBe(false);
-    const none = { ...slots, slots: [{ id: "x", label: "x", itemClasses: [] }] };
+    const none = { ...slots, slots: [{ ...head, itemClasses: [] }] };
     expect(DataRelease.safeParse({ ...validRelease, itemSlots: none }).success).toBe(false);
-    const set3 = { ...slots, slots: [{ ...slots.slots[1], weaponSet: 3 }] };
+    const set3 = { ...slots, slots: [{ ...hand, weaponSet: 3 }] };
     expect(DataRelease.safeParse({ ...validRelease, itemSlots: set3 }).success).toBe(false);
   });
 });

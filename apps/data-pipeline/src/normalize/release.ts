@@ -92,7 +92,10 @@ export async function buildCatalog(
     config: cfg.config.releaseFacts,
     questRewards,
     itemSlots,
-    knownItemClasses: new Set(norm.entities.baseItem.map((b) => String(b.itemClass))),
+    known: {
+      itemClasses: new Set(norm.entities.baseItem.map((b) => String(b.itemClass))),
+      baseClassOf: new Map(norm.entities.baseItem.map((b) => [String(b.id), String(b.itemClass)])),
+    },
     ...(extra.gameDataDir === undefined ? {} : { gameDataDir: extra.gameDataDir }),
   });
   const validation = validateCatalog(norm.entities);

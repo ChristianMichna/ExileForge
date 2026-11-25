@@ -178,27 +178,75 @@ describe("release facts", () => {
     await expect(buildCatalog(snap, out, factsConfig, NOW)).rejects.toThrow(/quest reward 0002/);
   });
 
-  it("lists the slots with the item classes PoB accepts, sorted by id", async () => {
+  it("lists the slots in PoB's order with what PoB accepts", async () => {
     const snap = await writeSnapshot(rawSnapshot());
     const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
     const { manifest } = await buildCatalog(snap, out, factsConfig, NOW);
     expect(manifest.release.itemSlots).toEqual({
       origin: "pob-code",
       slots: [
-        { id: "Fake Finger", label: "Fake Finger", itemClasses: ["Ring"] },
-        { id: "Fake Hand 2", label: "Fake Hand", weaponSet: 2, itemClasses: ["Sword", "Ring"] },
+        {
+          id: "Fake Finger",
+          order: 1,
+          label: "Fake Finger",
+          itemClasses: ["Ring"],
+          optional: true,
+        },
+        {
+          id: "Fake Hand 2",
+          order: 2,
+          label: "Fake Hand",
+          weaponSet: 2,
+          itemClasses: ["Sword"],
+          dependsOnSlot: "Fake Finger",
+        },
+        {
+          id: "Fake Charm",
+          order: 3,
+          label: "Fake Charm",
+          itemClasses: [],
+          partialBases: ["Odd Charm"],
+        },
       ],
     });
   });
 
-  it("is an error when a slot names an item class the catalog does not have", async () => {
+  it("is an error when a slot names a class, a base or a slot that does not exist", async () => {
     const raw = rawSnapshot();
-    raw.itemSlots["Fake Finger"] = { label: "Fake Finger", itemClasses: ["Ghost Class"] };
+    raw.itemSlots["Fake Finger"] = { order: 1, label: "F", itemClasses: ["Ghost Class"] };
+    raw.itemSlots["Fake Charm"] = {
+      order: 3,
+      label: "C",
+      itemClasses: [],
+      partialBases: ["Ghost Base"],
+    };
+    raw.itemSlots["Fake Hand 2"] = {
+      order: 2,
+      label: "H",
+      itemClasses: ["Sword"],
+      dependsOnSlot: "Nowhere",
+    };
     const snap = await writeSnapshot(raw);
     const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
-    await expect(buildCatalog(snap, out, factsConfig, NOW)).rejects.toThrow(
-      /itemSlot Fake Finger: item class Ghost Class/,
+    const failure = buildCatalog(snap, out, factsConfig, NOW);
+    await expect(failure).rejects.toThrow(/itemSlot Fake Finger: item class Ghost Class/);
+    await expect(failure).rejects.toThrow(
+      /itemSlot Fake Charm: base Ghost Base is not in the catalog/,
     );
+    await expect(failure).rejects.toThrow(/itemSlot Fake Hand 2: depends on slot Nowhere/);
+  });
+
+  it("warns about a catalog class that no slot accepts", async () => {
+    const raw = rawSnapshot();
+    delete raw.itemSlots["Fake Charm"];
+    const snap = await writeSnapshot(raw);
+    const out = join(await mkdtemp(join(tmpdir(), "ef-cat-")), "catalog");
+    const { warnings } = await buildCatalog(snap, out, factsConfig, NOW);
+    expect(warnings).toContainEqual({
+      kind: "itemSlot",
+      id: "Charm",
+      message: "no equipment slot accepts item class Charm",
+    });
   });
 
   it("fails on a level table that is not the configured one", async () => {
