@@ -340,7 +340,9 @@ function cost(
     return uncal(`price book is for league ${book.league}, request names ${request.league}`);
   }
   const ageMinutes = (now().getTime() - Date.parse(book.fetchedAt)) / 60_000;
-  if (!Number.isFinite(ageMinutes)) return uncal(`price book has no usable fetch time`);
+  if (!Number.isFinite(ageMinutes) || ageMinutes < 0) {
+    return uncal(`price book has no usable fetch time (${book.fetchedAt})`);
+  }
   if (ageMinutes > maxAgeMinutes) {
     return uncal(`price book is stale (fetched ${book.fetchedAt}, limit ${maxAgeMinutes} minutes)`);
   }

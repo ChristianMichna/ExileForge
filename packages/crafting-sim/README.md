@@ -55,6 +55,9 @@ bereits vorhandenen Gruppe und volle Generierungstypen sind ausgeschlossen.
 - Preisbuch: andere Release-ID oder (bei genannter `league`) andere Liga, älter
   als `maxPriceBookAgeMinutes` oder Quote ohne endlichen positiven Betrag →
   `uncalibrated` mit Grund. Das Alter prüft gegen `options.now` (Standard: Uhr).
+- Ohne `league` in der Anfrage akzeptiert die Bibliothek jedes Preisbuch; die
+  aktuelle Liga aus der Economy-Config wählt der Aufrufer. Das Buch muss er
+  vorher gegen `PriceBook` validieren.
 - Herkunft der Chance: alle Mods der Pools aller `add-random-mod`-Effekte als
   `gamedata`-Eingaben (sortiert, unabhängig vom Seed); die Läufe stehen in
   `formulaVersion`.

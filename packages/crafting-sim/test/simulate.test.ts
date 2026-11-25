@@ -319,7 +319,9 @@ describe("cost", () => {
       dataReleaseId: "poe2-9.9.9+r1" as typeof book.dataReleaseId,
     });
     const stale = run({ ...book, fetchedAt: "2026-11-24T00:00:00Z" });
-    for (const r of [wrongLeague, wrongRelease, stale]) expect(r.status).toBe("uncalibrated");
+    const future = run({ ...book, fetchedAt: "2099-01-01T00:00:00Z" });
+    for (const r of [wrongLeague, wrongRelease, stale, future])
+      expect(r.status).toBe("uncalibrated");
     if (stale.status === "uncalibrated") expect(stale.reason).toContain("stale");
     expect(run(book, { league: "TestLeague" }).status).toBe("ok");
   });
