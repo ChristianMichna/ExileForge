@@ -60,6 +60,9 @@ importers:
       '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      pathofexile-dat:
+        specifier: 16.0.1
+        version: 16.0.1
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -2532,6 +2535,9 @@ packages:
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
 
+  ooz-wasm@2.0.0:
+    resolution: {integrity: sha512-Ewk+Vga2m9niFGV5qT+4EKfBnFEQSQfnTdOWSlnQcpDB2OAdk7TpRHfKqxLSLhDKRjKjw9R+sGlOreWW8ABR0A==}
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -2576,6 +2582,14 @@ packages:
 
   path-to-regexp@8.4.2:
     resolution: {integrity: sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA==}
+
+  pathofexile-dat-schema@8.0.0:
+    resolution: {integrity: sha512-sn/8cJHbDCM6HjLMk9LnWXXS5Nbl2YqzqZslbooC7ankKbnr0tBwfl8AxM5fI+IzX49zNnKGuqpFvQQ2UMFuig==}
+
+  pathofexile-dat@16.0.1:
+    resolution: {integrity: sha512-9se/1xrt0YAOsCwUZWjBRu5vIDmk3+JbZCVDvmJCXH+/mr/rJpSfj3YtK5brN/HipUH/vPwg3gDpmH/3QDD4Qw==}
+    engines: {node: '>=22.0.0'}
+    hasBin: true
 
   pe-library@0.4.1:
     resolution: {integrity: sha512-eRWB5LBz7PpDu4PUlwT0PhnQfTQJlDDdPa35urV4Osrm0t0AqQFGn+UIkU3klZvwJ8KPO3VbBFsXquA6p6kqZw==}
@@ -5663,6 +5677,8 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
+  ooz-wasm@2.0.0: {}
+
   optionator@0.9.4:
     dependencies:
       deep-is: 0.1.4
@@ -5699,6 +5715,13 @@ snapshots:
   path-key@3.1.1: {}
 
   path-to-regexp@8.4.2: {}
+
+  pathofexile-dat-schema@8.0.0: {}
+
+  pathofexile-dat@16.0.1:
+    dependencies:
+      ooz-wasm: 2.0.0
+      pathofexile-dat-schema: 8.0.0
 
   pe-library@0.4.1: {}
 

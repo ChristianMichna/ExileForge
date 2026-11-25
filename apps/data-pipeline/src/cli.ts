@@ -3,6 +3,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { loadPobSources } from "./config.ts";
+import { loadGameDataConfig } from "./gamedata/config.ts";
+import { exportGameData, fetchSchemaRecord, resolveDatTool } from "./gamedata/export.ts";
+import { queryPatchServer } from "./gamedata/patch.ts";
 import { diffSnapshots, summarizeDiff } from "./diff/snapshot-diff.ts";
 import { pobInstallFromHome } from "./pob/extract.ts";
 import { loadNormalizeConfig } from "./normalize/catalog.ts";
@@ -24,6 +27,11 @@ const USAGE = `astrolabe-data <command>
   catalog <snapshotDir> --out <dir> [--config config/data-pipeline/normalize.json]
       Normalise a snapshot to the catalog contract, validate it and write the
       release files (manifest.json, one shard per kind, findings.json).
+
+  gamedata --out <dir> [--config config/data-pipeline/game-data.json]
+      Read the configured game-data tables (currencies, essences, omens) of the
+      current patch from the update servers and write them with a manifest.
+      Needs network access; meant for CI.
 
   diff <fromDir> <toDir> [--out <dir>]
       Compare two snapshots; writes diff.json and diff.md to --out (default: <toDir>).
@@ -127,6 +135,30 @@ async function main(argv: string[]): Promise<void> {
       console.warn(`  unresolved ${kind} lines: ${parts.join(", ")}`);
     }
     for (const s of manifest.shards) console.warn(`  ${s.kind}: ${String(s.count)}`);
+    return;
+  }
+  if (command === "gamedata") {
+    const { values, positionals } = parseArgs({
+      args: rest,
+      options: {
+        out: { type: "string" },
+        config: { type: "string", default: "config/data-pipeline/game-data.json" },
+      },
+      allowPositionals: true,
+      strict: true,
+    });
+    if (positionals.length > 0) fail(USAGE);
+    const out = values.out ?? fail("--out is required");
+    const config = await loadGameDataConfig(resolve(values.config));
+    const [patch, tool, schema] = await Promise.all([
+      queryPatchServer(config.patchServer),
+      resolveDatTool(),
+      fetchSchemaRecord(config.schemaUrl),
+    ]);
+    const manifest = await exportGameData({ config, patch, outDir: out, tool, schema });
+    console.warn(`game data of patch ${manifest.patch.version} (${tool.name} ${tool.version})`);
+    for (const t of manifest.tables) console.warn(`  ${t.name}: ${String(t.count)} rows`);
+    for (const m of manifest.missing) console.warn(`  missing: ${m.name} (${m.reason})`);
     return;
   }
   if (command === "diff") {

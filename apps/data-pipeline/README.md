@@ -163,6 +163,34 @@ Bei Uniques fehlen PoB Trade-Hashes; mehrdeutig ist vor allem lokal gegen
 global (gleicher Text), nicht passend sind v. a. PoB-eigene Zeilen wie
 „Allocates …", „Grants Skill: …" und Radius-Zeilen von Juwelen.
 
+## Crafting-Daten aus den Update-Servern
+
+PoB kennt Währungen und Omens nicht und Essences nur zum Teil. Christian hat am
+25.11.2026 freigegeben, dafür (und nur dafür) Tabellen der Spieldaten zu
+lesen. Das passiert **ausschließlich in CI** (GitHub Actions), nie auf dem
+Rechner des Nutzers und ohne Spielclient:
+
+```bash
+node apps/data-pipeline/dist/cli.js gamedata --out data-snapshots/current/game-data
+```
+
+1. `src/gamedata/patch.ts` fragt den Update-Server nach der aktuellen
+   Patch-Version (Host, Port und Handshake stehen in
+   `config/data-pipeline/game-data.json`).
+2. `pathofexile-dat` (MIT, fest gepinnt) liest die dort gelisteten Tabellen
+   und Spalten aus den Daten-Bundles des Patches, je Tabelle ein Lauf. Die
+   Spaltenlayouts stammen aus dem Community-Schema dat-schema; dessen Hash steht
+   im Manifest.
+3. `<out>/<Tabelle>.json` (Zeilen mit `_index` und den konfigurierten Spalten)
+   und `manifest.json` mit Patch, Werkzeugversion, SHA-256 und Zeilenzahl je
+   Tabelle. `readGameDataTable` prüft Hash und Zeilenzahl beim Lesen.
+
+Eine Tabelle mit `"required": false`, die der Patch nicht enthält, steht unter
+`missing` im Manifest und wird nirgends ersetzt. Alles andere (fehlende
+Pflichttabelle, fehlende Spalte, falsche `_index`-Folge, Werkzeugfehler,
+Zeitüberschreitung) bricht ab. Stand Patch 0.5.5.10: `Omens` fehlt, die
+Omen-Basen stehen in `AchievementOmenTypes`.
+
 ## Rechtliches
 
 PoB ist MIT-lizenziert; die Spieldaten darin sind © Grinding Gear Games. Der

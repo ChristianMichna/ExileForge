@@ -86,7 +86,7 @@ describe("buildCatalog", () => {
     );
     const foreign = await mkdtemp(join(tmpdir(), "ef-foreign-"));
     await writeFile(join(foreign, "keep.txt"), "x");
-    await expect(buildCatalog(snap, foreign, config, NOW)).rejects.toThrow(/not a catalog output/);
+    await expect(buildCatalog(snap, foreign, config, NOW)).rejects.toThrow(/not an earlier output/);
     expect(existsSync(join(foreign, "keep.txt"))).toBe(true);
   });
 

@@ -1,5 +1,5 @@
-import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import {
   CATALOG_SCHEMA_VERSION,
   CatalogManifest,
@@ -7,6 +7,7 @@ import {
 } from "@astrolabe/contracts/catalog";
 import { z } from "zod";
 import type { Json } from "../json.ts";
+import { prepareOutDir } from "../out-dir.ts";
 import { readManifest, readShard, sha256 } from "../snapshot/snapshot.ts";
 import {
   normalizeCatalog,
@@ -47,35 +48,6 @@ export function pipelineRevisionOf(releaseId: string): number {
   return Number(m[1]);
 }
 
-function isSameOrInside(path: string, dir: string): boolean {
-  const rel = relative(dir, path);
-  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
-}
-
-/**
- * The output directory is replaced as a whole, so it must neither contain the
- * snapshot or the working directory nor be a foreign non-empty directory.
- */
-async function prepareOutDir(out: string, snapshotDir: string): Promise<void> {
-  for (const [what, dir] of [
-    ["the snapshot", resolve(snapshotDir)],
-    ["the working directory", process.cwd()],
-  ] as const) {
-    if (isSameOrInside(dir, out)) throw new Error(`--out ${out} would delete ${what} (${dir})`);
-  }
-  let existing: string[];
-  try {
-    existing = await readdir(out);
-  } catch (cause) {
-    if ((cause as NodeJS.ErrnoException).code === "ENOENT") existing = [];
-    else throw new Error(`cannot read --out ${out}`, { cause });
-  }
-  if (existing.length > 0 && !existing.includes(FINDINGS_FILE))
-    throw new Error(`--out ${out} is a non-empty directory that is not a catalog output`);
-  await rm(out, { recursive: true, force: true });
-  await mkdir(out, { recursive: true });
-}
-
 function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown, what: string): T {
   const res = schema.safeParse(value);
   if (!res.success)
@@ -108,7 +80,14 @@ export async function buildCatalog(
   const errors = [...norm.errors, ...validation.errors];
 
   const out = resolve(outDir);
-  await prepareOutDir(out, snapshotDir);
+  await prepareOutDir(
+    out,
+    [
+      { what: "the snapshot", dir: snapshotDir },
+      { what: "the working directory", dir: process.cwd() },
+    ],
+    FINDINGS_FILE,
+  );
   await writeFile(
     join(out, FINDINGS_FILE),
     JSON.stringify(
