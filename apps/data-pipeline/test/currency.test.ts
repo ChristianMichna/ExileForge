@@ -61,6 +61,19 @@ describe("currencyBaseItems", () => {
     expect(text).toMatch(/97: CurrencyItems row points to a missing BaseItemTypes row/);
   });
 
+  it("tolerates unused base rows but not a selected one without a name", async () => {
+    const t = tables();
+    t.BaseItemTypes = [
+      ...(t.BaseItemTypes ?? []),
+      { Id: "", Name: "", ItemClass: 0, DropLevel: 0 },
+    ];
+    const ok = await currencyBaseItems(await write(t), cfg.currency, new Set());
+    expect(ok.errors).toEqual([]);
+    t.CurrencyItems = [...(t.CurrencyItems ?? []), { BaseItemType: 5, StackSize: 1 }];
+    const bad = await currencyBaseItems(await write(t), cfg.currency, new Set());
+    expect(bad.errors.map((e) => e.message).join()).toMatch(/without id or name/);
+  });
+
   it("notes that the patch has no Omens table", async () => {
     const dir = await write(tables());
     const { findings } = await currencyBaseItems(dir, cfg.currency, new Set());

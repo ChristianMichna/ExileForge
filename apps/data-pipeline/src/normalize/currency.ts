@@ -9,12 +9,13 @@ const ref = z.int().nonnegative().nullish();
 
 const baseRow = z.object({
   _index: nonNeg,
-  Id: z.string().min(1),
-  Name: z.string().min(1),
+  // the table has unused rows with empty ids or names; only selected rows must be complete
+  Id: z.string(),
+  Name: z.string(),
   ItemClass: nonNeg,
   DropLevel: nonNeg.nullish(),
 });
-const classRow = z.object({ _index: nonNeg, Id: z.string().min(1) });
+const classRow = z.object({ _index: nonNeg, Id: z.string() });
 const currencyRow = z.object({
   BaseItemType: nonNeg,
   StackSize: nonNeg.nullish(),
@@ -34,7 +35,7 @@ const tieredRow = z.object({
 });
 const omenRow = z.object({ BaseItemType: nonNeg });
 const exchangeRow = z.object({ Item: nonNeg, Category: ref });
-const categoryRow = z.object({ _index: nonNeg, Id: z.string().min(1) });
+const categoryRow = z.object({ _index: nonNeg, Id: z.string() });
 
 type CurrencyConfig = NormalizeConfig["currency"];
 
@@ -117,6 +118,14 @@ export async function currencyBaseItems(
         kind: "currency",
         id: String(row.BaseItemType),
         message: "CurrencyItems row points to a missing BaseItemTypes row",
+      });
+      continue;
+    }
+    if (base.Id === "" || base.Name === "") {
+      errors.push({
+        kind: "currency",
+        id: String(base._index),
+        message: "CurrencyItems row names a base item without id or name",
       });
       continue;
     }
