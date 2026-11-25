@@ -37,6 +37,8 @@ import type { ProgressionStageTree } from "./ports.js";
 import { releaseStageTable } from "./stages/s6-table.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
+import { GearPlan } from "@astrolabe/contracts/build";
+import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 
@@ -316,12 +318,48 @@ function planGear(
     return { kind: "task", spec: gearTask(ctx, config, s7, open, chosen, target, earlier) };
   }
   if (ctx.result(S7_PLAN_KEY) === undefined) return planJob(ctx, s7, tiers, chosen, target);
+  return planCraft(ctx, config, chosen);
+}
+
+/** S8: a craft strategy per rare of the endgame gear (Claude, simulated at once), then the priced plans. */
+function planCraft(
+  ctx: PipelineContext,
+  config: StageConfig,
+  chosen: ArchetypeCandidate,
+): PlanStep {
+  const gear = GearPlan.safeParse(ctx.result(S7_PLAN_KEY));
+  if (!gear.success) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "invalid_gear_plan",
+        message: "The stored S7 gear plan is unreadable. Redo stage S7.",
+      },
+    };
+  }
+  const slots = craftSlotsOf(gear.data);
+  if (typeof slots === "string") {
+    return { kind: "blocked", error: { code: "invalid_gear_plan", message: slots } };
+  }
+  if (slots.length > 0 && ctx.craft === undefined) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "craft_unavailable",
+        message:
+          "S8 needs the crafting simulator, which this server runs without. S0 to S7 are done; their results are stored with the run.",
+      },
+    };
+  }
+  const open = slots.find((s) => ctx.result(s.key) === undefined);
+  if (open !== undefined) return { kind: "task", spec: craftTask(ctx, config, open, chosen) };
+  if (ctx.result(S8_PLAN_KEY) === undefined) return craftPlanJob(ctx, slots, chosen);
   return {
     kind: "blocked",
     error: {
       code: "stage_not_implemented",
       message:
-        "S8 (crafting) and the later stages are not built yet. S0 to S7 are done; their results are stored with the run.",
+        "S9 (guide) and the later stages are not built yet. S0 to S8 are done; their results are stored with the run.",
     },
   };
 }

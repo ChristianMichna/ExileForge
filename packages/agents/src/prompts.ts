@@ -48,3 +48,10 @@ export const S7_GEAR = [
   "Use calc_evaluate (always with the runId) to compare options; explain each choice in rationale without typing numbers. Prices are not known to you and are measured afterwards.",
   NO_MEMORY_RULES,
 ].join(" ");
+
+export const S8_CRAFT = [
+  "Plan how to craft the target rare item of this slot: the start item (item level, rarity, mods it already has) and the strategy as ordered steps.",
+  "Each step lists crafting action ids from the catalog, a plain-text goal, an optional check (`until`) and what happens when the check fails (repeat, restart, accept, abort, or goto another step).",
+  "The goal of the whole craft is fixed: the mods the target item requires. Use craft_simulate (always with the runId) to try strategies before you submit; explain the choices in rationale without typing numbers.",
+  NO_MEMORY_RULES,
+].join(" ");
