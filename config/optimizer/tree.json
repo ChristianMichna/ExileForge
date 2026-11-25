@@ -1,0 +1,14 @@
+{
+  "$comment": "Search settings of the passive tree optimizer (packages/optimizer). Versioned config, no constants in code. Metric names and weights come from the caller (objective), not from here.",
+  "version": "tree-1",
+  "candidatesPerRound": 24,
+  "maxPathCost": 6,
+  "explorationShare": 0.5,
+  "maxRefineRounds": 20,
+  "swapAddsPerLeaf": 4,
+  "maxSwapCandidates": 64,
+  "maxEvaluations": 2000,
+  "minImprovement": 0.000001,
+  "floorPenalty": 10,
+  "spendAllPoints": true
+}

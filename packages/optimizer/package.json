@@ -1,0 +1,30 @@
+{
+  "name": "@exileforge/optimizer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Deterministic optimizers of ExileForge (F-09): passive tree search and progression order, scored only by Path of Building calculations.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@exileforge/contracts": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}
