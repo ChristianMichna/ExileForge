@@ -5,6 +5,7 @@ import type {
   SkillProfile,
   TargetBuild,
 } from "@astrolabe/contracts/build";
+import type { BaseItemId } from "@astrolabe/contracts/common";
 import type { BuildState, CalcOutcome } from "@astrolabe/contracts/build";
 import type {
   CraftSimRequest,
@@ -146,7 +147,7 @@ export interface PricePort {
   price(input: { league?: string; items: PricedItemRef[] }): Promise<{
     league: string;
     /** Currency item the prices are given in. */
-    inCurrencyItemId: string;
+    inCurrencyItemId: BaseItemId;
     /** "stale": the refresh failed and an older price book was used. */
     freshness: "fresh" | "stale";
     prices: ItemPrice[];

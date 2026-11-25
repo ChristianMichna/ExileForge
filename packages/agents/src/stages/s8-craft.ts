@@ -14,7 +14,7 @@ import {
   type CraftSimRequest,
   type CraftSimResult,
 } from "@astrolabe/contracts";
-import { ClassificationId, ModId } from "@astrolabe/contracts/common";
+import { type BaseItemId, ClassificationId, ModId } from "@astrolabe/contracts/common";
 import type { JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext, type PlanStep } from "../pipeline.js";
@@ -54,6 +54,9 @@ export function craftSlotsOf(plan: GearPlan): CraftSlot[] | string {
       ? [{ slot: s.slot, key: craftKey(s.slot), target: s.target }]
       : [],
   );
+  if (slots.some((s) => slotSlug(s.slot) === "")) {
+    return "A craft slot id has no letters or digits, so it cannot name a task.";
+  }
   const keys = new Set(slots.map((s) => s.key));
   return keys.size === slots.length
     ? slots
@@ -83,7 +86,7 @@ export function simRequest(
   ctx: PipelineContext,
   slot: CraftSlot,
   sub: CraftSubmission,
-  costs?: { currencyItemId: string; startCost: CraftSimRequest["startCost"] },
+  costs?: { currencyItemId: BaseItemId; startCost: CraftSimRequest["startCost"] },
 ): CraftSimRequest | string {
   const goal = goalOf(slot.target);
   if (goal === undefined) return `The target item of slot ${slot.slot} has no mods to craft for.`;
@@ -110,7 +113,7 @@ export function simRequest(
     ...(costs === undefined
       ? {}
       : {
-          costCurrencyItemId: costs.currencyItemId as never,
+          costCurrencyItemId: costs.currencyItemId,
           ...(costs.startCost === undefined ? {} : { startCost: costs.startCost }),
         }),
   } as CraftSimRequest;
@@ -197,7 +200,16 @@ export function craftTask(
         });
         return findings;
       }
-      if (result.successChance.status === "ok" && result.successChance.value === 0) {
+      if (result.successChance.status !== "ok") {
+        findings.push({
+          gate: "G3",
+          severity: "warning",
+          code: "simulation_uncalibrated",
+          message:
+            "The simulator could not evaluate this strategy (missing rules or spawn weights); the plan will show it as uncalibrated.",
+          path: "/steps",
+        });
+      } else if (result.successChance.value === 0) {
         findings.push({
           gate: "G3",
           severity: "error",
@@ -242,7 +254,7 @@ export function craftPlanJob(
         }
         const sub = parsed.data;
         // The start item is the base: its market price (if any) is the start cost.
-        let currencyItemId: string | undefined;
+        let currencyItemId: BaseItemId | undefined;
         let startCost: CraftingPlan["start"]["cost"] = uncalibrated(
           "No economy service is configured.",
         );
@@ -255,13 +267,18 @@ export function craftPlanJob(
               items: [{ kind: "baseItem", id: slot.target.baseItemId }],
             });
             currencyItemId = answer.inCurrencyItemId;
-            const first = answer.prices[0]?.price;
+            const entry = answer.prices.find(
+              (p) => p.item.kind === "baseItem" && p.item.id === slot.target.baseItemId,
+            );
+            const first = entry?.price;
             startCost =
-              first === undefined
-                ? uncalibrated("The economy service returned no price for the base item.")
-                : answer.freshness === "stale"
-                  ? uncalibrated("The price refresh failed and only an older price book exists.")
-                  : first;
+              sub.startModIds.length > 0
+                ? uncalibrated("There is no price feed for a start item with mods.")
+                : first === undefined
+                  ? uncalibrated("The economy service returned no price for the base item.")
+                  : answer.freshness === "stale"
+                    ? uncalibrated("The price refresh failed and only an older price book exists.")
+                    : first;
           } catch (cause) {
             startCost = {
               status: "failed",
@@ -283,24 +300,10 @@ export function craftPlanJob(
         const steps = sub.steps.map((step) => {
           const stat = result.steps.find((s) => s.order === step.order);
           const passed = stat?.passed;
-          const attempts: CraftingPlan["steps"][number]["expectedAttempts"] =
-            passed === undefined
-              ? uncalibrated("The simulator has no statistics for this step.")
-              : passed.status !== "ok"
-                ? passed
-                : passed.value <= 0
-                  ? uncalibrated("No execution of this step passed its check.")
-                  : {
-                      status: "ok",
-                      value: 1 / passed.value,
-                      source: {
-                        kind: "derived",
-                        formula: "craft.step-attempts",
-                        formulaVersion: "1",
-                        inputs:
-                          passed.source.kind === "derived" ? passed.source.inputs : [passed.source],
-                      },
-                    };
+          // The simulator reports no attempts per step; 1/passed holds only for "repeat" steps.
+          const attempts: CraftingPlan["steps"][number]["expectedAttempts"] = uncalibrated(
+            "The simulator does not report attempts per step.",
+          );
           return {
             order: step.order,
             actionIds: step.actionIds,

@@ -56,6 +56,11 @@ describe("S8 slots", () => {
     ).toBe("string");
   });
 
+  it("rejects a slot id without letters or digits", () => {
+    const c = crafted([{ id: "M1", required: true }]);
+    expect(typeof craftSlotsOf(plan([slotOf("--", "craft", c)]))).toBe("string");
+  });
+
   it("uses the required mods as the goal, or all mods when none is required", () => {
     const some = crafted([
       { id: "A", required: true },
@@ -131,6 +136,13 @@ describe("S8 craft task", () => {
     expect((await check(bad)).map((f) => f.code)).toEqual(["simulation_rejected"]);
   });
 
+  it("warns when the simulator cannot evaluate the strategy", async () => {
+    const craft = {
+      simulate: () => Promise.resolve({ successChance: { status: "uncalibrated", reason: "x" } }),
+    };
+    expect((await check(craft)).map((f) => f.code)).toEqual(["simulation_uncalibrated"]);
+  });
+
   it("fails loudly when the simulator is missing", async () => {
     await expect(check(undefined)).rejects.toThrow(/simulator/);
   });
@@ -153,16 +165,37 @@ describe("S8 plan job", () => {
     return step.run(ctxWith({ craft, economy }));
   };
 
-  it("derives the attempts of a step from its pass chance and keeps an unpriced start uncalibrated", async () => {
+  it("keeps an unpriced start and the per-step attempts uncalibrated", async () => {
     const out = await run(undefined, ok(0.25));
     const first = out.plans[0];
     expect(first?.start.cost.status).toBe("uncalibrated");
-    expect(first?.steps[0]).toMatchObject({ expectedAttempts: { status: "ok", value: 4 } });
+    expect(first?.steps[0]).toMatchObject({ expectedAttempts: { status: "uncalibrated" } });
   });
 
-  it("marks a step nobody passed as uncalibrated, never infinite", async () => {
-    const out = await run(undefined, ok(0));
-    expect(out.plans[0]?.steps[0]).toMatchObject({ expectedAttempts: { status: "uncalibrated" } });
+  it("uses the base price only for a start item without mods", async () => {
+    const price = {
+      status: "ok",
+      value: { amount: 3, currencyItemId: "Cur" },
+      source: {
+        kind: "market",
+        provider: "p",
+        league: "L",
+        fetchedAt: "2026-01-01T00:00:00Z",
+        confidence: "high",
+      },
+    };
+    const economy = {
+      price: () =>
+        Promise.resolve({
+          inCurrencyItemId: "Cur",
+          freshness: "fresh",
+          prices: [{ item: { kind: "baseItem", id: "FixBase" }, price }],
+        }),
+    };
+    const out = await run(economy, ok(0.5));
+    expect(out.plans[0]?.start.cost.status).toBe(
+      CraftSubmission.parse(submission).startModIds.length === 0 ? "ok" : "uncalibrated",
+    );
   });
 
   it("shows a failed price fetch as failed start cost", async () => {
