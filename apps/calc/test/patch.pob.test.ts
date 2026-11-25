@@ -168,6 +168,25 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     expect((await stats(removed.handle)).stats).toEqual(baseResult.stats);
   });
 
+  it("finds a support gem by its gameId, not by PoB's table key", async () => {
+    // PoB keys this support gem "…/SkillGemColdMasterySupport"; the catalog names it by gameId.
+    const { handle } = await patch(
+      ops([
+        {
+          op: "setSkill",
+          groupKey: "astrolabe-test",
+          gemId: facts.gemId,
+          level: 1,
+          quality: 0,
+          supports: [{ gemId: "Metadata/Items/Gems/SupportGemColdMastery", level: 1, quality: 0 }],
+        },
+      ]),
+    );
+    expect((await stats(handle, "as-saved", "astrolabe-test")).stats.CombinedDPS).toBeGreaterThan(
+      0,
+    );
+  });
+
   it("sets class and ascendancy by their catalog ids", async () => {
     const other = await golden("pobb-ljOBlCON5WGB");
     const classId = /<Build [^>]*className="([^"]+)"/.exec(other)?.[1] ?? "";
