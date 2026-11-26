@@ -3,7 +3,9 @@ import {
   BuildRequest,
   BuildState,
   CraftingPlan,
+  GUIDE_FILE_FORMAT,
   GuideDocument,
+  GuideFile,
   ItemSpec,
   ProgressionStage,
   PublishedGuide,
@@ -266,6 +268,43 @@ describe("PublishedGuide", () => {
     expect(PublishedGuide.safeParse({ ...guide, validation }).error).toBeUndefined();
     const failed = { ...validation, passed: false };
     expect(PublishedGuide.safeParse({ ...guide, validation: failed }).success).toBe(false);
+  });
+});
+
+describe("GuideFile", () => {
+  const validation = {
+    gates: [{ gate: "G1", passed: true, findings: [] }],
+    completenessScore: 95,
+    scoringConfigVersion: "1",
+    passed: true,
+  };
+  const result = {
+    calcId: "calc-1",
+    pobVersion: "v9.9.9",
+    dataReleaseId: "poe2-9.8.7+r3",
+    calcProfile: "fixture-profile",
+    inputHash: "a".repeat(64),
+    computedAt: "2026-01-01T00:00:00Z",
+    stats: { FixtureStatA: 1 },
+    warnings: [],
+    unsupportedMods: [],
+  };
+  const file = {
+    format: GUIDE_FILE_FORMAT,
+    version: 1,
+    guide: { ...guide, validation },
+    results: { "calc-1": result },
+  };
+
+  it("accepts a guide with its results", () => {
+    expect(GuideFile.safeParse(file).error).toBeUndefined();
+  });
+
+  it("rejects another format, version or a result under the wrong calcId", () => {
+    expect(GuideFile.safeParse({ ...file, format: "other" }).success).toBe(false);
+    expect(GuideFile.safeParse({ ...file, version: 2 }).success).toBe(false);
+    const wrong = GuideFile.safeParse({ ...file, results: { "calc-2": result } });
+    expect(wrong.success).toBe(false);
   });
 });
 
