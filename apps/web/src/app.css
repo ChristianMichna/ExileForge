@@ -562,3 +562,13 @@ code {
 .guide-unresolved {
   border-bottom: 1px dashed var(--ef-color-warning);
 }
+
+.gear-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--ef-space-4);
+}
+
+.gear-slot h3 {
+  margin-bottom: var(--ef-space-2);
+}

@@ -401,3 +401,67 @@ describe("buildGuideView", () => {
     expect(view.unresolved.length).toBeGreaterThan(0);
   });
 });
+
+describe("buildGuideView gear cards", () => {
+  const entities: Record<string, unknown> = {
+    "uniqueItem:Fixture Unique": {
+      id: "Fixture Unique",
+      name: "Fixture Unique Name",
+      baseItemId: "Fixture/Base",
+      mods: [{ text: "Unique line", stats: [], unresolved: [] }],
+      variants: [],
+      dropSources: [],
+    },
+    "baseItem:Fixture/Base": {
+      id: "Fixture/Base",
+      name: "Fixture Base",
+      itemClass: "fixture_class",
+      tags: [],
+      requirements: {},
+      implicitModIds: ["Fixture/Implicit"],
+      properties: {},
+    },
+    "mod:Fixture/Implicit": {
+      id: "Fixture/Implicit",
+      groups: [],
+      generationType: "implicit",
+      domains: ["item"],
+      requiredLevel: 1,
+      stats: [],
+      spawnWeights: [],
+      text: "Implicit text",
+    },
+  };
+  const catalog = {
+    dataReleaseId: RELEASE,
+    get: (ref: { kind: string; id: string }) => {
+      const entity = entities[`${ref.kind}:${ref.id}`];
+      return entity === undefined ? undefined : { ...ref, name: "n", entity };
+    },
+  } as unknown as CatalogPort;
+  const calc = { getResult: () => Promise.resolve(undefined) } as never;
+
+  it("describes the unique of the gear plan from the catalog", async () => {
+    const { buildGuideView } = await import("../src/guides/guide-view.js");
+    const { PublishedGuide, GuideView } = await import("@astrolabe/contracts/guide");
+    const view = await buildGuideView(PublishedGuide.parse(stored), catalog, calc);
+    expect(() => GuideView.parse(view)).not.toThrow();
+    const card = view.gear[0]?.target;
+    expect(card).toMatchObject({
+      rarityName: "Unique",
+      name: "Fixture Unique Name",
+      baseName: "Fixture Base",
+    });
+    expect(card?.implicits[0]?.text).toBe("Implicit text");
+    expect(card?.explicits[0]?.text).toBe("Unique line");
+  });
+
+  it("gives no card and lists the entry when the catalog does not know the item", async () => {
+    const { buildGuideView } = await import("../src/guides/guide-view.js");
+    const { PublishedGuide } = await import("@astrolabe/contracts/guide");
+    const empty = { dataReleaseId: RELEASE, get: () => undefined } as unknown as CatalogPort;
+    const view = await buildGuideView(PublishedGuide.parse(stored), empty, calc);
+    expect(view.gear[0]?.target).toBeNull();
+    expect(view.unresolved).toContain("uniqueItem:Fixture Unique");
+  });
+});

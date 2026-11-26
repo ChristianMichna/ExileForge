@@ -20,6 +20,21 @@ const view = {
   guide: publishedGuide,
   catalogReleaseId: publishedGuide.metadata.dataReleaseId,
   current: true,
+  gear: [
+    {
+      budgetTier: "tier-a",
+      slot: "FixtureSlot",
+      target: {
+        rarityName: "Unique",
+        name: "Fixture Unique Name",
+        baseName: "Fixture Base",
+        itemClass: "fixture_class",
+        implicits: [{ modId: "Fixture/Implicit", text: "Implicit text" }],
+        explicits: [{ text: "Unique line" }, { modId: "Fixture/NoText" }],
+      },
+      alternatives: [null],
+    },
+  ],
   names: {
     "gem:Fixture/Gems/Main": "Main Skill",
     "ascendancy:fixture_asc": "Fixture Ascendancy",
@@ -117,9 +132,19 @@ describe("guide page", () => {
     expect(screen.queryByText("1,234.5")).toBeNull();
   });
 
+  it("shows the gear plan's items with catalog texts and says what is unknown", async () => {
+    vi.stubGlobal("fetch", () => json(view));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("Fixture Unique Name")).toBeTruthy();
+    expect(screen.getByText("Implicit text")).toBeTruthy();
+    expect(screen.getByText("Unique line")).toBeTruthy();
+    expect(screen.getByText(/Unknown modifier \(Fixture\/NoText\)/)).toBeTruthy();
+  });
+
   it("says when the guide was built with older game data", async () => {
     vi.stubGlobal("fetch", () =>
-      json({ ...view, current: false, catalogReleaseId: "poe2-9.9.9+r9", names: {} }),
+      json({ ...view, current: false, catalogReleaseId: "poe2-9.9.9+r9", names: {}, gear: [] }),
     );
     window.location.hash = `#/guide/${GUIDE_ID}`;
     render(<App />);
