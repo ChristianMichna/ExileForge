@@ -7,6 +7,7 @@ import { getDesktopBridge, type OpenClaudeResult } from "../desktop/bridge";
 import { useDesktopStatus } from "../desktop/useDesktopStatus";
 import { useRunEvents } from "../live/useRunEvents";
 import { PageHeader } from "../shell/PageHeader";
+import { GuidePatchCheck } from "./GuidePatchCheck";
 import { RunStatusPanel } from "./RunStatusPanel";
 
 const RUN_KEY = "astrolabe.activeRunId";
@@ -59,13 +60,16 @@ export function PlanWithClaude() {
           This takes a few seconds.
         </Callout>
       ) : (
-        <Planner
-          dataReleaseId={desktop.status.server.dataReleaseId}
-          calcEngine={desktop.status.server.calcEngine}
-          {...(desktop.status.server.catalogOnlyReason === undefined
-            ? {}
-            : { catalogOnlyReason: desktop.status.server.catalogOnlyReason })}
-        />
+        <>
+          <GuidePatchCheck />
+          <Planner
+            dataReleaseId={desktop.status.server.dataReleaseId}
+            calcEngine={desktop.status.server.calcEngine}
+            {...(desktop.status.server.catalogOnlyReason === undefined
+              ? {}
+              : { catalogOnlyReason: desktop.status.server.catalogOnlyReason })}
+          />
+        </>
       )}
     </div>
   );

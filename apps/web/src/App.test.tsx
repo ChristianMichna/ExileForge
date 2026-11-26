@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { App } from "./App";
 import type { AppStatus } from "./desktop/bridge";
@@ -102,5 +102,50 @@ describe("catalog-only mode", () => {
     window.location.hash = "#/plan";
     render(<App />);
     expect(await screen.findByText(/no matching Path of Building/)).toBeTruthy();
+  });
+});
+
+describe("saved guide check", () => {
+  const view = {
+    enabled: true,
+    releaseId: "poe2-1.0.0+r1",
+    running: false,
+    guides: [
+      {
+        guideId: "11111111-1111-4111-8111-111111111111",
+        checkedAt: "2026-11-26T09:00:00.000Z",
+        outcome: {
+          kind: "error",
+          code: "diff_missing",
+          message: "The release chain is incomplete.",
+        },
+      },
+    ],
+  };
+
+  afterEach(() => {
+    delete window.astrolabe;
+    vi.unstubAllGlobals();
+  });
+
+  it("lists what the server found, including guides that could not be checked", async () => {
+    const status: AppStatus = {
+      appVersion: "0.0.0",
+      server: { state: "ready", port: 1, calcEngine: "pob", dataReleaseId: "poe2-1.0.0+r1" },
+      update: { state: "idle" },
+      data: { state: "idle" },
+    };
+    window.astrolabe = {
+      getStatus: () => Promise.resolve(status),
+      onStatus: () => () => undefined,
+    } as never;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response(JSON.stringify(view), { status: 200 }))),
+    );
+    window.location.hash = "#/plan";
+    render(<App />);
+    expect(await screen.findByText("Could not be checked")).toBeTruthy();
+    expect(screen.getByText(/diff_missing/)).toBeTruthy();
   });
 });
