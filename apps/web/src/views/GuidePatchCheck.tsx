@@ -4,6 +4,7 @@ import type {
   GuidePatchCheck,
   GuidePatchStatusView,
   PatchVerdict,
+  ReleaseFactChange,
 } from "@astrolabe/contracts/guide";
 import { loadPatchCheck, refreshPatchCheck } from "../api/patch-status";
 
@@ -15,7 +16,6 @@ interface State {
   /** The last answer the server gave; kept while a later request fails. */
   readonly view: GuidePatchStatusView | undefined;
   readonly problem: string | undefined;
-  readonly loading: boolean;
 }
 
 const VERDICT: Record<PatchVerdict, { tone: BadgeTone; label: string }> = {
@@ -24,7 +24,7 @@ const VERDICT: Record<PatchVerdict, { tone: BadgeTone; label: string }> = {
   broken: { tone: "danger", label: "Broken: uses removed content" },
 };
 
-const FACT_LABEL: Record<string, string> = {
+const FACT_LABEL: Record<ReleaseFactChange, string> = {
   pobVersion: "Path of Building version",
   maxCharacterLevel: "maximum character level",
   passivePoints: "passive points",
@@ -35,7 +35,7 @@ const FACT_LABEL: Record<string, string> = {
 
 /** Saved guides against the current game data (F-19). */
 export function GuidePatchCheckPanel() {
-  const [state, setState] = useState<State>({ view: undefined, problem: undefined, loading: true });
+  const [state, setState] = useState<State>({ view: undefined, problem: undefined });
   const request = useRef<AbortController | undefined>(undefined);
 
   // One request at a time: a new one cancels the previous, so answers cannot overtake each other.
@@ -45,13 +45,12 @@ export function GuidePatchCheckPanel() {
     request.current = controller;
     (refresh ? refreshPatchCheck(controller.signal) : loadPatchCheck(controller.signal)).then(
       (view) => {
-        if (!controller.signal.aborted) setState({ view, problem: undefined, loading: false });
+        if (!controller.signal.aborted) setState({ view, problem: undefined });
       },
       (error: unknown) => {
         if (controller.signal.aborted) return;
         setState((s) => ({
           view: s.view,
-          loading: false,
           problem: error instanceof Error ? error.message : "The check could not be loaded.",
         }));
       },
@@ -144,7 +143,7 @@ function GuideRow({ guide }: { guide: GuidePatchCheck }) {
   const verdict = VERDICT[status.verdict];
   const removed = status.findings.filter((f) => f.impact === "removed").length;
   const changed = status.findings.filter((f) => f.impact === "changed").length;
-  const facts = status.factChanges.map((f) => FACT_LABEL[f] ?? f);
+  const facts = status.factChanges.map((f) => FACT_LABEL[f]);
   return (
     <span>
       {label} <Badge tone={verdict.tone}>{verdict.label}</Badge>{" "}

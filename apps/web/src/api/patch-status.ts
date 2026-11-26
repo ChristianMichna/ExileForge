@@ -25,7 +25,9 @@ async function call(
   }
   const view = GuidePatchStatusView.safeParse(body);
   if (!view.success) {
-    throw new ApiError("The server sent an answer this app version does not understand.", 502);
+    throw new ApiError("The server sent an answer this app version does not understand.", 502, {
+      cause: view.error,
+    });
   }
   return view.data;
 }
