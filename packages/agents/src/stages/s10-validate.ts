@@ -340,10 +340,19 @@ interface Subject {
   stage: GuideDraft["progression"]["stages"][number];
   /** JSON pointer of the calculations that were read. */
   path: string;
-  /** The stage that fixes a finding about this subject. */
   /** The stage or part that fixes a finding about this subject. */
   returnTo: TaskType;
   stats?: StatMap;
+  /**
+   * Campaign stages only: the stage measured wearing the first gear tier. Attribute requirements
+   * are checked against it, because the stage itself carries no gear (the gear of the early
+   * tiers may grant the attributes the passive tree does not).
+   */
+  gearedStats?: StatMap;
+  /** True when the measurement with gear was made but gave no result for the profile. */
+  gearedFailed?: boolean;
+  /** The gear part that fixes an attribute gap of the geared measurement. */
+  gearReturnTo?: TaskType;
   /** Mods PoB read but does not calculate, from the same result as `stats`. */
   unsupportedMods?: readonly string[];
 }
@@ -376,8 +385,27 @@ async function stageStats(
     const loaded = await read(
       geared ? draft.gear.tiers[lastTier]?.calcs[profile] : stage.calcs[profile],
     );
+    let gearedStats: StatMap | undefined;
+    let gearedFailed = false;
+    const firstTier = draft.gear.tiers[0];
+    if (!geared && firstTier !== undefined) {
+      const outcomes = await ctx.calc.calculate({
+        state: {
+          ...stage.state,
+          items: firstTier.slots.map((slot) => ({ slot: slot.slot, item: slot.target })),
+        },
+        profiles: [profile],
+        overrides: ctx.run.request.calcOverrides,
+      });
+      gearedStats = (await read(outcomes[profile]))?.stats;
+      gearedFailed = gearedStats === undefined;
+    }
+    const firstPart = TaskType.safeParse(`S7.gear-${firstTier?.budgetTier ?? ""}`);
     out.push({
       stage,
+      ...(gearedStats === undefined ? {} : { gearedStats }),
+      ...(gearedFailed ? { gearedFailed } : {}),
+      ...(firstPart.success ? { gearReturnTo: firstPart.data } : {}),
       path: geared
         ? `/gear/tiers/${String(lastTier)}/calcs`
         : `/progression/stages/${String(index)}/calcs`,
@@ -416,9 +444,10 @@ async function measuredGates(
   const dpsSet = cfg.thresholds.some((t) => t.minDps !== undefined);
   const table = stageTableOf(stageTable, ctx.catalog.release);
   if (typeof table === "string") g3.push(finding("G3", "points_unknown", table));
-  for (const [index, { stage, path, returnTo, stats, unsupportedMods }] of (
-    await stageStats(ctx, draft, cfg.calcProfile)
-  ).entries()) {
+  for (const [
+    index,
+    { stage, path, returnTo, stats, unsupportedMods, gearedStats, gearedFailed, gearReturnTo },
+  ] of (await stageStats(ctx, draft, cfg.calcProfile)).entries()) {
     for (const skill of stage.state.skills) {
       for (const ref of [skill.gem, ...skill.supports]) {
         const entry = ctx.catalog.get({ kind: "gem", id: ref.gemId });
@@ -518,9 +547,21 @@ async function measuredGates(
         ),
       );
     }
-    for (const { have, need } of cfg.stats.attributes) {
-      const owned = stats[have];
-      const required = stats[need];
+    if (gearedFailed === true) {
+      g3.push(
+        finding(
+          "G3",
+          "calc_failed",
+          `Stage ${stage.key}: the engine gave no result for the stage wearing the first gear tier, so its attributes were not checked.`,
+          path,
+          gearReturnTo,
+        ),
+      );
+    }
+    for (const { have, need } of gearedFailed === true ? [] : cfg.stats.attributes) {
+      const attributes = gearedStats ?? stats;
+      const owned = attributes[have];
+      const required = attributes[need];
       // PoB sets the requirement stat only when some item or gem asks for more than zero of
       // the attribute (CalcPerform.lua, "Req"..attr), so no value means no requirement.
       if (owned === undefined) g3.push(missing("G3", have));
@@ -533,7 +574,7 @@ async function measuredGates(
             path,
             // The tree search of S6 does not weigh attribute requirements, so a return to it
             // cannot fix a campaign stage (found in the first full run: five stages, all unfixed).
-            returnTo === "S6" ? undefined : returnTo,
+            gearedStats === undefined ? (returnTo === "S6" ? undefined : returnTo) : gearReturnTo,
           ),
         );
       }
