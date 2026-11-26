@@ -260,16 +260,18 @@ Tabellen in `game-data.json` (Pflichttabellen, fehlen sie, bricht der Lauf ab).
 - **Währungsaktionen** (`currencyActions` in `normalize.json`): Eine Währung wird nur dann zur
   `CraftingAction`, wenn ihr `CurrencyItems.Action`-Schlüssel eine Regel hat **und** die Beschreibung
   des Spiels (ohne Markup) zum Muster der Regel passt. Sonst bleibt sie draußen und steht in den
-  Findings. Höhere Stufen (`TieredCurrency.Tier` > 1 oder mit `LowerTierBaseItemType`) fehlen, weil der
-  Simulator keinen Mindest-Modlevel kennt. Regeln ohne Treffer, Actions ohne Regel und Währungen
+  Findings. Höhere Stufen (`TieredCurrency.Tier` > 1 oder mit `LowerTierBaseItemType`) werden eigene
+  Aktionen; ihre hinzugefügten Mods brauchen mindestens `TieredCurrency.MinimumModLevel`
+  (`minModLevel` im Simulator). Ohne diesen Wert bleibt die Stufe draußen. Regeln ohne Treffer, Actions ohne Regel und Währungen
   ohne Katalog-Item stehen ebenfalls in den Findings. Regeln nutzen nur Ops von `crafting-sim`; ein Test prüft das gegen dessen
-  Vokabular. Heute: Transmutation, Augmentation, Regal, Exalted, Chaos, Annulment, Scouring.
-- **Essenzen** bekommen die Raritätsregel (magisch → selten) nur, wenn ihre eigene Beschreibung passt;
-  damit ist `add-specific-mod` im Simulator nicht mehr `uncalibrated`.
+  Vokabular. Heute: Transmutation, Augmentation, Regal, Exalted, Chaos, Annulment, Scouring, Alchemie.
+- **Essenzen** bekommen ihre Regel nur, wenn ihre eigene Beschreibung zu einer der Essenz-Regeln
+  passt (normale: magisch → selten; Perfect: entfernt einen Mod einer seltenen Essenz und fügt den
+  garantierten Mod hinzu); damit ist `add-specific-mod` im Simulator nicht mehr `uncalibrated`.
 - Bekannte Lücken: Annulment und Scouring nennen keine Seltenheit und wirken damit auch auf
   einzigartige Items; keine Regel verbietet Flags (z. B. verderbt); die Affix-Grenzen gelten je
   Seltenheit (PoB: seltene Juwelen 4, manche Items eigene Grenzen).
-- Nicht abgebildet: Orb der Alteration (Text nennt keine Anzahl), Alchemie (zwei Seltenheiten),
+- Nicht abgebildet: Orb der Alteration (Text nennt keine Anzahl),
   alles, was keine Modänderung ist.
 
 ## Crafting-Daten aus den Update-Servern

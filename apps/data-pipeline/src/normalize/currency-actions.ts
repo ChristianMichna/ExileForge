@@ -26,6 +26,7 @@ const tieredRow = z.object({
   BaseItemType: z.int().nonnegative(),
   Tier: z.int().nonnegative().nullish(),
   LowerTierBaseItemType: z.int().nonnegative().nullish(),
+  MinimumModLevel: z.int().nonnegative().nullish(),
 });
 
 function parseRows<T extends z.ZodType>(table: string, rows: readonly unknown[], schema: T) {
@@ -57,14 +58,17 @@ function expand(
 
 /**
  * Crafting actions of the currencies whose effect the game's own description
- * states, and the rarity rule of the essences. A currency row is turned into
- * an action only when (1) the config has a rule for its `Action`, (2) the
+ * states, and the rules of the essences. A currency row is turned into an
+ * action only when (1) the config has a rule for its `Action`, (2) the
  * description with markup removed matches the rule's `description` pattern
  * (a changed text leaves the action out and says so) and (3) every id the rule
- * uses exists in the release. Higher tiers (TieredCurrency tier above 1) are
- * left out: they differ by a minimum mod level the simulator cannot filter yet.
- * Essences keep their existing action and gain the rarity rule when their own
- * description matches. Nothing is guessed.
+ * uses exists in the release. A higher tier (TieredCurrency tier above 1 or
+ * with a lower tier) is an action of its own whose `add-random-mod` effects get
+ * the table's MinimumModLevel as `minModLevel` (assumption: that column is the
+ * minimum level of the added mods); without a positive value it is left out.
+ * Essences keep their existing action and gain the preconditions and leading
+ * effects of the first essence rule whose description matches theirs; the
+ * rule's `limitsForRarity` becomes the affix limits of their own mod. Nothing is guessed.
  */
 export async function currencyActions(opts: {
   gameDataDir: string;
@@ -78,11 +82,11 @@ export async function currencyActions(opts: {
   actions: Record<string, unknown>[];
   essenceActions: Record<string, unknown>[];
   findings: Finding[];
-  summary: { currencyActions: number; essencesWithRarityRule: number };
+  summary: { currencyActions: number; higherTierActions: number; essencesWithRule: number };
 }> {
   const { config, rarities } = opts;
   const findings: Finding[] = [];
-  const summary = { currencyActions: 0, essencesWithRarityRule: 0 };
+  const summary = { currencyActions: 0, higherTierActions: 0, essencesWithRule: 0 };
   if (!rarities) {
     findings.push({
       kind: "currencyAction",
@@ -126,12 +130,23 @@ export async function currencyActions(opts: {
     parseRows("BaseItemTypes", await table("BaseItemTypes"), baseRow).map((r) => [r._index, r]),
   );
   const currency = parseRows("CurrencyItems", await table("CurrencyItems"), currencyRow);
-  const higherTier = new Set(
-    parseRows("TieredCurrency", await table("TieredCurrency"), tieredRow)
-      // a currency that points to a lower tier, or has a tier above the first, is a higher tier
-      .filter((r) => (r.Tier ?? 0) > 1 || r.LowerTierBaseItemType != null)
-      .map((r) => r.BaseItemType),
-  );
+  // a currency that points to a lower tier, or has a tier above the first, is a higher tier;
+  // its minimum mod level becomes the `minModLevel` of the mods it adds
+  const higherTier = new Map<number, number | undefined>();
+  const tierDuplicates = new Set<number>();
+  for (const r of parseRows("TieredCurrency", await table("TieredCurrency"), tieredRow)) {
+    if (!((r.Tier ?? 0) > 1 || r.LowerTierBaseItemType != null)) continue;
+    if (higherTier.has(r.BaseItemType)) tierDuplicates.add(r.BaseItemType);
+    // 0 is no filter at all, so it cannot make a tier differ from the base currency
+    higherTier.set(r.BaseItemType, r.MinimumModLevel ? r.MinimumModLevel : undefined);
+  }
+  for (const idx of tierDuplicates) higherTier.set(idx, undefined);
+  if (tierDuplicates.size > 0)
+    findings.push({
+      kind: "currencyAction",
+      id: "tier-duplicates",
+      message: `${String(tierDuplicates.size)} currencies have several TieredCurrency rows; they are left out`,
+    });
   const rowByBaseId = new Map<string, z.infer<typeof currencyRow>>();
   for (const row of currency) {
     const id = bases.get(row.BaseItemType)?.Id;
@@ -165,7 +180,9 @@ export async function currencyActions(opts: {
       skipped.notInCatalog.add(id);
       continue;
     }
-    if (higherTier.has(row.BaseItemType)) {
+    const tier = higherTier.has(row.BaseItemType);
+    const minModLevel = higherTier.get(row.BaseItemType);
+    if (tier && minModLevel === undefined) {
       skipped.higherTier.add(id);
       continue;
     }
@@ -179,12 +196,19 @@ export async function currencyActions(opts: {
       kind: config.kind,
       itemId: id,
       preconditions: build(spec.rule.preconditions),
-      effects: build(spec.rule.effects),
+      effects: build(spec.rule.effects).map((e) =>
+        tier && e.op === "add-random-mod" ? { ...e, params: { ...e.params, minModLevel } } : e,
+      ),
     });
     summary.currencyActions++;
+    if (tier) summary.higherTierActions++;
   }
   for (const [id, what, ids] of [
-    ["higher-tier", "is a higher tier (minimum mod level not modelled)", skipped.higherTier],
+    [
+      "higher-tier",
+      "is a higher tier without a minimum mod level in TieredCurrency",
+      skipped.higherTier,
+    ],
     ["description", "has a description that does not match the rule", skipped.noDescriptionMatch],
     ["not-in-catalog", "is not a base item of the catalog", skipped.notInCatalog],
   ] as const)
@@ -209,33 +233,42 @@ export async function currencyActions(opts: {
       message: `${String(withoutRule.size)} currency actions have no rule and give no crafting action: ${[...withoutRule].sort().join(", ")}`,
     });
 
-  const essenceProblem = checkRules("essence rule", [
-    ...config.essence.preconditions,
-    ...config.essence.effects,
-  ]);
-  const essencePattern = new RegExp(config.essence.description);
+  const variants = config.essence.map((v, i) => ({
+    pattern: new RegExp(v.description),
+    rule: v,
+    limits: v.limitsForRarity
+      ? rarities.rarities.find((r) => r.id === v.limitsForRarity)?.maxAffixes
+      : undefined,
+    problem:
+      v.limitsForRarity && !rarities.rarities.find((r) => r.id === v.limitsForRarity)?.maxAffixes
+        ? `essence rule ${String(i)}: rarity "${v.limitsForRarity}" has no affix limits`
+        : checkRules(`essence rule ${String(i)}`, [...v.preconditions, ...v.effects]),
+  }));
+  for (const v of variants)
+    if (v.problem) findings.push({ kind: "currencyAction", id: "essence", message: v.problem });
   const essenceActions = opts.essenceActions.map((action) => {
     const row = rowByBaseId.get(String(action.id));
-    if (essenceProblem || !row || !essencePattern.test(stripMarkup(row.Description ?? "")))
-      return action;
-    summary.essencesWithRarityRule++;
+    const text = stripMarkup(row?.Description ?? "");
+    const v = variants.find((x) => !x.problem && x.pattern.test(text));
+    if (!v) return action;
+    summary.essencesWithRule++;
+    const own = (action.effects as { op: string; params: Record<string, unknown> }[]).map((e) =>
+      v.limits && e.op === "add-specific-mod"
+        ? { ...e, params: { ...e.params, limits: v.limits } }
+        : e,
+    );
     return {
       ...action,
-      preconditions: [
-        ...(action.preconditions as unknown[]),
-        ...build(config.essence.preconditions),
-      ],
-      effects: [...build(config.essence.effects), ...(action.effects as unknown[])],
+      preconditions: [...(action.preconditions as unknown[]), ...build(v.rule.preconditions)],
+      effects: [...build(v.rule.effects), ...own],
     };
   });
-  if (essenceProblem)
-    findings.push({ kind: "currencyAction", id: "essence", message: essenceProblem });
-  const missing = opts.essenceActions.length - summary.essencesWithRarityRule;
-  if (missing > 0 && !essenceProblem)
+  const missing = opts.essenceActions.length - summary.essencesWithRule;
+  if (missing > 0)
     findings.push({
       kind: "currencyAction",
       id: "essence",
-      message: `${String(missing)} essences keep no rarity rule: their description does not match`,
+      message: `${String(missing)} essences keep no rule: their description matches none of the ${String(variants.filter((v) => !v.problem).length)} usable essence rules`,
     });
   return { actions, essenceActions, findings, summary };
 }

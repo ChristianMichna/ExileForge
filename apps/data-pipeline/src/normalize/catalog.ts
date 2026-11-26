@@ -151,14 +151,24 @@ export const normalizeConfigSchema = z
          * `limitsForRarity` in add-random-mod params is replaced by the release's affix limits.
          */
         rules: z.record(z.string().min(1), currencyRuleSchema),
-        /** Rarity rule added to the essences whose own description matches. */
+        /**
+         * Rules added to the essences, by the essence's own description: `preconditions` are
+         * added, `effects` run before the essence's own effect. An essence whose description
+         * matches none keeps no rule (counted in the findings).
+         */
         essence: z
-          .object({
-            description: descriptionPattern,
-            preconditions: z.array(ruleSchema),
-            effects: z.array(ruleSchema).min(1),
-          })
-          .strict(),
+          .array(
+            z
+              .object({
+                description: descriptionPattern,
+                /** Affix limits of this rarity are set on the essence's own `add-specific-mod`. */
+                limitsForRarity: z.string().min(1).optional(),
+                preconditions: z.array(ruleSchema),
+                effects: z.array(ruleSchema).min(1),
+              })
+              .strict(),
+          )
+          .min(1),
       })
       .strict(),
     releaseFacts: z
@@ -265,7 +275,11 @@ export interface NormalizeSummary {
   /** unique lines whose ambiguous text was decided by spawn evidence of the base */
   uniqueLinesDisambiguated: number;
   /** crafting actions derived from currency descriptions; absent without game data */
-  currencyActions?: { currencyActions: number; essencesWithRarityRule: number };
+  currencyActions?: {
+    currencyActions: number;
+    higherTierActions: number;
+    essencesWithRule: number;
+  };
   /** game ids matched to passive nodes and slots; absent when no game data was given */
   gameIds?: {
     passivesWithGameId: number;
