@@ -78,6 +78,26 @@ jobs:
             --out data-snapshots/current/catalog \
             --game-data data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Probe essence descriptions (log only)
+        run: |
+          set -o pipefail
+          node -e '
+            const fs = require("fs");
+            const dir = "data-snapshots/current/game-data";
+            const manifest = JSON.parse(fs.readFileSync(dir + "/manifest.json", "utf8"));
+            const read = (n) => JSON.parse(fs.readFileSync(dir + "/" + manifest.tables.find((x) => x.name === n).path, "utf8"));
+            const bases = read("BaseItemTypes");
+            const seen = new Map();
+            for (const r of read("CurrencyItems")) {
+              if (r.Action !== "use_essence") continue;
+              const d = String(r.Description ?? "").replace(/\[([^\]|]*)\|([^\]]*)\]/g, "$2").replace(/\[([^\]]*)\]/g, "$1");
+              const e = seen.get(d) ?? { n: 0, names: [] };
+              e.n++; if (e.names.length < 3) e.names.push(bases[r.BaseItemType]?.Name);
+              seen.set(d, e);
+            }
+            for (const [d, e] of seen) console.log("ESSDESC x" + e.n + " " + JSON.stringify(e.names) + " " + JSON.stringify(d));
+          ' | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: List currency-like base items (id | name | tags)
         run: |
           set -o pipefail
