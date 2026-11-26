@@ -92,6 +92,13 @@ describe.skipIf(!havePob)("build.applyPatch with headless Path of Building", () 
     await pool.close();
   });
 
+  it("reports an attribute requirement as zero when nothing asks for the attribute", () => {
+    // PoB sets ReqStr/ReqDex/ReqInt only above zero; the worker reads its "<name>String" marker.
+    for (const key of ["Str", "Dex", "Int", "ReqStr", "ReqDex", "ReqInt"]) {
+      expect(baseResult.stats[key]).toBeTypeOf("number");
+    }
+  });
+
   it("returns a new state and leaves the original untouched", async () => {
     const { handle } = await patch(ops([{ op: "setConfig", key: "enemyIsBoss", value: "None" }]));
     expect(handle).not.toBe(base);
