@@ -356,6 +356,9 @@ describe("PobSkeleton", () => {
       getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
       const out = await skeleton.optimizeTree(input);
       expect(optimize.mock.calls[1]?.[0].forbiddenNodeIds).toContain("FixN2");
+      // the second round continues from the first tree without the banned node
+      expect(optimize.mock.calls[0]?.[0].allocated).toEqual([]);
+      expect(optimize.mock.calls[1]?.[0].allocated).toEqual(["FixN1"]);
       expect(out.state.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1"]);
       // the cap fails visibly
       const capped = setup(done, undefined, flawed, { unsupportedMaxRounds: 1 });
