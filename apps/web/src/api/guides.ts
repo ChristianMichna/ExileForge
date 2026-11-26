@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GuideListView, GuideView } from "@astrolabe/contracts/guide";
+import { GuideListView, GuideView, PassiveTreeData } from "@astrolabe/contracts/guide";
 import { ApiError } from "./client";
 
 /*
@@ -38,3 +38,6 @@ export const loadGuideList = (signal?: AbortSignal): Promise<GuideListView> =>
 
 export const loadGuideView = (guideId: string, signal?: AbortSignal): Promise<GuideView> =>
   get(`/api/guides/${encodeURIComponent(guideId)}/view`, GuideView, signal);
+
+export const loadPassiveTree = (signal?: AbortSignal): Promise<PassiveTreeData> =>
+  get("/api/tree", PassiveTreeData, signal);

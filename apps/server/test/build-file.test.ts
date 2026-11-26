@@ -576,3 +576,51 @@ describe("buildGuideView gear cards", () => {
     expect(view.unresolved).toContain("baseItem:Fixture/Base");
   });
 });
+
+describe("GET /api/tree", () => {
+  const node = {
+    id: "Fixture/Node",
+    name: "Fixture Node",
+    kind: "small",
+    stats: [],
+    position: { groupId: "g1", orbit: 0, orbitIndex: 0 },
+    connections: [],
+  };
+  const catalog = {
+    dataReleaseId: RELEASE,
+    list: (kind: string) =>
+      kind === "passiveNode"
+        ? [
+            { kind, id: node.id, entity: node },
+            { kind, id: "Broken", entity: { id: "Broken" } },
+          ]
+        : [],
+    get: () => undefined,
+  } as unknown as CatalogPort;
+
+  it("lists the nodes of the release and names the entries it cannot read", async () => {
+    const res = await app(undefined, catalog).inject({
+      method: "GET",
+      url: "/api/tree",
+      headers,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json<{
+      dataReleaseId: string;
+      passiveNodes: { id: string }[];
+      skipped: string[];
+    }>();
+    expect(body.dataReleaseId).toBe(RELEASE);
+    expect(body.passiveNodes.map((n) => n.id)).toEqual(["Fixture/Node"]);
+    expect(body.skipped).toEqual(["passiveNode:Broken"]);
+  });
+
+  it("needs the access token", async () => {
+    const res = await app(undefined, catalog).inject({
+      method: "GET",
+      url: "/api/tree",
+      headers: { host: headers.host },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+});

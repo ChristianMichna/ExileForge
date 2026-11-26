@@ -1,49 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Badge, Button, Callout, GuideNotes, Panel, Tabs } from "@astrolabe/ui";
 import type { ProgressionStage } from "@astrolabe/contracts/build";
 import type { GuideListView, GuideView } from "@astrolabe/contracts/guide";
 import { CraftingSection } from "./GuideCrafting";
+import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
+import { TreeSection } from "./GuideTree";
 import { loadGuideList, loadGuideView } from "../api/guides";
 import { RichTextView, nameOf } from "../guide/RichTextView";
 import { BuildFileExportButton } from "./BuildFileExport";
 import { PageHeader } from "../shell/PageHeader";
 import { useGuideId } from "../shell/route";
-
-/** Result of a request that can still be running or have failed; never an empty default. */
-type Loaded<T> =
-  | { readonly status: "loading" }
-  | { readonly status: "error"; readonly message: string }
-  | { readonly status: "ready"; readonly value: T };
-
-function useLoaded<T>(load: (signal: AbortSignal) => Promise<T>, key: string): Loaded<T> {
-  const [state, setState] = useState<{ key: string; loaded: Loaded<T> }>({
-    key,
-    loaded: { status: "loading" },
-  });
-  useEffect(() => {
-    const controller = new AbortController();
-    load(controller.signal).then(
-      (value) => {
-        if (!controller.signal.aborted) setState({ key, loaded: { status: "ready", value } });
-      },
-      (error: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          key,
-          loaded: {
-            status: "error",
-            message: error instanceof Error ? error.message : "The request failed.",
-          },
-        });
-      },
-    );
-    return () => controller.abort();
-    // `load` is a fresh function each render; the key says when the request is another one.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  return state.key === key ? state.loaded : { status: "loading" };
-}
 
 export function GuidePage() {
   const guideId = useGuideId();
@@ -211,6 +178,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
       />
       <GearSection view={view} />
       <CraftingSection view={view} />
+      <TreeSection view={view} />
     </div>
   );
 }
