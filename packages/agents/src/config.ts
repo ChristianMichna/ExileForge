@@ -50,6 +50,13 @@ export const StageConfig = z
           /** Metric held to another measured metric, e.g. Int against ReqInt (no numbers typed here). */
           floorsFromMetrics: z.record(z.string().min(1), z.string().min(1)).default({}),
         }),
+        /**
+         * What the ascendancy search does with nodes whose mods Path of Building does not
+         * calculate: `avoid` searches again without them (the numbers would ignore their effect),
+         * `accept` keeps them (G2 then needs `s10.acceptedUnsupportedModPatterns` for them).
+         */
+        ascendancyUnsupportedMods: z.enum(["avoid", "accept"]).default("avoid"),
+        ascendancyMaxRounds: z.number().int().positive().default(4),
       })
       .optional(),
     /**

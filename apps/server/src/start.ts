@@ -143,7 +143,14 @@ async function startServerOwningPool(
       settings: stages.s3,
       ...(stages.s5 === undefined
         ? {}
-        : { target: { calcProfiles: stages.s5.calcProfiles, objective: stages.s5.objective } }),
+        : {
+            target: {
+              calcProfiles: stages.s5.calcProfiles,
+              objective: stages.s5.objective,
+              ascendancyUnsupportedMods: stages.s5.ascendancyUnsupportedMods,
+              ascendancyMaxRounds: stages.s5.ascendancyMaxRounds,
+            },
+          }),
       ...(stages.s6 === undefined
         ? {}
         : {
