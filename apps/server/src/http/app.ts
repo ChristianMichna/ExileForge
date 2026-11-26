@@ -5,7 +5,7 @@ import { z } from "zod";
 import { BuildRequest } from "@astrolabe/contracts/build";
 import type { RunEvent } from "@astrolabe/contracts/events";
 import { UserIntervention } from "@astrolabe/contracts/forge";
-import { PublishedGuide } from "@astrolabe/contracts/guide";
+import { GuideListView, PublishedGuide } from "@astrolabe/contracts/guide";
 import { guideToBuildFile } from "@astrolabe/exporters";
 import { buildFileResolvers } from "../export/build-file-resolvers.js";
 import type { GuideSweeper } from "../tools/guide-sweep.js";
@@ -156,25 +156,32 @@ export function createApp(options: AppOptions): FastifyInstance {
       throw new ForgeError("invalid_request", "Listing guides needs the run store.");
     }
     const find = options.findGuide;
-    const guides = options.listGuideIds().map((guideId) => {
-      const guide = PublishedGuide.safeParse(find(guideId));
-      if (!guide.success) {
-        logger.error("stored guide is not valid", { guideId, error: guide.error });
-        return { guideId, error: "The stored guide is not valid." };
+    const guides = options.listGuideIds().map((guideId): GuideListView["guides"][number] => {
+      try {
+        const guide = PublishedGuide.safeParse(find(guideId));
+        if (!guide.success) throw new Error("not a valid guide", { cause: guide.error });
+        const { summary, metadata } = guide.data;
+        const ascendancyName = options.catalog.get({
+          kind: "ascendancy",
+          id: summary.ascendancyId,
+        })?.name;
+        const mainSkillName = options.catalog.get({ kind: "gem", id: summary.mainSkillId })?.name;
+        return {
+          guideId,
+          dataReleaseId: metadata.dataReleaseId,
+          generatedAt: metadata.generatedAt,
+          ascendancyId: summary.ascendancyId,
+          ...(ascendancyName === undefined ? {} : { ascendancyName }),
+          mainSkillId: summary.mainSkillId,
+          ...(mainSkillName === undefined ? {} : { mainSkillName }),
+          current: metadata.dataReleaseId === options.catalog.dataReleaseId,
+        };
+      } catch (error) {
+        logger.error("stored guide cannot be read", { guideId, error });
+        return { guideId, error: "The stored guide cannot be read." };
       }
-      const { summary, metadata } = guide.data;
-      return {
-        guideId,
-        dataReleaseId: metadata.dataReleaseId,
-        generatedAt: metadata.generatedAt,
-        ascendancyId: summary.ascendancyId,
-        ascendancyName: options.catalog.get({ kind: "ascendancy", id: summary.ascendancyId })?.name,
-        mainSkillId: summary.mainSkillId,
-        mainSkillName: options.catalog.get({ kind: "gem", id: summary.mainSkillId })?.name,
-        current: metadata.dataReleaseId === options.catalog.dataReleaseId,
-      };
     });
-    return { guides };
+    return GuideListView.parse({ guides });
   });
 
   app.get("/api/guides/:guideId", async (request) => {

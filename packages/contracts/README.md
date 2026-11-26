@@ -84,6 +84,8 @@ Ascendancy- und Secondary-Ascendancy-Punkte aus PoBs Code (`Build.lua`, Ursprung
 dürfen keine erfinden. `Ascendancy.pointUnlocks` einer Quelle hat Vorrang, `ascendancy`
 ist die PoB-Obergrenze. Nach einem PoB-Update ist der Wert in der Config zu prüfen.
 
+`GuideListView` (seit 0.18.0, `guide/list`) ist die Antwort von `GET /api/guides`: je gespeichertem Guide Release, Ascendancy- und Skill-Name (fehlt, wenn der Katalog die ID nicht kennt) und `current`, oder `{ guideId, error }` für einen nicht lesbaren.
+
 `DataRelease.itemSlots` listet die Ausrüstungsplätze mit PoBs Slot-Namen (wie in
 `EquippedItem.slot`) und den Basis-Klassen (`BaseItem.itemClass`), die PoB je Slot
 annimmt. Juwelen-Sockel gehören zum Passivbaum und stehen nicht darin.
