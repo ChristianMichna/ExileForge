@@ -85,6 +85,8 @@ const resolve = {
   passiveGameId: (id: string) => (id === "n9" ? undefined : `game_${id}`),
   slotGameId: (id: string) => (id === "Weapon 1 Swap" ? undefined : id.replace(" ", "")),
   uniqueName: (id: string) => `Unique ${id}`,
+  ascendancyName: (id: string) => id,
+  rarityName: (id: string) => id,
   entityName: (r: { id: string }) => `Name ${r.id}`,
 };
 
@@ -134,5 +136,105 @@ describe("guideToBuildFile", () => {
   it("produces a file that satisfies the format schema", () => {
     expect(BuildFile.safeParse(file).success).toBe(true);
     expect(file.ascendancy).toBe("Asc1");
+  });
+});
+
+describe("guideToBuildFile edge cases", () => {
+  const withStages = (stages: object[]) =>
+    ({ summary: { ascendancyId: "Asc1" }, progression: { stages } }) as never as PublishedGuide;
+
+  it("attributes supports to the skill run of their own stages when level ranges touch", () => {
+    const g = withStages([
+      stage("a", 0, [1, 20], [["n1", 0]], [skill("G", ["S1"])]),
+      stage("b", 1, [20, 30], [["n1", 0]], [skill("G2", ["S2"])]),
+    ]);
+    expect(guideToBuildFile(g, resolve, "x").file.skills).toEqual([
+      { id: "G", level_interval: [1, 20], support_skills: [{ id: "S1", level_interval: [1, 20] }] },
+      {
+        id: "G2",
+        level_interval: [20, 30],
+        support_skills: [{ id: "S2", level_interval: [20, 30] }],
+      },
+    ]);
+  });
+
+  it("writes a re-allocated passive as two entries and rejects weapon sets above 2", () => {
+    const g = withStages([
+      stage(
+        "a",
+        0,
+        [1, 10],
+        [
+          ["n1", 0],
+          ["n2", 3],
+        ],
+        [],
+      ),
+      stage("b", 1, [11, 20], [["n2", 3]], []),
+      stage(
+        "c",
+        2,
+        [21, 30],
+        [
+          ["n1", 0],
+          ["n2", 3],
+        ],
+        [],
+      ),
+    ]);
+    const { file, omitted } = guideToBuildFile(g, resolve, "x");
+    expect(file.passives).toEqual([
+      { id: "game_n1", level_interval: [1, 10] },
+      { id: "game_n1", level_interval: [21, 30] },
+    ]);
+    expect(omitted.some((o) => o.includes("weapon set 3"))).toBe(true);
+  });
+
+  it("lists every missing name instead of dropping it", () => {
+    const g = withStages([
+      stage(
+        "a",
+        0,
+        [1, 10],
+        [],
+        [],
+        [
+          {
+            slot: "Weapon 1",
+            item: {
+              kind: "crafted",
+              baseItemId: "Wand",
+              rarity: "Rare",
+              mods: [{ modId: "M", required: true }],
+            },
+          },
+          { slot: "Ring 1", item: { kind: "unique", uniqueId: "U" } },
+        ],
+      ),
+    ]);
+    const { omitted, file } = guideToBuildFile(
+      g,
+      {
+        ...resolve,
+        entityName: (r) => (r.kind === "mod" ? undefined : "Wand"),
+        uniqueName: () => undefined,
+        ascendancyName: () => undefined,
+      },
+      "x",
+    );
+    expect(omitted).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("mod M"),
+        expect.stringContaining("unique U"),
+        expect.stringContaining("ascendancy Asc1"),
+      ]),
+    );
+    expect(file.ascendancy).toBeUndefined();
+  });
+
+  it("refuses stages that go back in level and guides without stages", () => {
+    const back = withStages([stage("a", 0, [11, 20], [], []), stage("b", 1, [1, 10], [], [])]);
+    expect(() => guideToBuildFile(back, resolve, "x")).toThrow(/level order/);
+    expect(() => guideToBuildFile(withStages([]), resolve, "x")).toThrow(/no progression stage/);
   });
 });
