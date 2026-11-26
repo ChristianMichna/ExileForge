@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { CalcResult } from "@astrolabe/contracts/calc";
 import { RunEvent } from "@astrolabe/contracts/events";
-import type { GuideFile } from "@astrolabe/contracts/guide";
+import { collectCalcIds, type GuideFile } from "@astrolabe/contracts/guide";
 import { ForgeError } from "../engine/errors.js";
 import { RunRecord } from "../engine/run-record.js";
 import type { Logger } from "../logger.js";
@@ -96,30 +96,36 @@ export class RunStore {
   }
 
   /**
-   * Stores a guide file: its results (never replacing a different result stored under the same
-   * calcId) and the guide itself. Importing the same guide again replaces the copy; a guide
+   * Stores a guide file: the results its guide refers to (never replacing a different result
+   * stored under the same calcId) and the guide itself. Importing the same guide again replaces the copy; a guide
    * that one of this installation's own runs produced is not overwritten. All or nothing.
    */
   importGuide(file: GuideFile, importedAt: string): void {
     const guideId = file.guide.metadata.guideId;
-    if (this.runGuideIds().includes(guideId)) {
-      throw new ForgeError(
-        "invalid_request",
-        `Guide ${guideId} was made by this installation; it is not replaced by an import.`,
-      );
-    }
-    for (const [calcId, result] of Object.entries(file.results)) {
-      const existing = this.loadCalcResult(calcId);
-      if (existing !== undefined && !isDeepStrictEqual(existing, result)) {
+    // Only the results the guide refers to are stored; the file may carry more.
+    const byId = new Map<string, CalcResult>(Object.entries(file.results));
+    const results = collectCalcIds(file.guide).flatMap((calcId) => {
+      const result = byId.get(calcId);
+      return result === undefined ? [] : [result];
+    });
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      if (this.runGuideIds().includes(guideId)) {
         throw new ForgeError(
           "invalid_request",
-          `Result ${calcId} differs from the one already stored under that id; the file is not imported.`,
+          `Guide ${guideId} was made by this installation; it is not replaced by an import.`,
         );
       }
-    }
-    this.db.exec("BEGIN");
-    try {
-      for (const result of Object.values(file.results)) this.saveCalcResult(result);
+      for (const result of results) {
+        const existing = this.loadCalcResult(result.calcId);
+        if (existing !== undefined && !isDeepStrictEqual(existing, result)) {
+          throw new ForgeError(
+            "invalid_request",
+            `Result ${result.calcId} differs from the one already stored under that id; the file is not imported.`,
+          );
+        }
+      }
+      for (const result of results) this.saveCalcResult(result);
       this.db
         .prepare(
           "INSERT OR REPLACE INTO imported_guides (guide_id, guide, imported_at) VALUES (?, ?, ?)",
@@ -128,6 +134,7 @@ export class RunStore {
       this.db.exec("COMMIT");
     } catch (error) {
       this.db.exec("ROLLBACK");
+      if (error instanceof ForgeError) throw error;
       throw new Error(`Guide ${guideId} could not be stored`, { cause: error });
     }
   }
