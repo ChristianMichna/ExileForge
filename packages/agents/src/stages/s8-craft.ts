@@ -184,6 +184,17 @@ export function craftTask(
           ref: { kind: "mod" as const, id },
         })),
       );
+      const rarityIds = checkCtx.catalog.release?.rarities?.rarities.map((r) => r.id);
+      if (rarityIds !== undefined && !rarityIds.includes(c.startRarity)) {
+        findings.push({
+          gate: "G1",
+          severity: "error",
+          code: "unknown_rarity",
+          message: `Rarity ${c.startRarity} is not a rarity id of this release. Use one of: ${rarityIds.join(", ")}.`,
+          path: "/startRarity",
+        });
+        return findings;
+      }
       const request = simRequest(checkCtx, slot, c);
       if (typeof request === "string") {
         findings.push({

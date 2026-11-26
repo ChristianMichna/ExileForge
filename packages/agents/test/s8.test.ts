@@ -152,6 +152,34 @@ describe("S8 craft task", () => {
     expect((await check(bad)).map((f) => f.code)).toEqual(["simulation_rejected"]);
   });
 
+  it("rejects a start rarity that is not an id of the release", async () => {
+    const craft = { simulate: () => Promise.resolve({ successChance: ok(0.2) }) };
+    const task = craftTask(
+      ctxWith(),
+      { promptVersion: "t" } as StageConfig,
+      slot(),
+      {} as never,
+    ) as never as {
+      check: (
+        c: unknown,
+        x: unknown,
+      ) => Promise<{ code: string; path?: string; message: string }[]>;
+    };
+    const withRelease = ctxWith({
+      craft,
+      catalog: {
+        get: () => ({ entity: {} }),
+        release: { rarities: { rarities: [{ id: "magic", name: "Magic" }] } },
+      },
+    });
+    const sub = CraftSubmission.parse({ ...submission, startRarity: "Magic" });
+    const bad = await task.check(sub, withRelease);
+    expect(bad.map((f) => f.code)).toEqual(["unknown_rarity"]);
+    expect(bad[0]?.path).toBe("/startRarity");
+    const good = CraftSubmission.parse({ ...submission, startRarity: "magic" });
+    expect(await task.check(good, withRelease)).toEqual([]);
+  });
+
   it("warns when the simulator cannot evaluate the strategy", async () => {
     const craft = {
       simulate: () => Promise.resolve({ successChance: { status: "uncalibrated", reason: "x" } }),
