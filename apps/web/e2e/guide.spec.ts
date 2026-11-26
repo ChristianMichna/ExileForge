@@ -2,8 +2,40 @@ import { expect, test } from "@playwright/test";
 import { publishedGuide } from "../src/fixtures/guide-fixture";
 
 const guideId = publishedGuide.metadata.guideId;
+const derived = {
+  kind: "derived",
+  formula: "crafting.expected-cost",
+  formulaVersion: "1",
+  inputs: [
+    {
+      kind: "market",
+      provider: "fixture",
+      league: "Fixture",
+      fetchedAt: "2026-01-01T00:00:00Z",
+      confidence: "high",
+    },
+  ],
+};
+const craftingPlan = publishedGuide.crafting[0];
+const guideWithCrafting = {
+  ...publishedGuide,
+  crafting: [
+    {
+      ...craftingPlan,
+      steps: [
+        {
+          ...craftingPlan?.steps[0],
+          successChance: { status: "ok", value: 0.25, source: derived },
+          expectedAttempts: { status: "ok", value: 4, source: derived },
+          onFail: { action: "repeat" },
+        },
+        { ...craftingPlan?.steps[0], order: 1, onFail: { action: "restart" } },
+      ],
+    },
+  ],
+};
 const view = {
-  guide: publishedGuide,
+  guide: guideWithCrafting,
   catalogReleaseId: publishedGuide.metadata.dataReleaseId,
   current: true,
   gear: [

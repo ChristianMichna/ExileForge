@@ -142,6 +142,41 @@ describe("guide page", () => {
     expect(screen.getByText(/Unknown modifier \(Fixture\/NoText\)/)).toBeTruthy();
   });
 
+  it("shows the crafting flow with uncalibrated numbers as such and measured ones with their source", async () => {
+    const measuredStep = {
+      ...publishedGuide.crafting[0]?.steps[0],
+      successChance: {
+        status: "ok",
+        value: 0.25,
+        source: {
+          kind: "derived",
+          formula: "crafting.chance",
+          formulaVersion: "1",
+          inputs: [
+            {
+              kind: "market",
+              provider: "fixture",
+              league: "Fixture",
+              fetchedAt: "2026-01-01T00:00:00Z",
+              confidence: "high",
+            },
+          ],
+        },
+      },
+    };
+    const guide = {
+      ...publishedGuide,
+      crafting: [{ ...publishedGuide.crafting[0], steps: [measuredStep] }],
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("Step 1")).toBeTruthy();
+    expect(screen.getByText("25%")).toBeTruthy();
+    expect(screen.getByText(/On failure: go to step 1/)).toBeTruthy();
+    expect(screen.getAllByText(/uncalibrated/i).length).toBeGreaterThan(0);
+  });
+
   it("shows no gear for a guide of older game data and points to revalidation", async () => {
     vi.stubGlobal("fetch", () =>
       json({
