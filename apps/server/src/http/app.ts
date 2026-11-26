@@ -40,8 +40,10 @@ export interface AppOptions extends ForgeMcpDeps {
   catalogOnlyReason?: string;
   /** Automatic revalidation of stored guides (F-19); absent without a releases directory. */
   guideSweep?: GuideSweeper;
-  /** The stored guide with this id (see `RunStore.findGuide`), unvalidated; enables the `.build` export. */
+  /** The stored guide with this id (see `RunStore.findGuide`), unvalidated; enables the guide and `.build` routes. */
   findGuide?: (guideId: string) => unknown;
+  /** Ids of all stored guides, newest first (see `RunStore.listGuideIds`). */
+  listGuideIds?: () => string[];
   /**
    * Per-installation secret. Every request except /api/health must send
    * `Authorization: Bearer <token>`, so other local processes and web pages
@@ -147,6 +149,48 @@ export function createApp(options: AppOptions): FastifyInstance {
       logger.error("guide sweep crashed", { error });
     });
     return reply.code(202).send(sweep.view());
+  });
+
+  app.get("/api/guides", async () => {
+    if (options.listGuideIds === undefined || options.findGuide === undefined) {
+      throw new ForgeError("invalid_request", "Listing guides needs the run store.");
+    }
+    const find = options.findGuide;
+    const guides = options.listGuideIds().map((guideId) => {
+      const guide = PublishedGuide.safeParse(find(guideId));
+      if (!guide.success) {
+        logger.error("stored guide is not valid", { guideId, error: guide.error });
+        return { guideId, error: "The stored guide is not valid." };
+      }
+      const { summary, metadata } = guide.data;
+      return {
+        guideId,
+        dataReleaseId: metadata.dataReleaseId,
+        generatedAt: metadata.generatedAt,
+        ascendancyId: summary.ascendancyId,
+        ascendancyName: options.catalog.get({ kind: "ascendancy", id: summary.ascendancyId })?.name,
+        mainSkillId: summary.mainSkillId,
+        mainSkillName: options.catalog.get({ kind: "gem", id: summary.mainSkillId })?.name,
+        current: metadata.dataReleaseId === options.catalog.dataReleaseId,
+      };
+    });
+    return { guides };
+  });
+
+  app.get("/api/guides/:guideId", async (request) => {
+    const { guideId } = GuideParams.parse(request.params);
+    if (options.findGuide === undefined) {
+      throw new ForgeError("invalid_request", "Reading guides needs the run store.");
+    }
+    const stored = options.findGuide(guideId);
+    if (stored === undefined) throw new ForgeError("unknown_run", `No stored guide ${guideId}.`);
+    const guide = PublishedGuide.safeParse(stored);
+    if (!guide.success) {
+      throw new ForgeError("invalid_request", `Stored guide ${guideId} is not a valid guide.`, {
+        cause: guide.error,
+      });
+    }
+    return guide.data;
   });
 
   app.get("/api/guides/:guideId/build-file", async (request) => {

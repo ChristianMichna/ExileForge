@@ -245,6 +245,7 @@ async function startServerOwningPool(
     ...(guideRevalidate === undefined ? {} : { guideRevalidate }),
     ...(sweeper === undefined ? {} : { guideSweep: sweeper }),
     findGuide: (id) => store.findGuide(id),
+    listGuideIds: () => store.listGuideIds(),
     engine,
     catalog,
     calc,

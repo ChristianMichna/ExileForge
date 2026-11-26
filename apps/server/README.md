@@ -278,6 +278,10 @@ automatisch nach einem Patch.
 - Ergebnis je Guide und Release in SQLite (`patch_checks`): das `PatchStatus`
   oder der Fehlercode (`diff_missing`, `guide_invalid`, ...), nie ein stilles
   „unverändert".
+- `GET /api/guides` listet die gespeicherten Guides (neueste zuerst) mit Release, Ascendancy- und
+  Hauptskill-Name und `current` (mit dem geladenen Release gebaut); ein nicht lesbarer Guide steht
+  mit `error` in der Liste. `GET /api/guides/:guideId` liefert den Guide (`PublishedGuide`, 404
+  unbekannt, 400 beschädigt).
 - `GET /api/guides/:guideId/build-file` liefert den Guide als `.build`-Datei des Build Planners
   (F-12): `{ file, omitted }`. Die Spiel-IDs und Namen kommen aus dem geladenen Release
   (`src/export/build-file-resolvers.ts`: Knoten-`gameId`, Slot-`gameId`, Unique-, Ascendancy-
