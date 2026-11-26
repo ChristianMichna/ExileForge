@@ -227,6 +227,18 @@ describe("currencyActions", () => {
     );
   });
 
+  it("quotes the game text of unruled currencies that mention modifiers", async () => {
+    const t = rows("Makes a Plain thing Fine");
+    t.CurrencyItems = (t.CurrencyItems ?? []).map((r, i) =>
+      i === 1 ? { ...r, Action: "other_action", Description: "Rerolls the [Mod|modifiers]" } : r,
+    );
+    const res = await run(t);
+    const text = res.findings.map((f) => f.message).join("\n");
+    expect(text).toMatch(
+      /mention modifiers but have no rule: other_action: "Rerolls the modifiers"/,
+    );
+  });
+
   it("rejects a description pattern that is invalid or not anchored", () => {
     const bad = (description: string) =>
       normalizeConfigSchema.safeParse({
