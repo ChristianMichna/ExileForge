@@ -34,19 +34,19 @@ export function BuildFileExportButton({ guideId }: { guideId: string }) {
     request.current = controller;
     setBusy(true);
     setProblem(undefined);
-    loadBuildFile(guideId, controller.signal).then(
-      (file) => {
+    setOmitted(undefined);
+    loadBuildFile(guideId, controller.signal)
+      .then((file) => {
         if (controller.signal.aborted) return;
-        setBusy(false);
-        setOmitted(file.omitted);
         save(file);
-      },
-      (error: unknown) => {
+        setOmitted(file.omitted);
+        setBusy(false);
+      })
+      .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setBusy(false);
         setProblem(error instanceof Error ? error.message : "The export failed.");
-      },
-    );
+      });
   };
 
   return (

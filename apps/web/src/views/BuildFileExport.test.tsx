@@ -86,4 +86,37 @@ describe("BuildFileExportButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save as .build file" }));
     expect(await screen.findByText(/does not understand/)).toBeTruthy();
   });
+
+  it("shows an error and no missing-entries hint when saving itself fails", async () => {
+    vi.stubGlobal("fetch", () =>
+      answer(200, { file: { name: "x" }, omitted: ["passive 1: no id"] }),
+    );
+    vi.stubGlobal("URL", {
+      createObjectURL: () => {
+        throw new Error("no blob url");
+      },
+      revokeObjectURL: () => undefined,
+    });
+    render(<BuildFileExportButton guideId={GUIDE_ID} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save as .build file" }));
+    expect(await screen.findByText("no blob url")).toBeTruthy();
+    expect(screen.queryByText("passive 1: no id")).toBeNull();
+  });
+
+  it("shows a network failure and clears an older hint on the next try", async () => {
+    const fetchMock = vi
+      .fn<(url: string) => Promise<Response>>()
+      .mockImplementationOnce(() =>
+        answer(200, { file: { name: "x" }, omitted: ["passive 1: no id"] }),
+      )
+      .mockImplementationOnce(() => Promise.reject(new TypeError("Failed to fetch")));
+    vi.stubGlobal("fetch", fetchMock);
+    stubDownload();
+    render(<BuildFileExportButton guideId={GUIDE_ID} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save as .build file" }));
+    expect(await screen.findByText("passive 1: no id")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Save as .build file" }));
+    expect(await screen.findByText("Failed to fetch")).toBeTruthy();
+    expect(screen.queryByText("passive 1: no id")).toBeNull();
+  });
 });

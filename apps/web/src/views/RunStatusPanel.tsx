@@ -89,7 +89,9 @@ export function RunStatusPanel({
         {run.guideReady ? (
           <Callout tone="success" title="The guide is ready">
             The finished guide opens here once the guide view is available.
-            {run.guideId === undefined ? null : <BuildFileExportButton guideId={run.guideId} />}
+            {run.guideId === undefined ? null : (
+              <BuildFileExportButton key={run.guideId} guideId={run.guideId} />
+            )}
           </Callout>
         ) : null}
         {protocolError ? (
