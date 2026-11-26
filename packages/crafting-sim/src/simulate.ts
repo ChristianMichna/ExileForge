@@ -400,6 +400,7 @@ function compileAction(
   const poolModIds: string[] = [];
   const fixedModIds: string[] = [];
   const where = `action ${action.id}`;
+  const itemClassOf = catalog.baseItem(start.baseItemId)?.itemClass;
 
   for (const rule of action.preconditions) {
     const p = parsePrecondition(rule);
@@ -461,6 +462,14 @@ function compileAction(
         });
         break;
       case "add-specific-mod": {
+        const limitOf = limitResolver(
+          r.params.limits,
+          r.params.limitsByRarity,
+          catalog,
+          itemClassOf,
+          problems,
+          where,
+        );
         if (!action.preconditions.some((c) => c.op === "require-rarity")) {
           problems.push(
             `${where}: add-specific-mod needs a require-rarity precondition; the release gives no rarity rule, so the action cannot be simulated`,
@@ -481,7 +490,7 @@ function compileAction(
         fixedModIds.push(mod.id);
         effects.push((s) => {
           if (s.mods.includes(mod.id)) return BLOCKED;
-          const limit = r.params.limits?.[mod.generationType];
+          const limit = limitOf(s, mod.generationType);
           let count = 0;
           for (const m of s.mods) {
             const other = catalog.mod(m);
@@ -496,13 +505,21 @@ function compileAction(
         break;
       }
       case "add-random-mod": {
-        const missingLimit = r.params.generationTypes.filter(
-          (g) => r.params.limits[g] === undefined,
-        );
+        const missingLimit = r.params.limits
+          ? r.params.generationTypes.filter((g) => r.params.limits?.[g] === undefined)
+          : [];
         if (missingLimit.length > 0) {
           problems.push(`${where}: no limit given for generation type ${missingLimit.join(", ")}`);
           break;
         }
+        const limitOf = limitResolver(
+          r.params.limits,
+          r.params.limitsByRarity,
+          catalog,
+          itemClassOf,
+          problems,
+          where,
+        );
         const candidates = poolFor(catalog.mods(), r.params, start.itemLevel, baseTags);
         if (candidates.length === 0) {
           problems.push(
@@ -523,8 +540,7 @@ function compileAction(
             }
             const pool = candidates.filter(
               (c) =>
-                (counts.get(c.mod.generationType) ?? 0) <
-                  (r.params.limits[c.mod.generationType] ?? 0) &&
+                (counts.get(c.mod.generationType) ?? 0) < (limitOf(s, c.mod.generationType) ?? 0) &&
                 !c.mod.groups.some((g) => groups.has(g)) &&
                 !s.mods.includes(c.mod.id),
             );
@@ -607,4 +623,30 @@ function wilson(successes: number, n: number): { low: number; high: number } {
   const centre = (p + (z * z) / (2 * n)) / denom;
   const half = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / denom;
   return { low: Math.max(0, centre - half), high: Math.min(1, centre + half) };
+}
+
+/**
+ * The limit of a generation type for the item in its current state: fixed by
+ * the rule, or the release's limit for the item's rarity (an item-class entry
+ * wins over the rarity's general one). A rarity the release does not list, or
+ * one without a limit for the type, means the item takes no mod of that type.
+ * Without any rarities in the release the action cannot be simulated.
+ */
+function limitResolver(
+  fixed: Record<string, number> | undefined,
+  byRarity: true | undefined,
+  catalog: SimCatalog,
+  itemClass: string | undefined,
+  problems: string[],
+  where: string,
+): (state: State, generationType: string) => number | undefined {
+  if (!byRarity) return (_s, g) => fixed?.[g];
+  if (!catalog.hasRarities())
+    problems.push(`${where}: the release lists no rarities, so the affix limits are unknown`);
+  return (s, g) => {
+    const rarity = catalog.rarity(s.rarity);
+    const byClass =
+      itemClass === undefined ? undefined : rarity?.maxAffixesByItemClass?.[itemClass];
+    return (byClass ?? rarity?.maxAffixes)?.[g];
+  };
 }

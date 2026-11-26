@@ -143,6 +143,7 @@ export async function createCraft(
     baseItems: entities<BaseItem>("baseItem"),
     mods: entities<Mod>("mod"),
     actions: entities<CraftingAction>("craftingAction"),
+    rarities: catalog.release?.rarities?.rarities,
   });
   return async (request) => {
     if (request.dataReleaseId !== catalog.dataReleaseId) {

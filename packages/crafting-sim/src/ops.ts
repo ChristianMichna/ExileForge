@@ -23,32 +23,55 @@ import type { CraftingRule } from "@astrolabe/contracts";
 
 const id = z.string().min(1);
 
+const limitsRecord = z.record(id, z.int().nonnegative());
+
+/**
+ * Where an add effect gets its per-generation-type limits: fixed in the rule
+ * (`limits`), or from the release for the rarity the item has when the effect
+ * runs and the item class of its base (`limitsByRarity`). A missing limit
+ * means the item takes none of that type.
+ */
+const limitsByRarity = z.literal(true);
+
 export const AddRandomMod = z.object({
   op: z.literal("add-random-mod"),
   // strict: an unknown parameter (e.g. one from a newer release) must fail loudly, not vanish
-  params: z.strictObject({
-    generationTypes: z.array(id).min(1),
-    /** Maximum number of mods per generation type on one item; every listed type needs one. */
-    limits: z.record(id, z.int().nonnegative()),
-    domain: id,
-    count: z.int().positive().default(1),
-    /** Only mods whose required level is at least this (higher currency tiers); absent: no lower bound. */
-    minModLevel: z.int().nonnegative().optional(),
-  }),
+  params: z
+    .strictObject({
+      generationTypes: z.array(id).min(1),
+      /** Maximum number of mods per generation type on one item; every listed type needs one. */
+      limits: limitsRecord.optional(),
+      limitsByRarity: limitsByRarity.optional(),
+      domain: id,
+      count: z.int().positive().default(1),
+      /** Only mods whose required level is at least this (higher currency tiers); absent: no lower bound. */
+      minModLevel: z.int().nonnegative().optional(),
+    })
+    .refine((p) => (p.limits === undefined) !== (p.limitsByRarity === undefined), {
+      message: "give exactly one of limits and limitsByRarity",
+    }),
 });
 
 export const AddSpecificMod = z.object({
   op: z.literal("add-specific-mod"),
-  params: z.object({
-    /**
-     * Mod to add per item class of the base item (ids of the data release). A base whose
-     * class is not listed makes the action unusable for it (reported as a problem, not
-     * skipped silently).
-     */
-    modByItemClass: z.record(id, id).refine((m) => Object.keys(m).length > 0, "must not be empty"),
-    /** Optional maximum number of mods per generation type; blocked at the limit. */
-    limits: z.record(id, z.int().nonnegative()).optional(),
-  }),
+  params: z
+    .object({
+      /**
+       * Mod to add per item class of the base item (ids of the data release). A base whose
+       * class is not listed makes the action unusable for it (reported as a problem, not
+       * skipped silently).
+       */
+      modByItemClass: z
+        .record(id, id)
+        .refine((m) => Object.keys(m).length > 0, "must not be empty"),
+      /** Optional maximum number of mods per generation type; blocked at the limit. */
+      limits: limitsRecord.optional(),
+      /** Take the limits from the release for the item's current rarity (see `limitsByRarity` above). */
+      limitsByRarity: limitsByRarity.optional(),
+    })
+    .refine((p) => p.limits === undefined || p.limitsByRarity === undefined, {
+      message: "give at most one of limits and limitsByRarity",
+    }),
 });
 
 export const RemoveRandomMod = z.object({
