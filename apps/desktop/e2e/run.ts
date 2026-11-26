@@ -23,6 +23,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { McpStdioClient, resolveLaunch, type McpbManifest } from "./mcpb.ts";
+import { replay, type Recording, type ReplayStep, type SubmitOutcome } from "./recording.ts";
 
 const DEBUG_PORT = 9333;
 const SERVER_PORT = 47615;
@@ -346,6 +347,157 @@ async function main(): Promise<void> {
     if (body.result !== "rejected" || (body.findings ?? []).length === 0) {
       throw new Error(`expected a rejection with findings, got: ${submitted.text.slice(0, 800)}`);
     }
+  });
+
+  const recordingFile = join(import.meta.dirname, "fixtures", "run-recording.json");
+  if (existsSync(recordingFile)) {
+    const recording = JSON.parse(readFileSync(recordingFile, "utf8")) as Recording;
+    if (recording.request.dataReleaseId !== expectedRelease) {
+      throw new Error(
+        `run recording is for ${recording.request.dataReleaseId}, the installer bundles ${expectedRelease}; record a run on that release`,
+      );
+    }
+    const replayedGuide = await step(
+      "Replay a whole recorded run S0 to S11 with the real PoB",
+      async () => {
+        const created = (await api(token, "/api/runs", {
+          method: "POST",
+          body: JSON.stringify({ request: recording.request }),
+        })) as { runId: string };
+        const runId = created.runId;
+        const longWait = { timeoutMs: 30 * 60_000 };
+        const stepOf = async (name: string, args: Record<string, unknown>): Promise<unknown> => {
+          const answer = await needMcp().callTool(name, args, longWait);
+          if (answer.isError) throw new Error(`${name}: ${answer.text.slice(0, 1500)}`);
+          return JSON.parse(answer.text) as unknown;
+        };
+        const code = (await api(token, `/api/runs/${runId}/session-code`, {
+          method: "POST",
+          body: "{}",
+        })) as {
+          sessionCode: string;
+        };
+        await stepOf("forge_attach", { code: code.sessionCode });
+        const result = await replay(
+          {
+            next: async () => (await stepOf("forge_next", { runId })) as ReplayStep,
+            submit: async (task, payload) =>
+              (await stepOf("forge_submit", {
+                runId,
+                taskId: task.taskId,
+                attempt: task.attempt,
+                payload,
+              })) as SubmitOutcome,
+            intervene: async (intervention) => {
+              const view = (await api(token, `/api/runs/${runId}`)) as {
+                asks: { askId: string; answer?: string }[];
+              };
+              const open = view.asks.find((a) => a.answer === undefined);
+              const body =
+                intervention["kind"] === "answer" && open !== undefined
+                  ? { ...intervention, askId: open.askId }
+                  : intervention;
+              await api(token, `/api/runs/${runId}/interventions`, {
+                method: "POST",
+                body: JSON.stringify(body),
+              });
+            },
+          },
+          recording,
+          { log: (line) => console.log(line) },
+        );
+        console.log(
+          `replayed ${result.submitted} answers and ${result.interventions} player actions`,
+        );
+        return result.guideId;
+      },
+    );
+    await step("Open the guide of the replayed run and save its .build", async () => {
+      await needPage().evaluate(`window.location.hash = "#/guide/${replayedGuide}"`);
+      await needPage().waitForLoadState("networkidle");
+      await sleep(5000);
+      await needPage().screenshot({ path: join(outDir, "05-replayed-guide.png"), fullPage: true });
+      const build = await api(token, `/api/guides/${replayedGuide}/build-file`);
+      const text = JSON.stringify(build, null, 2);
+      if (text.length < 1000) throw new Error(`the .build file looks empty: ${text.slice(0, 300)}`);
+      await writeFile(join(outDir, "replayed.build"), text);
+    });
+  } else {
+    console.log(
+      "::warning::e2e/fixtures/run-recording.json does not exist: the whole-run replay is skipped (see e2e/record.ts)",
+    );
+    results.push({
+      step: "Replay a whole recorded run S0 to S11 (no recording yet)",
+      ok: true,
+      seconds: 0,
+      error: "skipped",
+    });
+  }
+
+  // A recorded guide (a real run's result, see fixtures/guide-file.json) on the data release it
+  // was made with: import, open the guide page, export the .build file. The app is restarted on
+  // that release (ASTROLABE_DATA_RELEASE), because a guide opens only on its own release.
+  const guideFile = JSON.parse(
+    readFileSync(join(import.meta.dirname, "fixtures", "guide-file.json"), "utf8"),
+  ) as {
+    guide: { metadata: { guideId: string; dataReleaseId: string } };
+  };
+  const guideRelease = guideFile.guide.metadata.dataReleaseId;
+  const guideId = guideFile.guide.metadata.guideId;
+  await step(`Restart on ${guideRelease}, the release of the recorded guide`, async () => {
+    mcp?.close();
+    mcp = undefined;
+    await browser?.close().catch(() => undefined);
+    browser = undefined;
+    page = undefined;
+    killTree(app);
+    await sleep(3000);
+    const dir = env("E2E_GUIDE_DATA_DIR");
+    if (!existsSync(join(dir, "manifest.json"))) throw new Error(`no data release in ${dir}`);
+    app = spawn(join(installDir, "Astrolabe.exe"), [`--remote-debugging-port=${DEBUG_PORT}`], {
+      stdio: "ignore",
+      env: { ...process.env, ASTROLABE_DATA_RELEASE: dir },
+    });
+    await until("the health check", 300_000, async () => {
+      const health = (await api(token, "/api/health").catch(() => undefined)) as
+        { dataReleaseId?: string } | undefined;
+      return health?.dataReleaseId === guideRelease ? health : undefined;
+    });
+    browser = await chromium.connectOverCDP(`http://127.0.0.1:${DEBUG_PORT}`);
+    page = await until("the app window", 60_000, async () =>
+      browser
+        ?.contexts()
+        .flatMap((c) => c.pages())
+        .find((p) => p.url().startsWith("astrolabe://")),
+    );
+    await page.waitForLoadState("load");
+  });
+
+  await step("Import the recorded guide and open its page", async () => {
+    const imported = (await api(token, "/api/guides/import", {
+      method: "POST",
+      body: readFileSync(join(import.meta.dirname, "fixtures", "guide-file.json"), "utf8"),
+    })) as { guideId: string };
+    if (imported.guideId !== guideId)
+      throw new Error(`imported ${imported.guideId}, expected ${guideId}`);
+    await needPage().evaluate(`window.location.hash = "#/guide/${guideId}"`);
+    await needPage().waitForLoadState("networkidle");
+    await sleep(5000);
+    const text = await needPage().innerText("body");
+    if (/could not|failed|error/i.test(text.slice(0, 2000))) {
+      await shot("04-guide-error");
+      throw new Error(`the guide page shows a problem: ${text.slice(0, 500)}`);
+    }
+    await needPage().screenshot({ path: join(outDir, "04-guide.png"), fullPage: true });
+  });
+
+  await step("Save the guide as a .build file", async () => {
+    const build = await api(token, `/api/guides/${guideId}/build-file`);
+    const text = JSON.stringify(build, null, 2);
+    if (typeof build !== "object" || build === null || text.length < 1000) {
+      throw new Error(`the .build file looks empty: ${text.slice(0, 300)}`);
+    }
+    await writeFile(join(outDir, "guide.build"), text);
   });
 
   await shot("03-end");

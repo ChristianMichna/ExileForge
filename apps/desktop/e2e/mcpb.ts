@@ -150,7 +150,7 @@ export class McpStdioClient {
   async callTool(
     name: string,
     args: Record<string, unknown>,
-    options: { stringify?: boolean } = {},
+    options: { stringify?: boolean; timeoutMs?: number } = {},
   ): Promise<{ isError: boolean; text: string; structured: unknown }> {
     const argumentsValue =
       options.stringify === false
@@ -161,7 +161,11 @@ export class McpStdioClient {
               typeof value === "object" && value !== null ? JSON.stringify(value) : value,
             ]),
           );
-    const result = (await this.request("tools/call", { name, arguments: argumentsValue })) as {
+    const result = (await this.request(
+      "tools/call",
+      { name, arguments: argumentsValue },
+      options.timeoutMs,
+    )) as {
       isError?: boolean;
       content?: { type: string; text?: string }[];
       structuredContent?: unknown;

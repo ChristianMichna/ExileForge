@@ -180,6 +180,21 @@ jobs:
         with:
           name: Astrolabe-Setup
           path: installer
+      - name: Data release of the recorded guide
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # the guide fixture (apps/desktop/e2e/fixtures) opens only on the release it was made with
+          id=$(node -p "require('./apps/desktop/e2e/fixtures/guide-file.json').guide.metadata.dataReleaseId")
+          tag="data-${id//+/-}"
+          echo "Recorded guide: $id ($tag)"
+          mkdir -p dl guide-data
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'catalog-*.tar.gz*' --dir dl
+          (cd dl && sha256sum -c ./*.sha256)
+          tar xzf dl/catalog-*.tar.gz -C guide-data
+          echo "E2E_GUIDE_DATA_DIR=$(cygpath -w "$PWD/guide-data")" >> "$GITHUB_ENV"
       - name: Run the end-to-end check
         shell: bash
         env:
@@ -229,3 +244,108 @@ jobs:
           gh release create "v$VERSION" release/* --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --title "Astrolabe $VERSION" --latest \
             --notes "Installer build of commit $GITHUB_SHA. Installed apps update themselves; the data (game version) is bundled from the newest data release."
+
+  update-local:
+    # Windows update check (local feed)
+    name: Windows update check (local feed)
+    needs: [installer]
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.installer.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @astrolabe/desktop...
+      - uses: actions/download-artifact@v5
+        with:
+          name: Astrolabe-Setup
+          path: installer
+      - name: Take the newest older release as the installed app
+        id: old
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name' | grep '^v[0-9]' | grep -vx "v$VERSION" | sort -V | tail -n1 || true)
+          if [ -z "$tag" ]; then
+            echo "::warning::no earlier app release exists yet, the update check is skipped"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Installed app: $tag, expected update: $VERSION"
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'Astrolabe-Setup-*.exe' --dir old
+          echo "found=true" >> "$GITHUB_OUTPUT"
+      - name: Update from the old release to this build
+        if: steps.old.outputs.found == 'true'
+        shell: bash
+        run: |
+          cd apps/desktop
+          node --experimental-strip-types e2e/update.ts "$(ls ../../old/*.exe | head -n1)" ../../e2e-update-out "$VERSION" --local ../../installer
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: update-local
+          path: e2e-update-out/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  update-github:
+    # Windows update check (GitHub release)
+    name: Windows update check (GitHub release)
+    needs: [installer, publish]
+    if: needs.publish.result == 'success'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.installer.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @astrolabe/desktop...
+      - uses: actions/download-artifact@v5
+        with:
+          name: Astrolabe-Setup
+          path: installer
+      - name: Take the newest older release as the installed app
+        id: old
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name' | grep '^v[0-9]' | grep -vx "v$VERSION" | sort -V | tail -n1 || true)
+          if [ -z "$tag" ]; then
+            echo "::warning::no earlier app release exists yet, the update check is skipped"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Installed app: $tag, expected update: $VERSION"
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'Astrolabe-Setup-*.exe' --dir old
+          echo "found=true" >> "$GITHUB_OUTPUT"
+      - name: Update from the old release to this build
+        if: steps.old.outputs.found == 'true'
+        shell: bash
+        run: |
+          cd apps/desktop
+          node --experimental-strip-types e2e/update.ts "$(ls ../../old/*.exe | head -n1)" ../../e2e-update-out "$VERSION"
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: update-github
+          path: e2e-update-out/
+          retention-days: 14
+          if-no-files-found: ignore
