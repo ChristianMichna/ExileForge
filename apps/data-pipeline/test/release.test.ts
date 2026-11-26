@@ -176,6 +176,11 @@ describe("release facts", () => {
         origin: "pob-data",
       },
     });
+    expect(
+      findings.warnings.find(
+        (w) => w.kind === "release" && w.message.includes("QuestStaticRewards"),
+      ),
+    ).toBeDefined();
   });
 
   it("leaves the maximum level out and says so when no game data is given", async () => {

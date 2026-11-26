@@ -105,7 +105,7 @@ Release-Fakten für S5 und S7 im `DataRelease` (siehe unten zu `itemSlots`): `ma
 Game-Data-Tabelle aus `releaseFacts.maxLevelTable`, Ursprung `game-data`; nur mit
 `--game-data <dir>`) und `passivePoints` (Hauptbaum-Punkte je Stufe als Regel aus
 PoB-Code, Ursprung `pob-code`; Waffensatz-Punkte je Akt aus PoB `QuestRewards.lua`,
-Ursprung `pob-data`). `passivePoints.ascendancy` (Gesamtgrenzen 8 und 8 aus PoBs `Build.lua`, `releaseFacts.ascendancy`, Ursprung `pob-code`, keine Aufteilung je Akt) hängt am selben Faktum. Gibt PoB keine Quest-Belohnung mit Punkten an, entfällt `passivePoints` ganz, auch `ascendancy`. Was nicht gelesen werden kann, fehlt im Release und steht als
+Ursprung `pob-data`). `passivePoints.ascendancy` (Gesamtgrenzen 8 und 8 aus PoBs `Build.lua`, `releaseFacts.ascendancy`, Ursprung `pob-code`, keine Aufteilung je Akt) hängt am selben Faktum; wann die Punkte vergeben werden, wird nicht gelesen (Finding `ascendancyByAct`: PoBs Daten haben kein Feld, die Spalte `AscendancyPointsRewarded` in `QuestStaticRewards` ist im dat-Schema unbenannt und für das Tool nicht exportierbar). Gibt PoB keine Quest-Belohnung mit Punkten an, entfällt `passivePoints` ganz, auch `ascendancy`. Was nicht gelesen werden kann, fehlt im Release und steht als
 Warnung in `findings.json`, nie als `0`.
 
 `classifications` (Schadensarten und Verteidigungsschichten, Ursprung `pob-code`): die Namen stehen in
