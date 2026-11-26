@@ -109,6 +109,8 @@ export class ForgeEngine {
   private readonly wakers = new Map<string, Set<() => void>>();
   /** Running background job per run (at most one: the pipeline plans one step at a time). */
   private readonly jobs = new Map<string, { key: string; token: symbol }>();
+  /** Job time limits that have not fired yet; cleared when the jobs stop. */
+  private readonly jobTimers = new Set<NodeJS.Timeout>();
   private readonly now: () => Date;
   /** Times of failed attach calls inside the current window. */
   private attachFailures: number[] = [];
@@ -194,6 +196,8 @@ export class ForgeEngine {
    */
   stopJobs(): void {
     this.jobs.clear();
+    for (const timer of this.jobTimers) clearTimeout(timer);
+    this.jobTimers.clear();
   }
 
   /** Something the user did in the app; goes into the feedback queue of the run. */
@@ -763,8 +767,25 @@ export class ForgeEngine {
         apply(tx);
         tx.wake = true;
       });
-    void step
-      .run(ctx)
+    // The timer fails the run when the job hangs (a stuck calc worker); the job itself cannot be
+    // aborted, so its late answer is dropped by the stale check in `finish`.
+    const limitMinutes = this.options.config.jobTimeoutMinutes;
+    let timer: NodeJS.Timeout | undefined;
+    const limit = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () =>
+          reject(
+            new Error(
+              `it did not finish within ${String(limitMinutes)} minutes; the calculation may still be running, and resuming starts it again`,
+            ),
+          ),
+        limitMinutes * 60_000,
+      );
+      timer.unref();
+      this.jobTimers.add(timer);
+    });
+    // `async` so that a synchronous throw of the job is a rejection, not an escape from planning
+    void Promise.race([(async () => step.run(ctx))(), limit])
       .then(
         (value) =>
           finish((tx) => {
@@ -791,6 +812,10 @@ export class ForgeEngine {
         this.options.logger?.error("could not store a background job result", { runId, error });
       })
       .finally(() => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          this.jobTimers.delete(timer);
+        }
         if (this.jobs.get(runId)?.token === token) this.jobs.delete(runId);
       });
   }

@@ -461,6 +461,38 @@ describe("forge pipeline (agents)", () => {
       );
     });
 
+    it("fails the run when a job hangs longer than the configured limit", async () => {
+      vi.useFakeTimers();
+      try {
+        const engine = setup(jobPipeline(() => new Promise(() => undefined)));
+        const { runId, sessionCode } = await engine.createRun(REQUEST, "job");
+        await engine.attach(sessionCode);
+        await vi.advanceTimersByTimeAsync(CONFIG.jobTimeoutMinutes * 60_000 + 1000);
+        expect(await engine.next(runId)).toMatchObject({
+          kind: "failed",
+          error: { code: "job_failed", message: expect.stringContaining("did not finish within") },
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("fails the run when the job throws synchronously", async () => {
+      const engine = setup(
+        jobPipeline(() => {
+          throw new Error("sync boom");
+        }),
+      );
+      const { runId, sessionCode } = await engine.createRun(REQUEST, "job");
+      await engine.attach(sessionCode);
+      await vi.waitFor(async () =>
+        expect(await engine.next(runId)).toMatchObject({
+          kind: "failed",
+          error: { code: "job_failed", message: expect.stringContaining("sync boom") },
+        }),
+      );
+    });
+
     it("runs a failed job again when the player resumes the run", async () => {
       let calls = 0;
       const run = vi.fn(() =>
