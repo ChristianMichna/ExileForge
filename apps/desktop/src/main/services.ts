@@ -55,6 +55,10 @@ export interface PobLocation {
   pobHome: string;
   workerLua: string;
   optimizerConfigPath: string;
+  /** The installed app: a missing PoB is a broken installer, so the start fails. Development: calc-fake. */
+  required: boolean;
+  /** LuaJIT executable; set for the installed app so no environment variable can replace it. */
+  luajit?: string;
 }
 
 type StartCalc = Parameters<typeof startServer>[0]["calc"];
@@ -73,7 +77,7 @@ async function installed(path: string): Promise<boolean> {
  * The real calc engine when PoB is installed, calc-fake when it is not there at all. A PoB that
  * is installed but does not start is an error, never a silent fallback to fake numbers.
  */
-async function chooseCalc(
+export async function chooseCalc(
   pob: PobLocation | undefined,
   catalogDir: string,
   logger: Logger,
@@ -81,6 +85,11 @@ async function chooseCalc(
   if (pob === undefined) return "fake";
   const wrapper = join(pob.pobHome, "PathOfBuilding-PoE2", "src", "HeadlessWrapper.lua");
   if (!(await installed(wrapper))) {
+    if (pob.required) {
+      throw new Error(
+        `Path of Building is missing from this installation (${wrapper}). Reinstall Astrolabe.`,
+      );
+    }
     logger.info("Path of Building is not installed; the app runs on calc-fake", {
       pobHome: pob.pobHome,
     });
@@ -89,7 +98,11 @@ async function chooseCalc(
   const { dataReleaseId } = await loadCatalogRelease(catalogDir);
   const pool = await startCalcPool({
     root: pob.resourcesRoot,
-    install: { ...pobInstallFromHome(pob.pobHome), workerLua: pob.workerLua },
+    install: {
+      ...pobInstallFromHome(pob.pobHome),
+      workerLua: pob.workerLua,
+      ...(pob.luajit === undefined ? {} : { luajit: pob.luajit }),
+    },
     dataReleaseId,
     onEvent: (event) => {
       const problem = "error" in event ? { error: event.error } : {};
@@ -140,8 +153,7 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
       logger,
     });
   } catch (error) {
-    // No PoB worker processes stay behind when the server did not start.
-    if (typeof calc === "object") await calc.pool.close();
+    // The server closes the pool itself when it does not start.
     if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
       throw new Error(
         `Port ${options.port} is already in use. Close the other program or Astrolabe window that uses it.`,

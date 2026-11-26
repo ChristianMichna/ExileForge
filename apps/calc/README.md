@@ -287,3 +287,8 @@ pnpm --filter @astrolabe/calc test
 - Die Python-Werkzeuge (`tools/golden_builds.py record`, `real-builds.yml`)
   nutzen noch `pob_bridge`; sie laufen nur in CI und beim Entwickeln, nicht beim
   Nutzer.
+
+## Gebündelt in CommonJS (Desktop-App)
+
+Im CJS-Bundle der Desktop-App gibt es kein `import.meta.url`: `WORKER_LUA` ist dort `undefined`, und
+`PobInstall.workerLua` muss gesetzt sein (`workerLuaOf` wirft sonst `worker_crashed`).

@@ -19,6 +19,10 @@ export interface AppDirs {
   /** The calc worker's Lua entry point (`calc-lua/worker.lua` packaged). */
   readonly calcWorkerLua: string;
   readonly optimizerConfigPath: string;
+  /** luajit.exe of the installed app; undefined in development (PoB's own setup decides). */
+  readonly luajit: string | undefined;
+  /** True for the installed app, which must bring PoB. */
+  readonly packaged: boolean;
 }
 
 /**
@@ -52,6 +56,10 @@ export function resolveAppDirs(opts: {
       ? join(root, "calc-lua", "worker.lua")
       : join(root, "apps", "calc", "lua", "worker.lua"),
     optimizerConfigPath: join(root, "config", "optimizer", "tree.json"),
+    luajit: opts.packaged
+      ? join(root, "pob", "PathOfBuilding-PoE2", "runtime", "luajit.exe")
+      : undefined,
+    packaged: opts.packaged,
   };
 }
 

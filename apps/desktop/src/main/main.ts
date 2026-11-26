@@ -153,6 +153,8 @@ async function boot(): Promise<void> {
         pobHome: dirs.pobHome,
         workerLua: dirs.calcWorkerLua,
         optimizerConfigPath: dirs.optimizerConfigPath,
+        required: dirs.packaged,
+        ...(dirs.luajit === undefined ? {} : { luajit: dirs.luajit }),
       },
       logger,
     });
