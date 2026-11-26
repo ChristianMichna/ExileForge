@@ -24,7 +24,11 @@ import type { GuideSweeper } from "../tools/guide-sweep.js";
 import { ForgeError } from "../engine/errors.js";
 import type { ForgeEngine } from "../engine/forge-engine.js";
 import type { Logger } from "../logger.js";
-import { createForgeMcpServer, type ForgeMcpDeps } from "../mcp/forge-mcp.js";
+import {
+  createForgeMcpServer,
+  parseStringifiedArguments,
+  type ForgeMcpDeps,
+} from "../mcp/forge-mcp.js";
 
 /** The only interface the server ever binds to (ADR-0004). */
 export const LOOPBACK_HOST = "127.0.0.1";
@@ -382,7 +386,11 @@ export function createApp(options: AppOptions): FastifyInstance {
     });
     try {
       await server.connect(transport);
-      await transport.handleRequest(request.raw, reply.raw, request.body);
+      await transport.handleRequest(
+        request.raw,
+        reply.raw,
+        parseStringifiedArguments(request.body),
+      );
     } catch (error) {
       logger.error("mcp request failed", { error });
       if (!reply.raw.headersSent) {

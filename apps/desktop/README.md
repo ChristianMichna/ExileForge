@@ -144,3 +144,22 @@ abgebrochen. Ein bereits installiertes, wartendes Release bleibt auch dann sicht
 fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträglich beschädigt wird (Folgeaufgabe).
 
 **Beispiel-Guides** (F-20): Der Installer bringt `examples/guides/` als `example-guides/` mit (`extraResources`); `AppDirs.exampleGuidesDir` reicht den Ordner an den Server, der die Guide-Dateien beim Start einspielt, soweit er sie noch nicht kennt.
+
+## Updates, Release und Selbsttest (F-09)
+
+- **Auto-Update:** Jeder Push auf `main`, der die App berührt, baut in `desktop.yml` den
+  Installer, prüft ihn (siehe unten) und veröffentlicht ihn als GitHub-Release `v<major>.<minor>.<Lauf-Nr.>`
+  (kein Pre-Release; Daten-Releases sind Pre-Releases und stören nicht). Die installierte App
+  fragt über `electron-updater` das neueste Release ab (15 s nach dem Start, danach alle 6 Stunden),
+  lädt es im Hintergrund und bietet „Restart to update“ an. Das Repository ist öffentlich, es
+  braucht keinen Token. Neue Spieldaten kommen getrennt über Daten-Releases (`data-sync.ts`).
+- **Selbsttest (`e2e/run.ts`, Job „Windows end-to-end“):** installiert den echten Installer still
+  auf einem sauberen Windows-Runner, startet die App, liest den Status über das Fenster
+  (Playwright per DevTools-Port; die Fuses erlauben kein Playwright-Electron), packt die mitgelieferte
+  `astrolabe.mcpb` aus und startet sie wie Claude Desktop (Manifest, `${__dirname}`, Objekt-Argumente
+  als JSON-Strings, Windows-Pfade). Geprüft werden: Dateien der Installation, gebündeltes Daten-Release,
+  Start mit echtem PoB, „Install Claude extension“, Tool-Liste, Katalogsuche, `forge_attach`, eine
+  echte PoB-Berechnung und eine zurückgewiesene `forge_submit`-Antwort als String. Screenshots und
+  Logs liegen im Artefakt `e2e-windows`. Lokal (Windows):
+  `pnpm --filter @astrolabe/desktop e2e:windows <Astrolabe-Setup.exe> <Ausgabeordner>` mit
+  `EXPECT_DATA_RELEASE_ID=poe2-<Version>+r<n>`.
