@@ -326,6 +326,43 @@ describe("guide page", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("shows the written sections and the gem changes between stages", async () => {
+    const first = publishedGuide.progression.stages[0];
+    const second = {
+      ...first,
+      key: "stage-2",
+      order: 1,
+      label: "Second stage",
+      levelRange: [11, 20],
+      state: {
+        ...first?.state,
+        skills: first?.state.skills.map((s) => ({
+          ...s,
+          gem: { ...s.gem, level: s.gem.level + 3 },
+        })),
+      },
+    };
+    const guide = {
+      ...publishedGuide,
+      progression: { stages: [first, second] },
+      atlas: {
+        strategy: publishedGuide.atlas.strategy,
+        avoidMods: [{ modId: "Fixture/BadMod", reason: publishedGuide.atlas.strategy }],
+      },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("Fixture rotation")).toBeTruthy();
+    expect(screen.getAllByText("Fixture atlas").length).toBeGreaterThan(0);
+    expect(screen.getByText("Fixture/BadMod")).toBeTruthy();
+    expect(screen.getByText("Fixture q")).toBeTruthy();
+    expect(screen.getByText("Solo self-found")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /Second stage/ }));
+    expect(await screen.findByText(/Changes since Fixture stage/)).toBeTruthy();
+    expect(screen.getByText(/level 5 → 8/)).toBeTruthy();
+  });
+
   it("shows no gear for a guide of older game data and points to revalidation", async () => {
     vi.stubGlobal("fetch", () =>
       json({

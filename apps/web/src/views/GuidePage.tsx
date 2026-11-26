@@ -7,6 +7,8 @@ import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
 import { TreeSection } from "./GuideTree";
 import { StageNumbers } from "./StageNumbers";
+import { AtlasSection, FaqSection, PlaystyleSection, VariantsSection } from "./GuideText";
+import { gemChanges } from "../guide/gem-changes";
 import { loadGuideList, loadGuideView } from "../api/guides";
 import { RichTextView, nameOf } from "../guide/RichTextView";
 import { BuildFileExportButton } from "./BuildFileExport";
@@ -93,6 +95,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
   const { summary, mechanics } = guide;
   const ascendancy = nameOf(view, { kind: "ascendancy", id: summary.ascendancyId });
   const skill = nameOf(view, { kind: "gem", id: summary.mainSkillId });
+  const sortedStages = [...guide.progression.stages].sort((a, b) => a.order - b.order);
   const [stageKey, setStageKey] = useState(guide.progression.stages[0]?.key ?? "");
   return (
     <div className="page">
@@ -168,23 +171,81 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
         variant="dial"
         value={stageKey}
         onChange={setStageKey}
-        items={[...guide.progression.stages]
-          .sort((a, b) => a.order - b.order)
-          .map((stage) => ({
-            id: stage.key,
-            label: stage.label,
-            hint: `Level ${stage.levelRange[0]}–${stage.levelRange[1]}`,
-            content: <StageView stage={stage} view={view} />,
-          }))}
+        items={sortedStages.map((stage, i) => ({
+          id: stage.key,
+          label: stage.label,
+          hint: `Level ${stage.levelRange[0]}–${stage.levelRange[1]}`,
+          content: <StageView stage={stage} previous={sortedStages[i - 1]} view={view} />,
+        }))}
       />
       <GearSection view={view} />
       <CraftingSection view={view} />
       <TreeSection view={view} />
+      <PlaystyleSection view={view} />
+      <AtlasSection view={view} />
+      <VariantsSection view={view} />
+      <FaqSection view={view} />
     </div>
   );
 }
 
-function StageView({ stage, view }: { stage: ProgressionStage; view: GuideView }) {
+function GemChangeList({
+  previous,
+  stage,
+  view,
+}: {
+  previous: ProgressionStage | undefined;
+  stage: ProgressionStage;
+  view: GuideView;
+}) {
+  const changes = gemChanges(previous, stage);
+  if (previous === undefined || changes.length === 0) return null;
+  const gem = (id: string) => nameOf(view, { kind: "gem", id }) ?? id;
+  return (
+    <>
+      <h3>Changes since {previous.label}</h3>
+      <ul>
+        {changes.map((c, i) => (
+          <li key={i}>
+            {c.kind === "new" ? (
+              <>
+                New skill <strong>{gem(c.gemId)}</strong>
+                {c.added.length > 0 ? ` with ${c.added.map(gem).join(", ")}` : ""}
+              </>
+            ) : null}
+            {c.kind === "removed" ? (
+              <>
+                Drop <strong>{gem(c.gemId)}</strong>
+              </>
+            ) : null}
+            {c.kind === "level" ? (
+              <>
+                <strong>{gem(c.gemId)}</strong>: level {c.from} → {c.to}
+              </>
+            ) : null}
+            {c.kind === "supports" ? (
+              <>
+                <strong>{gem(c.gemId)}</strong>
+                {c.added.length > 0 ? `: add ${c.added.map(gem).join(", ")}` : ""}
+                {c.dropped.length > 0 ? `; drop ${c.dropped.map(gem).join(", ")}` : ""}
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function StageView({
+  stage,
+  previous,
+  view,
+}: {
+  stage: ProgressionStage;
+  previous: ProgressionStage | undefined;
+  view: GuideView;
+}) {
   const { state } = stage;
   return (
     <div className="stage">
@@ -230,6 +291,7 @@ function StageView({ stage, view }: { stage: ProgressionStage; view: GuideView }
             </li>
           ))}
         </ul>
+        <GemChangeList previous={previous} stage={stage} view={view} />
         <p>
           {state.tree.allocated.length} passive points allocated
           {state.tree.ascendancy.length > 0
