@@ -162,11 +162,16 @@ export async function applyGameIds(opts: {
     return { ...slot, gameId };
   });
   const unmapped = slots.filter((s) => s.gameId === undefined).map((s) => s.id);
-  if (unmapped.length > 0)
+  if (unmapped.length > 0) {
+    // Evidence for the next mapping: the inventory rows no slot uses, so a pairing can be
+    // verified against the data instead of guessed.
+    const used = new Set(Object.values(config.slots.map));
+    const free = [...inventoryIds].filter((id) => !used.has(id)).sort();
     findings.push({
       kind: "gameId",
       id: "slots",
-      message: `${String(unmapped.length)} slots have no game id: ${unmapped.join(", ")}`,
+      message: `${String(unmapped.length)} slots have no game id: ${unmapped.join(", ")}; ${config.slots.table} rows no slot maps to: ${free.join(", ")}`,
     });
+  }
   return { passiveGameIds, slots, summary, findings, errors };
 }

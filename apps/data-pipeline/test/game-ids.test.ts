@@ -48,7 +48,7 @@ describe("applyGameIds", () => {
       ["Fake Charm", undefined],
     ]);
     expect(res.summary).toMatchObject({ slotsWithGameId: 2, slotsWithoutGameId: 1 });
-    expect(text).toMatch(/1 slots have no game id: Fake Charm/);
+    expect(text).toMatch(/1 slots have no game id: Fake Charm; Inventories rows no slot maps to: /);
   });
 
   it("is an error when two nodes would get the same id", async () => {
