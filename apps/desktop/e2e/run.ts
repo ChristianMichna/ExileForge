@@ -348,6 +348,72 @@ async function main(): Promise<void> {
     }
   });
 
+  // A recorded guide (a real run's result, see fixtures/guide-file.json) on the data release it
+  // was made with: import, open the guide page, export the .build file. The app is restarted on
+  // that release (ASTROLABE_DATA_RELEASE), because a guide opens only on its own release.
+  const guideFile = JSON.parse(
+    readFileSync(join(import.meta.dirname, "fixtures", "guide-file.json"), "utf8"),
+  ) as {
+    guide: { metadata: { guideId: string; dataReleaseId: string } };
+  };
+  const guideRelease = guideFile.guide.metadata.dataReleaseId;
+  const guideId = guideFile.guide.metadata.guideId;
+  await step(`Restart on ${guideRelease}, the release of the recorded guide`, async () => {
+    mcp?.close();
+    mcp = undefined;
+    await browser?.close().catch(() => undefined);
+    browser = undefined;
+    page = undefined;
+    killTree(app);
+    await sleep(3000);
+    const dir = env("E2E_GUIDE_DATA_DIR");
+    if (!existsSync(join(dir, "manifest.json"))) throw new Error(`no data release in ${dir}`);
+    app = spawn(join(installDir, "Astrolabe.exe"), [`--remote-debugging-port=${DEBUG_PORT}`], {
+      stdio: "ignore",
+      env: { ...process.env, ASTROLABE_DATA_RELEASE: dir },
+    });
+    await until("the health check", 300_000, async () => {
+      const health = (await api(token, "/api/health").catch(() => undefined)) as
+        { dataReleaseId?: string } | undefined;
+      return health?.dataReleaseId === guideRelease ? health : undefined;
+    });
+    browser = await chromium.connectOverCDP(`http://127.0.0.1:${DEBUG_PORT}`);
+    page = await until("the app window", 60_000, async () =>
+      browser
+        ?.contexts()
+        .flatMap((c) => c.pages())
+        .find((p) => p.url().startsWith("astrolabe://")),
+    );
+    await page.waitForLoadState("load");
+  });
+
+  await step("Import the recorded guide and open its page", async () => {
+    const imported = (await api(token, "/api/guides/import", {
+      method: "POST",
+      body: readFileSync(join(import.meta.dirname, "fixtures", "guide-file.json"), "utf8"),
+    })) as { guideId: string };
+    if (imported.guideId !== guideId)
+      throw new Error(`imported ${imported.guideId}, expected ${guideId}`);
+    await needPage().evaluate(`window.location.hash = "#/guide/${guideId}"`);
+    await needPage().waitForLoadState("networkidle");
+    await sleep(5000);
+    const text = await needPage().innerText("body");
+    if (/could not|failed|error/i.test(text.slice(0, 2000))) {
+      await shot("04-guide-error");
+      throw new Error(`the guide page shows a problem: ${text.slice(0, 500)}`);
+    }
+    await needPage().screenshot({ path: join(outDir, "04-guide.png"), fullPage: true });
+  });
+
+  await step("Save the guide as a .build file", async () => {
+    const build = await api(token, `/api/guides/${guideId}/build-file`);
+    const text = JSON.stringify(build, null, 2);
+    if (typeof build !== "object" || build === null || text.length < 1000) {
+      throw new Error(`the .build file looks empty: ${text.slice(0, 300)}`);
+    }
+    await writeFile(join(outDir, "guide.build"), text);
+  });
+
   await shot("03-end");
 }
 

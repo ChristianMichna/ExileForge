@@ -167,3 +167,4 @@ fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträ
   Webserver mit dem neuen Build (der Server liefert keine Blockmap, der Updater lädt die ganze Datei);
   Job „(GitHub release)“ läuft nach dem Veröffentlichen gegen die echte Quelle.
   Ohne früheres Release wird der Test mit Warnung übersprungen.
+- **Aufgezeichneter Guide:** `e2e/fixtures/guide-file.json` ist das Ergebnis eines echten Laufs (Boneshatter, r14). Der Windows-Test startet die App auf diesem Daten-Release, spielt die Datei ein, öffnet die Guide-Seite (Screenshot `04-guide.png`) und speichert die `.build`-Datei (`guide.build` im Artefakt). Ein vollständiger Lauf S0 bis S11 mit festen Antworten ist noch offen: dafür fehlt eine Aufzeichnung der Antworten eines echten Laufs.
