@@ -50,7 +50,7 @@ export const GuideFile = z
       }
     }
     for (const calcId of collectCalcIds(file.guide)) {
-      if (!(calcId in file.results)) {
+      if (!Object.hasOwn(file.results, calcId)) {
         ctx.addIssue({
           code: "custom",
           path: ["results"],
