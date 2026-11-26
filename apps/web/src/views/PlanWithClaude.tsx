@@ -82,7 +82,7 @@ function Planner({
 }) {
   const [runId, setRunId] = useState<string | undefined>(loadRunId);
   const [created, setCreated] = useState<CreatedRun | undefined>();
-  const events = useRunEvents(runId);
+  const events = useRunEvents(calcEngine === "none" ? undefined : runId);
 
   const onCreated = (run: CreatedRun) => {
     saveRunId(run.runId);

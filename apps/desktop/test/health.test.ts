@@ -14,6 +14,16 @@ describe("server health", () => {
     expect(parsed.catalogOnlyReason).toContain("Catalog only");
   });
 
+  it("rejects a mismatch between engine and reason, and a very long reason", () => {
+    expect(() => Health.parse({ calcEngine: "none", dataReleaseId: "x" })).toThrow();
+    expect(() =>
+      Health.parse({ calcEngine: "pob", dataReleaseId: "x", catalogOnlyReason: "r" }),
+    ).toThrow();
+    expect(() =>
+      Health.parse({ calcEngine: "none", dataReleaseId: "x", catalogOnlyReason: "r".repeat(501) }),
+    ).toThrow();
+  });
+
   it("rejects an unknown engine", () => {
     expect(() => Health.parse({ calcEngine: "magic", dataReleaseId: "x" })).toThrow();
   });

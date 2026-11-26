@@ -57,6 +57,14 @@ in `config/desktop/desktop.json`.
 nicht gegen eine Installation getestet (hier gibt es kein Windows). Der Link
 steht in der Konfig und lässt sich ändern.
 
+## Nur-Katalog-Modus
+
+Gibt es für das geladene Daten-Release noch keine passende PoB-Version, meldet
+der Server `calcEngine: "none"` mit `catalogOnlyReason` im Health-Check
+(`src/main/services.ts` prüft beides gemeinsam). Das Fenster zeigt dann das
+Badge „Catalog only“ und statt des Planungsformulars einen Hinweis; Katalog und
+die Prüfung gespeicherter Guides laufen weiter.
+
 ## Entwickeln und Bauen
 
 ```bash

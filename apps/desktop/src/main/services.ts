@@ -7,12 +7,16 @@ import {
   type Logger,
 } from "@astrolabe/server";
 
-export const Health = z.object({
-  calcEngine: z.enum(["fake", "pob", "none"]),
-  /** Catalog-only mode: why there is no engine for this data release. */
-  catalogOnlyReason: z.string().min(1).max(500).optional(),
-  dataReleaseId: z.string().min(1),
-});
+export const Health = z
+  .object({
+    calcEngine: z.enum(["fake", "pob", "none"]),
+    /** Catalog-only mode: why there is no engine for this data release. */
+    catalogOnlyReason: z.string().min(1).max(500).optional(),
+    dataReleaseId: z.string().min(1),
+  })
+  .refine((h) => (h.calcEngine === "none") === (h.catalogOnlyReason !== undefined), {
+    message: "catalogOnlyReason belongs to the engine kind none, and only to it",
+  });
 
 export interface Services {
   readonly url: string;
