@@ -258,8 +258,10 @@ Gibt es für einen Daten-Release noch keine passende PoB-Version (neuer Patch,
 des Pools nicht zum Release passt (der Pool wird beim Beenden geschlossen).
 Dann gilt `calc.engine = "none"` (`CalcNone`):
 
+- Gespeicherte Rechenergebnisse früherer Läufe bleiben lesbar; neue Rechnungen
+  scheitern mit `calc_unavailable`.
 - Katalog, Suche, `guide_revalidate` und das Fenster laufen weiter.
-- `POST /api/runs`, `forge`-Läufe und `calc_evaluate` antworten mit dem Fehler
+- Neue Läufe (`POST /api/runs`) und `calc_evaluate` antworten mit dem Fehler
   `calc_unavailable` (HTTP 409 / MCP-Fehler) und nennen Grund und fehlende
   PoB-Version; es gibt nie `0` oder leere Ersatzwerte.
 - `GET /api/health` meldet `calcEngine: "none"`, `catalogOnly: true` und

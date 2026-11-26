@@ -46,7 +46,7 @@ export interface StartOptions {
   calc:
     | "fake"
     | "none"
-    | { engine: "pob"; pool: PobPool; optimizerConfigPath: string; pobVersion?: string };
+    | { engine: "pob"; pool: PobPool; optimizerConfigPath: string; pobVersion: string };
   /** config/crafting/sim.json; enables the MCP tool craft_simulate. */
   craftConfigPath?: string;
   /** Market prices (poe.ninja); enables economy_price and crafting costs. Absent = no price tool. */
@@ -103,7 +103,6 @@ async function startServerOwningPool(
     });
   } else if (
     options.calc !== "fake" &&
-    options.calc.pobVersion !== undefined &&
     pobMismatch(options.calc.pobVersion, catalog.release?.pobVersion)
   ) {
     catalogOnly = catalogOnlyReason({
@@ -113,7 +112,8 @@ async function startServerOwningPool(
   }
   if (catalogOnly !== undefined) {
     options.logger.info(catalogOnly, { dataReleaseId: catalog.dataReleaseId });
-    calc = new CalcNone(catalogOnly);
+    // Stored results of earlier runs stay readable; only new calculations are refused.
+    calc = new PersistedCalc(new CalcNone(catalogOnly), store);
   } else if (options.calc === "fake") {
     options.logger.info("calc engine is calc-fake: values are not from Path of Building", {
       dataReleaseId: catalog.dataReleaseId,
@@ -167,6 +167,7 @@ async function startServerOwningPool(
       ? undefined
       : await createCraft(options.craftConfigPath, catalog, economy, options.logger);
   const engine = new ForgeEngine({
+    ...(catalogOnly === undefined ? {} : { catalogOnlyReason: catalogOnly }),
     store,
     catalog,
     calc,
