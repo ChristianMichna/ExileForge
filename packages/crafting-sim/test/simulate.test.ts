@@ -652,4 +652,32 @@ describe("add-specific-mod", () => {
     expect(fields).toContain("mod:mod-b/generationType");
     expect(fields).not.toContain("mod:mod-b/spawnWeights");
   });
+
+  it("minModLevel keeps lower-level mods out of the pool", () => {
+    const mods = [mod("low", 1, { level: 10 }), mod("high", 1, { level: 40 })];
+    const high = (min?: number) =>
+      action("act-high", [
+        {
+          ...addOne(),
+          params: { ...addOne().params, ...(min === undefined ? {} : { minModLevel: min }) },
+        },
+      ]);
+    const run = (min?: number) =>
+      simulate(
+        request({
+          strategy: {
+            steps: [{ order: 0, actionIds: ["act-high"], onFail: { action: "accept" } }],
+          },
+          goal: { clauses: [{ anyOfModIds: ["high"] }] },
+        }),
+        { catalog: createSimCatalog({ baseItems: [base], mods, actions: [high(min)] }), config },
+      );
+    const none = run();
+    const filtered = run(30);
+    if (none.successChance.status !== "ok" || filtered.successChance.status !== "ok")
+      throw new Error("expected ok");
+    expect(none.successChance.value).toBeGreaterThan(0.45);
+    expect(none.successChance.value).toBeLessThan(0.55);
+    expect(filtered.successChance.value).toBe(1);
+  });
 });
