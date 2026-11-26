@@ -370,7 +370,7 @@ describe("entities", () => {
       position: { groupId: "1", orbit: 0, orbitIndex: 0 },
       connections: [],
     };
-    const unlockedBy = { ascendancyId: "Asc1", nodeIds: ["5571"] };
+    const unlockedBy = { ascendancyId: "Asc1", nodeIds: ["passive.unlock"] };
     expect(PassiveNode.parse({ ...node, unlockedBy }).unlockedBy).toEqual(unlockedBy);
     expect(PassiveNode.parse(node).unlockedBy).toBeUndefined();
     expect(
