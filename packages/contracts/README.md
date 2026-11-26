@@ -78,6 +78,11 @@ JSON-Pointer-Pfaden (Grundlage für F-19).
 `fromLevel`, Waffensatz-Punkte je Akt) sind optional und fehlen, wenn die Pipeline
 sie nicht lesen konnte, nie als `0`. Jeder Wert nennt seinen Ursprung (`game-data`,
 `pob-data`, `pob-code`). Punkte aus Items oder Knoten gehören nicht ins Release.
+`passivePoints.ascendancy` (seit 0.17.0, optional) nennt die Gesamtgrenzen für
+Ascendancy- und Secondary-Ascendancy-Punkte aus PoBs Code (`Build.lua`, Ursprung
+`pob-code`). PoB kennt keine Aufteilung je Akt oder Stufe, also gibt es keine; Nutzer
+dürfen keine erfinden. `Ascendancy.pointUnlocks` einer Quelle hat Vorrang, `ascendancy`
+ist die PoB-Obergrenze. Nach einem PoB-Update ist der Wert in der Config zu prüfen.
 
 `DataRelease.itemSlots` listet die Ausrüstungsplätze mit PoBs Slot-Namen (wie in
 `EquippedItem.slot`) und den Basis-Klassen (`BaseItem.itemClass`), die PoB je Slot

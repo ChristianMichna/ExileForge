@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CatalogShard } from "@astrolabe/contracts/catalog";
 import { describe, expect, it } from "vitest";
+import { normalizeConfigSchema } from "../src/normalize/catalog.ts";
 import { buildCatalog, pipelineRevisionOf } from "../src/normalize/release.ts";
 import { classificationsFrom } from "../src/normalize/release-facts.ts";
 import { sha256 } from "../src/snapshot/snapshot.ts";
@@ -338,5 +339,23 @@ describe("classifications", () => {
     const { manifest, warnings } = await buildCatalog(snap, out, config, NOW);
     expect(manifest.release.classifications).toBeUndefined();
     expect(warnings.map((w) => w.message).join("\n")).toMatch(/classifications are left out/);
+  });
+});
+
+describe("releaseFacts.ascendancy config", () => {
+  const withAsc = (ascendancy: unknown) => ({
+    ...cfg,
+    releaseFacts: { ...cfg.releaseFacts, ascendancy },
+  });
+  it("rejects a missing, zero or unknown-key ascendancy config", () => {
+    const rest: Record<string, unknown> = { ...cfg.releaseFacts };
+    delete rest.ascendancy;
+    expect(normalizeConfigSchema.safeParse({ ...cfg, releaseFacts: rest }).success).toBe(false);
+    expect(
+      normalizeConfigSchema.safeParse(withAsc({ points: 0, secondaryPoints: 8 })).success,
+    ).toBe(false);
+    expect(
+      normalizeConfigSchema.safeParse(withAsc({ points: 8, secondaryPoints: 8, extra: 1 })).success,
+    ).toBe(false);
   });
 });

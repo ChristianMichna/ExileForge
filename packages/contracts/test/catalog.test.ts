@@ -90,6 +90,7 @@ describe("DataRelease progression facts", () => {
     expect(DataRelease.safeParse(withAsc).success).toBe(true);
     for (const bad of [
       { ...asc, points: 0 },
+      { ...asc, secondaryPoints: -1 },
       { ...asc, origin: "memory" },
     ])
       expect(
