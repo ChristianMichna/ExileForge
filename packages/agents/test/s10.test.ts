@@ -331,6 +331,21 @@ describe("S10 measured gates", () => {
     expect((await at({ ...good, A: 79 }, "campaign"))?.returnTo).toBe("S7.gear-end");
   });
 
+  it("reports a failed measurement with gear instead of falling back to the ungeared numbers (G3)", async () => {
+    const base = withStats({ ...good, A: 200 }) as never as { calc: object };
+    const c = {
+      ...(base as object),
+      calc: {
+        ...base.calc,
+        calculate: () => Promise.resolve({ mapping: { status: "failed" } }),
+      },
+    } as never as PipelineContext;
+    const f = (await runGates(c, stageAt(5, "campaign"), cfg as never))
+      .flatMap((g) => g.findings)
+      .find((x) => x.code === "calc_failed");
+    expect(f?.returnTo).toBe("S7.gear-end");
+  });
+
   it("measures a campaign stage's attributes with the first gear tier's items (G3)", async () => {
     const seen: unknown[] = [];
     const base = withStats({ ...good, A: 10 }) as never as { calc: object };

@@ -340,7 +340,6 @@ interface Subject {
   stage: GuideDraft["progression"]["stages"][number];
   /** JSON pointer of the calculations that were read. */
   path: string;
-  /** The stage that fixes a finding about this subject. */
   /** The stage or part that fixes a finding about this subject. */
   returnTo: TaskType;
   stats?: StatMap;
@@ -350,6 +349,8 @@ interface Subject {
    * tiers may grant the attributes the passive tree does not).
    */
   gearedStats?: StatMap;
+  /** True when the measurement with gear was made but gave no result for the profile. */
+  gearedFailed?: boolean;
   /** The gear part that fixes an attribute gap of the geared measurement. */
   gearReturnTo?: TaskType;
   /** Mods PoB read but does not calculate, from the same result as `stats`. */
@@ -385,6 +386,7 @@ async function stageStats(
       geared ? draft.gear.tiers[lastTier]?.calcs[profile] : stage.calcs[profile],
     );
     let gearedStats: StatMap | undefined;
+    let gearedFailed = false;
     const firstTier = draft.gear.tiers[0];
     if (!geared && firstTier !== undefined) {
       const outcomes = await ctx.calc.calculate({
@@ -396,11 +398,13 @@ async function stageStats(
         overrides: ctx.run.request.calcOverrides,
       });
       gearedStats = (await read(outcomes[profile]))?.stats;
+      gearedFailed = gearedStats === undefined;
     }
     const firstPart = TaskType.safeParse(`S7.gear-${firstTier?.budgetTier ?? ""}`);
     out.push({
       stage,
       ...(gearedStats === undefined ? {} : { gearedStats }),
+      ...(gearedFailed ? { gearedFailed } : {}),
       ...(firstPart.success ? { gearReturnTo: firstPart.data } : {}),
       path: geared
         ? `/gear/tiers/${String(lastTier)}/calcs`
@@ -442,7 +446,7 @@ async function measuredGates(
   if (typeof table === "string") g3.push(finding("G3", "points_unknown", table));
   for (const [
     index,
-    { stage, path, returnTo, stats, unsupportedMods, gearedStats, gearReturnTo },
+    { stage, path, returnTo, stats, unsupportedMods, gearedStats, gearedFailed, gearReturnTo },
   ] of (await stageStats(ctx, draft, cfg.calcProfile)).entries()) {
     for (const skill of stage.state.skills) {
       for (const ref of [skill.gem, ...skill.supports]) {
@@ -543,7 +547,18 @@ async function measuredGates(
         ),
       );
     }
-    for (const { have, need } of cfg.stats.attributes) {
+    if (gearedFailed === true) {
+      g3.push(
+        finding(
+          "G3",
+          "calc_failed",
+          `Stage ${stage.key}: the engine gave no result for the stage wearing the first gear tier, so its attributes were not checked.`,
+          path,
+          gearReturnTo,
+        ),
+      );
+    }
+    for (const { have, need } of gearedFailed === true ? [] : cfg.stats.attributes) {
       const attributes = gearedStats ?? stats;
       const owned = attributes[have];
       const required = attributes[need];
