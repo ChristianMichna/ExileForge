@@ -1,3 +1,5 @@
+import type { GuideRevalidateErrorCode } from "@astrolabe/contracts";
+
 /** Error codes Claude or the frontend can act on; messages are short and in English. */
 export type ForgeErrorCode =
   | "unknown_run"
@@ -10,15 +12,17 @@ export type ForgeErrorCode =
   | "run_finished"
   | "invalid_intervention"
   | "invalid_request"
-  | "economy_failed";
+  | "economy_failed"
+  | GuideRevalidateErrorCode;
 
 /** Expected failure of a forge operation (bad input or state), not a bug. */
 export class ForgeError extends Error {
   constructor(
     readonly code: ForgeErrorCode,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "ForgeError";
   }
 }

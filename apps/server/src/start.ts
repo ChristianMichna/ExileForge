@@ -17,6 +17,7 @@ import { ForgeEngine } from "./engine/forge-engine.js";
 import { createApp, LOOPBACK_HOST } from "./http/app.js";
 import type { Logger } from "./logger.js";
 import { createPocPipeline } from "./pipelines/poc-pipeline.js";
+import { createGuideRevalidate } from "./tools/guide-revalidate.js";
 import { RunStore } from "./store/run-store.js";
 
 /** The PoB worker pool as the server uses it (`CalcPool` from apps/calc fits). */
@@ -46,6 +47,8 @@ export interface StartOptions {
   craftConfigPath?: string;
   /** Market prices (poe.ninja); enables economy_price and crafting costs. Absent = no price tool. */
   economy?: EconomySettings;
+  /** Directory with unpacked data releases (one folder per release id); enables guide_revalidate. */
+  releasesDir?: string;
   allowedOrigins: readonly string[];
   /** File with the per-installation access token (created if missing). */
   tokenFile: string;
@@ -176,6 +179,15 @@ async function startServerOwningPool(
   const app = createApp({
     ...(craft === undefined ? {} : { craft }),
     ...(economy === undefined ? {} : { economy: economy.price }),
+    ...(options.releasesDir === undefined
+      ? {}
+      : {
+          guideRevalidate: createGuideRevalidate({
+            findGuide: (id) => store.findGuide(id),
+            releasesDir: options.releasesDir,
+            now: () => new Date(),
+          }),
+        }),
     engine,
     catalog,
     calc,

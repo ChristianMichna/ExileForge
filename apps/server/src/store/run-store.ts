@@ -45,6 +45,22 @@ export class RunStore {
     return row === undefined ? undefined : parseRow(RunRecord, row["record"], `code ${code}`);
   }
 
+  /**
+   * The stored guide (result of stage S11) with this id; when several runs carry the id, the
+   * most recently saved one. Undefined if no run has produced it.
+   */
+  findGuide(guideId: string): unknown {
+    const rows = this.db
+      .prepare(
+        "SELECT record FROM runs WHERE json_extract(record, '$.guideId') = ? ORDER BY updated_at DESC, rowid DESC LIMIT 1",
+      )
+      .all(guideId);
+    const row = rows[0];
+    if (row === undefined) return undefined;
+    const record = parseRow(RunRecord, row["record"], `guide ${guideId}`);
+    return record.results["S11.guide"]?.value;
+  }
+
   /** Saves the run and its new events in one transaction. */
   save(record: RunRecord, events: readonly RunEvent[]): void {
     const upsert = this.db.prepare(
