@@ -7,7 +7,7 @@ import {
 } from "@astrolabe/contracts";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { CalcServiceError } from "./errors.ts";
-import { type PobInstall, WORKER_LUA, workerLuaDir } from "./install.ts";
+import { type PobInstall, workerLuaDir, workerLuaOf } from "./install.ts";
 
 /** Prefix of every response line; PoB itself may print to stdout too. */
 export const RESPONSE_MARKER = "@@ASTROLABE_RPC@@";
@@ -67,7 +67,7 @@ export class PobWorker {
     if (install.cpath) env.LUA_CPATH = `${install.cpath};${env.LUA_CPATH ?? ";;"}`;
     this.child = spawn(
       install.luajit,
-      [install.workerLua ?? WORKER_LUA, workerLuaDir(install), opts.initPath],
+      [workerLuaOf(install), workerLuaDir(install), opts.initPath],
       { cwd: install.srcDir, env, stdio: ["pipe", "pipe", "pipe"], windowsHide: true },
     );
     this.pid = this.child.pid;

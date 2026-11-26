@@ -16,6 +16,25 @@ extraResources:
   - { from: ../../config/forge, to: config/forge }
   - { from: ../../config/desktop, to: config/desktop }
   - { from: ../../config/agents, to: config/agents }
+  # Calc service: PoB with luajit.exe (built by CI, see desktop.yml), the worker's Lua file, its
+  # pool settings, the calc profiles and the tree optimizer settings.
+  - from: ../../.pob/PathOfBuilding-PoE2
+    to: pob/PathOfBuilding-PoE2
+    # Headless PoB needs no images, compressed textures or docs (checked against the golden builds).
+    filter:
+      - "**/*"
+      - "!.git/**"
+      - "!.github/**"
+      - "!docs/**"
+      - "!spec/**"
+      - "!runtime-win32.zip"
+      - "!**/*.zst"
+      - "!**/*.png"
+      - "!**/*.jpg"
+  - { from: ../calc/lua, to: calc-lua }
+  - { from: ../../config/calc, to: config/calc }
+  - { from: ../../config/calc-profiles, to: config/calc-profiles }
+  - { from: ../../config/optimizer, to: config/optimizer }
   - { from: ../mcp-bridge/dist/astrolabe.mcpb, to: astrolabe.mcpb }
   - { from: data-release, to: data-release }
 asar: true

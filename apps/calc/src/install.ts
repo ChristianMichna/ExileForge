@@ -3,8 +3,28 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CalcServiceError } from "./errors.ts";
 
-/** The Lua side of the worker, shipped with this package. */
-export const WORKER_LUA = fileURLToPath(new URL("../lua/worker.lua", import.meta.url));
+/**
+ * The Lua side of the worker, shipped with this package. Undefined when the package is bundled
+ * into a CommonJS file (the desktop app), where `import.meta.url` does not exist: the caller then
+ * sets `PobInstall.workerLua` itself.
+ */
+export const WORKER_LUA: string | undefined =
+  typeof import.meta.url === "string"
+    ? fileURLToPath(new URL("../lua/worker.lua", import.meta.url))
+    : undefined;
+
+/** The worker's Lua entry point of an install; an error when neither the install nor the package names one. */
+export function workerLuaOf(install: PobInstall): string {
+  const path = install.workerLua ?? WORKER_LUA;
+  if (path === undefined) {
+    throw new CalcServiceError(
+      "worker_crashed",
+      "The calc worker Lua entry is not known",
+      "set PobInstall.workerLua when the package is bundled",
+    );
+  }
+  return path;
+}
 
 /** Everything needed to start a PoB worker process. */
 export interface PobInstall {
@@ -41,7 +61,7 @@ export async function assertPobInstall(install: PobInstall): Promise<void> {
   const checks: [string, string][] = [
     [install.luajit, "LuaJIT"],
     [join(install.srcDir, "HeadlessWrapper.lua"), "PoB HeadlessWrapper.lua"],
-    [install.workerLua ?? WORKER_LUA, "calc worker Lua entry"],
+    [workerLuaOf(install), "calc worker Lua entry"],
   ];
   for (const [path, what] of checks) {
     try {
@@ -58,5 +78,5 @@ export async function assertPobInstall(install: PobInstall): Promise<void> {
 }
 
 export function workerLuaDir(install: PobInstall): string {
-  return dirname(install.workerLua ?? WORKER_LUA);
+  return dirname(workerLuaOf(install));
 }

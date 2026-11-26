@@ -80,6 +80,20 @@ describe("data release lookup", () => {
     });
     expect(d.webRoot).toBe(join("/repo", "apps", "web", "dist"));
     expect(d.databasePath).toBe(join("/u", "astrolabe.sqlite"));
+    expect(d.pobHome).toBe(join("/repo", ".pob"));
+    expect(d.calcWorkerLua).toBe(join("/repo", "apps", "calc", "lua", "worker.lua"));
+  });
+
+  it("finds PoB and the calc worker file in the resources when packaged", () => {
+    const d = resolveAppDirs({
+      packaged: true,
+      resourcesPath: "/r",
+      repoRoot: "/repo",
+      userData: "/u",
+    });
+    expect(d.pobHome).toBe(join("/r", "pob"));
+    expect(d.calcWorkerLua).toBe(join("/r", "calc-lua", "worker.lua"));
+    expect(d.optimizerConfigPath).toBe(join("/r", "config", "optimizer", "tree.json"));
   });
 });
 

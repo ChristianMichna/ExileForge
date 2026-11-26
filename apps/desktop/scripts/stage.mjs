@@ -13,6 +13,15 @@ const required = [
     "run `pnpm --filter @astrolabe/mcp-bridge pack:mcpb`",
   ],
   [
+    root("../../../.pob/PathOfBuilding-PoE2/src/HeadlessWrapper.lua"),
+    "run tools/setup_pob.sh, or fetch the pinned PoB as in .github/workflows/desktop.yml",
+  ],
+  [
+    root("../../../.pob/PathOfBuilding-PoE2/runtime/luajit.exe"),
+    "build luajit.exe next to PoB's lua51.dll (see .github/workflows/desktop.yml, tools/build_windows_luajit.sh)",
+  ],
+  [root("../../calc/lua/worker.lua"), "the calc worker's Lua file is part of the repository"],
+  [
     root("../data-release/manifest.json"),
     "copy a data release (manifest.json + shards, e.g. data-snapshots/current/catalog) to apps/desktop/data-release",
   ],

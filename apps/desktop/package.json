@@ -16,6 +16,7 @@
     "dist:dir": "pnpm run build && node scripts/stage.mjs && electron-builder --win --x64 --dir --publish never"
   },
   "devDependencies": {
+    "@astrolabe/calc": "workspace:*",
     "@astrolabe/contracts": "workspace:*",
     "@astrolabe/release-sync": "workspace:*",
     "@astrolabe/server": "workspace:*",
