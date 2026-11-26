@@ -52,23 +52,42 @@ describe("GET /api/claude/status", () => {
     await a.inject({ method: "POST", url: "/mcp", headers: { host: headers.host }, payload: {} });
     expect((await status(a)).json()).toEqual({ mcpLastCallAt: null });
 
-    await a.inject({
+    // A call the transport refuses (unreadable body) is not a Claude connection either.
+    const refused = await a.inject({
       method: "POST",
       url: "/mcp",
       headers: { ...headers, accept: "application/json, text/event-stream" },
-      payload: {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-03-26",
-          capabilities: {},
-          clientInfo: { name: "t", version: "1" },
-        },
-      },
+      payload: "not json",
     });
-    const body = (await status(a)).json() as { mcpLastCallAt: string };
-    expect(Number.isNaN(Date.parse(body.mcpLastCallAt))).toBe(false);
+    expect(refused.statusCode).toBeGreaterThanOrEqual(400);
+    expect((await status(a)).json()).toEqual({ mcpLastCallAt: null });
+
+    const initialize = () =>
+      a.inject({
+        method: "POST",
+        url: "/mcp",
+        headers: { ...headers, accept: "application/json, text/event-stream" },
+        payload: {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-03-26",
+            capabilities: {},
+            clientInfo: { name: "t", version: "1" },
+          },
+        },
+      });
+    const first = await initialize();
+    expect(first.statusCode).toBe(200);
+    expect(
+      (first.json() as { result: { protocolVersion: string } }).result.protocolVersion,
+    ).toBeTruthy();
+    const one = ((await status(a)).json() as { mcpLastCallAt: string }).mcpLastCallAt;
+    expect(Number.isNaN(Date.parse(one))).toBe(false);
+    await initialize();
+    const two = ((await status(a)).json() as { mcpLastCallAt: string }).mcpLastCallAt;
+    expect(Date.parse(two)).toBeGreaterThanOrEqual(Date.parse(one));
   });
 
   it("needs the access token", async () => {
