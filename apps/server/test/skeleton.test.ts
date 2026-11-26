@@ -481,5 +481,7 @@ describe("statLines", () => {
     expect(statLines("A")).toEqual(["A"]);
     expect(statLines("A\nB")).toEqual(["A\nB", "A", "B"]);
     expect(statLines("")).toEqual([]);
+    expect(statLines("A\r\nB")).toEqual(["A\r\nB", "A", "B"]);
+    expect(statLines("A\n  \nB")).toEqual(["A\n  \nB", "A", "B"]);
   });
 });

@@ -342,7 +342,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
           }
           for (const line of statLines(st.text)) {
             if (!unsupported.has(line)) continue;
-            lines.push(line);
+            if (!lines.includes(line)) lines.push(line);
             matched.add(line);
           }
         }
@@ -528,7 +528,8 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
             if (!unsupported.has(line)) continue;
             matched.add(line);
             if (baseline.has(line)) continue;
-            triggers.set(node.id, [...(triggers.get(node.id) ?? []), line]);
+            const known = triggers.get(node.id) ?? [];
+            if (!known.includes(line)) triggers.set(node.id, [...known, line]);
           }
         }
       }
@@ -645,6 +646,6 @@ export function connectedPart(
 
 /** A stat text can hold several lines (one stat, several mods); PoB reports each line alone. */
 export function statLines(text: string): string[] {
-  const lines = text.split("\n").filter((line) => line !== "");
+  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
   return lines.length > 0 && !lines.includes(text) ? [text, ...lines] : lines;
 }
