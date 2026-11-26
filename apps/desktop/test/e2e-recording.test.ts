@@ -3,6 +3,7 @@ import {
   buildRecording,
   replay,
   ReplayError,
+  ReplayRetry,
   type ReplayPort,
   type ReplayStep,
   type Recording,
@@ -108,5 +109,22 @@ describe("replay", () => {
     await expect(
       replay(port, { ...recording, interventions: [] }, { maxWaits: 3 }),
     ).rejects.toThrow(/waiting/);
+  });
+
+  it("tries a player action again when the app is not ready for it yet", async () => {
+    const { port, log } = fakeApp(["S0.skill", "S1.profile"]);
+    const inner = port.intervene;
+    let refused = 2;
+    port.intervene = (i) =>
+      refused-- > 0 ? Promise.reject(new ReplayRetry("not measured yet")) : inner(i);
+    const result = await replay(port, recording);
+    expect(result.interventions).toBe(1);
+    expect(log.filter((l) => l.startsWith("intervene"))).toHaveLength(1);
+  });
+
+  it("gives up on a player action that is never accepted", async () => {
+    const { port } = fakeApp(["S0.skill", "S1.profile"]);
+    port.intervene = () => Promise.reject(new ReplayRetry("never"));
+    await expect(replay(port, recording, { maxWaits: 3 })).rejects.toThrow(/never/);
   });
 });

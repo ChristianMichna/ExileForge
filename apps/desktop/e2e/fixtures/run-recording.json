@@ -1,1 +1,1223 @@
-{"format":"astrolabe-run-recording","version":1,"request":{"dataReleaseId":"poe2-0.5.5.10+r15","skillIdea":"Lightning Arrow ranger that chains lightning arrows through packs for mapping","mode":{"hardcore":false,"ssf":false},"budget":{"leveling":"start","endgame":"mid"},"preferences":{"playstyleTags":[],"focus":"mapping","pace":"balanced","complexityTolerance":"medium","defenceLayers":[]},"calcOverrides":{},"exclusions":[]},"answers":[{"type":"S0.skill","value":{"mainSkillId":"Metadata/Items/Gems/SkillGemLightningArrow","rationale":[{"subject":{"kind":"gem","id":"Metadata/Items/Gems/SkillGemLightningArrow"},"reason":[{"type":"text","text":"It is the bow skill of the idea that chains lightning through packs."}]}]}},{"type":"S1.profile","value":{"scalingStats":[],"supportCandidates":["Metadata/Items/Gems/SupportGemLightningInfusion","Metadata/Items/Gems/SupportGemChain","Metadata/Items/Gems/SupportGemCatalysingElements","Metadata/Items/Gems/SupportGemDeadlyCurrent"],"relevantUniques":[],"relevantNodes":["375","589","750"],"ascendancyCandidates":["Ranger1","Ranger3"],"notes":[{"subject":{"kind":"gem","id":"Metadata/Items/Gems/SupportGemLightningInfusion"},"reason":[{"type":"text","text":"Raises the damage of heavy two-handed strikes."}]}]}},{"type":"S2.candidate","value":{"key":"cand-1","title":"Ranger Deadeye","classId":"Ranger","ascendancyId":"Ranger1","damageRoute":[{"type":"text","text":"Fire "},{"type":"entity","ref":{"kind":"gem","id":"Metadata/Items/Gems/SkillGemLightningArrow"}},{"type":"text","text":" and chain lightning through packs"}],"defenceConcept":[{"type":"text","text":"Kill packs at range before they reach the ranger; evasion and life carry the rest."}],"keyEntities":[{"kind":"gem","id":"Metadata/Items/Gems/SkillGemLightningArrow"},{"kind":"ascendancy","id":"Ranger1"},{"kind":"characterClass","id":"Ranger"}],"hypothesis":[{"type":"text","text":"Chaining arrows through whole packs lets the ranger clear maps quickly from a distance."}]}},{"type":"S2.candidate","value":{"key":"cand-2","title":"Ranger Pathfinder","classId":"Ranger","ascendancyId":"Ranger3","damageRoute":[{"type":"text","text":"Fire "},{"type":"entity","ref":{"kind":"gem","id":"Metadata/Items/Gems/SkillGemLightningArrow"}},{"type":"text","text":" and chain lightning through packs"}],"defenceConcept":[{"type":"text","text":"Kill packs at range before they reach the ranger; evasion and life carry the rest."}],"keyEntities":[{"kind":"gem","id":"Metadata/Items/Gems/SkillGemLightningArrow"},{"kind":"ascendancy","id":"Ranger3"},{"kind":"characterClass","id":"Ranger"}],"hypothesis":[{"type":"text","text":"Chaining arrows through whole packs lets the ranger clear maps quickly from a distance."}]}},{"type":"S2.candidate","value":{"key":"cand-3","title":"Mercenary Witchhunter","classId":"Mercenary","ascendancyId":"Mercenary2","damageRoute":[{"type":"text","text":"Fire "},{"type":"entity","ref":{"kind":"gem","id":"Metadata/Items/Gems/SkillGemLightningArrow"}},{"type":"text","text":" and chain lightning through packs"}],"defenceConcept":[{"type":"text","text":"Kill packs at range before they reach the ranger; evasion and life carry the rest."}],"keyEntities":[{"kind":"gem","id":"Metadata/Items/Gems/SkillGemLightningArrow"},{"kind":"ascendancy","id":"Mercenary2"},{"kind":"characterClass","id":"Mercenary"}],"hypothesis":[{"type":"text","text":"Chaining arrows through whole packs lets the ranger clear maps quickly from a distance."}]}},{"type":"S5.gems","value":{"skills":[{"key":"main","role":"main","gem":{"gemId":"Metadata/Items/Gems/SkillGemLightningArrow","level":20,"quality":0},"supports":[{"gemId":"Metadata/Items/Gems/SupportGemLightningInfusion","level":1,"quality":0},{"gemId":"Metadata/Items/Gems/SupportGemChain","level":1,"quality":0},{"gemId":"Metadata/Items/Gems/SupportGemCatalysingElements","level":1,"quality":0},{"gemId":"Metadata/Items/Gems/SupportGemDeadlyCurrent","level":1,"quality":0}]}],"rationale":[{"subject":{"kind":"gem","id":"Metadata/Items/Gems/SkillGemLightningArrow"},"reason":[{"type":"text","text":"The arrow is the main skill; the supports raise its damage and its chain."}]}]}},{"type":"S6.notes","value":{"stages":[{"key":"act-1","tasks":[[{"type":"text","text":"Follow the allocation order and keep firing at the packs."}]],"dangers":[[{"type":"text","text":"Keep distance from packs that reach you."}]],"rationale":[]},{"key":"act-2","tasks":[[{"type":"text","text":"Follow the allocation order and keep firing at the packs."}]],"dangers":[[{"type":"text","text":"Keep distance from packs that reach you."}]],"rationale":[]},{"key":"act-3","tasks":[[{"type":"text","text":"Follow the allocation order and keep firing at the packs."}]],"dangers":[[{"type":"text","text":"Keep distance from packs that reach you."}]],"rationale":[]},{"key":"act-4","tasks":[[{"type":"text","text":"Follow the allocation order and keep firing at the packs."}]],"dangers":[[{"type":"text","text":"Keep distance from packs that reach you."}]],"rationale":[]},{"key":"act-5","tasks":[[{"type":"text","text":"Follow the allocation order and keep firing at the packs."}]],"dangers":[[{"type":"text","text":"Keep distance from packs that reach you."}]],"rationale":[]},{"key":"endgame","tasks":[[{"type":"text","text":"Follow the allocation order and keep firing at the packs."}]],"dangers":[[{"type":"text","text":"Keep distance from packs that reach you."}]],"rationale":[]}]}},{"type":"S7.gear-start","value":{"slots":[{"slot":"Weapon 1","priority":"core","target":{"kind":"crafted","baseItemId":"Crude Bow","rarity":"rare","itemLevel":82,"mods":[{"modId":"LocalAddedPhysicalDamage7","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"craft","rationale":[{"subject":{"kind":"baseItem","id":"Crude Bow"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Helmet","priority":"important","target":{"kind":"crafted","baseItemId":"Runeforged Rusted Greathelm","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Runeforged Rusted Greathelm"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Body Armour","priority":"core","target":{"kind":"crafted","baseItemId":"Chain Mail","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"LightningResist8","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Chain Mail"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Gloves","priority":"important","target":{"kind":"crafted","baseItemId":"Fists of Stone","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"LightningResist8","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Fists of Stone"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Boots","priority":"important","target":{"kind":"crafted","baseItemId":"Rawhide Boots","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"LightningResist8","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Rawhide Boots"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Amulet","priority":"important","target":{"kind":"crafted","baseItemId":"Azure Amulet","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Azure Amulet"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Ring 1","priority":"important","target":{"kind":"crafted","baseItemId":"Abyssal Signet","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Abyssal Signet"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Ring 2","priority":"important","target":{"kind":"crafted","baseItemId":"Abyssal Signet","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Abyssal Signet"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Belt","priority":"important","target":{"kind":"crafted","baseItemId":"Golden Obi","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Golden Obi"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Charm 1","priority":"important","target":{"kind":"crafted","baseItemId":"Ruby Charm","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Ruby Charm"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Charm 2","priority":"important","target":{"kind":"crafted","baseItemId":"Ruby Charm","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Ruby Charm"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Charm 3","priority":"important","target":{"kind":"crafted","baseItemId":"Ruby Charm","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Ruby Charm"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Flask 1","priority":"important","target":{"kind":"crafted","baseItemId":"Lesser Life Flask","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Lesser Life Flask"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Flask 2","priority":"important","target":{"kind":"crafted","baseItemId":"Lesser Mana Flask","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Lesser Mana Flask"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]}]}},{"type":"S7.gear-mid","value":{"slots":[{"slot":"Weapon 1","priority":"core","target":{"kind":"crafted","baseItemId":"Fanatic Bow","rarity":"rare","itemLevel":82,"mods":[{"modId":"LocalAddedPhysicalDamage7","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"craft","rationale":[{"subject":{"kind":"baseItem","id":"Fanatic Bow"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Helmet","priority":"important","target":{"kind":"crafted","baseItemId":"Runeforged Imperial Greathelm","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Runeforged Imperial Greathelm"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Body Armour","priority":"core","target":{"kind":"crafted","baseItemId":"Warlord Cuirass","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"LightningResist8","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Warlord Cuirass"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Gloves","priority":"important","target":{"kind":"crafted","baseItemId":"Sirenscale Gloves","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"LightningResist8","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Sirenscale Gloves"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Boots","priority":"important","target":{"kind":"crafted","baseItemId":"Tasalian Greaves","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"LightningResist8","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Tasalian Greaves"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Amulet","priority":"important","target":{"kind":"crafted","baseItemId":"Absent Amulet","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Absent Amulet"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Ring 1","priority":"important","target":{"kind":"crafted","baseItemId":"Biostatic Ring","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Biostatic Ring"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Ring 2","priority":"important","target":{"kind":"crafted","baseItemId":"Biostatic Ring","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Biostatic Ring"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Belt","priority":"important","target":{"kind":"crafted","baseItemId":"Fine Belt","rarity":"rare","itemLevel":82,"mods":[{"modId":"FireResist8","rollFraction":0.5,"required":true},{"modId":"ColdResist8","rollFraction":0.5,"required":true},{"modId":"Strength9","rollFraction":0.5,"required":true},{"modId":"Intelligence9","rollFraction":0.5,"required":true},{"modId":"Dexterity9","rollFraction":0.5,"required":true}],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Fine Belt"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Charm 1","priority":"important","target":{"kind":"crafted","baseItemId":"Golden Charm","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Golden Charm"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Charm 2","priority":"important","target":{"kind":"crafted","baseItemId":"Golden Charm","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Golden Charm"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Charm 3","priority":"important","target":{"kind":"crafted","baseItemId":"Golden Charm","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Golden Charm"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Flask 1","priority":"important","target":{"kind":"crafted","baseItemId":"Ultimate Life Flask","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Ultimate Life Flask"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]},{"slot":"Flask 2","priority":"important","target":{"kind":"crafted","baseItemId":"Ultimate Mana Flask","rarity":"rare","mods":[],"socketables":[]},"acquisition":"drop","rationale":[{"subject":{"kind":"baseItem","id":"Ultimate Mana Flask"},"reason":[{"type":"text","text":"A base the player can find or buy for this budget; its mods are chosen at the crafting step."}]}]}]}},{"type":"S8.craft-start-weapon-1","value":{"startItemLevel":82,"startRarity":"magic","startModIds":[],"steps":[{"order":0,"actionIds":["Metadata/Items/Currency/CurrencyGreaterEssencePhysical"],"until":{"clauses":[{"anyOfModIds":["LocalAddedPhysicalDamage7"]}]},"onFail":{"action":"restart"},"goal":[{"type":"text","text":"Add the physical damage mod with the essence."}]}],"rationale":[{"reason":[{"type":"text","text":"The essence adds exactly the mod the target requires."}]}]}},{"type":"S8.craft-mid-weapon-1","value":{"startItemLevel":82,"startRarity":"magic","startModIds":[],"steps":[{"order":0,"actionIds":["Metadata/Items/Currency/CurrencyGreaterEssencePhysical"],"until":{"clauses":[{"anyOfModIds":["LocalAddedPhysicalDamage7"]}]},"onFail":{"action":"restart"},"goal":[{"type":"text","text":"Add the physical damage mod with the essence."}]}],"rationale":[{"reason":[{"type":"text","text":"The essence adds exactly the mod the target requires."}]}]}},{"type":"S9.summary","value":{"damageTypes":["lightning"],"scalingAxes":[{"type":"text","text":"Lightning damage and chaining scale the arrow."}],"defenceLayers":["evasion"],"playstyle":[{"type":"text","text":"Shoot into packs and keep moving."}],"complexity":"low","strengths":[[{"type":"text","text":"Strong pack clear with a damage output of "},{"type":"calc","ref":{"calcId":"calc-d405971d02bea00704ae308e7de1a4189a66d061","stat":"CombinedDPS"}},{"type":"text","text":" in the mapping profile."}]],"weaknesses":[[{"type":"text","text":"A thin defence exposes the ranger: total effective health is "},{"type":"calc","ref":{"calcId":"calc-d405971d02bea00704ae308e7de1a4189a66d061","stat":"TotalEHP"}},{"type":"text","text":"."}]],"suitability":{"softcore":true,"hardcore":false,"ssf":false}}},{"type":"S9.mechanics","value":{"explanation":[{"type":"text","text":"The slam crushes enemies in front of the warrior and stuns them; physical damage and area decide how fast packs die."}],"decisions":[{"subject":{"kind":"gem","id":"Metadata/Items/Gems/SkillGemBoneshatter"},"reason":[{"type":"text","text":"Chosen as the main skill because the idea asks for a stunning slam."}]}]}},{"type":"S9.playstyle","value":{"rotation":[{"type":"text","text":"Slam whenever enemies are close, then reposition."}],"mapping":[{"type":"text","text":"Run through the map and slam every pack."}],"bossing":[{"type":"text","text":"Stay close and slam between boss attacks."}],"positioning":[{"type":"text","text":"Stay inside the slam range."}],"bossMechanics":[]}},{"type":"S9.atlas","value":{"strategy":[{"type":"text","text":"Prefer open maps with dense packs and avoid maps that prevent stuns."}],"avoidMods":[]}},{"type":"S9.variants","value":{"variants":[]}},{"type":"S9.faq","value":{"faq":[{"question":[{"type":"text","text":"Why do packs survive the slam?"}],"answer":[{"type":"text","text":"They resist physical damage; add penetration or switch targets."}],"checklist":[]}]}},{"type":"S10.critic","value":{"reviewed":["summary","mechanics","progression","gear","crafting","playstyle","atlas","variants","faq"],"issues":[]}}],"interventions":[{"kind":"chooseVariant","candidateKey":"cand-1"}]}
+{
+  "format": "astrolabe-run-recording",
+  "version": 1,
+  "request": {
+    "dataReleaseId": "poe2-0.5.5.10+r15",
+    "skillIdea": "Lightning Arrow ranger that chains lightning arrows through packs for mapping",
+    "mode": { "hardcore": false, "ssf": false },
+    "budget": { "leveling": "start", "endgame": "mid" },
+    "preferences": {
+      "playstyleTags": [],
+      "focus": "mapping",
+      "pace": "balanced",
+      "complexityTolerance": "medium",
+      "defenceLayers": []
+    },
+    "calcOverrides": {},
+    "exclusions": []
+  },
+  "answers": [
+    {
+      "type": "S0.skill",
+      "value": {
+        "mainSkillId": "Metadata/Items/Gems/SkillGemLightningArrow",
+        "rationale": [
+          {
+            "subject": { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemLightningArrow" },
+            "reason": [
+              {
+                "type": "text",
+                "text": "It is the bow skill of the idea that chains lightning through packs."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "S1.profile",
+      "value": {
+        "scalingStats": [],
+        "supportCandidates": [
+          "Metadata/Items/Gems/SupportGemLightningInfusion",
+          "Metadata/Items/Gems/SupportGemChain",
+          "Metadata/Items/Gems/SupportGemCatalysingElements",
+          "Metadata/Items/Gems/SupportGemDeadlyCurrent"
+        ],
+        "relevantUniques": [],
+        "relevantNodes": ["375", "589", "750"],
+        "ascendancyCandidates": ["Ranger1", "Ranger3"],
+        "notes": [
+          {
+            "subject": { "kind": "gem", "id": "Metadata/Items/Gems/SupportGemLightningInfusion" },
+            "reason": [{ "type": "text", "text": "Raises the damage of heavy two-handed strikes." }]
+          }
+        ]
+      }
+    },
+    {
+      "type": "S2.candidate",
+      "value": {
+        "key": "cand-1",
+        "title": "Ranger Deadeye",
+        "classId": "Ranger",
+        "ascendancyId": "Ranger1",
+        "damageRoute": [
+          { "type": "text", "text": "Fire " },
+          {
+            "type": "entity",
+            "ref": { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemLightningArrow" }
+          },
+          { "type": "text", "text": " and chain lightning through packs" }
+        ],
+        "defenceConcept": [
+          {
+            "type": "text",
+            "text": "Kill packs at range before they reach the ranger; evasion and life carry the rest."
+          }
+        ],
+        "keyEntities": [
+          { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemLightningArrow" },
+          { "kind": "ascendancy", "id": "Ranger1" },
+          { "kind": "characterClass", "id": "Ranger" }
+        ],
+        "hypothesis": [
+          {
+            "type": "text",
+            "text": "Chaining arrows through whole packs lets the ranger clear maps quickly from a distance."
+          }
+        ]
+      }
+    },
+    {
+      "type": "S2.candidate",
+      "value": {
+        "key": "cand-2",
+        "title": "Ranger Pathfinder",
+        "classId": "Ranger",
+        "ascendancyId": "Ranger3",
+        "damageRoute": [
+          { "type": "text", "text": "Fire " },
+          {
+            "type": "entity",
+            "ref": { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemLightningArrow" }
+          },
+          { "type": "text", "text": " and chain lightning through packs" }
+        ],
+        "defenceConcept": [
+          {
+            "type": "text",
+            "text": "Kill packs at range before they reach the ranger; evasion and life carry the rest."
+          }
+        ],
+        "keyEntities": [
+          { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemLightningArrow" },
+          { "kind": "ascendancy", "id": "Ranger3" },
+          { "kind": "characterClass", "id": "Ranger" }
+        ],
+        "hypothesis": [
+          {
+            "type": "text",
+            "text": "Chaining arrows through whole packs lets the ranger clear maps quickly from a distance."
+          }
+        ]
+      }
+    },
+    {
+      "type": "S2.candidate",
+      "value": {
+        "key": "cand-3",
+        "title": "Mercenary Witchhunter",
+        "classId": "Mercenary",
+        "ascendancyId": "Mercenary2",
+        "damageRoute": [
+          { "type": "text", "text": "Fire " },
+          {
+            "type": "entity",
+            "ref": { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemLightningArrow" }
+          },
+          { "type": "text", "text": " and chain lightning through packs" }
+        ],
+        "defenceConcept": [
+          {
+            "type": "text",
+            "text": "Kill packs at range before they reach the ranger; evasion and life carry the rest."
+          }
+        ],
+        "keyEntities": [
+          { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemLightningArrow" },
+          { "kind": "ascendancy", "id": "Mercenary2" },
+          { "kind": "characterClass", "id": "Mercenary" }
+        ],
+        "hypothesis": [
+          {
+            "type": "text",
+            "text": "Chaining arrows through whole packs lets the ranger clear maps quickly from a distance."
+          }
+        ]
+      }
+    },
+    {
+      "type": "S5.gems",
+      "value": {
+        "skills": [
+          {
+            "key": "main",
+            "role": "main",
+            "gem": {
+              "gemId": "Metadata/Items/Gems/SkillGemLightningArrow",
+              "level": 20,
+              "quality": 0
+            },
+            "supports": [
+              {
+                "gemId": "Metadata/Items/Gems/SupportGemLightningInfusion",
+                "level": 1,
+                "quality": 0
+              },
+              { "gemId": "Metadata/Items/Gems/SupportGemChain", "level": 1, "quality": 0 },
+              {
+                "gemId": "Metadata/Items/Gems/SupportGemCatalysingElements",
+                "level": 1,
+                "quality": 0
+              },
+              { "gemId": "Metadata/Items/Gems/SupportGemDeadlyCurrent", "level": 1, "quality": 0 }
+            ]
+          }
+        ],
+        "rationale": [
+          {
+            "subject": { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemLightningArrow" },
+            "reason": [
+              {
+                "type": "text",
+                "text": "The arrow is the main skill; the supports raise its damage and its chain."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "S6.notes",
+      "value": {
+        "stages": [
+          {
+            "key": "act-1",
+            "tasks": [
+              [
+                {
+                  "type": "text",
+                  "text": "Follow the allocation order and keep firing at the packs."
+                }
+              ]
+            ],
+            "dangers": [[{ "type": "text", "text": "Keep distance from packs that reach you." }]],
+            "rationale": []
+          },
+          {
+            "key": "act-2",
+            "tasks": [
+              [
+                {
+                  "type": "text",
+                  "text": "Follow the allocation order and keep firing at the packs."
+                }
+              ]
+            ],
+            "dangers": [[{ "type": "text", "text": "Keep distance from packs that reach you." }]],
+            "rationale": []
+          },
+          {
+            "key": "act-3",
+            "tasks": [
+              [
+                {
+                  "type": "text",
+                  "text": "Follow the allocation order and keep firing at the packs."
+                }
+              ]
+            ],
+            "dangers": [[{ "type": "text", "text": "Keep distance from packs that reach you." }]],
+            "rationale": []
+          },
+          {
+            "key": "act-4",
+            "tasks": [
+              [
+                {
+                  "type": "text",
+                  "text": "Follow the allocation order and keep firing at the packs."
+                }
+              ]
+            ],
+            "dangers": [[{ "type": "text", "text": "Keep distance from packs that reach you." }]],
+            "rationale": []
+          },
+          {
+            "key": "act-5",
+            "tasks": [
+              [
+                {
+                  "type": "text",
+                  "text": "Follow the allocation order and keep firing at the packs."
+                }
+              ]
+            ],
+            "dangers": [[{ "type": "text", "text": "Keep distance from packs that reach you." }]],
+            "rationale": []
+          },
+          {
+            "key": "endgame",
+            "tasks": [
+              [
+                {
+                  "type": "text",
+                  "text": "Follow the allocation order and keep firing at the packs."
+                }
+              ]
+            ],
+            "dangers": [[{ "type": "text", "text": "Keep distance from packs that reach you." }]],
+            "rationale": []
+          }
+        ]
+      }
+    },
+    {
+      "type": "S7.gear-start",
+      "value": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "priority": "core",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Crude Bow",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "LocalAddedPhysicalDamage7", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "craft",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Crude Bow" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Helmet",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Runeforged Rusted Greathelm",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Runeforged Rusted Greathelm" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Body Armour",
+            "priority": "core",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Chain Mail",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "LightningResist8", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Chain Mail" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Gloves",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Fists of Stone",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "LightningResist8", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Fists of Stone" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Boots",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Rawhide Boots",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "LightningResist8", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Rawhide Boots" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Amulet",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Azure Amulet",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Azure Amulet" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Ring 1",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Abyssal Signet",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Abyssal Signet" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Ring 2",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Abyssal Signet",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Abyssal Signet" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Belt",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Golden Obi",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Golden Obi" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Charm 1",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Ruby Charm",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Ruby Charm" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Charm 2",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Ruby Charm",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Ruby Charm" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Charm 3",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Ruby Charm",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Ruby Charm" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Flask 1",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Lesser Life Flask",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Lesser Life Flask" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Flask 2",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Lesser Mana Flask",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Lesser Mana Flask" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "S7.gear-mid",
+      "value": {
+        "slots": [
+          {
+            "slot": "Weapon 1",
+            "priority": "core",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Fanatic Bow",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "LocalAddedPhysicalDamage7", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "craft",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Fanatic Bow" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Helmet",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Runeforged Imperial Greathelm",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Runeforged Imperial Greathelm" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Body Armour",
+            "priority": "core",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Warlord Cuirass",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "LightningResist8", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Warlord Cuirass" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Gloves",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Sirenscale Gloves",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "LightningResist8", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Sirenscale Gloves" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Boots",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Tasalian Greaves",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "LightningResist8", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Tasalian Greaves" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Amulet",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Absent Amulet",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Absent Amulet" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Ring 1",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Biostatic Ring",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Biostatic Ring" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Ring 2",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Biostatic Ring",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Biostatic Ring" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Belt",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Fine Belt",
+              "rarity": "rare",
+              "itemLevel": 82,
+              "mods": [
+                { "modId": "FireResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "ColdResist8", "rollFraction": 0.5, "required": true },
+                { "modId": "Strength9", "rollFraction": 0.5, "required": true },
+                { "modId": "Intelligence9", "rollFraction": 0.5, "required": true },
+                { "modId": "Dexterity9", "rollFraction": 0.5, "required": true }
+              ],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Fine Belt" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Charm 1",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Golden Charm",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Golden Charm" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Charm 2",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Golden Charm",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Golden Charm" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Charm 3",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Golden Charm",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Golden Charm" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Flask 1",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Ultimate Life Flask",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Ultimate Life Flask" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "slot": "Flask 2",
+            "priority": "important",
+            "target": {
+              "kind": "crafted",
+              "baseItemId": "Ultimate Mana Flask",
+              "rarity": "rare",
+              "mods": [],
+              "socketables": []
+            },
+            "acquisition": "drop",
+            "rationale": [
+              {
+                "subject": { "kind": "baseItem", "id": "Ultimate Mana Flask" },
+                "reason": [
+                  {
+                    "type": "text",
+                    "text": "A base the player can find or buy for this budget; its mods are chosen at the crafting step."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "S8.craft-start-weapon-1",
+      "value": {
+        "startItemLevel": 82,
+        "startRarity": "magic",
+        "startModIds": [],
+        "steps": [
+          {
+            "order": 0,
+            "actionIds": ["Metadata/Items/Currency/CurrencyGreaterEssencePhysical"],
+            "until": { "clauses": [{ "anyOfModIds": ["LocalAddedPhysicalDamage7"] }] },
+            "onFail": { "action": "restart" },
+            "goal": [{ "type": "text", "text": "Add the physical damage mod with the essence." }]
+          }
+        ],
+        "rationale": [
+          {
+            "reason": [
+              { "type": "text", "text": "The essence adds exactly the mod the target requires." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "S8.craft-mid-weapon-1",
+      "value": {
+        "startItemLevel": 82,
+        "startRarity": "magic",
+        "startModIds": [],
+        "steps": [
+          {
+            "order": 0,
+            "actionIds": ["Metadata/Items/Currency/CurrencyGreaterEssencePhysical"],
+            "until": { "clauses": [{ "anyOfModIds": ["LocalAddedPhysicalDamage7"] }] },
+            "onFail": { "action": "restart" },
+            "goal": [{ "type": "text", "text": "Add the physical damage mod with the essence." }]
+          }
+        ],
+        "rationale": [
+          {
+            "reason": [
+              { "type": "text", "text": "The essence adds exactly the mod the target requires." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "S9.summary",
+      "value": {
+        "damageTypes": ["lightning"],
+        "scalingAxes": [
+          { "type": "text", "text": "Lightning damage and chaining scale the arrow." }
+        ],
+        "defenceLayers": ["evasion"],
+        "playstyle": [{ "type": "text", "text": "Shoot into packs and keep moving." }],
+        "complexity": "low",
+        "strengths": [
+          [
+            { "type": "text", "text": "Strong pack clear with a damage output of " },
+            {
+              "type": "calc",
+              "ref": {
+                "calcId": "calc-d405971d02bea00704ae308e7de1a4189a66d061",
+                "stat": "CombinedDPS"
+              }
+            },
+            { "type": "text", "text": " in the mapping profile." }
+          ]
+        ],
+        "weaknesses": [
+          [
+            {
+              "type": "text",
+              "text": "A thin defence exposes the ranger: total effective health is "
+            },
+            {
+              "type": "calc",
+              "ref": {
+                "calcId": "calc-d405971d02bea00704ae308e7de1a4189a66d061",
+                "stat": "TotalEHP"
+              }
+            },
+            { "type": "text", "text": "." }
+          ]
+        ],
+        "suitability": { "softcore": true, "hardcore": false, "ssf": false }
+      }
+    },
+    {
+      "type": "S9.mechanics",
+      "value": {
+        "explanation": [
+          {
+            "type": "text",
+            "text": "The slam crushes enemies in front of the warrior and stuns them; physical damage and area decide how fast packs die."
+          }
+        ],
+        "decisions": [
+          {
+            "subject": { "kind": "gem", "id": "Metadata/Items/Gems/SkillGemBoneshatter" },
+            "reason": [
+              {
+                "type": "text",
+                "text": "Chosen as the main skill because the idea asks for a stunning slam."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "S9.playstyle",
+      "value": {
+        "rotation": [
+          { "type": "text", "text": "Slam whenever enemies are close, then reposition." }
+        ],
+        "mapping": [{ "type": "text", "text": "Run through the map and slam every pack." }],
+        "bossing": [{ "type": "text", "text": "Stay close and slam between boss attacks." }],
+        "positioning": [{ "type": "text", "text": "Stay inside the slam range." }],
+        "bossMechanics": []
+      }
+    },
+    {
+      "type": "S9.atlas",
+      "value": {
+        "strategy": [
+          {
+            "type": "text",
+            "text": "Prefer open maps with dense packs and avoid maps that prevent stuns."
+          }
+        ],
+        "avoidMods": []
+      }
+    },
+    { "type": "S9.variants", "value": { "variants": [] } },
+    {
+      "type": "S9.faq",
+      "value": {
+        "faq": [
+          {
+            "question": [{ "type": "text", "text": "Why do packs survive the slam?" }],
+            "answer": [
+              {
+                "type": "text",
+                "text": "They resist physical damage; add penetration or switch targets."
+              }
+            ],
+            "checklist": []
+          }
+        ]
+      }
+    },
+    {
+      "type": "S10.critic",
+      "value": {
+        "reviewed": [
+          "summary",
+          "mechanics",
+          "progression",
+          "gear",
+          "crafting",
+          "playstyle",
+          "atlas",
+          "variants",
+          "faq"
+        ],
+        "issues": []
+      }
+    }
+  ],
+  "interventions": [{ "kind": "chooseVariant", "candidateKey": "cand-1" }]
+}

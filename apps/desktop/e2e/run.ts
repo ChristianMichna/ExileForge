@@ -23,7 +23,13 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { McpStdioClient, resolveLaunch, type McpbManifest } from "./mcpb.ts";
-import { replay, type Recording, type ReplayStep, type SubmitOutcome } from "./recording.ts";
+import {
+  replay,
+  ReplayRetry,
+  type Recording,
+  type ReplayStep,
+  type SubmitOutcome,
+} from "./recording.ts";
 
 const DEBUG_PORT = 9333;
 const SERVER_PORT = 47615;
@@ -397,10 +403,22 @@ async function main(): Promise<void> {
                 intervention["kind"] === "answer" && open !== undefined
                   ? { ...intervention, askId: open.askId }
                   : intervention;
-              await api(token, `/api/runs/${runId}/interventions`, {
-                method: "POST",
-                body: JSON.stringify(body),
-              });
+              try {
+                await api(token, `/api/runs/${runId}/interventions`, {
+                  method: "POST",
+                  body: JSON.stringify(body),
+                });
+              } catch (error) {
+                // 409 invalid_intervention: the app is not ready for this action yet (the
+                // candidates are still being measured); the replay asks again later.
+                const message = error instanceof Error ? error.message : String(error);
+                if (!message.includes("→ 409") || !message.includes("invalid_intervention")) {
+                  throw error;
+                }
+                console.log(`player action not accepted yet: ${message.slice(0, 200)}`);
+                await sleep(5000);
+                throw new ReplayRetry(message, { cause: error });
+              }
             },
           },
           recording,

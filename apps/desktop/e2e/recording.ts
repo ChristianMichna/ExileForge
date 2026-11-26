@@ -74,6 +74,11 @@ export class ReplayError extends Error {
   override readonly name = "ReplayError";
 }
 
+/** The app is not ready for this player action yet (e.g. variants still being measured): try again later. */
+export class ReplayRetry extends Error {
+  override readonly name = "ReplayRetry";
+}
+
 export interface ReplayResult {
   readonly guideId: string;
   readonly submitted: number;
@@ -105,9 +110,13 @@ export async function replay(
       case "wait_user": {
         const intervention = recording.interventions[interventionIndex];
         if (intervention !== undefined) {
-          interventionIndex += 1;
-          log(`player action ${interventionIndex}: ${String(intervention["kind"])}`);
-          await port.intervene(intervention);
+          try {
+            await port.intervene(intervention);
+            interventionIndex += 1;
+            log(`player action ${interventionIndex}: ${String(intervention["kind"])}`);
+          } catch (error) {
+            if (!(error instanceof ReplayRetry) || ++waits > maxWaits) throw error;
+          }
         } else if (++waits > maxWaits) {
           throw new ReplayError(
             "the run keeps waiting for the player and nothing more is recorded",
