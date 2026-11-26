@@ -145,6 +145,19 @@ describe("ipc handlers", () => {
     expect(result.ok).toBe(true);
     expect(d.revealed).toEqual([join("docs", "Astrolabe", "astrolabe.mcpb")]);
     expect(result.message).toContain("Settings > Extensions");
+    expect(result.message).toContain(join("docs", "Astrolabe", "astrolabe.mcpb"));
+  });
+
+  it("still names the file when the file manager cannot show it", async () => {
+    const d = deps({
+      revealPath: () => {
+        throw new Error("no explorer");
+      },
+    });
+    const result = await createHandlers(d).installClaudeExtension();
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("astrolabe.mcpb");
+    expect(result.message).not.toContain("shown in your file manager");
   });
 
   it("shows the bundled file when it cannot be copied", async () => {

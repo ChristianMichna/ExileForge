@@ -109,18 +109,29 @@ export function createHandlers(deps: HandlerDeps) {
       const steps =
         'In Claude Desktop open Settings > Extensions and drag the file "astrolabe.mcpb" into the window (or use "Advanced settings" > "Install Extension..."), then confirm.';
       const target = join(deps.documentsDir(), "Astrolabe", "astrolabe.mcpb");
+      let shown = target;
+      let copied = true;
       try {
         await deps.copyFile(deps.extensionPath, target);
       } catch (error) {
         console.error("extension copy failed", error);
-        deps.revealPath(deps.extensionPath);
-        return {
-          ok: false,
-          message: `The file could not be copied to your Documents folder, so it is shown where the app keeps it. ${steps}`,
-        };
+        copied = false;
+        shown = deps.extensionPath;
       }
-      deps.revealPath(target);
-      return { ok: true, message: `The extension file is shown in your file manager. ${steps}` };
+      let revealed = true;
+      try {
+        deps.revealPath(shown);
+      } catch (error) {
+        console.error("extension reveal failed", error);
+        revealed = false;
+      }
+      const where = `The file is at ${shown}${revealed ? " (shown in your file manager)" : ""}.`;
+      return copied
+        ? { ok: true, message: `${where} A file of the same name there was replaced. ${steps}` }
+        : {
+            ok: false,
+            message: `The file could not be copied to your Documents folder. ${where} ${steps}`,
+          };
     },
 
     async checkForUpdates(): Promise<ActionResult> {
