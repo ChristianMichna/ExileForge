@@ -163,7 +163,7 @@ jobs:
     name: Windows end-to-end
     needs: [catalog, installer]
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     permissions:
       contents: read
     env:

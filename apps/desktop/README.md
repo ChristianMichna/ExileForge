@@ -172,6 +172,6 @@ fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträ
 - **Aufgezeichneter Guide:** `e2e/fixtures/guide-file.json` ist das Ergebnis eines echten Laufs (Boneshatter, r14). Der Windows-Test startet die App auf diesem Daten-Release, spielt die Datei ein, öffnet die Guide-Seite (Screenshot `04-guide.png`) und speichert die `.build`-Datei (`guide.build` im Artefakt). Ein vollständiger Lauf S0 bis S11: `e2e/recording.ts` spielt die Aufzeichnung eines echten Laufs
   (`e2e/fixtures/run-recording.json`) gegen die App ab, mit echtem PoB und allen Gates; nur die Entscheidungen
   (Antworten von Claude, Aktionen des Spielers) sind fest. Aufnehmen auf dem PC, auf dem der Lauf fertig wurde:
-  `node --experimental-strip-types e2e/record.ts <runId>` (liest das Token aus `%APPDATA%\\Astrolabe`), die Datei
+  `node --experimental-strip-types e2e/record.ts <runId>` oder `--from <run.json>` (liest das Token aus `%APPDATA%\\Astrolabe`), die Datei
   nach `e2e/fixtures/run-recording.json` legen und committen. Ohne die Datei wird der Schritt mit Warnung
   übersprungen und als „skipped“ im Ergebnis geführt.
