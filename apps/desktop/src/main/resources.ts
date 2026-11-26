@@ -1,5 +1,5 @@
 import { readFile, stat } from "node:fs/promises";
-import { compareReleaseIds, installedReleaseIds } from "@astrolabe/release-sync";
+import { compareReleaseIds, installedReleaseIds, parseReleaseId } from "@astrolabe/release-sync";
 import { join } from "node:path";
 
 export interface AppDirs {
@@ -53,17 +53,23 @@ async function isRelease(dir: string): Promise<boolean> {
   }
 }
 
-/** The release id a folder's manifest names; undefined when it is not readable. */
-async function manifestId(dir: string): Promise<string | undefined> {
+/** The release id a folder's manifest names. Throws when it is missing or not a release id. */
+async function manifestId(dir: string): Promise<string> {
+  let id: unknown;
   try {
     const manifest = JSON.parse(await readFile(join(dir, "manifest.json"), "utf8")) as {
       release?: { id?: unknown };
     };
-    const id = manifest.release?.id;
-    return typeof id === "string" ? id : undefined;
-  } catch {
-    return undefined;
+    id = manifest.release?.id;
+  } catch (cause) {
+    throw new Error(`The data release in ${dir} has an unreadable manifest.json`, { cause });
   }
+  try {
+    parseReleaseId(String(id));
+  } catch (cause) {
+    throw new Error(`The manifest.json in ${dir} names no valid data release id`, { cause });
+  }
+  return String(id);
 }
 
 /**
@@ -83,9 +89,7 @@ export async function findDataRelease(dirs: AppDirs, override?: string): Promise
     dir: join(dirs.downloadedReleasesDir, id),
   }));
   if (await isRelease(dirs.bundledReleaseDir)) {
-    const id = await manifestId(dirs.bundledReleaseDir);
-    // a bundled release whose id cannot be read still counts, but never beats a download
-    candidates.push({ id: id ?? "poe2-0.0+r0", dir: dirs.bundledReleaseDir });
+    candidates.push({ id: await manifestId(dirs.bundledReleaseDir), dir: dirs.bundledReleaseDir });
   }
   candidates.sort((a, b) => compareReleaseIds(b.id, a.id));
   const best = candidates[0];
@@ -99,8 +103,7 @@ export async function findDataRelease(dirs: AppDirs, override?: string): Promise
 export async function knownReleaseIds(dirs: AppDirs): Promise<string[]> {
   const ids = await installedReleaseIds(dirs.downloadedReleasesDir);
   if (await isRelease(dirs.bundledReleaseDir)) {
-    const id = await manifestId(dirs.bundledReleaseDir);
-    if (id !== undefined) ids.push(id);
+    ids.push(await manifestId(dirs.bundledReleaseDir));
   }
   return ids;
 }

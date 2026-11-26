@@ -120,3 +120,9 @@ Start; das Fenster zeigt „New game data … restart“, der Knopf startet die 
 Release aus Downloads und mitgeliefertem Release (nach Spielversion und Revision). Fehler stehen als „Game data check
 failed“ im Fenster und im Log; nichts wird still übersprungen. Derselbe Ordner ist `releasesDir` des Servers, aus dem
 `guide_revalidate` die Release-Kette liest.
+
+Netz: Die Datenprüfung läuft in einer eigenen Sitzung (`astrolabe-data-sync`) mit eigenem Filter, der nur
+`api.github.com` und die konfigurierten Download-Hosts (https) zulässt; die Sitzung des Fensters bleibt
+geschlossen. Abfragen haben Zeitgrenzen (`listTimeoutSeconds`, `installTimeoutMinutes`) und werden beim Beenden
+abgebrochen. Ein bereits installiertes, wartendes Release bleibt auch dann sichtbar, wenn eine spätere Prüfung
+fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträglich beschädigt wird (Folgeaufgabe).

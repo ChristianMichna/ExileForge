@@ -17,6 +17,8 @@
     "includePrereleases": true,
     "firstCheckDelaySeconds": 30,
     "checkIntervalHours": 1,
+    "listTimeoutSeconds": 30,
+    "installTimeoutMinutes": 10,
     "allowedRedirectHosts": [
       "github.com",
       "release-assets.githubusercontent.com",

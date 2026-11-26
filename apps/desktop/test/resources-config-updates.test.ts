@@ -52,6 +52,13 @@ describe("data release lookup", () => {
     expect(await findDataRelease(d)).toBe(d.bundledReleaseDir);
   });
 
+  it("reports a bundled release whose manifest names no valid id", async () => {
+    const d = await dirs();
+    await release(d.bundledReleaseDir, "not-an-id");
+    await expect(findDataRelease(d)).rejects.toThrow("no valid data release id");
+    await expect(knownReleaseIds(d)).rejects.toThrow("no valid data release id");
+  });
+
   it("skips download folders without a manifest or with foreign names", async () => {
     const d = await dirs();
     await mkdir(join(d.downloadedReleasesDir, "poe2-0.5.5.10+r3"), { recursive: true });
@@ -210,7 +217,6 @@ describe("data sync", () => {
       "checking",
       "downloading:poe2-1.0.0+r1",
       "ready:poe2-1.0.0+r1",
-      "checking",
       "ready:poe2-1.0.0+r1",
     ]);
     controller.stop();
@@ -231,6 +237,38 @@ describe("data sync", () => {
     release();
     expect((await first).result).toBe("installed");
     for (const s of [same, stable, slow]) s.controller.stop();
+  });
+
+  it("keeps a waiting release on show when a later check fails or hangs", async () => {
+    let fail = false;
+    const { controller, states } = sync({
+      list: async () => {
+        if (fail) throw new Error("offline");
+        return [remote("poe2-1.0.0+r1")];
+      },
+    });
+    await controller.check();
+    fail = true;
+    expect((await controller.check()).result).toBe("failed");
+    expect(states.at(-1)).toBe("ready:poe2-1.0.0+r1");
+    expect(states.slice(1)).not.toContain("checking");
+    controller.stop();
+  });
+
+  it("ends a running request when stopped", async () => {
+    let seen: AbortSignal | undefined;
+    const { controller, states } = sync({
+      list: (signal) =>
+        new Promise((_resolve, reject) => {
+          seen = signal;
+          signal.addEventListener("abort", () => reject(new Error("aborted")));
+        }),
+    });
+    const pending = controller.check();
+    controller.stop();
+    expect((await pending).result).toBe("failed");
+    expect(seen?.aborted).toBe(true);
+    expect(states.at(-1)).toBe("failed");
   });
 
   it("shows failures and keeps trying at the next interval", async () => {

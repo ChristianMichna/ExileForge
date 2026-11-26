@@ -101,10 +101,7 @@ async function boot(): Promise<void> {
       : { state: "disabled", reason: "Game data updates are switched off in the settings." },
   );
 
-  hardenSession(
-    `http://127.0.0.1:${config.port}/`,
-    config.dataSync.enabled ? config.dataSync.allowedRedirectHosts : [],
-  );
+  hardenSession(`http://127.0.0.1:${config.port}/`);
   const handleApp = createAppProtocolHandler({
     webRoot: dirs.webRoot,
     serverUrl: () => services?.url,
@@ -170,7 +167,15 @@ async function boot(): Promise<void> {
   if (config.dataSync.enabled) {
     const sync = config.dataSync;
     const userAgent = `Astrolabe/${app.getVersion()} (+https://github.com/${sync.repo})`;
-    const fetchLike = (url: string, init?: RequestInit) => net.fetch(url, init);
+    // The page's session blocks every foreign host. Game data updates use a session of their own
+    // (like electron-updater does) that allows only the GitHub API and the configured download hosts.
+    const dataSession = session.fromPartition("astrolabe-data-sync", { cache: false });
+    dataSession.webRequest.onBeforeRequest((details, callback) => {
+      callback({ cancel: !isDataSyncUrl(details.url, sync.allowedRedirectHosts) });
+    });
+    const fetchLike = (url: string, init?: RequestInit) => dataSession.fetch(url, init);
+    const listTimeout = sync.listTimeoutSeconds * 1000;
+    const installTimeout = sync.installTimeoutMinutes * 60_000;
     try {
       const removed = await removeLeftovers(
         dirs.downloadedReleasesDir,
@@ -181,13 +186,20 @@ async function boot(): Promise<void> {
       logger.error("could not clean the data release folder", { error });
     }
     dataSync = startDataSync({
-      list: () => listRemoteReleases({ fetch: fetchLike, repo: sync.repo, userAgent }),
+      list: (signal) =>
+        listRemoteReleases({
+          fetch: fetchLike,
+          repo: sync.repo,
+          userAgent,
+          signal: AbortSignal.any([signal, AbortSignal.timeout(listTimeout)]),
+        }),
       knownIds: async () => [
         ...(await knownReleaseIds(dirs)),
         ...(services === undefined ? [] : [services.dataReleaseId]),
       ],
-      install: (release) =>
+      install: (release, signal) =>
         installRelease({
+          signal: AbortSignal.any([signal, AbortSignal.timeout(installTimeout)]),
           fetch: fetchLike,
           release,
           repo: sync.repo,
@@ -240,18 +252,18 @@ function createWindow(config: DesktopConfig): BrowserWindow {
 }
 
 /** No camera, location, notifications or other permission for the page; no foreign requests. */
-function hardenSession(serverPrefix: string, dataSyncHosts: readonly string[]): void {
+function hardenSession(serverPrefix: string): void {
   const ses = session.defaultSession;
   ses.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   ses.setPermissionCheckHandler(() => false);
   ses.webRequest.onBeforeRequest((details, callback) => {
     const url = details.url;
-    // The app's own origin and the local server. net.fetch from the main process passes this
-    // filter too (checked); the page itself is held back by its CSP (connect-src 'self').
+    // The app's own origin and the local server. net.fetch from the main process uses this
+    // session and so passes this filter too; the page itself is held back by its CSP
+    // (connect-src 'self'). Game data updates use a separate session (see boot).
     const allowed =
       isAppUrl(url) ||
       url.startsWith(serverPrefix) ||
-      (dataSyncHosts.length > 0 && isDataSyncUrl(url, dataSyncHosts)) ||
       url.startsWith("devtools:") ||
       url.startsWith("data:") ||
       url.startsWith("blob:");

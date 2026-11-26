@@ -90,7 +90,11 @@ function StatusBadges() {
         <Badge tone="info">Loading game data {data.releaseId}</Badge>
       ) : null}
       {data.state === "ready" ? <DataButton releaseId={data.releaseId} /> : null}
-      {data.state === "failed" ? <Badge tone="warning">Game data check failed</Badge> : null}
+      {data.state === "failed" ? (
+        <span title={data.message}>
+          <Badge tone="warning">Game data check failed</Badge>
+        </span>
+      ) : null}
     </>
   );
 }

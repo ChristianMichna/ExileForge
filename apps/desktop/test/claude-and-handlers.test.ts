@@ -23,6 +23,8 @@ const config: DesktopConfig = {
     includePrereleases: true,
     firstCheckDelaySeconds: 1,
     checkIntervalHours: 1,
+    listTimeoutSeconds: 1,
+    installTimeoutMinutes: 1,
     allowedRedirectHosts: ["github.com"],
     maxDownloadMegabytes: 1,
     maxUnpackedMegabytes: 1,

@@ -3,11 +3,11 @@ import type { DataState } from "../shared/bridge.js";
 
 export interface DataSyncOptions {
   /** Lists the data releases GitHub offers (throws when it cannot). */
-  list: () => Promise<RemoteRelease[]>;
+  list: (signal: AbortSignal) => Promise<RemoteRelease[]>;
   /** Ids of everything already usable: downloaded releases, the bundled one and the one running. */
   knownIds: () => Promise<string[]>;
   /** Downloads, verifies and installs; throws on any problem. */
-  install: (release: RemoteRelease) => Promise<{ id: string }>;
+  install: (release: RemoteRelease, signal: AbortSignal) => Promise<{ id: string }>;
   setState: (state: DataState) => void;
   includePrereleases: boolean;
   firstCheckDelayMs: number;
@@ -30,13 +30,16 @@ export function startDataSync(options: DataSyncOptions): DataSyncController {
   const { setState } = options;
   let running = false;
   let installedId: string | undefined;
+  // stop() ends a request that is still running
+  const abort = new AbortController();
 
   const check: DataSyncController["check"] = async () => {
     if (running) return { result: "busy" };
     running = true;
     try {
-      setState({ state: "checking" });
-      const remote = await options.list();
+      // a release that already waits for the restart stays on show while we look again
+      if (installedId === undefined) setState({ state: "checking" });
+      const remote = await options.list(abort.signal);
       const known = await options.knownIds();
       if (installedId !== undefined) known.push(installedId);
       const next = pickNewRelease(remote, known, {
@@ -51,14 +54,19 @@ export function startDataSync(options: DataSyncOptions): DataSyncController {
         return { result: "up-to-date" };
       }
       setState({ state: "downloading", releaseId: next.id });
-      const done = await options.install(next);
+      const done = await options.install(next, abort.signal);
       installedId = done.id;
       setState({ state: "ready", releaseId: done.id });
       return { result: "installed" };
     } catch (error) {
       options.onError?.(error);
       const message = error instanceof Error ? error.message : "Looking for new game data failed";
-      setState({ state: "failed", message });
+      // never hide a release that is installed and waiting for the restart behind a failed check
+      setState(
+        installedId === undefined
+          ? { state: "failed", message }
+          : { state: "ready", releaseId: installedId },
+      );
       return { result: "failed", message };
     } finally {
       running = false;
@@ -72,6 +80,7 @@ export function startDataSync(options: DataSyncOptions): DataSyncController {
   return {
     check,
     stop() {
+      abort.abort();
       clearTimeout(first);
       clearInterval(timer);
     },

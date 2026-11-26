@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 
+/** setInterval overflows beyond 2^31 ms (about 596 hours). */
+const MAX_INTERVAL_HOURS = 500;
+
 const Scheme = z.string().regex(/^[a-z][a-z0-9+.-]*:$/);
 
 export const DesktopConfig = z.object({
@@ -28,7 +31,7 @@ export const DesktopConfig = z.object({
   update: z.object({
     enabled: z.boolean(),
     firstCheckDelaySeconds: z.int().nonnegative(),
-    checkIntervalHours: z.number().positive(),
+    checkIntervalHours: z.number().positive().max(MAX_INTERVAL_HOURS),
   }),
   /** New game patches arrive as data releases from GitHub Releases (F-01). */
   dataSync: z.object({
@@ -37,7 +40,10 @@ export const DesktopConfig = z.object({
     repo: z.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/),
     includePrereleases: z.boolean(),
     firstCheckDelaySeconds: z.int().nonnegative(),
-    checkIntervalHours: z.number().positive(),
+    checkIntervalHours: z.number().positive().max(MAX_INTERVAL_HOURS),
+    /** A hung request ends as an error after this long (list) or this long for a whole install. */
+    listTimeoutSeconds: z.int().positive(),
+    installTimeoutMinutes: z.int().positive(),
     /** Hosts a download may be redirected to (https only). */
     allowedRedirectHosts: z.array(z.string().min(1)).min(1),
     maxDownloadMegabytes: z.int().positive(),
