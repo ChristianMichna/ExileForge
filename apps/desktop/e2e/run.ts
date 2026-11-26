@@ -10,7 +10,14 @@
  * Environment: EXPECT_DATA_RELEASE_ID (e.g. poe2-0.5.5.10+r15): the release the installer bundles.
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { createWriteStream, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import {
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -128,10 +135,23 @@ async function main(): Promise<void> {
   const installDir = await step("Install silently", async () => {
     const run = spawnSync(resolve(installer), ["/S"], { stdio: "inherit", timeout: 300_000 });
     if (run.status !== 0) throw new Error(`installer exited with ${run.status ?? run.error}`);
-    const dir = join(localAppData, "Programs", "Astrolabe");
-    await until("Astrolabe.exe after the installer", 60_000, async () =>
-      existsSync(join(dir, "Astrolabe.exe")) ? true : undefined,
-    );
+    // Per-user install: %LOCALAPPDATA%\\Programs\\<name>; the folder name comes from the builder,
+    // so look for the exe instead of assuming the name.
+    const programs = join(localAppData, "Programs");
+    const dir = await until("Astrolabe.exe after the installer", 120_000, async () => {
+      if (!existsSync(programs)) return undefined;
+      return readdirSync(programs)
+        .map((name) => join(programs, name))
+        .find((candidate) => existsSync(join(candidate, "Astrolabe.exe")));
+    }).catch((error: unknown) => {
+      const listing = existsSync(programs)
+        ? readdirSync(programs).join(", ")
+        : "(no Programs folder)";
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)}; ${programs} holds: ${listing}`,
+      );
+    });
+    console.log(`installed to ${dir}`);
     return dir;
   });
   const resources = join(installDir, "resources");
