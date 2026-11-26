@@ -241,13 +241,14 @@ export const PassiveNode = z.object({
   classStartFor: z.array(CharacterClassId).default([]),
   ascendancyId: AscendancyId.optional(),
   /**
-   * The node can only be allocated while all of `nodeIds` are allocated (PoB: the node's
-   * `unlockConstraint`). Such nodes sit in the normal tree and have no `ascendancyId`, but they
-   * belong to an ascendancy's choices: without the unlocking node(s) the source tool refuses them.
+   * The node can only be allocated while ALL of `nodeIds` (catalog ids of passive nodes, resolved
+   * by the pipeline) are allocated (PoB: the node's `unlockConstraint`). Such a node can sit in the
+   * normal tree without an `ascendancyId`; the source tool refuses it while the unlocking nodes
+   * are missing. `ascendancyId` names the ascendancy the constraint belongs to, where PoB gives one.
    */
   unlockedBy: z
     .object({
-      ascendancyId: AscendancyId,
+      ascendancyId: AscendancyId.optional(),
       nodeIds: z.array(PassiveNodeId).min(1),
     })
     .optional(),
