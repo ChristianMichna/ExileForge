@@ -402,6 +402,39 @@ describe("buildGuideView", () => {
   });
 });
 
+describe("refName", () => {
+  const modEntity = {
+    id: "Fixture/Mod",
+    groups: [],
+    generationType: "prefix",
+    domains: ["item"],
+    requiredLevel: 1,
+    stats: [],
+    spawnWeights: [],
+    text: "+10 to Strength\n+5 to Dexterity",
+  };
+  const catalog = {
+    dataReleaseId: RELEASE,
+    get: (ref: { kind: string; id: string }) =>
+      ref.id === "Fixture/Mod"
+        ? { ...ref, entity: modEntity }
+        : ref.id === "Fixture/Gem"
+          ? { ...ref, name: "Gem Name", entity: {} }
+          : undefined,
+  } as unknown as CatalogPort;
+
+  it("uses the rendered text of a mod as its name", async () => {
+    const { refName } = await import("../src/guides/guide-view.js");
+    expect(refName(catalog, "mod", "Fixture/Mod")).toBe("+10 to Strength; +5 to Dexterity");
+  });
+
+  it("prefers a real name and leaves unknown or nameless non-mods undefined", async () => {
+    const { refName } = await import("../src/guides/guide-view.js");
+    expect(refName(catalog, "gem", "Fixture/Gem")).toBe("Gem Name");
+    expect(refName(catalog, "mod", "Fixture/Nope")).toBeUndefined();
+  });
+});
+
 describe("buildGuideView gear cards", () => {
   const entities: Record<string, unknown> = {
     "uniqueItem:Fixture Unique": {
