@@ -33,7 +33,7 @@
         "TotalEHP": 0.4
       },
       "floors": {},
-      "floorsFromMetrics": { "Str": "ReqStr", "Dex": "ReqDex", "Int": "ReqInt" }
+      "floorsFromMetrics": {}
     }
   },
   "s6": {
@@ -45,7 +45,7 @@
         "TotalEHP": 0.4
       },
       "floors": {},
-      "floorsFromMetrics": { "Str": "ReqStr", "Dex": "ReqDex", "Int": "ReqInt" }
+      "floorsFromMetrics": {}
     }
   },
   "s7": {

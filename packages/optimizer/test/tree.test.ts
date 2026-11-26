@@ -104,6 +104,22 @@ describe("optimizeTree", () => {
     expect(result.violations[0]).toMatchObject({ metric: "Res", required: 100 });
   });
 
+  it("leaves out nodes whose game id marks them as unlocked by another node", async () => {
+    const locked = graphOf(
+      [
+        { id: "start", edges: ["a1", "l1"], classStart: true },
+        { id: "a1" },
+        { id: "l1", edges: ["l2"], gameId: "locked_fixture_1" },
+        { id: "l2", gameId: "locked_fixture_2" },
+      ],
+      "start",
+      ["locked_fixture_"],
+    );
+    expect(locked.has("a1")).toBe(true);
+    expect(locked.has("l1")).toBe(false);
+    expect(locked.has("l2")).toBe(false);
+  });
+
   it("holds a metric to another metric measured in the same evaluation", async () => {
     const evaluator = new FakeEvaluator(model);
     const result = await optimizeTree({
