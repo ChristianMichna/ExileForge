@@ -47,6 +47,20 @@ const ENTITY_KINDS: ReadonlySet<string> = new Set<EntityKind>([
   "statTranslation",
 ]);
 
+/**
+ * Places that hold ids but are not guide content: what the player excluded, the old validation
+ * protocol, metadata, and free-form records whose keys are not field names of the contracts.
+ * (`source.entity` of measured values is walked on purpose: a changed source entity makes the
+ * measured value stale.)
+ */
+const SKIPPED_POINTERS: ReadonlySet<string> = new Set([
+  "/request/exclusions",
+  "/request/calcOverrides",
+  "/validation",
+  "/metadata",
+]);
+const SKIPPED_FIELDS: ReadonlySet<string> = new Set(["config", "calcs"]);
+
 const pointer = (parent: string, key: string | number): string =>
   `${parent}/${String(key).replaceAll("~", "~0").replaceAll("/", "~1")}`;
 
@@ -70,6 +84,7 @@ function asEntityRef(v: Record<string, unknown>): { kind: EntityKind; id: string
 export function collectGuideRefs(guide: unknown): GuideRef[] {
   const found: GuideRef[] = [];
   const walk = (node: unknown, at: string, stageKey: string | undefined): void => {
+    if (SKIPPED_POINTERS.has(at)) return;
     if (Array.isArray(node)) {
       node.forEach((child, i) => walk(child, pointer(at, i), stageKey));
       return;
@@ -80,6 +95,7 @@ export function collectGuideRefs(guide: unknown): GuideRef[] {
     const ref = asEntityRef(node);
     if (ref) found.push({ ...ref, location: at, ...(here ? { stageKey: here } : {}) });
     for (const [field, value] of Object.entries(node)) {
+      if (SKIPPED_FIELDS.has(field)) continue;
       const kind = KIND_BY_FIELD[field];
       const where = pointer(at, field);
       if (kind !== undefined) {

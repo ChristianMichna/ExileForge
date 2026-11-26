@@ -24,12 +24,14 @@ const guide = {
 };
 const diff = (from: string, to: string, kinds: CatalogDiff["kinds"]): CatalogDiff =>
   ({ schemaVersion: 1, from, to, kinds }) as CatalogDiff;
-const facts = { pobVersion: "v1" } as never;
-const run = (diffs: CatalogDiff[], to: object = facts) =>
+const run = (diffs: CatalogDiff[], over: object = {}, doc: object = guide) =>
   revalidateGuide({
-    guide,
+    guide: doc as typeof guide,
     diffs,
-    facts: { from: facts, to: to as never },
+    facts: {
+      from: { id: R1, pobVersion: "v1" },
+      to: { id: diffs[diffs.length - 1]?.to ?? R1, pobVersion: "v1", ...over },
+    } as never,
     checkedAt: "2026-11-26T05:00:00Z",
   });
 
@@ -47,6 +49,30 @@ describe("collectGuideRefs", () => {
     expect(has("mod", "mod-a")[0]?.stageKey).toBeUndefined();
     expect(has("uniqueItem", "uniq-a")).toHaveLength(1);
     expect(has("baseItem", "base-a")).toHaveLength(1);
+  });
+});
+
+describe("what is not guide content", () => {
+  it("skips exclusions, the old protocol, metadata and free-form records", () => {
+    const doc = {
+      ...guide,
+      request: { exclusions: [{ kind: "gem", id: "gem-excluded" }], calcOverrides: { modId: "x" } },
+      validation: { gates: [{ findings: [{ entity: { kind: "mod", id: "mod-old" } }] }] },
+      progression: {
+        stages: [
+          { ...guide.progression.stages[0], state: { config: { ascendancy: "x", modId: "y" } } },
+        ],
+      },
+    };
+    const ids = collectGuideRefs(doc).map((r) => r.id);
+    for (const id of ["gem-excluded", "mod-old", "x", "y"]) expect(ids).not.toContain(id);
+  });
+  it("walks the entity of a measured value's source", () => {
+    const doc = {
+      ...guide,
+      gear: { cost: { source: { entity: { kind: "mod", id: "mod-src" } } } },
+    };
+    expect(collectGuideRefs(doc).map((r) => r.id)).toContain("mod-src");
   });
 });
 
@@ -106,5 +132,31 @@ describe("revalidateGuide", () => {
     expect(() => run([])).toThrow(RevalidationError);
     expect(() => run([diff(R2, R3, {})])).toThrow(/built with/);
     expect(() => run([diff(R1, R2, {}), diff(R1, R3, {})])).toThrow(/chain/);
+    expect(() => run([diff(R1, R2, {}), diff(R2, R1, {})])).toThrow(/twice/);
+  });
+  it("does not call a document it cannot read unaffected, and checks the facts' releases", () => {
+    expect(() => run([diff(R1, R2, {})], {}, { metadata: guide.metadata })).toThrow(
+      /not a GuideDocument/,
+    );
+    expect(() =>
+      revalidateGuide({
+        guide,
+        diffs: [diff(R1, R2, {})],
+        facts: { from: { id: R1 }, to: { id: R3 } } as never,
+        checkedAt: "2026-11-26T05:00:00Z",
+      }),
+    ).toThrow(/do not belong/);
+  });
+  it("tells a field that becomes null from one that was missing", () => {
+    const res = run([
+      diff(R1, R2, {
+        mod: {
+          added: [],
+          removed: [],
+          changed: [{ id: "mod-a", fields: [{ path: "/x", after: null }] }],
+        },
+      }),
+    ]);
+    expect(res.findings).toHaveLength(1);
   });
 });

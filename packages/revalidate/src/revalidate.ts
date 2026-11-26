@@ -20,6 +20,7 @@ export class RevalidationError extends Error {
 /** The parts of a data release that are compared as facts. */
 export type ReleaseFacts = Pick<
   DataRelease,
+  | "id"
   | "pobVersion"
   | "maxCharacterLevel"
   | "passivePoints"
@@ -49,7 +50,7 @@ function canonical(v: unknown): string {
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([k, x]) => `${JSON.stringify(k)}:${canonical(x)}`)
       .join(",")}}`;
-  return JSON.stringify(v) ?? "null";
+  return v === undefined ? "undefined" : JSON.stringify(v);
 }
 
 const FACT_KEYS: readonly ReleaseFactChange[] = [
@@ -128,8 +129,19 @@ export function revalidateGuide(input: RevalidateInput): PatchStatus {
       );
     chain.push(d.to);
   }
+  if (new Set(chain).size !== chain.length)
+    throw new RevalidationError(`the diffs lead through a release twice: ${chain.join(" -> ")}`);
+  const last = chain[chain.length - 1];
+  if (input.facts.from.id !== first.from || input.facts.to.id !== last)
+    throw new RevalidationError(
+      `the release facts (${input.facts.from.id}, ${input.facts.to.id}) do not belong to the chain ends (${first.from}, ${String(last)})`,
+    );
   const fates = composeFates(diffs);
   const refs = collectGuideRefs(guide);
+  if (!refs.some((r) => r.location.startsWith("/progression/")))
+    throw new RevalidationError(
+      "no reference found in /progression; this is not a GuideDocument of the supported layout, so it cannot be called unaffected",
+    );
 
   const byEntity = new Map<string, GuideRef[]>();
   for (const r of refs) {
