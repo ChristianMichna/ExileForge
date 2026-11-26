@@ -301,6 +301,7 @@ describe("with the simulator", () => {
       "add_mod_to_rare",
       "remove_random_mod",
       "convert_to_normal",
+      "transmute_to_rare",
     ];
     const t = tables();
     t.BaseItemTypes = keys.map((k) => ({ Id: `Test/${k}`, Name: k, ItemClass: 0, DropLevel: 1 }));
@@ -350,6 +351,13 @@ describe("with the simulator", () => {
     );
     expect(ok.successChance.status).toBe("ok");
     if (ok.successChance.status === "ok") expect(ok.successChance.value).toBe(1);
+    const alch = simulate(request("magic", ["transmute_to_rare"]), { catalog, config: simConfig });
+    expect(alch.successChance.status).toBe("ok");
+    const alchFull = simulate(
+      request("normal", ["transmute_to_rare", "add_mod_to_rare", "add_mod_to_rare"]),
+      { catalog, config: simConfig },
+    );
+    expect(alchFull.outcomes?.blocked).toBe(0); // 4 + 2 mods fit into 3 prefixes and 3 suffixes
     // an exalted orb on a magic item is blocked by its rarity precondition
     const blocked = simulate(request("magic", ["add_mod_to_rare"]), { catalog, config: simConfig });
     expect(blocked.outcomes?.blocked).toBe(blocked.runs);

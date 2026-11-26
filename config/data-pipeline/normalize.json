@@ -72,7 +72,7 @@
     }
   },
   "currencyActions": {
-    "$comment": "Crafting actions from CurrencyItems rows (game data read in CI). A currency becomes an action only when its Action key has a rule here AND the game's description (markup removed) matches the rule's pattern; otherwise it is left out with a finding. Rules compose ops of packages/crafting-sim; limitsForRarity is replaced by the release's affix limits (releaseFacts.rarities). The descriptions printed by the CI probe of 2026-11-26 are the evidence for each rule. Not modelled (left out, listed in the findings): higher tiers of a currency (minimum mod level), currencies whose text does not state the count of new modifiers (Orb of Alteration), Orb of Alchemy (works on two rarities with a fixed count; item state needs a rule the simulator lacks), and everything that is not a modifier change. Known gaps (not in the descriptions, so not added from memory): Annulment and Scouring state no rarity and therefore also act on unique items; no rule forbids a flag such as corrupted; affix limits are per rarity only (PoB gives rare jewels 4 and some items own limits); PoB's relic rarity is not listed.",
+    "$comment": "Crafting actions from CurrencyItems rows (game data read in CI). A currency becomes an action only when its Action key has a rule here AND the game's description (markup removed) matches the rule's pattern; otherwise it is left out with a finding. Rules compose ops of packages/crafting-sim; limitsForRarity is replaced by the release's affix limits (releaseFacts.rarities). The descriptions printed by the CI probe of 2026-11-26 are the evidence for each rule. Not modelled (left out, listed in the findings): higher tiers of a currency (minimum mod level), currencies whose text does not state the count of new modifiers (Orb of Alteration), and everything that is not a modifier change. Known gaps (not in the descriptions, so not added from memory): Annulment and Scouring state no rarity and therefore also act on unique items; no rule forbids a flag such as corrupted; affix limits are per rarity only (PoB gives rare jewels 4 and some items own limits); PoB's relic rarity is not listed.",
     "kind": "currency",
     "rules": {
       "transmute_to_magic": {
@@ -229,6 +229,40 @@
             "op": "set-rarity",
             "params": {
               "rarity": "normal"
+            }
+          }
+        ]
+      },
+      "transmute_to_rare": {
+        "description": "^Upgrades a Normal or Magic item to a Rare item with 4 random modifiers$",
+        "preconditions": [
+          {
+            "op": "require-rarity",
+            "params": {
+              "rarities": ["normal", "magic"]
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "clear-mods",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"]
+            }
+          },
+          {
+            "op": "set-rarity",
+            "params": {
+              "rarity": "rare"
+            }
+          },
+          {
+            "op": "add-random-mod",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"],
+              "domain": "Item",
+              "count": 4,
+              "limitsForRarity": "rare"
             }
           }
         ]
