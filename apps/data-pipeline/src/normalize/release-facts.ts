@@ -298,5 +298,13 @@ export async function buildReleaseFacts(opts: {
       weaponSetByAct: { acts, origin: "pob-data" },
     };
   }
+  if (facts.passivePoints?.ascendancy !== undefined) {
+    findings.push({
+      kind: "release",
+      id: "ascendancyByAct",
+      message:
+        "ascendancy points are only known in total (PoB code); when they are granted is not read: PoB's data has no such field, and the game column AscendancyPointsRewarded (table QuestStaticRewards, linked to Quest for the act) has no name in the community dat schema, so the dat tool cannot export it",
+    });
+  }
   return { facts, findings, errors };
 }
