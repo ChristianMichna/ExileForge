@@ -95,6 +95,12 @@ jobs:
               e.n++; if (e.names.length < 3) e.names.push(bases[r.BaseItemType]?.Name);
               seen.set(d, e);
             }
+            const strip = (x) => String(x ?? "").replace(/\\[([^\\]|]*)\\|([^\\]]*)\\]/g, "$2").replace(/\\[([^\\]]*)\\]/g, "$1");
+            const cur = read("CurrencyItems");
+            for (const t of read("TieredCurrency")) {
+              const c = cur.find((r) => r.BaseItemType === t.BaseItemType);
+              console.log("TIER " + JSON.stringify({ name: bases[t.BaseItemType]?.Name, Tier: t.Tier, Min: t.MinimumModLevel, Lower: t.LowerTierBaseItemType, Action: c?.Action, desc: strip(c?.Description) }));
+            }
             for (const [d, e] of seen) console.log("ESSDESC x" + e.n + " " + JSON.stringify(e.names) + " " + JSON.stringify(d));
           ' | tee -a "$GITHUB_STEP_SUMMARY"
 
