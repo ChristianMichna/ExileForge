@@ -3255,6 +3255,10 @@
             "minLength": 1,
             "maxLength": 64
           },
+          "tier": {
+            "type": "string",
+            "minLength": 1
+          },
           "slot": {
             "type": "string",
             "minLength": 1
