@@ -249,7 +249,9 @@ async function main(): Promise<void> {
 
   const extensionDir = await mkdtemp(join(tmpdir(), "astrolabe-mcpb-"));
   const manifest = await step("Unpack the extension and read its manifest", async () => {
-    const run = spawnSync("tar", ["-xf", join(resources, "astrolabe.mcpb"), "-C", extensionDir], {
+    // Windows' own bsdtar; the GNU tar of Git for Windows reads "C:" as a remote host.
+    const tar = join(env("SystemRoot"), "System32", "tar.exe");
+    const run = spawnSync(tar, ["-xf", join(resources, "astrolabe.mcpb"), "-C", extensionDir], {
       encoding: "utf8",
     });
     if (run.status !== 0) throw new Error(`cannot unpack astrolabe.mcpb: ${run.stderr}`);
