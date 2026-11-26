@@ -25,7 +25,7 @@ const view = {
       budgetTier: "tier-a",
       slot: "FixtureSlot",
       target: {
-        rarityName: "Unique",
+        kind: "unique",
         name: "Fixture Unique Name",
         baseName: "Fixture Base",
         itemClass: "fixture_class",
@@ -140,6 +140,39 @@ describe("guide page", () => {
     expect(screen.getByText("Implicit text")).toBeTruthy();
     expect(screen.getByText("Unique line")).toBeTruthy();
     expect(screen.getByText(/Unknown modifier \(Fixture\/NoText\)/)).toBeTruthy();
+  });
+
+  it("shows no gear for a guide of older game data and points to revalidation", async () => {
+    vi.stubGlobal("fetch", () =>
+      json({
+        ...view,
+        current: false,
+        catalogReleaseId: "poe2-9.9.9+r9",
+        names: {},
+        gear: [{ ...view.gear[0], target: null, alternatives: [null] }],
+      }),
+    );
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText(/Revalidate this guide to see its gear/)).toBeTruthy();
+    expect(screen.queryByText(/not in the game data/)).toBeNull();
+  });
+
+  it("says so when the release does not know the rarity of a crafted item", async () => {
+    const crafted = {
+      kind: "crafted",
+      rarityId: "odd_rarity",
+      baseName: "Crafted Base",
+      itemClass: "fixture_class",
+      implicits: [],
+      explicits: [],
+    };
+    vi.stubGlobal("fetch", () =>
+      json({ ...view, gear: [{ ...view.gear[0], target: crafted, alternatives: [] }] }),
+    );
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText(/does not know the rarity \(odd_rarity\)/)).toBeTruthy();
   });
 
   it("says when the guide was built with older game data", async () => {

@@ -28,8 +28,6 @@ function collectCalcIds(guide: unknown): string[] {
   return [...found];
 }
 
-const UNIQUE_RARITY = "Unique";
-
 /** The item as the catalog describes it, or null where the catalog lacks it (listed in `unresolved`). */
 function itemCard(
   spec: ItemSpec,
@@ -67,7 +65,7 @@ function itemCard(
         m.variantIds.includes(spec.variantId),
     );
     return {
-      rarityName: UNIQUE_RARITY,
+      kind: "unique",
       name: unique.name,
       baseName: base.name,
       itemClass: base.itemClass,
@@ -83,7 +81,9 @@ function itemCard(
   const rarity = catalog.release?.rarities?.rarities.find((r) => r.id === spec.rarity);
   if (rarity === undefined) unresolved.add(`rarity:${spec.rarity}`);
   return {
-    rarityName: rarity?.name ?? spec.rarity,
+    kind: "crafted",
+    rarityId: spec.rarity,
+    ...(rarity === undefined ? {} : { rarityName: rarity.name }),
     baseName: base.name,
     itemClass: base.itemClass,
     implicits: base.implicitModIds.map((id) => line(id)),

@@ -21,8 +21,11 @@ export type GuideItemLine = z.infer<typeof GuideItemLine>;
  * catalog the server runs with, never from the guide text.
  */
 export const GuideItemCard = z.object({
-  /** Rarity name from the release (crafted items) or "Unique". */
-  rarityName: z.string().min(1),
+  kind: z.enum(["unique", "crafted"]),
+  /** Rarity id of a crafted item as the guide gives it; absent for a unique. */
+  rarityId: ClassificationId.optional(),
+  /** Display name of that rarity from the release; absent when the release does not know the id. */
+  rarityName: z.string().min(1).optional(),
   /** Unique item name; absent for crafted items. */
   name: z.string().min(1).optional(),
   baseName: z.string().min(1),

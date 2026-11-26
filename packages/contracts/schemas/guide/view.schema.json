@@ -6909,6 +6909,19 @@
               {
                 "type": "object",
                 "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "unique",
+                      "crafted"
+                    ]
+                  },
+                  "rarityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Classification id defined by the data release (not a fixed enum)"
+                  },
                   "rarityName": {
                     "type": "string",
                     "minLength": 1
@@ -6983,7 +6996,7 @@
                   }
                 },
                 "required": [
-                  "rarityName",
+                  "kind",
                   "baseName",
                   "itemClass",
                   "implicits",
@@ -7000,6 +7013,19 @@
               {
                 "type": "object",
                 "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "unique",
+                      "crafted"
+                    ]
+                  },
+                  "rarityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Classification id defined by the data release (not a fixed enum)"
+                  },
                   "rarityName": {
                     "type": "string",
                     "minLength": 1
@@ -7074,7 +7100,7 @@
                   }
                 },
                 "required": [
-                  "rarityName",
+                  "kind",
                   "baseName",
                   "itemClass",
                   "implicits",
@@ -7093,6 +7119,19 @@
                 {
                   "type": "object",
                   "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "unique",
+                        "crafted"
+                      ]
+                    },
+                    "rarityId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    },
                     "rarityName": {
                       "type": "string",
                       "minLength": 1
@@ -7167,7 +7206,7 @@
                     }
                   },
                   "required": [
-                    "rarityName",
+                    "kind",
                     "baseName",
                     "itemClass",
                     "implicits",

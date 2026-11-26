@@ -11,7 +11,7 @@ const view = {
       budgetTier: "tier-a",
       slot: "FixtureSlot",
       target: {
-        rarityName: "Unique",
+        kind: "unique",
         name: "Fixture Unique Name",
         baseName: "Fixture Base",
         itemClass: "fixture_class",
