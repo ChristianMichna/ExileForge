@@ -286,7 +286,9 @@ automatisch nach einem Patch.
 - `GET /api/guides/:guideId/view` liefert `GuideView` der Verträge: den Guide, die Anzeigenamen
   aller Katalog-Referenzen (`names`, Schlüssel `<kind>:<id>`, gesammelt mit `collectGuideRefs`), die
   gespeicherten Rechenergebnisse aller `calcId` im Guide (`results`) und was nicht aufgelöst
-  werden konnte (`unresolved`). Nichts wird ersetzt oder geschätzt. Gehört der Guide zu einem
+  werden konnte (`unresolved`). Nichts wird ersetzt oder geschätzt; nur Mods haben im Katalog
+  keinen Namen, ihr Text (Zeilen mit „; " verbunden) dient als Name, und ein leerer Text bleibt
+  in `unresolved`. Gehört der Guide zu einem
   anderen Daten-Release als dem geladenen (`current: false`), werden keine Namen aufgelöst; die
   Ergebnisse bleiben, ungültige gespeicherte Ergebnisse stehen als `calc:<id>` in `unresolved`.
   Die Antwort enthält je eindeutiger `calcId` ein vollständiges `CalcResult` (einige hundert KB
