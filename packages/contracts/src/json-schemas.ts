@@ -4,7 +4,7 @@ import { CalcResult } from "./calc/result.js";
 import { CalcMethods } from "./calc/rpc.js";
 import { BuildRequest } from "./build/request.js";
 import { GuideDocument } from "./guide/document.js";
-import { PatchStatus } from "./guide/patch-status.js";
+import { GuideTools, PatchStatus } from "./guide/patch-status.js";
 import { ForgeTools } from "./forge/tools.js";
 import { EconomyTools, PriceBook } from "./economy/price.js";
 import { CraftTools } from "./craft/sim.js";
@@ -35,6 +35,12 @@ export const jsonSchemas: Readonly<Record<string, z.ZodType>> = {
     Object.entries(EconomyTools).flatMap(([name, t]) => [
       [`economy/${name}.input`, t.input],
       [`economy/${name}.output`, t.output],
+    ]),
+  ),
+  ...Object.fromEntries(
+    Object.entries(GuideTools).flatMap(([name, t]) => [
+      [`guide/${name}.input`, t.input],
+      [`guide/${name}.output`, t.output],
     ]),
   ),
   ...Object.fromEntries(

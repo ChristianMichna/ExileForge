@@ -145,3 +145,21 @@ export const PatchStatus = z
     });
   });
 export type PatchStatus = z.infer<typeof PatchStatus>;
+
+/**
+ * MCP tool of F-19. Only ids go in: the server looks the guide up in its own store and the
+ * releases in its own data directory, so no path ever comes from a client.
+ */
+export const GuideTools = {
+  "guide.revalidate": {
+    description:
+      "Checks a stored guide against a newer data release: which catalog references were removed or changed, which stages they affect, and whether the guide needs a recalculation. Never answers 'unaffected' when a diff of the release chain is missing; that is an error.",
+    input: z.object({
+      guideId: z.uuid(),
+      /** A release newer than the one the guide was built with. */
+      toReleaseId: DataReleaseId,
+    }),
+    output: PatchStatus,
+  },
+} as const;
+export type GuideToolName = keyof typeof GuideTools;
