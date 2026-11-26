@@ -506,7 +506,7 @@ function compileAction(
         const candidates = poolFor(catalog.mods(), r.params, start.itemLevel, baseTags);
         if (candidates.length === 0) {
           problems.push(
-            `${where}: no mod with a spawn weight for base ${start.baseItemId} in domain ${r.params.domain} at item level ${start.itemLevel}`,
+            `${where}: no mod with a spawn weight for base ${start.baseItemId} in domain ${r.params.domain} at item level ${start.itemLevel}${r.params.minModLevel === undefined ? "" : ` and minimum mod level ${r.params.minModLevel}`}`,
           );
           break;
         }

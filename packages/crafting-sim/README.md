@@ -39,7 +39,10 @@ gelisteten Generierungstyp haben, deren Mindestlevel ≤ Item-Level ist und dere
 Gewicht > 0 ist. **Annahme (gegen echte Release-Daten zu prüfen):** Das Gewicht
 ist der erste `spawnWeights`-Eintrag, dessen Tag auf der Basis liegt. Mods einer
 bereits vorhandenen Gruppe und volle Generierungstypen sind ausgeschlossen. Mit `minModLevel`
-(höhere Währungsstufen) zählen nur Mods mit mindestens diesem Mindestlevel.
+(höhere Währungsstufen) zählen nur Mods mit mindestens diesem Mindestlevel. **Annahme (gegen
+echte Release-Daten zu prüfen):** `TieredCurrency.MinimumModLevel` ist dieser Mindestlevel aller
+hinzugefügten Mods; belegt ist nur der Spaltenname, die Beschreibungen der Stufen sind gleich.
+Unbekannte Parameter eines `add-random-mod` lassen die Aktion scheitern statt zu verschwinden.
 
 `add-specific-mod` (z. B. für Essenzen) setzt den Mod, den die Release je
 Item-Klasse der Basis nennt: `params: { modByItemClass: { <Item-Klasse>: <Mod-ID> }, limits? }`.
