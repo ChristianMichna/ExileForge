@@ -106,7 +106,7 @@
     "minProgressionStages": 2,
     "minGearTiers": 1,
     "requiredCalcProfiles": ["mapping"],
-    "acceptedUnsupportedMods": [],
+    "acceptedUnsupportedModPatterns": ["^Used when "],
     "maxReturnsPerStage": 2
   },
   "s11": {
