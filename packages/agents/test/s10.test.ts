@@ -265,7 +265,11 @@ describe("S10 measured gates", () => {
   it("flags an attribute below the requirement of an item or gem (G3)", async () => {
     expect(await run({ ...good, A: 70 })).toContain("G3:attribute_requirement_unmet");
     expect(await run(good)).not.toContain("G3:attribute_requirement_unmet");
-    expect(await run({ ...good, ReqA: undefined as never })).toContain("G3:stat_missing");
+    // PoB leaves the requirement out when nothing asks for the attribute: no requirement.
+    expect(await run({ ...good, ReqA: undefined as never })).not.toContain(
+      "G3:attribute_requirement_unmet",
+    );
+    expect(await run({ ...good, A: undefined as never })).toContain("G3:stat_missing");
   });
 
   it("checks the allocated passives against the stage table, as S6 resolves it (G3)", async () => {
