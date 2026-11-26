@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { StageConfig } from "../src/config.js";
+import { StageConfig } from "../src/config.js";
 import type { PipelineContext } from "../src/pipeline.js";
 import {
   CRITIC_SECTIONS,
@@ -680,6 +680,66 @@ describe("S10 measured gates", () => {
     expect(await run(undefined)).toContain("G4:stats_unavailable");
     const foreign = await runGates(withStats(good, "pinnacle"), stageAt(90), cfg as never);
     expect(foreign.flatMap((g) => g.findings.map((f) => f.code))).toContain("stats_unavailable");
+  });
+
+  describe("derived thresholds", () => {
+    const derivedCfg = { ...cfg, thresholds: [], derived: { minRatioToPrevious: 0.8 } };
+    const two = (second: Record<string, number>, first: Record<string, number> = good) => {
+      const byId: Record<string, Record<string, number>> = { c1: first, c2: second };
+      const c = {
+        ...(ctx() as object),
+        run: { request: { calcOverrides: {} } },
+        calc: {
+          calculate: () => Promise.resolve({ mapping: { status: "ok", calcId: "c" } }),
+          getResult: (id: string) =>
+            Promise.resolve({ calcProfile: "mapping", stats: byId[id] ?? good }),
+        },
+      } as never as PipelineContext;
+      const d = draft({
+        progression: {
+          stages: [
+            stage({ key: "one", kind: "campaign", state: { ...STATE, level: 10 } }),
+            stage({
+              key: "two",
+              kind: "campaign",
+              state: { ...STATE, level: 20 },
+              calcs: { mapping: { status: "ok", calcId: "c2" } },
+            }),
+          ],
+        },
+      });
+      return runGates(c, d, derivedCfg as never);
+    };
+    const codes = async (second: Record<string, number>, first?: Record<string, number>) =>
+      (await two(second, first)).flatMap((g) => g.findings.map((f) => `${g.gate}:${f.code}`));
+
+    it("passes a stage that keeps its share of the previous one and warns of nothing uncalibrated", async () => {
+      const found = await codes({ ...good, Ehp: 450, Dps: 4100 });
+      expect(found).not.toContain("G4:ehp_below_minimum");
+      expect(found).not.toContain("G5:dps_below_minimum");
+      expect(found).not.toContain("G4:thresholds_uncalibrated");
+      const gates = await two(good);
+      expect(gates.find((g) => g.gate === "G4")?.passed).toBe(true);
+      expect(gates.find((g) => g.gate === "G5")?.passed).toBe(true);
+    });
+
+    it("flags a stage that falls below the allowed share of the previous stage", async () => {
+      expect(await codes({ ...good, Ehp: 399 })).toContain("G4:ehp_below_minimum");
+      expect(await codes({ ...good, Dps: 3999 })).toContain("G5:dps_below_minimum");
+    });
+
+    it("requires the first stage to have any EHP and damage", async () => {
+      const found = await codes(good, { ...good, Ehp: 0, Dps: 0 });
+      expect(found).toEqual(
+        expect.arrayContaining(["G4:ehp_below_minimum", "G5:dps_below_minimum"]),
+      );
+    });
+
+    it("rejects a config with both derived and fixed thresholds", () => {
+      expect(
+        StageConfig.shape.s10.safeParse({ ...cfg, derived: { minRatioToPrevious: 0.8 } }).success,
+      ).toBe(false);
+    });
   });
 
   it("does not pass G4 or G5 without configured thresholds", async () => {

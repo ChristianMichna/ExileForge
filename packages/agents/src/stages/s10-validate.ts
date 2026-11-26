@@ -563,8 +563,11 @@ async function measuredGates(
     cfg.thresholds
       .filter((t) => t.fromLevel <= level && t[field] !== undefined)
       .sort((a, b) => b.fromLevel - a.fromLevel)[0]?.[field];
-  const ehpSet = cfg.thresholds.some((t) => t.minEhp !== undefined);
-  const dpsSet = cfg.thresholds.some((t) => t.minDps !== undefined);
+  const derived = cfg.derived;
+  const ehpSet = derived !== undefined || cfg.thresholds.some((t) => t.minEhp !== undefined);
+  const dpsSet = derived !== undefined || cfg.thresholds.some((t) => t.minDps !== undefined);
+  /** Derived thresholds: the last measured value of each stat in progression order. */
+  const previous: { minEhp?: number; minDps?: number } = {};
   const table = stageTableOf(stageTable, ctx.catalog.release);
   if (typeof table === "string") g3.push(finding("G3", "points_unknown", table));
   // The target build carries the ascendancy nodes (S5); the stages only order the main tree.
@@ -771,6 +774,31 @@ async function measuredGates(
       ["G5", g5, cfg.stats.dps, "minDps", "dps_below_minimum"],
     ] as const) {
       if (field === "minEhp" ? !ehpSet : !dpsSet) continue;
+      const value = stats[statName];
+      if (derived !== undefined) {
+        // Measured, not configured: the stage keeps a share of the one before; the first has any.
+        if (value === undefined) {
+          list.push(missing(gate, statName));
+          continue;
+        }
+        const before = previous[field];
+        const lowest = before === undefined ? 0 : before * derived.minRatioToPrevious;
+        if (before === undefined ? value <= 0 : value < lowest) {
+          list.push(
+            finding(
+              gate,
+              code,
+              before === undefined
+                ? `Stage ${stage.key} has none of the measured ${statName}.`
+                : `Stage ${stage.key} falls below the allowed share of the previous stage's ${statName}.`,
+              path,
+              returnTo,
+            ),
+          );
+        }
+        previous[field] = value;
+        continue;
+      }
       const min = limit(stage.state.level, field);
       if (min === undefined) {
         list.push(
@@ -783,7 +811,6 @@ async function measuredGates(
         );
         continue;
       }
-      const value = stats[statName];
       if (value === undefined) list.push(missing(gate, statName));
       else if (value < min) {
         list.push(
@@ -798,7 +825,7 @@ async function measuredGates(
       }
     }
   }
-  if (!cfg.thresholdsCalibrated) {
+  if (derived === undefined && !cfg.thresholdsCalibrated) {
     // the numbers are starting values, not a product decision: the report must say so
     if (ehpSet) {
       g4.push(
