@@ -3,12 +3,14 @@ import type { ProgressionStage } from "@astrolabe/contracts/build";
 type Skill = ProgressionStage["state"]["skills"][number];
 
 export interface GemChange {
-  readonly kind: "new" | "removed" | "level" | "supports";
+  readonly kind: "new" | "removed" | "level" | "supports" | "swap";
   readonly skillKey: string;
   /** Catalog gem ids involved: the skill gem first, then supports that were added or removed. */
   readonly gemId: string;
   readonly added: readonly string[];
   readonly dropped: readonly string[];
+  /** For a swap: the gem the skill had before (same skill key). */
+  readonly fromGemId?: string;
   readonly from?: number;
   readonly to?: number;
 }
@@ -34,11 +36,21 @@ export function gemChanges(
       });
       continue;
     }
+    const swapped = old.gem.gemId !== skill.gem.gemId;
     const oldSupports = old.supports.map((s) => s.gemId);
     const supports = skill.supports.map((s) => s.gemId);
     const added = supports.filter((id) => !oldSupports.includes(id));
     const dropped = oldSupports.filter((id) => !supports.includes(id));
-    if (old.gem.gemId !== skill.gem.gemId || added.length > 0 || dropped.length > 0) {
+    if (swapped) {
+      changes.push({
+        kind: "swap",
+        skillKey: skill.key,
+        gemId: skill.gem.gemId,
+        fromGemId: old.gem.gemId,
+        added,
+        dropped,
+      });
+    } else if (added.length > 0 || dropped.length > 0) {
       changes.push({
         kind: "supports",
         skillKey: skill.key,
@@ -47,7 +59,8 @@ export function gemChanges(
         dropped,
       });
     }
-    if (old.gem.level !== skill.gem.level) {
+    // The level of two different gems is not comparable, so a swap reports no level change.
+    if (!swapped && old.gem.level !== skill.gem.level) {
       changes.push({
         kind: "level",
         skillKey: skill.key,

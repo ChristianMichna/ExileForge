@@ -40,4 +40,13 @@ describe("gemChanges", () => {
     const same = stage([{ key: "main", gem: gem("A"), supports: [gem("S1")] }]);
     expect(gemChanges(same, same)).toEqual([]);
   });
+
+  it("reports a swapped skill gem under the same key as a swap, not as a level change", () => {
+    const before = stage([{ key: "main", gem: gem("Old", 18), supports: [gem("S1")] }]);
+    const after = stage([{ key: "main", gem: gem("New", 1), supports: [gem("S1")] }]);
+    const changes = gemChanges(before, after);
+    expect(changes).toEqual([
+      expect.objectContaining({ kind: "swap", gemId: "New", fromGemId: "Old" }),
+    ]);
+  });
 });

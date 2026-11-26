@@ -7,7 +7,13 @@ import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
 import { TreeSection } from "./GuideTree";
 import { StageNumbers } from "./StageNumbers";
-import { AtlasSection, FaqSection, PlaystyleSection, VariantsSection } from "./GuideText";
+import {
+  AtlasSection,
+  EntityName,
+  FaqSection,
+  PlaystyleSection,
+  VariantsSection,
+} from "./GuideText";
 import { gemChanges } from "../guide/gem-changes";
 import { loadGuideList, loadGuideView } from "../api/guides";
 import { RichTextView, nameOf } from "../guide/RichTextView";
@@ -200,7 +206,14 @@ function GemChangeList({
 }) {
   const changes = gemChanges(previous, stage);
   if (previous === undefined || changes.length === 0) return null;
-  const gem = (id: string) => nameOf(view, { kind: "gem", id }) ?? id;
+  const gem = (id: string) => <EntityName view={view} entity={{ kind: "gem", id }} />;
+  const gems = (ids: readonly string[]) =>
+    ids.map((id, i) => (
+      <span key={`${id}-${i}`}>
+        {i > 0 ? ", " : ""}
+        {gem(id)}
+      </span>
+    ));
   return (
     <>
       <h3>Changes since {previous.label}</h3>
@@ -209,25 +222,33 @@ function GemChangeList({
           <li key={i}>
             {c.kind === "new" ? (
               <>
-                New skill <strong>{gem(c.gemId)}</strong>
-                {c.added.length > 0 ? ` with ${c.added.map(gem).join(", ")}` : ""}
+                New skill {gem(c.gemId)}
+                {c.added.length > 0 ? <> with {gems(c.added)}</> : null}
               </>
             ) : null}
             {c.kind === "removed" ? (
               <>
-                Drop <strong>{gem(c.gemId)}</strong>
+                Drop {gem(c.gemId)}
+                {c.dropped.length > 0 ? <> (with {gems(c.dropped)})</> : null}
               </>
             ) : null}
             {c.kind === "level" ? (
               <>
-                <strong>{gem(c.gemId)}</strong>: level {c.from} → {c.to}
+                {gem(c.gemId)}: level {c.from} → {c.to}
+              </>
+            ) : null}
+            {c.kind === "swap" && c.fromGemId !== undefined ? (
+              <>
+                Swap {gem(c.fromGemId)} for {gem(c.gemId)}
+                {c.added.length > 0 ? <>; add {gems(c.added)}</> : null}
+                {c.dropped.length > 0 ? <>; drop {gems(c.dropped)}</> : null}
               </>
             ) : null}
             {c.kind === "supports" ? (
               <>
-                <strong>{gem(c.gemId)}</strong>
-                {c.added.length > 0 ? `: add ${c.added.map(gem).join(", ")}` : ""}
-                {c.dropped.length > 0 ? `; drop ${c.dropped.map(gem).join(", ")}` : ""}
+                {gem(c.gemId)}
+                {c.added.length > 0 ? <>: add {gems(c.added)}</> : null}
+                {c.dropped.length > 0 ? <>; drop {gems(c.dropped)}</> : null}
               </>
             ) : null}
           </li>

@@ -355,7 +355,7 @@ describe("guide page", () => {
     render(<App />);
     expect(await screen.findByText("Fixture rotation")).toBeTruthy();
     expect(screen.getAllByText("Fixture atlas").length).toBeGreaterThan(0);
-    expect(screen.getByText("Fixture/BadMod")).toBeTruthy();
+    expect(screen.getByText("Fixture/BadMod").className).toContain("guide-unresolved");
     expect(screen.getByText("Fixture q")).toBeTruthy();
     expect(screen.getByText("Solo self-found")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: /Second stage/ }));

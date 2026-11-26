@@ -15,7 +15,7 @@ const VARIANT_LABEL = {
   ssf: "Solo self-found",
 } as const;
 
-function EntityName({ view, entity }: { view: GuideView; entity: EntityRef }) {
+export function EntityName({ view, entity }: { view: GuideView; entity: EntityRef }) {
   const name = nameOf(view, entity);
   return name === undefined ? (
     <span className="guide-unresolved" title="Not in the catalog of this release">
@@ -88,8 +88,8 @@ export function AtlasSection({ view }: { view: GuideView }) {
         <>
           <h3>Map modifiers to avoid</h3>
           <ul>
-            {atlas.avoidMods.map((m) => (
-              <li key={m.modId}>
+            {atlas.avoidMods.map((m, i) => (
+              <li key={`${m.modId}-${i}`}>
                 <EntityName view={view} entity={{ kind: "mod", id: m.modId }} />:{" "}
                 <RichTextView text={m.reason} view={view} />
               </li>
@@ -117,7 +117,7 @@ export function VariantsSection({ view }: { view: GuideView }) {
               </>
             )}
             {v.with.map((w, j) => (
-              <span key={`${w.kind}:${w.id}`}>
+              <span key={`${w.kind}:${w.id}:${j}`}>
                 {j > 0 ? ", " : ""}
                 <EntityName view={view} entity={w} />
               </span>

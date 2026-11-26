@@ -613,3 +613,13 @@ code {
   color: var(--ef-color-text-muted);
   margin: var(--ef-space-3) 0 0;
 }
+
+.guide-variants {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.guide-faq summary {
+  cursor: pointer;
+}
