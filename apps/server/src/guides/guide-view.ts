@@ -1,5 +1,5 @@
 import { CalcResult } from "@astrolabe/contracts/calc";
-import { CalcId } from "@astrolabe/contracts/common";
+import { CalcId, type EntityKind } from "@astrolabe/contracts/common";
 import { BaseItem, Mod, UniqueItem } from "@astrolabe/contracts/catalog";
 import type { ItemSpec } from "@astrolabe/contracts/build";
 import type {
@@ -114,6 +114,24 @@ function gearEntries(
 }
 
 /**
+ * The display name of a referenced entity. A mod has no name in the catalog; its rendered text
+ * (lines joined with "; ") stands in for it, so a mod id in a guide reads like the game shows it.
+ */
+export function refName(catalog: CatalogPort, kind: EntityKind, id: string): string | undefined {
+  const entry = catalog.get({ kind, id });
+  if (entry === undefined) return undefined;
+  if (entry.name !== undefined) return entry.name;
+  if (kind !== "mod") return undefined;
+  const mod = Mod.safeParse(entry.entity);
+  if (!mod.success || mod.data.text === undefined) return undefined;
+  const lines = mod.data.text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l !== "");
+  return lines.length === 0 ? undefined : lines.join("; ");
+}
+
+/**
  * The guide with the names of the entities it refers to and the stored results behind its
  * numbers. A name or result that is not available stays absent and is listed in `unresolved`.
  * A guide of another data release gets no names at all (an id can mean something else there);
@@ -130,7 +148,7 @@ export async function buildGuideView(
   for (const ref of collectGuideRefs(guide)) {
     const key = `${ref.kind}:${ref.id}`;
     if (key in names || unresolved.has(key)) continue;
-    const name = current ? catalog.get({ kind: ref.kind, id: ref.id })?.name : undefined;
+    const name = current ? refName(catalog, ref.kind, ref.id) : undefined;
     if (name === undefined) unresolved.add(key);
     else names[key] = name;
   }
