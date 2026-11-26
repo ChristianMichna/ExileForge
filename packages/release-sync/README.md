@@ -22,3 +22,6 @@ schützt deshalb vor beschädigten, nicht vor manipulierten Downloads; eine Sign
 Beim Entpacken zählen `maxUnpackedBytes`, `maxEntries` und `maxDecompressionRatio` schon vor dem Schreiben.
 `removeLeftovers(dir, minAgeMs)` löscht nur Reste, die älter sind als `minAgeMs`. Die Release-Liste liest nur die
 erste Seite (100 Einträge) der GitHub-API.
+`removeLeftovers` richtet sich nach dem Änderungszeitpunkt des Ordners; `minAgeMs` sollte deshalb deutlich länger sein
+als die längste Installation (Stunden). `allowedRedirectHosts` wird für jede Antwort geprüft, `github.com` gehört also
+in die Liste; das übergebene `fetch` muss `response.url` setzen (Node-`fetch` und Electron-`net.fetch` tun das).

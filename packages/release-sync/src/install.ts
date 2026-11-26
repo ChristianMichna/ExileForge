@@ -339,7 +339,16 @@ export async function removeLeftovers(releasesDir: string, minAgeMs: number): Pr
   let removed = 0;
   for (const name of names.filter((n) => n.startsWith(".installing-"))) {
     const dir = join(releasesDir, name);
-    if (Date.now() - (await stat(dir)).mtimeMs < minAgeMs) continue;
+    let mtimeMs: number;
+    try {
+      mtimeMs = (await stat(dir)).mtimeMs;
+    } catch (error) {
+      // an install that finished in the meantime removed its folder itself
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+      throw new ReleaseInstallError(`Cannot inspect ${dir}`, { cause: error });
+    }
+    // file clocks can run slightly ahead of Date.now(); a negative age counts as just now
+    if (Math.max(0, Date.now() - mtimeMs) < minAgeMs) continue;
     await rm(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: RENAME_BACKOFF_MS });
     removed += 1;
   }
