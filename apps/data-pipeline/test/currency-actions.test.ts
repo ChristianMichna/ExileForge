@@ -396,7 +396,7 @@ describe("with the simulator", () => {
     CraftSimRequest.parse({
       dataReleaseId: "poe2-0.0.1+r1",
       start: { baseItemId: fxBase, itemLevel: 80, rarity, modIds, flags: [] },
-      strategy: { steps: [] },
+      strategy: { steps: [{ order: 0, actionIds: ["placeholder"], onFail: { action: "accept" } }] },
       goal: { clauses: [{ anyOfModIds: goal }] },
     });
   const withSteps = (req: CraftSimRequest, ids: string[]) =>
