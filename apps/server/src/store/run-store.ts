@@ -3,7 +3,8 @@ import { z } from "zod";
 import { CalcResult } from "@astrolabe/contracts/calc";
 import { RunEvent } from "@astrolabe/contracts/events";
 import { RunRecord } from "../engine/run-record.js";
-import { PatchCheckOutcome, type StoredPatchCheck } from "./patch-check.js";
+import type { Logger } from "../logger.js";
+import { GuidePatchCheck, PatchCheckOutcome } from "@astrolabe/contracts";
 
 /**
  * SQLite store for runs and their event log (node:sqlite, no native
@@ -12,7 +13,10 @@ import { PatchCheckOutcome, type StoredPatchCheck } from "./patch-check.js";
 export class RunStore {
   private readonly db: DatabaseSync;
 
-  constructor(path: string) {
+  constructor(
+    path: string,
+    private readonly logger?: Logger,
+  ) {
     this.db = new DatabaseSync(path);
     this.db.exec(`
       PRAGMA journal_mode = WAL;
@@ -102,22 +106,58 @@ export class RunStore {
       .run(guideId, toReleaseId, JSON.stringify(outcome), checkedAt);
   }
 
-  /** Stored revalidation outcomes against one release. */
-  listPatchChecks(toReleaseId: string): StoredPatchCheck[] {
-    return this.db
+  /**
+   * Stored revalidation outcomes against one release. A row that does not match the contract
+   * (damaged or written by another version) is logged and shown as an `internal` error for that
+   * guide, so one bad row neither hides the others nor passes as a verdict. A row whose guide
+   * id is not even a guide id cannot belong to any guide: it is logged and left out.
+   */
+  listPatchChecks(toReleaseId: string): GuidePatchCheck[] {
+    const checks: GuidePatchCheck[] = [];
+    const rows = this.db
       .prepare(
         "SELECT guide_id, outcome, checked_at FROM patch_checks WHERE to_release_id = ? ORDER BY guide_id",
       )
-      .all(toReleaseId)
-      .map((row) => ({
-        guideId: String(row["guide_id"]),
-        outcome: parseRow(
-          PatchCheckOutcome,
-          row["outcome"],
-          `patch check ${String(row["guide_id"])}`,
-        ),
-        checkedAt: String(row["checked_at"]),
-      }));
+      .all(toReleaseId);
+    for (const row of rows) {
+      const guideId = GuidePatchCheck.shape.guideId.safeParse(row["guide_id"]);
+      if (!guideId.success) {
+        this.logger?.error("a stored guide check has no valid guide id and is left out", {
+          error: guideId.error,
+          toReleaseId,
+        });
+        continue;
+      }
+      let raw: unknown;
+      let problem: unknown;
+      try {
+        raw = JSON.parse(String(row["outcome"]));
+      } catch (error) {
+        problem = error;
+      }
+      const outcome = PatchCheckOutcome.safeParse(raw);
+      const checkedAt = GuidePatchCheck.shape.checkedAt.safeParse(row["checked_at"]);
+      if (outcome.success && checkedAt.success) {
+        checks.push({ guideId: guideId.data, outcome: outcome.data, checkedAt: checkedAt.data });
+        continue;
+      }
+      this.logger?.error("a stored guide check does not match the contract", {
+        error: problem ?? (outcome.success ? checkedAt.error : outcome.error),
+        guideId: guideId.data,
+        toReleaseId,
+      });
+      checks.push({
+        guideId: guideId.data,
+        // The time of the damaged row is unknown if it is the damaged part: the epoch says so.
+        checkedAt: checkedAt.success ? checkedAt.data : new Date(0).toISOString(),
+        outcome: {
+          kind: "error",
+          code: "internal",
+          message: "The stored check result is damaged. The app log has details.",
+        },
+      });
+    }
+    return checks;
   }
 
   /** Saves the run and its new events in one transaction. */

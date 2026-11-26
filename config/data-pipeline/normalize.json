@@ -318,11 +318,15 @@
     ]
   },
   "releaseFacts": {
-    "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on. classifications: PoB lists them in its code, damage types as dmgTypeList (Modules/CalcPerform.lua, CalcDefence.lua) and defence layers as the resourceList entries with defence = true (Modules/CalcDefence.lua), v0.23.1; the release id is the snake-case name and must be a mod tag of the release. Known limit: PoB hard-codes level 100 / 99 points, so a different maxCharacterLevel in the game data would not be reflected by PoB. rarities: PoB lists the affix limits in its code (Classes/Item.lua, v0.23.1: affixLimit 2 for magic, 6 for rare, shared evenly between prefixes and suffixes when the item has no own limits); the rarity names are PoB's. Known limit: PoB gives jewels 4 affixes when rare, which this fact does not model. Normal and unique carry no affixes through crafting.",
+    "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on. ascendancy: Build.lua (EstimatePlayerProgress, v0.23.1) limits allocated ascendancy points to ascMax 8 and secondary ascendancy points to secondaryAscMax 8; PoB's Data/QuestRewards.lua has no ascendancy field, so there is no split per stage or act. classifications: PoB lists them in its code, damage types as dmgTypeList (Modules/CalcPerform.lua, CalcDefence.lua) and defence layers as the resourceList entries with defence = true (Modules/CalcDefence.lua), v0.23.1; the release id is the snake-case name and must be a mod tag of the release. Known limit: PoB hard-codes level 100 / 99 points, so a different maxCharacterLevel in the game data would not be reflected by PoB. rarities: PoB lists the affix limits in its code (Classes/Item.lua, v0.23.1: affixLimit 2 for magic, 6 for rare, shared evenly between prefixes and suffixes when the item has no own limits); the rarity names are PoB's. Known limit: PoB gives jewels 4 affixes when rare, which this fact does not model. Normal and unique carry no affixes through crafting.",
     "maxLevelTable": "ExperienceLevels",
     "mainTree": {
       "perLevel": 1,
       "fromLevel": 2
+    },
+    "ascendancy": {
+      "points": 8,
+      "secondaryPoints": 8
     },
     "classifications": {
       "damageTypes": ["Physical", "Lightning", "Cold", "Fire", "Chaos"],

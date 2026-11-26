@@ -294,6 +294,7 @@ export async function buildReleaseFacts(opts: {
   } else {
     facts.passivePoints = {
       mainTree: { ...config.mainTree, origin: "pob-code" },
+      ascendancy: { ...config.ascendancy, origin: "pob-code" },
       weaponSetByAct: { acts, origin: "pob-data" },
     };
   }

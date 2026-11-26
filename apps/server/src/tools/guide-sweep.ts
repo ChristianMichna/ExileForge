@@ -1,7 +1,13 @@
-import type { DataReleaseId } from "@astrolabe/contracts";
+import {
+  GuideRevalidateErrorCode,
+  type DataReleaseId,
+  type GuidePatchCheck,
+  type GuidePatchStatusView,
+  type PatchCheckOutcome,
+} from "@astrolabe/contracts";
+import { z } from "zod";
 import { ForgeError } from "../engine/errors.js";
 import type { Logger } from "../logger.js";
-import type { PatchCheckOutcome, StoredPatchCheck } from "../store/patch-check.js";
 import type { GuideRevalidatePort } from "./guide-revalidate.js";
 
 export interface GuideSweepDeps {
@@ -15,22 +21,14 @@ export interface GuideSweepDeps {
     outcome: PatchCheckOutcome,
     checkedAt: string,
   ) => void;
-  list: (toReleaseId: DataReleaseId) => StoredPatchCheck[];
+  list: (toReleaseId: DataReleaseId) => GuidePatchCheck[];
   /** The data release the server runs with; guides are checked against it. */
   currentReleaseId: DataReleaseId;
   now: () => Date;
   logger: Logger;
 }
 
-export interface GuideSweepView {
-  /** False when the check is switched off (no releases directory): an empty list then means "not checked". */
-  enabled: boolean;
-  releaseId: string;
-  running: boolean;
-  /** Set when the last sweep itself failed (not a single guide). */
-  error?: string;
-  guides: StoredPatchCheck[];
-}
+const GUIDE_ID = z.uuid();
 
 /**
  * F-19, automatic: after a new data release is installed, every stored guide
@@ -45,7 +43,7 @@ export class GuideSweeper {
 
   constructor(private readonly deps: GuideSweepDeps) {}
 
-  view(): GuideSweepView {
+  view(): GuidePatchStatusView {
     // Results of guides that no longer exist are not shown.
     const existing = new Set(this.deps.listGuideIds());
     return {
@@ -88,6 +86,11 @@ export class GuideSweeper {
       );
       for (const guideId of this.deps.listGuideIds()) {
         if (this.stopped) return;
+        if (!GUIDE_ID.safeParse(guideId).success) {
+          // A damaged run record: no guide this app could show or check.
+          this.deps.logger.error("a stored run carries a guide id that is not valid", { guideId });
+          continue;
+        }
         if (!force && have.has(guideId)) continue;
         await this.check(guideId);
       }
@@ -107,8 +110,10 @@ export class GuideSweeper {
       const status = await this.deps.revalidate({ guideId, toReleaseId });
       outcome = { kind: "status", status };
     } catch (error) {
-      if (error instanceof ForgeError) {
-        outcome = { kind: "error", code: error.code, message: error.message };
+      const known =
+        error instanceof ForgeError ? GuideRevalidateErrorCode.safeParse(error.code) : undefined;
+      if (error instanceof ForgeError && known?.success) {
+        outcome = { kind: "error", code: known.data, message: error.message };
       } else {
         this.deps.logger.error("guide revalidation failed", { error, guideId });
         outcome = {

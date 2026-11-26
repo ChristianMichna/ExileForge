@@ -285,4 +285,4 @@ automatisch nach einem Patch.
 - Beim Start werden Guides mit vorhandenem Ergebnis für dieses Release nicht erneut
   geprüft, Guides mit einem Fehler schon. Beim Beenden stoppt der Server die Prüfung
   nach dem laufenden Guide, bevor er die Datenbank schließt.
-- Die Antwortform ist noch nicht im Vertragspaket (Folge-PR, damit `apps/web` sie nutzt).
+- Die Antwortform ist `GuidePatchStatusView` aus `@astrolabe/contracts` (0.16.0). Eine gespeicherte Zeile, die nicht zum Vertrag passt, erscheint als `internal`-Fehler dieses Guides.
