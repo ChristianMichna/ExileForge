@@ -75,7 +75,8 @@ jobs:
           set -euo pipefail
           tag="$DATA_RELEASE_TAG"
           if [ -z "$tag" ]; then
-            tag=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName' | grep '^data-poe2-' | sort -V | tail -n1)
+            # every app release adds a release too: page through all of them, not the newest 100
+            tag=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name' | grep '^data-poe2-' | sort -V | tail -n1)
           fi
           test -n "$tag" || { echo "no data release found" >&2; exit 1; }
           echo "Bundled data release: $tag"
@@ -221,6 +222,8 @@ jobs:
         run: |
           set -euo pipefail
           ls -l release
+          # electron-updater reads latest.yml: it must name the version of this release
+          grep -q "^version: $VERSION\$" release/latest.yml || { echo "latest.yml does not say version $VERSION" >&2; cat release/latest.yml; exit 1; }
           # Not a pre-release: electron-updater only follows the latest full release (the data
           # releases are pre-releases and stay out of its way).
           gh release create "v$VERSION" release/* --repo "$GITHUB_REPOSITORY" \

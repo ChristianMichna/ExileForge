@@ -172,7 +172,9 @@ jobs:
             echo "tag $tag exists now; data releases are immutable" >&2
             exit 1
           fi
-          flags=()
+          # Never "latest": that slot belongs to the app installer (desktop.yml), which
+          # electron-updater reads from releases/latest.
+          flags=(--latest=false)
           if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
           gh release create "$tag" out/catalog-*.tar.gz out/catalog-*.sha256 \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Data release $id" \
