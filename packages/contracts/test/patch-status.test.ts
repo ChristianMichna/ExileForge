@@ -141,4 +141,20 @@ describe("GuidePatchStatusView", () => {
       true,
     );
   });
+  it("accepts the internal code and a sweep error, and rejects an empty one or a bad release id", () => {
+    const internal = {
+      ...view,
+      error: "The check stopped early.",
+      guides: [
+        {
+          guideId: base.guideId,
+          checkedAt: "2026-11-26T05:00:00Z",
+          outcome: { kind: "error", code: "internal", message: "The check failed." },
+        },
+      ],
+    };
+    expect(GuidePatchStatusView.safeParse(internal).success).toBe(true);
+    expect(GuidePatchStatusView.safeParse({ ...internal, error: "" }).success).toBe(false);
+    expect(GuidePatchStatusView.safeParse({ ...view, releaseId: "nope" }).success).toBe(false);
+  });
 });
