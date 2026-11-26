@@ -522,9 +522,10 @@ async function measuredGates(
     for (const { have, need } of cfg.stats.attributes) {
       const owned = stats[have];
       const required = stats[need];
+      // PoB sets the requirement stat only when some item or gem asks for more than zero of
+      // the attribute (CalcPerform.lua, "Req"..attr), so no value means no requirement.
       if (owned === undefined) g3.push(missing("G3", have));
-      else if (required === undefined) g3.push(missing("G3", need));
-      else if (required > owned) {
+      else if (required !== undefined && required > owned) {
         g3.push(
           finding(
             "G3",
