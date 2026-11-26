@@ -34,8 +34,15 @@ const guideWithCrafting = {
     },
   ],
 };
+const stage0 = guideWithCrafting.progression.stages[0];
+const guideWithNumbers = {
+  ...guideWithCrafting,
+  progression: {
+    stages: [{ ...stage0, act: 1, calcs: { mapping: { status: "ok", calcId: "calc-1" } } }],
+  },
+};
 const view = {
-  guide: guideWithCrafting,
+  guide: guideWithNumbers,
   catalogReleaseId: publishedGuide.metadata.dataReleaseId,
   current: true,
   gear: [
@@ -66,7 +73,7 @@ const view = {
       calcProfile: "default",
       inputHash: "a".repeat(64),
       computedAt: "2026-01-01T00:00:00Z",
-      stats: { FixtureStatA: 1234.5 },
+      stats: { FixtureStatA: 1234.5, CombinedDPS: 98765, TotalEHP: 4321, MissingFireResist: 12 },
       warnings: [],
       unsupportedMods: [],
     },

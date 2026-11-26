@@ -6,6 +6,7 @@ import { CraftingSection } from "./GuideCrafting";
 import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
 import { TreeSection } from "./GuideTree";
+import { StageNumbers } from "./StageNumbers";
 import { loadGuideList, loadGuideView } from "../api/guides";
 import { RichTextView, nameOf } from "../guide/RichTextView";
 import { BuildFileExportButton } from "./BuildFileExport";
@@ -187,7 +188,10 @@ function StageView({ stage, view }: { stage: ProgressionStage; view: GuideView }
   const { state } = stage;
   return (
     <div className="stage">
-      <Panel title={stage.label} kicker={`Level ${stage.levelRange[0]}–${stage.levelRange[1]}`}>
+      <Panel
+        title={stage.label}
+        kicker={`${stage.act === undefined ? "" : `Act ${stage.act} · `}Level ${stage.levelRange[0]}–${stage.levelRange[1]}`}
+      >
         <h3>What to do</h3>
         <ul>
           {stage.tasks.map((t, i) => (
@@ -209,6 +213,7 @@ function StageView({ stage, view }: { stage: ProgressionStage; view: GuideView }
           </>
         ) : null}
       </Panel>
+      <StageNumbers stage={stage} view={view} />
       <Panel title="Skills" kicker="Gems of this stage">
         <ul>
           {state.skills.map((skill) => (

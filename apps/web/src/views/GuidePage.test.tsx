@@ -225,6 +225,49 @@ describe("guide page", () => {
     expect(await screen.findByText(/The game data changed/)).toBeTruthy();
   });
 
+  it("shows the engine numbers of a stage with their source and says what is missing", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const guide = {
+      ...publishedGuide,
+      progression: {
+        stages: [{ ...stage, act: 2, calcs: { mapping: { status: "ok", calcId: "calc-1" } } }],
+      },
+    };
+    const result = {
+      ...view.results["calc-1"],
+      stats: { CombinedDPS: 4321, TotalEHP: 8765 },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide, results: { "calc-1": result } }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("4,321")).toBeTruthy();
+    expect(screen.getByText("8,765")).toBeTruthy();
+    expect(screen.getByText(/Act 2 · Level 1–10/)).toBeTruthy();
+    // A stat the result does not contain is uncalibrated, not 0.
+    expect(screen.getByText(/did not report SpiritUnreserved/)).toBeTruthy();
+  });
+
+  it("shows a failed or missing calculation of a stage as an error", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const guide = {
+      ...publishedGuide,
+      progression: {
+        stages: [
+          {
+            ...stage,
+            calcs: {
+              mapping: { status: "failed", error: { code: "x", message: "Worker timed out." } },
+            },
+          },
+        ],
+      },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect((await screen.findAllByText(/Worker timed out\./)).length).toBeGreaterThan(0);
+  });
+
   it("shows no gear for a guide of older game data and points to revalidation", async () => {
     vi.stubGlobal("fetch", () =>
       json({
