@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { GateResult } from "@astrolabe/contracts/build";
 import type { JsonValue } from "@astrolabe/contracts/common";
-import { type CalcId, PobVersion } from "@astrolabe/contracts/common";
+import { CalcId, PobVersion } from "@astrolabe/contracts/common";
 import {
   GUIDE_SCHEMA_VERSION,
   type GuideDocument,
@@ -66,6 +66,38 @@ export function completenessOf(draft: GuideDraft, weights: S11Config["weights"])
   return (100 * got) / total;
 }
 
+/**
+ * The one PoB version of the guide: Sourced values name theirs, the plain calc references (calcId)
+ * are read from the stored results, so a guide with uncalibrated prices still knows its engine.
+ */
+export async function guidePobVersion(
+  calc: { getResult(calcId: CalcId): Promise<{ pobVersion: string } | undefined> },
+  draft: unknown,
+): Promise<string> {
+  const origins = new Map<string, string>();
+  for (const v of pobVersionsOf(draft)) origins.set(v, "a measured value");
+  for (const raw of calcIdsOf(draft)) {
+    const id = CalcId.parse(raw);
+    let result: { pobVersion: string } | undefined;
+    try {
+      result = await calc.getResult(id);
+    } catch (error) {
+      throw new Error(`Reading the calculation ${id} of the guide failed`, { cause: error });
+    }
+    if (result === undefined) {
+      throw new Error(`The calculation ${id} of the guide is gone; redo the stage that made it`);
+    }
+    if (!origins.has(result.pobVersion)) origins.set(result.pobVersion, `calculation ${id}`);
+  }
+  const [first, ...rest] = origins;
+  if (first === undefined || rest.length > 0) {
+    throw new Error(
+      `The guide must carry exactly one PoB version, found ${String(origins.size)}: ${JSON.stringify([...origins])}`,
+    );
+  }
+  return first[0];
+}
+
 /** S11: the validated draft becomes the published guide with metadata and the validation report. */
 export function publishStep(ctx: PipelineContext, cfg: S11Config, promptVersion: string): PlanStep {
   void ctx;
@@ -84,25 +116,7 @@ export function publishStep(ctx: PipelineContext, cfg: S11Config, promptVersion:
         throw new Error("The guide did not pass validation and cannot be published");
       }
       const { draft } = report.data;
-      // Sourced values name their PoB version; the plain calc references (calcId) are read from the
-      // stored results, so a guide whose prices are uncalibrated still knows its engine.
-      const found = pobVersionsOf(draft);
-      for (const id of calcIdsOf(draft)) {
-        const result = await runCtx.calc.getResult(id as CalcId);
-        if (result === undefined) {
-          throw new Error(
-            `The calculation ${id} of the guide is gone; redo the stage that made it`,
-          );
-        }
-        found.add(result.pobVersion);
-      }
-      const versions = [...found];
-      const pobVersion = versions[0];
-      if (versions.length !== 1 || pobVersion === undefined) {
-        throw new Error(
-          `The guide must carry exactly one PoB version in its measured values, found ${String(versions.length)}`,
-        );
-      }
+      const pobVersion = await guidePobVersion(runCtx.calc, draft);
       const document: GuideDocument = {
         ...draft,
         metadata: {
