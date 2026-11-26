@@ -314,3 +314,24 @@ export function payloadValue(payload: JsonValue): JsonValue {
     return payload;
   }
 }
+
+/**
+ * Claude Desktop hands object and array arguments of a tool call over as JSON strings
+ * (`state: "{...}"`), which the tool schemas reject ("expected object, received string"). For
+ * `tools/call` requests, a top-level argument that is a string holding a JSON object or array is
+ * replaced by the parsed value, before the schema check. Everything else stays as it came, so a
+ * wrong argument still fails the schema with the usual message and nothing is guessed.
+ */
+export function parseStringifiedArguments(body: unknown): unknown {
+  if (Array.isArray(body)) return body.map(parseStringifiedArguments);
+  if (typeof body !== "object" || body === null) return body;
+  const message = body as { method?: unknown; params?: unknown };
+  if (message.method !== "tools/call") return body;
+  const params = message.params as { arguments?: unknown } | null | undefined;
+  const args = params?.arguments;
+  if (typeof args !== "object" || args === null || Array.isArray(args)) return body;
+  const fixed = Object.fromEntries(
+    Object.entries(args).map(([key, value]) => [key, payloadValue(value as JsonValue)]),
+  );
+  return { ...message, params: { ...params, arguments: fixed } };
+}

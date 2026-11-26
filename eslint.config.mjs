@@ -39,4 +39,9 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node } },
     rules: { "no-console": "off" },
   },
+  {
+    // The Windows end-to-end runner reports to the CI log.
+    files: ["apps/desktop/e2e/**/*.ts"],
+    rules: { "no-console": "off" },
+  },
 );
