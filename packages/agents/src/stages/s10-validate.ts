@@ -422,29 +422,38 @@ async function stageStats(
  * The allocated nodes that no path of allocated nodes joins to `start`: the tree must be one
  * connected piece, as PoB and the game only let a node be allocated next to an allocated one.
  */
-function unreachable(ctx: PipelineContext, start: string, allocated: readonly string[]): string[] {
+function unreachable(
+  ctx: PipelineContext,
+  start: string,
+  allocated: readonly string[],
+): string[] | undefined {
   const wanted = new Set([start, ...allocated]);
-  const links = new Map<string, readonly string[]>();
+  const adjacent = new Map<string, Set<string>>();
   for (const id of wanted) {
     const entry = ctx.catalog.get({ kind: "passiveNode", id });
-    // unknown ids are reported by G1
-    if (entry !== undefined)
-      links.set(id, PassiveNode.pick({ connections: true }).parse(entry.entity).connections);
+    if (entry === undefined) {
+      if (id === start) return undefined;
+      continue; // unknown ids are reported by G1
+    }
+    adjacent.set(id, adjacent.get(id) ?? new Set());
+    // connections may be listed on one side only: record both directions
+    for (const other of PassiveNode.pick({ connections: true }).parse(entry.entity).connections) {
+      if (!wanted.has(other)) continue;
+      adjacent.get(id)?.add(other);
+      adjacent.set(other, (adjacent.get(other) ?? new Set()).add(id));
+    }
   }
   const reached = new Set<string>([start]);
   const queue = [start];
   for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    const own = links.get(next) ?? [];
-    // connections may be listed on one side only
-    const around = [...own, ...[...links].filter(([, l]) => l.includes(next)).map(([id]) => id)];
-    for (const id of around) {
-      if (wanted.has(id) && !reached.has(id)) {
+    for (const id of adjacent.get(next) ?? []) {
+      if (!reached.has(id)) {
         reached.add(id);
         queue.push(id);
       }
     }
   }
-  return allocated.filter((id) => !reached.has(id) && links.has(id));
+  return allocated.filter((id) => !reached.has(id) && adjacent.has(id));
 }
 
 /** G3 tree connectivity of one stage: the main tree from the class start, ascendancy nodes from theirs. */
@@ -460,14 +469,23 @@ function connectivity(
     state.ascendancyId === undefined
       ? undefined
       : ctx.catalog.get({ kind: "ascendancy", id: state.ascendancyId });
-  const parts: { what: string; start: string | undefined; nodes: string[] }[] = [
+  const allocated = state.tree.allocated;
+  // A weapon set's nodes join through nodes of the main tree or of their own set (not of the other
+  // set), so each set is searched with the main-tree nodes; without sets this is one search.
+  const sets = [...new Set(allocated.map((a) => a.weaponSet).filter((n) => n > 0))];
+  const searches = (sets.length === 0 ? [0] : sets).map((n) => [
+    ...new Set(
+      allocated.filter((a) => a.weaponSet === 0 || a.weaponSet === n).map((a) => a.nodeId),
+    ),
+  ]);
+  const parts: { what: string; start: string | undefined; searches: string[][] }[] = [
     {
       what: "class",
       start:
         cls === undefined
           ? undefined
           : CharacterClass.pick({ startNodeId: true }).parse(cls.entity).startNodeId,
-      nodes: [...new Set(state.tree.allocated.map((a) => a.nodeId))],
+      searches,
     },
     {
       what: "ascendancy",
@@ -475,11 +493,11 @@ function connectivity(
         asc === undefined
           ? undefined
           : Ascendancy.pick({ startNodeId: true }).parse(asc.entity).startNodeId,
-      nodes: [...state.tree.ascendancy],
+      searches: [[...state.tree.ascendancy]],
     },
   ];
-  for (const { what, start, nodes } of parts) {
-    if (nodes.length === 0) continue;
+  for (const { what, start, searches: lists } of parts) {
+    if (lists.every((l) => l.length === 0)) continue;
     if (start === undefined) {
       out.push(
         finding(
@@ -491,14 +509,27 @@ function connectivity(
       );
       continue;
     }
-    // ascendancy nodes sit in the same node table; main-tree nodes of a stage never include them
-    const ids = unreachable(ctx, start, nodes);
+    const found = lists.map((nodes) => unreachable(ctx, start, nodes));
+    if (found.some((f) => f === undefined)) {
+      out.push(
+        finding(
+          "G3",
+          "tree_start_unknown",
+          `Stage ${stage.key}: the start node of the ${what} tree is not a passive node of the catalog, so its connection was not checked.`,
+          path,
+        ),
+      );
+      continue;
+    }
+    // A foreign ascendancy's node reached over a cross-ascendancy edge counts as connected here;
+    // which nodes an ascendancy owns is checked with its points, not in this gate.
+    const ids = [...new Set(found.flatMap((f) => f ?? []))];
     if (ids.length > 0) {
       out.push(
         finding(
           "G3",
           "tree_node_unconnected",
-          `Stage ${stage.key}: ${ids.slice(0, 3).join(", ")} ${ids.length > 3 ? "and more " : ""}of the ${what} tree are not joined to its start by allocated nodes.`,
+          `Stage ${stage.key}: ${ids.join(", ")} of the ${what} tree are not joined to its start by allocated nodes.`,
           path,
           "S6",
         ),

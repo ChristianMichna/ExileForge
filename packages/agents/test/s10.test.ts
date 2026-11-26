@@ -77,7 +77,16 @@ const draft = (over: object = {}) =>
     ...over,
   }) as never as GuideDraft;
 /** A tiny tree: class start S1 - N1, ascendancy start S2 - N2. */
-const EDGES: Record<string, string[]> = { S1: ["N1"], N1: ["S1"], S2: ["N2"], N2: ["S2"] };
+const EDGES: Record<string, string[]> = {
+  S1: ["N1"],
+  N1: ["S1", "N3"],
+  N3: ["N1"],
+  N4: ["N1"], // listed on this side only
+  N6: ["N7"],
+  N7: ["N6"],
+  S2: ["N2"],
+  N2: ["S2"],
+};
 const ctx = (known: (id: string) => boolean = () => true) =>
   ({
     catalog: {
@@ -86,7 +95,7 @@ const ctx = (known: (id: string) => boolean = () => true) =>
         r.kind === "characterClass"
           ? { entity: { id: r.id, startNodeId: "S1" } }
           : r.kind === "ascendancy"
-            ? { entity: { id: r.id, startNodeId: "S2" } }
+            ? { entity: r.id === "AscNoStart" ? { id: r.id } : { id: r.id, startNodeId: "S2" } }
             : r.kind === "passiveNode"
               ? { entity: { id: r.id, connections: EDGES[r.id] ?? [] } }
               : known(r.id)
@@ -374,6 +383,34 @@ describe("S10 measured gates", () => {
         .find((f) => f.code === "tree_node_unconnected");
     expect(await found("N1")).toBeUndefined();
     expect((await found("N9"))?.returnTo).toBe("S6");
+  });
+
+  it("follows chains and edges listed on one side, and checks ascendancy and weapon sets (G3)", async () => {
+    const tree = (
+      allocated: { nodeId: string; weaponSet: number }[],
+      ascendancy: string[],
+      ascendancyId = "Asc",
+    ) =>
+      draft({
+        progression: {
+          stages: [stage({ state: { ...STATE, ascendancyId, tree: { allocated, ascendancy } } })],
+        },
+      });
+    const codesOf = async (d: GuideDraft) =>
+      (await runGates(withStats(good), d, cfg as never))
+        .flatMap((g) => g.findings)
+        .filter((f) => f.code.startsWith("tree_"));
+    const n = (nodeId: string, weaponSet = 0) => ({ nodeId, weaponSet });
+    expect(await codesOf(tree([n("N1"), n("N3"), n("N4")], ["N2"]))).toEqual([]);
+    const lonelyAscendancy = await codesOf(tree([n("N1")], ["N2", "N5"]));
+    expect(lonelyAscendancy.map((f) => f.message)).toEqual([
+      expect.stringContaining("N5 of the ascendancy tree"),
+    ]);
+    expect(await codesOf(tree([n("N1"), n("N3", 1)], []))).toEqual([]);
+    const crossSet = await codesOf(tree([n("N1"), n("N6", 2), n("N7", 1)], []));
+    expect(crossSet.map((f) => f.code)).toEqual(["tree_node_unconnected"]);
+    const noStart = await codesOf(tree([n("N1")], ["N2"], "AscNoStart"));
+    expect(noStart.map((f) => [f.code, f.returnTo])).toEqual([["tree_start_unknown", undefined]]);
   });
 
   it("measures a campaign stage's attributes with the first gear tier's items (G3)", async () => {
