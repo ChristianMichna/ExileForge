@@ -2,6 +2,7 @@ import type { CraftOnFail, CraftStep, CraftingPlan } from "@astrolabe/contracts/
 import type { GuideView } from "@astrolabe/contracts/guide";
 import { Panel, StatGrid, StatValue } from "@astrolabe/ui";
 import { measuredState } from "../guide/measured";
+import { priceLabel, priceState } from "../guide/price";
 import { RichTextView, nameOf } from "../guide/RichTextView";
 
 /*
@@ -27,18 +28,6 @@ function failText(onFail: CraftOnFail, view: GuideView): React.ReactNode {
         </>
       );
   }
-}
-
-function priceLabel(price: CraftingPlan["expectedTotal"], view: GuideView): string {
-  if (price.status !== "ok") return "Cost";
-  const currency = nameOf(view, { kind: "baseItem", id: price.value.currencyItemId });
-  return `Cost in ${currency ?? price.value.currencyItemId}`;
-}
-
-function priceState(price: CraftingPlan["expectedTotal"]) {
-  return price.status === "ok"
-    ? measuredState({ status: "ok", value: price.value.amount, source: price.source })
-    : measuredState(price);
 }
 
 function StepNode({ step, view }: { step: CraftStep; view: GuideView }) {
