@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PatchStatus } from "../src/index.js";
+import { GuideRevalidateErrorCode, PatchStatus } from "../src/index.js";
 
 const base = {
   schemaVersion: 1,
@@ -90,6 +90,8 @@ describe("guide.revalidate", () => {
   it("takes ids only and answers with a PatchStatus", async () => {
     const { GuideTools } = await import("../src/index.js");
     const tool = GuideTools["guide.revalidate"];
+    expect(tool.output).toBe(PatchStatus);
+    expect(GuideRevalidateErrorCode.options).toContain("release_not_newer");
     const input = {
       guideId: "0b0f6d6e-3a3a-4c1e-9a53-6c1f2f6f9a11",
       toReleaseId: "poe2-9.8.8+r1",
