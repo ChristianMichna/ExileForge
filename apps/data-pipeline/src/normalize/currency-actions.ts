@@ -146,12 +146,24 @@ export async function currencyActions(opts: {
     notInCatalog: new Set<string>(),
   };
   const withoutRule = new Set<string>();
+  // the game's own text of currencies that change modifiers but have no rule: the evidence
+  // needed to write a rule (or to see that none is possible)
+  const unruledTexts = new Map<string, string>();
+  const ev = config.evidence;
+  const evidenceKeyword = new RegExp(ev.keyword, "i");
   const seenKeys = new Set<string>();
   for (const row of currency) {
     const base = bases.get(row.BaseItemType);
     const spec = row.Action ? usable.get(row.Action) : undefined;
-    if (row.Action && !config.rules[row.Action]) withoutRule.add(row.Action);
-    else if (row.Action && !seenKeys.has(row.Action)) seenKeys.add(row.Action);
+    if (row.Action && !config.rules[row.Action]) {
+      withoutRule.add(row.Action);
+      const text = stripMarkup(row.Description ?? "");
+      if (evidenceKeyword.test(text) && !unruledTexts.has(row.Action))
+        unruledTexts.set(
+          row.Action,
+          text.length > ev.maxChars ? `${text.slice(0, ev.maxChars)}…` : text,
+        );
+    } else if (row.Action && !seenKeys.has(row.Action)) seenKeys.add(row.Action);
     if (!base || !base.Id || !spec) continue;
     const id = base.Id;
     if (!opts.baseItemIds.has(id)) {
@@ -210,6 +222,18 @@ export async function currencyActions(opts: {
       id: "no-rule",
       message: `${String(withoutRule.size)} currency actions have no rule and give no crafting action: ${[...withoutRule].sort().join(", ")}`,
     });
+
+  if (unruledTexts.size > 0) {
+    const listed = [...unruledTexts].sort(([a], [b]) => a.localeCompare(b)).slice(0, ev.maxEntries);
+    const more = unruledTexts.size - listed.length;
+    findings.push({
+      kind: "currencyAction",
+      id: "no-rule-text",
+      message: `texts of ${String(unruledTexts.size)} currency actions that match "${ev.keyword}" but have no rule (first currency of each action): ${listed
+        .map(([key, text]) => `${key}: ${JSON.stringify(text)}`)
+        .join(" | ")}${more > 0 ? ` (+${String(more)} more not shown)` : ""}`,
+    });
+  }
 
   const variants = config.essence.map((v, i) => ({
     pattern: new RegExp(v.description),

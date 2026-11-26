@@ -11,7 +11,7 @@ import {
   type TargetBuild,
   TaskType,
 } from "@astrolabe/contracts/build";
-import { Gem } from "@astrolabe/contracts/catalog";
+import { Ascendancy, CharacterClass, Gem, PassiveNode } from "@astrolabe/contracts/catalog";
 import type { StatMap } from "@astrolabe/contracts/calc";
 import { GuideDocument } from "@astrolabe/contracts/guide";
 import type { CalcId, EntityRef, JsonValue } from "@astrolabe/contracts/common";
@@ -418,6 +418,127 @@ async function stageStats(
   return out;
 }
 
+/**
+ * The allocated nodes that no path of allocated nodes joins to `start`: the tree must be one
+ * connected piece, as PoB and the game only let a node be allocated next to an allocated one.
+ */
+function unreachable(
+  ctx: PipelineContext,
+  start: string,
+  allocated: readonly string[],
+): string[] | undefined {
+  const wanted = new Set([start, ...allocated]);
+  const adjacent = new Map<string, Set<string>>();
+  for (const id of wanted) {
+    const entry = ctx.catalog.get({ kind: "passiveNode", id });
+    if (entry === undefined) {
+      if (id === start) return undefined;
+      continue; // unknown ids are reported by G1
+    }
+    adjacent.set(id, adjacent.get(id) ?? new Set());
+    // connections may be listed on one side only: record both directions
+    for (const other of PassiveNode.pick({ connections: true }).parse(entry.entity).connections) {
+      if (!wanted.has(other)) continue;
+      adjacent.get(id)?.add(other);
+      adjacent.set(other, (adjacent.get(other) ?? new Set()).add(id));
+    }
+  }
+  const reached = new Set<string>([start]);
+  const queue = [start];
+  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+    for (const id of adjacent.get(next) ?? []) {
+      if (!reached.has(id)) {
+        reached.add(id);
+        queue.push(id);
+      }
+    }
+  }
+  return allocated.filter((id) => !reached.has(id) && adjacent.has(id));
+}
+
+/** G3 tree connectivity of one stage: the main tree from the class start, ascendancy nodes from theirs. */
+function connectivity(
+  ctx: PipelineContext,
+  stage: GuideDraft["progression"]["stages"][number],
+  path: string,
+): Finding[] {
+  const out: Finding[] = [];
+  const state = stage.state;
+  const cls = ctx.catalog.get({ kind: "characterClass", id: state.classId });
+  const asc =
+    state.ascendancyId === undefined
+      ? undefined
+      : ctx.catalog.get({ kind: "ascendancy", id: state.ascendancyId });
+  const allocated = state.tree.allocated;
+  // A weapon set's nodes join through nodes of the main tree or of their own set (not of the other
+  // set), so each set is searched with the main-tree nodes; without sets this is one search.
+  const sets = [...new Set(allocated.map((a) => a.weaponSet).filter((n) => n > 0))];
+  const searches = (sets.length === 0 ? [0] : sets).map((n) => [
+    ...new Set(
+      allocated.filter((a) => a.weaponSet === 0 || a.weaponSet === n).map((a) => a.nodeId),
+    ),
+  ]);
+  const parts: { what: string; start: string | undefined; searches: string[][] }[] = [
+    {
+      what: "class",
+      start:
+        cls === undefined
+          ? undefined
+          : CharacterClass.pick({ startNodeId: true }).parse(cls.entity).startNodeId,
+      searches,
+    },
+    {
+      what: "ascendancy",
+      start:
+        asc === undefined
+          ? undefined
+          : Ascendancy.pick({ startNodeId: true }).parse(asc.entity).startNodeId,
+      searches: [[...state.tree.ascendancy]],
+    },
+  ];
+  for (const { what, start, searches: lists } of parts) {
+    if (lists.every((l) => l.length === 0)) continue;
+    if (start === undefined) {
+      out.push(
+        finding(
+          "G3",
+          "tree_start_unknown",
+          `Stage ${stage.key}: the catalog has no start node for the ${what} tree, so its connection was not checked.`,
+          path,
+        ),
+      );
+      continue;
+    }
+    const found = lists.map((nodes) => unreachable(ctx, start, nodes));
+    if (found.some((f) => f === undefined)) {
+      out.push(
+        finding(
+          "G3",
+          "tree_start_unknown",
+          `Stage ${stage.key}: the start node of the ${what} tree is not a passive node of the catalog, so its connection was not checked.`,
+          path,
+        ),
+      );
+      continue;
+    }
+    // A foreign ascendancy's node reached over a cross-ascendancy edge counts as connected here;
+    // which nodes an ascendancy owns is checked with its points, not in this gate.
+    const ids = [...new Set(found.flatMap((f) => f ?? []))];
+    if (ids.length > 0) {
+      out.push(
+        finding(
+          "G3",
+          "tree_node_unconnected",
+          `Stage ${stage.key}: ${ids.join(", ")} of the ${what} tree are not joined to its start by allocated nodes.`,
+          path,
+          "S6",
+        ),
+      );
+    }
+  }
+  return out;
+}
+
 /** G3 (spirit), G4 (resistances, EHP) and G5 (damage) from PoB outputs and the configured thresholds. */
 async function measuredGates(
   ctx: PipelineContext,
@@ -477,6 +598,7 @@ async function measuredGates(
         }
       }
     }
+    g3.push(...connectivity(ctx, stage, `/progression/stages/${String(index)}/state/tree`));
     if (typeof table !== "string") {
       const row = table.find((r) => r.key === stage.key);
       // PoB counts a node once and takes off the smaller weapon set, as both sets draw on the same points.
@@ -628,6 +750,33 @@ async function measuredGates(
       }
     }
   }
+  if (!cfg.thresholdsCalibrated) {
+    // the numbers are starting values, not a product decision: the report must say so
+    if (ehpSet) {
+      g4.push(
+        finding(
+          "G4",
+          "thresholds_uncalibrated",
+          "The EHP minimums are uncalibrated starting values.",
+          undefined,
+          undefined,
+          "warning",
+        ),
+      );
+    }
+    if (dpsSet) {
+      g5.push(
+        finding(
+          "G5",
+          "thresholds_uncalibrated",
+          "The damage minimums are uncalibrated starting values.",
+          undefined,
+          undefined,
+          "warning",
+        ),
+      );
+    }
+  }
   return { g2, g3, g4, g5, thresholdsSet: { ehp: ehpSet, dps: dpsSet } };
 }
 
@@ -643,7 +792,7 @@ function gapOf(
   ) {
     return `the whole gate (no "s10" block in config/agents/stages.json)`;
   }
-  if (gate === "G3") return "ascendancy points and tree connectivity";
+  if (gate === "G3") return "ascendancy points";
   if (gate === "G4") {
     return thresholds?.ehp === true ? undefined : "the EHP minimum (no threshold configured)";
   }

@@ -90,7 +90,7 @@
     }
   },
   "s10": {
-    "$comment": "Gate inputs of S10. Stat names are PoB output names (pob_bridge/lua/runner.lua; MissingXResist is PoB's resistance still missing to the cap; chaos is not listed because a build reaching its cap through gear alone is not a requirement the product owner has set). CombinedDPS is used because FullDPS is 0 for builds without full-DPS groups. The thresholds are empty until the product owner calibrates them for the patch: with no thresholds, G4 and G5 report the missing check instead of passing.",
+    "$comment": "Gate inputs of S10. Stat names are PoB output names (pob_bridge/lua/runner.lua; MissingXResist is PoB's resistance still missing to the cap; chaos is not listed because a build reaching its cap through gear alone is not a requirement the product owner has set). CombinedDPS is used because FullDPS is 0 for builds without full-DPS groups. The thresholds are UNCALIBRATED starting values: half of the TotalEHP and CombinedDPS that PoB measured (mapping profile) for the stages of one run (gem Metadata/Items/Gems/SkillGemIceNova, class Sorceress, data release poe2-0.5.5.10+r12, PoB 0.23.1; the level 100 entry is r12's maximum level) (the endgame EHP with the last gear tier). They keep G4 and G5 from passing without a check; the product owner replaces them per patch and then sets thresholdsCalibrated to true. With no thresholds, G4 and G5 report the missing check instead of passing.",
     "calcProfile": "mapping",
     "stats": {
       "spiritFree": "SpiritUnreserved",
@@ -98,18 +98,59 @@
       "dps": "CombinedDPS",
       "resistMissing": ["MissingFireResist", "MissingColdResist", "MissingLightningResist"],
       "attributes": [
-        { "have": "Str", "need": "ReqStr" },
-        { "have": "Dex", "need": "ReqDex" },
-        { "have": "Int", "need": "ReqInt" }
+        {
+          "have": "Str",
+          "need": "ReqStr"
+        },
+        {
+          "have": "Dex",
+          "need": "ReqDex"
+        },
+        {
+          "have": "Int",
+          "need": "ReqInt"
+        }
       ]
     },
     "resistanceCapStageKinds": ["endgame"],
-    "thresholds": [],
+    "thresholds": [
+      {
+        "fromLevel": 12,
+        "minEhp": 134,
+        "minDps": 12
+      },
+      {
+        "fromLevel": 28,
+        "minEhp": 289,
+        "minDps": 26
+      },
+      {
+        "fromLevel": 44,
+        "minEhp": 444,
+        "minDps": 42
+      },
+      {
+        "fromLevel": 51,
+        "minEhp": 522,
+        "minDps": 48
+      },
+      {
+        "fromLevel": 64,
+        "minEhp": 659,
+        "minDps": 72
+      },
+      {
+        "fromLevel": 100,
+        "minEhp": 3373,
+        "minDps": 134
+      }
+    ],
     "minProgressionStages": 2,
     "minGearTiers": 1,
     "requiredCalcProfiles": ["mapping"],
     "acceptedUnsupportedModPatterns": ["^Used when "],
-    "maxReturnsPerStage": 2
+    "maxReturnsPerStage": 2,
+    "thresholdsCalibrated": false
   },
   "s11": {
     "$comment": "Completeness score of the published guide: weighted share of non-empty parts. Equal weights until the product owner sets other ones.",

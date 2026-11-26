@@ -76,25 +76,42 @@ const draft = (over: object = {}) =>
     variants: [],
     ...over,
   }) as never as GuideDraft;
+/** A tiny tree: class start S1 - N1, ascendancy start S2 - N2. */
+const EDGES: Record<string, string[]> = {
+  S1: ["N1"],
+  N1: ["S1", "N3"],
+  N3: ["N1"],
+  N4: ["N1"], // listed on this side only
+  N6: ["N7"],
+  N7: ["N6"],
+  S2: ["N2"],
+  N2: ["S2"],
+};
 const ctx = (known: (id: string) => boolean = () => true) =>
   ({
     catalog: {
       dataReleaseId: "poe2-1.0.0+r1",
-      get: (r: { id: string }) =>
-        known(r.id)
-          ? {
-              entity: {
-                id: r.id,
-                name: r.id,
-                kind: "skill",
-                tags: [],
-                levels: [
-                  { level: 1, requirements: { level: 5, attributes: {} }, stats: {} },
-                  { level: 2, requirements: { level: 50, attributes: {} }, stats: {} },
-                ],
-              },
-            }
-          : undefined,
+      get: (r: { id: string; kind?: string }) =>
+        r.kind === "characterClass"
+          ? { entity: { id: r.id, startNodeId: "S1" } }
+          : r.kind === "ascendancy"
+            ? { entity: r.id === "AscNoStart" ? { id: r.id } : { id: r.id, startNodeId: "S2" } }
+            : r.kind === "passiveNode"
+              ? { entity: { id: r.id, connections: EDGES[r.id] ?? [] } }
+              : known(r.id)
+                ? {
+                    entity: {
+                      id: r.id,
+                      name: r.id,
+                      kind: "skill",
+                      tags: [],
+                      levels: [
+                        { level: 1, requirements: { level: 5, attributes: {} }, stats: {} },
+                        { level: 2, requirements: { level: 50, attributes: {} }, stats: {} },
+                      ],
+                    },
+                  }
+                : undefined,
     },
   }) as never as PipelineContext;
 const codes = async (d: GuideDraft, c = ctx(), cfg?: never) =>
@@ -216,6 +233,7 @@ describe("S10 measured gates", () => {
       dps: "Dps",
     },
     resistanceCapStageKinds: ["endgame"],
+    thresholdsCalibrated: true,
     thresholds: [
       { fromLevel: 10, minEhp: 100, minDps: 1000 },
       { fromLevel: 50, minEhp: 400 },
@@ -344,6 +362,56 @@ describe("S10 measured gates", () => {
       .flatMap((g) => g.findings)
       .find((x) => x.code === "calc_failed");
     expect(f?.returnTo).toBe("S7.gear-end");
+  });
+
+  it("flags allocated nodes that no allocated path joins to the start (G3)", async () => {
+    const lone = (nodeId: string) =>
+      draft({
+        progression: {
+          stages: [
+            stage({
+              state: {
+                ...STATE,
+                tree: { allocated: [{ nodeId, weaponSet: 0 }], ascendancy: ["N2"] },
+              },
+            }),
+          ],
+        },
+      });
+    const found = async (nodeId: string) =>
+      (await runGates(withStats(good), lone(nodeId), cfg as never))
+        .flatMap((g) => g.findings)
+        .find((f) => f.code === "tree_node_unconnected");
+    expect(await found("N1")).toBeUndefined();
+    expect((await found("N9"))?.returnTo).toBe("S6");
+  });
+
+  it("follows chains and edges listed on one side, and checks ascendancy and weapon sets (G3)", async () => {
+    const tree = (
+      allocated: { nodeId: string; weaponSet: number }[],
+      ascendancy: string[],
+      ascendancyId = "Asc",
+    ) =>
+      draft({
+        progression: {
+          stages: [stage({ state: { ...STATE, ascendancyId, tree: { allocated, ascendancy } } })],
+        },
+      });
+    const codesOf = async (d: GuideDraft) =>
+      (await runGates(withStats(good), d, cfg as never))
+        .flatMap((g) => g.findings)
+        .filter((f) => f.code.startsWith("tree_"));
+    const n = (nodeId: string, weaponSet = 0) => ({ nodeId, weaponSet });
+    expect(await codesOf(tree([n("N1"), n("N3"), n("N4")], ["N2"]))).toEqual([]);
+    const lonelyAscendancy = await codesOf(tree([n("N1")], ["N2", "N5"]));
+    expect(lonelyAscendancy.map((f) => f.message)).toEqual([
+      expect.stringContaining("N5 of the ascendancy tree"),
+    ]);
+    expect(await codesOf(tree([n("N1"), n("N3", 1)], []))).toEqual([]);
+    const crossSet = await codesOf(tree([n("N1"), n("N6", 2), n("N7", 1)], []));
+    expect(crossSet.map((f) => f.code)).toEqual(["tree_node_unconnected"]);
+    const noStart = await codesOf(tree([n("N1")], ["N2"], "AscNoStart"));
+    expect(noStart.map((f) => [f.code, f.returnTo])).toEqual([["tree_start_unknown", undefined]]);
   });
 
   it("measures a campaign stage's attributes with the first gear tier's items (G3)", async () => {
@@ -540,6 +608,21 @@ describe("S10 measured gates", () => {
     const g4 = gates.find((g) => g.gate === "G4")?.findings ?? [];
     expect(g4).toEqual([
       expect.objectContaining({ code: "stats_unavailable", returnTo: "S7.gear-mid" }),
+    ]);
+  });
+
+  it("reports uncalibrated thresholds as a warning, not as a pass without a note (G4, G5)", async () => {
+    const gates = await runGates(withStats(good), stageAt(90), {
+      ...cfg,
+      thresholdsCalibrated: false,
+    } as never);
+    const warned = gates
+      .filter((g) => g.gate === "G4" || g.gate === "G5")
+      .flatMap((g) => g.findings.filter((f) => f.code === "thresholds_uncalibrated"))
+      .map((f) => [f.gate, f.severity]);
+    expect(warned).toEqual([
+      ["G4", "warning"],
+      ["G5", "warning"],
     ]);
   });
 
