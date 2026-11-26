@@ -227,6 +227,29 @@ export function gearTask(
           });
         }
       }
+      const rarityIds = checkCtx.catalog.release?.rarities?.rarities.map((r) => r.id);
+      if (rarityIds === undefined && c.slots.some((s) => s.target.kind === "crafted")) {
+        findings.push({
+          gate: "G1",
+          severity: "warning",
+          code: "rarity_unchecked",
+          message:
+            "The data release lists no rarities, so the rarity ids of crafted items could not be checked.",
+          path: "/slots",
+        });
+      }
+      if (rarityIds !== undefined) {
+        c.slots.forEach((s, i) => {
+          if (s.target.kind !== "crafted" || rarityIds.includes(s.target.rarity)) return;
+          findings.push({
+            gate: "G1",
+            severity: "error",
+            code: "unknown_rarity",
+            message: `Rarity ${s.target.rarity} is not a rarity id of this release. Use one of: ${rarityIds.join(", ")}.`,
+            path: `/slots/${i}/target/rarity`,
+          });
+        });
+      }
       c.slots.forEach((s, i) => {
         const rule = s7.slots.find((x) => x.id === s.slot);
         if (rule?.classes === undefined) return;
