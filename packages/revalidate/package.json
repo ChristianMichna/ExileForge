@@ -1,0 +1,29 @@
+{
+  "name": "@astrolabe/revalidate",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Patch revalidation (F-19): finds every catalog reference of a stored guide and checks it against the diffs of newer data releases. Produces a PatchStatus.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@astrolabe/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}
