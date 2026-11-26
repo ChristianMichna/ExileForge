@@ -1,12 +1,12 @@
-import type { AppStatus, ServerState, UpdateState } from "../shared/bridge.js";
+import type { AppStatus, DataState, ServerState, UpdateState } from "../shared/bridge.js";
 
 /** Holds the status shown in the app and tells listeners about every change. */
 export class StatusStore {
   private status: AppStatus;
   private readonly listeners = new Set<(status: AppStatus) => void>();
 
-  constructor(appVersion: string, update: UpdateState) {
-    this.status = { appVersion, server: { state: "starting" }, update };
+  constructor(appVersion: string, update: UpdateState, data: DataState) {
+    this.status = { appVersion, server: { state: "starting" }, update, data };
   }
 
   get(): AppStatus {
@@ -19,6 +19,10 @@ export class StatusStore {
 
   setUpdate(update: UpdateState): void {
     this.set({ ...this.status, update });
+  }
+
+  setData(data: DataState): void {
+    this.set({ ...this.status, data });
   }
 
   subscribe(listener: (status: AppStatus) => void): () => void {

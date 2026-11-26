@@ -237,3 +237,15 @@ späterem Release und ruft `revalidateGuide` aus `@astrolabe/revalidate`. Ergebn
 `unaffected`. Noch nicht angebunden: ein MCP-Tool (braucht einen Vertrags-PR; dort dürfen keine
 freien Pfade ankommen, nur Release-IDs, die der Server auf sein Datenverzeichnis abbildet) und die
 Ablage gespeicherter Guides.
+
+## MCP-Tool `guide_revalidate` (F-19)
+
+Mit `--releases-dir <Ordner>` (oder `releasesDir` in `startServer`) bietet der MCP-Endpunkt das Tool
+`guide_revalidate` an: `{ guideId, toReleaseId }` → `PatchStatus`. Ohne die Option gibt es das Tool nicht.
+
+- Der Ordner enthält je entpacktem Daten-Release einen Unterordner mit dem Namen der Release-ID.
+- Der Guide kommt aus dem eigenen Speicher (`RunStore.findGuide`: Ergebnis `S11.guide` des zuletzt
+  gespeicherten Laufs mit dieser `guideId`); Pfade kommen nie vom Client.
+- Die Kette wird von `toReleaseId` über `previousReleaseId` bis zum Release des Guides gebaut.
+- Fehlercodes (Tool-Fehler): `guide_not_found`, `release_unknown`, `release_not_newer`, `diff_missing`,
+  `guide_invalid`. Nie ein stilles „unaffected", wenn die Prüfung nicht möglich ist.

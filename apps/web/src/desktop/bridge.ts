@@ -22,10 +22,19 @@ export type UpdateState =
   | { readonly state: "ready"; readonly version: string }
   | { readonly state: "failed"; readonly message: string };
 
+export type DataState =
+  | { readonly state: "disabled"; readonly reason: string }
+  | { readonly state: "idle" }
+  | { readonly state: "checking" }
+  | { readonly state: "downloading"; readonly releaseId: string }
+  | { readonly state: "ready"; readonly releaseId: string }
+  | { readonly state: "failed"; readonly message: string };
+
 export interface AppStatus {
   readonly appVersion: string;
   readonly server: ServerState;
   readonly update: UpdateState;
+  readonly data: DataState;
 }
 
 export interface OpenClaudeResult {
@@ -49,6 +58,8 @@ export interface DesktopBridge {
   installClaudeExtension(): Promise<ActionResult>;
   checkForUpdates(): Promise<ActionResult>;
   installUpdate(): Promise<ActionResult>;
+  checkForData(): Promise<ActionResult>;
+  restartForData(): Promise<ActionResult>;
 }
 
 declare global {

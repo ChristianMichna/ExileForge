@@ -15,6 +15,7 @@ Der Kern (`contracts`, `server`, `calc`, `ui`) kennt Electron nicht.
 | `src/main/ipc-handlers.ts` | Aktionen des Fensters („Plan with Claude", Befehl kopieren, Erweiterung, Update) |
 | `src/main/services.ts` | startet `startServer` und prüft den Health-Check |
 | `src/main/resources.ts` | Ordnerlayout (installiert / Entwicklung), Wahl des Daten-Release |
+| `src/main/data-sync.ts` | sucht neue Daten-Releases (GitHub Releases), installiert sie über `@astrolabe/release-sync` nach `<userData>/data-releases/<Release-ID>/`; neu geladene Daten gelten nach einem Neustart |
 | `src/main/updater.ts` | `electron-updater` → Status; Installation erst nach fertigem Download |
 | `src/preload.ts`, `src/shared/bridge.ts` | schmale Brücke `window.astrolabe` (Vertrag in `bridge.ts`) |
 | `electron-builder.yml`, `scripts/` | Installer |
@@ -109,3 +110,19 @@ schützt das nicht gegen ein manipuliertes Release-Konto. Eine Signatur
   Releases schon (`<userData>/data-releases/`), der Download selbst fehlt noch.
 - Windows-Verhalten (Installer, SmartScreen, Update, `claude://`) ist hier nur
   durch den CI-Build gedeckt, nicht durch einen Lauf auf einem Windows-PC.
+
+## Neue Patches: Daten-Releases (F-01)
+
+Ein neuer Spielpatch ist ein Daten-Release, kein App-Update. Die App prüft stündlich
+(`dataSync` in `config/desktop/desktop.json`: Repo, Pre-Releases, Takt, Hosts, Größengrenzen), lädt ein neueres
+Release, prüft Prüfsumme, Manifest und Shard-Hashes und legt es atomar ab. Der Server liest den Katalog beim
+Start; das Fenster zeigt „New game data … restart“, der Knopf startet die App neu. Beim Start gewinnt das neueste
+Release aus Downloads und mitgeliefertem Release (nach Spielversion und Revision). Fehler stehen als „Game data check
+failed“ im Fenster und im Log; nichts wird still übersprungen. Derselbe Ordner ist `releasesDir` des Servers, aus dem
+`guide_revalidate` die Release-Kette liest.
+
+Netz: Die Datenprüfung läuft in einer eigenen Sitzung (`astrolabe-data-sync`) mit eigenem Filter, der nur
+`api.github.com` und die konfigurierten Download-Hosts (https) zulässt; die Sitzung des Fensters bleibt
+geschlossen. Abfragen haben Zeitgrenzen (`listTimeoutSeconds`, `installTimeoutMinutes`) und werden beim Beenden
+abgebrochen. Ein bereits installiertes, wartendes Release bleibt auch dann sichtbar, wenn eine spätere Prüfung
+fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträglich beschädigt wird (Folgeaufgabe).

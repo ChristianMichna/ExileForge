@@ -3,7 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BuildState } from "@astrolabe/contracts/build";
 import { type CalcProfileId, EntityKind, EntityRef } from "@astrolabe/contracts/common";
-import { CraftTools, EconomyTools } from "@astrolabe/contracts";
+import { CraftTools, EconomyTools, GuideTools } from "@astrolabe/contracts";
 import { ForgeTools, RunId, SessionCode } from "@astrolabe/contracts/forge";
 import { entityFindings, stateEntities } from "../engine/checks.js";
 import { ForgeError } from "../engine/errors.js";
@@ -11,6 +11,7 @@ import type { ForgeEngine } from "../engine/forge-engine.js";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { Logger } from "../logger.js";
+import type { GuideRevalidatePort } from "../tools/guide-revalidate.js";
 import type { CraftPort, EconomyPort } from "../tools/craft-economy.js";
 
 /** Name of the MCP server as Claude shows it. */
@@ -47,6 +48,8 @@ export interface ForgeMcpDeps {
   craft?: CraftPort;
   /** economy.price; the tool exists only when this is set. */
   economy?: EconomyPort;
+  /** guide.revalidate (F-19); the tool exists only when this is set. */
+  guideRevalidate?: GuideRevalidatePort;
 }
 
 /** Builds a fresh MCP server (one per HTTP request in stateless mode). */
@@ -192,7 +195,18 @@ export function createForgeMcpServer(deps: ForgeMcpDeps): McpServer {
       }),
   );
 
-  const { craft, economy } = deps;
+  const { craft, economy, guideRevalidate } = deps;
+  if (guideRevalidate !== undefined) {
+    server.registerTool(
+      mcpToolName("guide.revalidate"),
+      {
+        description: GuideTools["guide.revalidate"].description,
+        inputSchema: GuideTools["guide.revalidate"].input,
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      (input) => run(() => guideRevalidate(input)),
+    );
+  }
   if (craft !== undefined) {
     server.registerTool(
       mcpToolName("craft.simulate"),
