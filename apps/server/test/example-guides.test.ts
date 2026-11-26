@@ -54,6 +54,24 @@ describe("importExampleGuides", () => {
     });
   });
 
+  it("replaces a stored example that a newer file revises", async () => {
+    const store = new RunStore(":memory:");
+    const dir = folderWith({ "a.json": JSON.stringify(file) });
+    await importExampleGuides(dir, store, createMemoryLogger(), now);
+    const revised = {
+      ...file,
+      guide: { ...stored, summary: { ...stored.summary, mainSkillId: "Fixture/Gems/Other" } },
+    };
+    const newer = folderWith({ "a.json": JSON.stringify(revised) });
+    expect(await importExampleGuides(newer, store, createMemoryLogger(), now)).toMatchObject({
+      imported: 1,
+      alreadyStored: 0,
+    });
+    expect(store.findGuide(guide.metadata.guideId)).toMatchObject({
+      summary: { mainSkillId: "Fixture/Gems/Other" },
+    });
+  });
+
   it("logs and lists a file it cannot import, and still imports the others", async () => {
     const store = new RunStore(":memory:");
     const dir = folderWith({
@@ -80,7 +98,8 @@ describe("importExampleGuides", () => {
       logger,
       now,
     );
-    expect(outcome.failed).toHaveLength(1);
+    expect(outcome.failed).toEqual([]);
+    expect(outcome.folderError).toBeDefined();
     expect(logger.entries.some((e) => e.level === "error")).toBe(true);
   });
 });

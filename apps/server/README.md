@@ -304,7 +304,7 @@ automatisch nach einem Patch.
   wird nicht überschrieben). Importierte Guides stehen in `GET /api/guides` nach denen der Läufe.
 - Option `exampleGuidesDir` (`StartOptions`): beim Start liest `importExampleGuides` die `*.json`
   dieses Ordners als `GuideFile` und spielt jeden Guide ein, den der Speicher noch nicht hat (ein
-  späterer Start lässt sie in Ruhe). Eine Datei, die sich nicht einspielen lässt, steht mit Grund
+  späterer Start lässt eine unveränderte Kopie in Ruhe, eine abweichende Fassung ersetzt sie). Eine Datei, die sich nicht einspielen lässt, steht mit Grund
   im Log und im Ergebnis; ein nicht lesbarer Ordner ist ein Fehler, kein „keine Beispiele“. Der
   Server startet in jedem Fall.
 - `GET /api/tree` liefert `PassiveTreeData`: alle Passive-Knoten und -Gruppen des geladenen
