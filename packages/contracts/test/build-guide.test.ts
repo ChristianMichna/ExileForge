@@ -300,6 +300,14 @@ describe("GuideFile", () => {
     expect(GuideFile.safeParse(file).error).toBeUndefined();
   });
 
+  it("rejects a file without the result of a calcId the guide refers to", () => {
+    const missing = GuideFile.safeParse({ ...file, results: {} });
+    expect(missing.success).toBe(false);
+    expect(missing.error?.issues.map((i) => i.path.join("."))).toContain("results");
+    const wrongKey = GuideFile.safeParse({ ...file, results: { "calc-2": result } });
+    expect(wrongKey.error?.issues.map((i) => i.path.join("."))).toContain("results.calc-2");
+  });
+
   it("rejects another format, version or a result under the wrong calcId", () => {
     expect(GuideFile.safeParse({ ...file, format: "other" }).success).toBe(false);
     expect(GuideFile.safeParse({ ...file, version: 2 }).success).toBe(false);
