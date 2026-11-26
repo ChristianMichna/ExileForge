@@ -253,6 +253,46 @@ describe("normalizeCatalog", () => {
     return run(raw);
   };
 
+  const withLock = (lock: unknown) => {
+    const raw = rawSnapshot();
+    const n1 = raw.passiveTree["1"] as { data: Record<string, unknown> };
+    n1.data = { ...n1.data, unlockConstraint: lock };
+    return run(raw);
+  };
+
+  it("keeps what unlocks a node (PoB's unlockConstraint)", () => {
+    const res = withLock({ ascendancy: "Fake Ascent", nodes: [3] });
+    expect(res.errors).toEqual([]);
+    const asc = res.entities.ascendancy.find((a) => a.name === "Fake Ascent");
+    expect(byId(res.entities.passiveNode, "1")).toMatchObject({
+      unlockedBy: { ascendancyId: asc?.id, nodeIds: ["3"] },
+    });
+    expect(byId(res.entities.passiveNode, "2")).not.toHaveProperty("unlockedBy");
+  });
+
+  it("keeps a constraint without an ascendancy, as PoB has some", () => {
+    const res = withLock({ nodes: [3, 2] });
+    expect(res.errors).toEqual([]);
+    expect(byId(res.entities.passiveNode, "1")).toMatchObject({
+      unlockedBy: { nodeIds: ["3", "2"] },
+    });
+    expect(byId(res.entities.passiveNode, "1")).not.toHaveProperty("unlockedBy.ascendancyId");
+  });
+
+  it("fails on a constraint it does not understand instead of offering the node unconditionally", () => {
+    for (const lock of [
+      { ascendancy: "Nobody", nodes: [3] },
+      { ascendancy: "Fake Ascent", nodes: [] },
+      { ascendancy: "Fake Ascent", nodes: ["x"] },
+      { ascendancy: "Fake Ascent", nodes: [999] },
+      { ascendancy: "Fake Ascent", nodes: [1] },
+      { ascendancy: 5, nodes: [3] },
+    ]) {
+      const res = withLock(lock);
+      expect(res.errors.map((e) => e.id)).toContain("1");
+    }
+  });
+
   it("puts the arc centre on the other side for a positive connection orbit", () => {
     expect(byId(withConnection(1).entities.passiveNode, "1")).toMatchObject({
       arcs: [{ to: "2", center: { x: 108.66, y: 205 }, radius: 10 }],
@@ -376,6 +416,16 @@ describe("normalizeCatalog", () => {
 describe("validateCatalog", () => {
   it("passes the synthetic catalog", () => {
     expect(validateCatalog(run().entities).errors).toEqual([]);
+  });
+
+  it("reports an unlockedBy that names missing nodes or ascendancies, or the node itself", () => {
+    const { entities } = run();
+    const node = entities.passiveNode[0] as { id: string; unlockedBy?: unknown };
+    node.unlockedBy = { ascendancyId: "Nope", nodeIds: ["missing-node", node.id] };
+    const messages = validateCatalog(entities).errors.map((e) => e.message);
+    expect(messages.some((m) => /unlockedBy.ascendancyId/.test(m))).toBe(true);
+    expect(messages.some((m) => /unlockedBy.nodeIds/.test(m))).toBe(true);
+    expect(messages).toContain("unlockedBy names the node itself");
   });
 
   it("reports a unique with a missing base and unknown variant ids", () => {

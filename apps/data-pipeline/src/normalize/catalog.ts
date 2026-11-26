@@ -920,6 +920,37 @@ function normalizeTree(
     const asc = str(data.ascendancyName);
     const ascendancy = asc ? ascByName.get(asc) : undefined;
     if (asc && !ascendancy) ctx.warn("passiveNode", id, `unknown ascendancy "${asc}"`);
+    // PoB's `unlockConstraint`: the node can only be allocated while these nodes are allocated
+    let unlockedBy: { ascendancyId?: string; nodeIds: string[] } | undefined;
+    if (data.unlockConstraint !== undefined) {
+      const lock = obj(data.unlockConstraint);
+      // PoB names the ascendancy only for some constraints; if it does, it must be known
+      const lockAscName = lock.ascendancy === undefined ? undefined : str(lock.ascendancy);
+      const lockAsc = lockAscName ? ascByName.get(lockAscName) : undefined;
+      const rawLockNodes = list(lock.nodes);
+      const lockNodes = rawLockNodes.flatMap((n) => {
+        const nodeId = num(n);
+        return nodeId === undefined ? [] : [nodeId];
+      });
+      const missing = lockNodes.filter((n) => !nodeIds.has(n));
+      const problem =
+        lock.ascendancy !== undefined && !lockAsc
+          ? `unlockConstraint names an unknown ascendancy ${JSON.stringify(lock.ascendancy)}`
+          : lockNodes.length === 0 || lockNodes.length !== rawLockNodes.length
+            ? "unlockConstraint has no readable node list"
+            : missing.length > 0
+              ? `unlockConstraint names nodes missing from the tree: ${missing.join(", ")}`
+              : lockNodes.includes(skill)
+                ? "unlockConstraint names the node itself"
+                : undefined;
+      if (problem)
+        ctx.error("passiveNode", id, `${problem}; the node would be offered without its condition`);
+      else
+        unlockedBy = {
+          ...(lockAsc ? { ascendancyId: lockAsc.id } : {}),
+          nodeIds: lockNodes.map(String),
+        };
+    }
     const group = num(data.group);
     return {
       id,
@@ -941,6 +972,7 @@ function normalizeTree(
       arcs,
       classStartFor,
       ...(ascendancy ? { ascendancyId: ascendancy.id } : {}),
+      ...(unlockedBy ? { unlockedBy } : {}),
     };
   });
 

@@ -145,6 +145,7 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
     connections?: string[];
     ascendancyId?: string;
     classStartFor?: string[];
+    unlockedBy?: { ascendancyId?: string; nodeIds: string[] };
     position?: { groupId?: string };
     arcs?: { to: string }[];
   }[]) {
@@ -164,6 +165,13 @@ export function validateCatalog(input: CatalogEntities): ValidationResult {
       ref("passiveNode", n.id, "ascendancyId", "ascendancy", n.ascendancyId);
     for (const c of n.classStartFor ?? [])
       ref("passiveNode", n.id, "classStartFor", "characterClass", c);
+    if (n.unlockedBy?.ascendancyId !== undefined)
+      ref("passiveNode", n.id, "unlockedBy.ascendancyId", "ascendancy", n.unlockedBy.ascendancyId);
+    for (const u of n.unlockedBy?.nodeIds ?? []) {
+      ref("passiveNode", n.id, "unlockedBy.nodeIds", "passiveNode", u);
+      if (u === n.id)
+        errors.push({ kind: "passiveNode", id: n.id, message: "unlockedBy names the node itself" });
+    }
   }
   for (const c of input.characterClass as {
     id: string;
