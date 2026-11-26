@@ -161,3 +161,9 @@ fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträ
   Logs liegen im Artefakt `e2e-windows`. Lokal (Windows):
   `pnpm --filter @astrolabe/desktop e2e:windows <Astrolabe-Setup.exe> <Ausgabeordner>` mit
   `EXPECT_DATA_RELEASE_ID=poe2-<Version>+r<n>`.
+- **Update-Test (`e2e/update.ts`):** installiert das vorige App-Release, lässt die App die neue Version
+  finden, laden, prüfen (SHA-512 aus `latest.yml`) und per „Restart to update“ installieren, und startet
+  sie als neue Version. Job „Windows update check (local feed)“ läuft in jedem PR gegen einen lokalen
+  Webserver mit dem neuen Build (der Server liefert keine Blockmap, der Updater lädt die ganze Datei);
+  Job „(GitHub release)“ läuft nach dem Veröffentlichen gegen die echte Quelle.
+  Ohne früheres Release wird der Test mit Warnung übersprungen.
