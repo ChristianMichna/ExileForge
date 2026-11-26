@@ -61,7 +61,11 @@ export class McpStdioClient {
   private readonly stderrLines: string[] = [];
   private exited: string | undefined;
 
-  private constructor(private readonly child: ChildProcessWithoutNullStreams) {
+  private readonly child: ChildProcessWithoutNullStreams;
+
+  // No parameter property: Node runs this file with type stripping only.
+  private constructor(child: ChildProcessWithoutNullStreams) {
+    this.child = child;
     createInterface({ input: child.stdout }).on("line", (line) => this.onLine(line));
     createInterface({ input: child.stderr }).on("line", (line) => this.stderrLines.push(line));
     child.on("exit", (code, signal) => {
