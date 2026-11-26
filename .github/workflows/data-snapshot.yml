@@ -78,6 +78,23 @@ jobs:
             --out data-snapshots/current/catalog \
             --game-data data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Probe base item schema (log only)
+        run: |
+          set -o pipefail
+          node -e '
+            const fs = require("fs");
+            fetch(JSON.parse(fs.readFileSync("config/data-pipeline/game-data.json", "utf8")).schemaUrl)
+              .then((r) => r.json())
+              .then((schema) => {
+                for (const name of ["BaseItemTypes", "ItemClasses", "ModDomains"]) {
+                  const t = schema.tables.find((x) => x.name === name);
+                  console.log("SCHEMA " + name + ": " + (t ? t.columns.map((c) => (c.name ?? "?") + ":" + c.type).join(", ") : "not in schema"));
+                }
+                const e = schema.enumerations?.find((x) => x.name === "ModDomains");
+                console.log("ENUM ModDomains: " + JSON.stringify(e?.enumerators));
+              });
+          ' | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: List currency-like base items (id | name | tags)
         run: |
           set -o pipefail
