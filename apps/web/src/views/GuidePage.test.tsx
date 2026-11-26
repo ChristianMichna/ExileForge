@@ -142,6 +142,62 @@ describe("guide page", () => {
     expect(screen.getByText(/Unknown modifier \(Fixture\/NoText\)/)).toBeTruthy();
   });
 
+  it("shows the crafting flow with uncalibrated numbers as such and measured ones with their source", async () => {
+    const measuredStep = {
+      ...publishedGuide.crafting[0]?.steps[0],
+      successChance: {
+        status: "ok",
+        value: 0.25,
+        source: {
+          kind: "derived",
+          formula: "crafting.chance",
+          formulaVersion: "1",
+          inputs: [
+            {
+              kind: "market",
+              provider: "fixture",
+              league: "Fixture",
+              fetchedAt: "2026-01-01T00:00:00Z",
+              confidence: "high",
+            },
+          ],
+        },
+      },
+    };
+    const guide = {
+      ...publishedGuide,
+      crafting: [{ ...publishedGuide.crafting[0], steps: [measuredStep] }],
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("Step 1")).toBeTruthy();
+    expect(screen.getByText("25.0")).toBeTruthy();
+    expect(
+      screen.getAllByText(/Derived · crafting\.chance v1; market Fixture/).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(/On failure: go to step 1/)).toBeTruthy();
+    expect(screen.getAllByText(/uncalibrated/i).length).toBeGreaterThan(0);
+  });
+
+  it("shows a failed crafting number as an error, not as 0", async () => {
+    const failedStep = {
+      ...publishedGuide.crafting[0]?.steps[0],
+      expectedCost: {
+        status: "failed",
+        error: { code: "price_failed", message: "Price lookup failed." },
+      },
+    };
+    const guide = {
+      ...publishedGuide,
+      crafting: [{ ...publishedGuide.crafting[0], steps: [failedStep] }],
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText(/Price lookup failed\./)).toBeTruthy();
+  });
+
   it("says when the tree data cannot be loaded", async () => {
     vi.stubGlobal("fetch", (url: string) =>
       url.endsWith("/api/tree")
@@ -167,6 +223,144 @@ describe("guide page", () => {
     window.location.hash = `#/guide/${GUIDE_ID}`;
     render(<App />);
     expect(await screen.findByText(/The game data changed/)).toBeTruthy();
+  });
+
+  it("shows the engine numbers of a stage with their source and says what is missing", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const guide = {
+      ...publishedGuide,
+      progression: {
+        stages: [{ ...stage, act: 2, calcs: { mapping: { status: "ok", calcId: "calc-1" } } }],
+      },
+    };
+    const result = {
+      ...view.results["calc-1"],
+      stats: { CombinedDPS: 4321, TotalEHP: 8765 },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide, results: { "calc-1": result } }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("4,321")).toBeTruthy();
+    expect(screen.getByText("8,765")).toBeTruthy();
+    expect(screen.getByText(/Act 2 · Level 1–10/)).toBeTruthy();
+    // A stat the result does not contain is uncalibrated, not 0.
+    expect(screen.getByText(/did not report SpiritUnreserved/)).toBeTruthy();
+  });
+
+  it("shows a failed or missing calculation of a stage as an error", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const guide = {
+      ...publishedGuide,
+      progression: {
+        stages: [
+          {
+            ...stage,
+            calcs: {
+              mapping: { status: "failed", error: { code: "x", message: "Worker timed out." } },
+            },
+          },
+        ],
+      },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect((await screen.findAllByText(/Worker timed out\./)).length).toBeGreaterThan(0);
+  });
+
+  it("marks a result of another release as outdated and shows the cost of a respec", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const guide = {
+      ...publishedGuide,
+      progression: {
+        stages: [
+          {
+            ...stage,
+            calcs: { mapping: { status: "ok", calcId: "calc-1" } },
+            respecCost: {
+              status: "ok",
+              value: { amount: 2.5, currencyItemId: "Fixture/Items/Currency" },
+              source: {
+                kind: "market",
+                provider: "fixture",
+                league: "Fixture",
+                fetchedAt: "2026-01-01T00:00:00Z",
+                confidence: "high",
+              },
+            },
+          },
+        ],
+      },
+    };
+    const result = {
+      ...view.results["calc-1"],
+      dataReleaseId: "poe2-0.0.1+r1",
+      stats: { CombinedDPS: 4321 },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide, results: { "calc-1": result } }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("4,321")).toBeTruthy();
+    expect(screen.getByText("Outdated after patch")).toBeTruthy();
+    expect(screen.getByText("2.5")).toBeTruthy();
+  });
+
+  it("says when a stage has no calculation and when its stored result is gone", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const noCalc = { ...publishedGuide, progression: { stages: [{ ...stage, calcs: {} }] } };
+    vi.stubGlobal("fetch", () => json({ ...view, guide: noCalc }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    const first = render(<App />);
+    expect(await screen.findByText("No calculation")).toBeTruthy();
+    first.unmount();
+    const gone = {
+      ...publishedGuide,
+      progression: {
+        stages: [{ ...stage, calcs: { mapping: { status: "ok", calcId: "calc-gone" } } }],
+      },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide: gone }));
+    render(<App />);
+    expect(
+      (await screen.findAllByText(/stored result of this calculation is not available/)).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("shows the written sections and the gem changes between stages", async () => {
+    const first = publishedGuide.progression.stages[0];
+    const second = {
+      ...first,
+      key: "stage-2",
+      order: 1,
+      label: "Second stage",
+      levelRange: [11, 20],
+      state: {
+        ...first?.state,
+        skills: first?.state.skills.map((s) => ({
+          ...s,
+          gem: { ...s.gem, level: s.gem.level + 3 },
+        })),
+      },
+    };
+    const guide = {
+      ...publishedGuide,
+      progression: { stages: [first, second] },
+      atlas: {
+        strategy: publishedGuide.atlas.strategy,
+        avoidMods: [{ modId: "Fixture/BadMod", reason: publishedGuide.atlas.strategy }],
+      },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("Fixture rotation")).toBeTruthy();
+    expect(screen.getAllByText("Fixture atlas").length).toBeGreaterThan(0);
+    expect(screen.getByText("Fixture/BadMod").className).toContain("guide-unresolved");
+    expect(screen.getByText("Fixture q")).toBeTruthy();
+    expect(screen.getByText("Solo self-found")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /Second stage/ }));
+    expect(await screen.findByText(/Changes since Fixture stage/)).toBeTruthy();
+    expect(screen.getByText(/level 5 → 8/)).toBeTruthy();
   });
 
   it("shows no gear for a guide of older game data and points to revalidation", async () => {

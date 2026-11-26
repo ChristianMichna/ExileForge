@@ -1,0 +1,12 @@
+{
+  "$comment": "Which engine numbers the guide page shows for every stage, and under which label. `stat` is a Path of Building output name (see config/agents/stages.json, the stats of the S10 gates); `calcProfiles` is the order in which the calc profiles of a stage are tried. Which stats are shown is a display choice and not a game fact. Nothing is calculated here: the numbers come from the stored results.",
+  "calcProfiles": ["mapping", "pinnacle"],
+  "stats": [
+    { "stat": "CombinedDPS", "label": "Damage per second", "emphasis": true },
+    { "stat": "TotalEHP", "label": "Effective health", "emphasis": true },
+    { "stat": "SpiritUnreserved", "label": "Spirit free" },
+    { "stat": "MissingFireResist", "label": "Fire resistance missing" },
+    { "stat": "MissingColdResist", "label": "Cold resistance missing" },
+    { "stat": "MissingLightningResist", "label": "Lightning resistance missing" }
+  ]
+}

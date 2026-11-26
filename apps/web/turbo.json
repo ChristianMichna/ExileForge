@@ -1,0 +1,9 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "typecheck": { "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/config/web/**"] },
+    "test": { "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/config/web/**"] },
+    "build": { "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/config/web/**"] }
+  }
+}
