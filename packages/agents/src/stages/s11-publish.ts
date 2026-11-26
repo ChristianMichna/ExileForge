@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { GateResult } from "@astrolabe/contracts/build";
 import type { JsonValue } from "@astrolabe/contracts/common";
-import { PobVersion } from "@astrolabe/contracts/common";
+import { type CalcId, PobVersion } from "@astrolabe/contracts/common";
 import {
   GUIDE_SCHEMA_VERSION,
   type GuideDocument,
@@ -29,6 +29,19 @@ export function pobVersionsOf(value: unknown, found = new Set<string>()): Set<st
     for (const [k, v] of Object.entries(value)) {
       if (k === "pobVersion" && typeof v === "string") found.add(v);
       else pobVersionsOf(v, found);
+    }
+  }
+  return found;
+}
+
+/** Every calc id the draft refers to (stage and gear-tier measurements). */
+export function calcIdsOf(value: unknown, found = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) {
+    for (const v of value) calcIdsOf(v, found);
+  } else if (typeof value === "object" && value !== null) {
+    for (const [k, v] of Object.entries(value)) {
+      if (k === "calcId" && typeof v === "string") found.add(v);
+      else calcIdsOf(v, found);
     }
   }
   return found;
@@ -71,7 +84,19 @@ export function publishStep(ctx: PipelineContext, cfg: S11Config, promptVersion:
         throw new Error("The guide did not pass validation and cannot be published");
       }
       const { draft } = report.data;
-      const versions = [...pobVersionsOf(draft)];
+      // Sourced values name their PoB version; the plain calc references (calcId) are read from the
+      // stored results, so a guide whose prices are uncalibrated still knows its engine.
+      const found = pobVersionsOf(draft);
+      for (const id of calcIdsOf(draft)) {
+        const result = await runCtx.calc.getResult(id as CalcId);
+        if (result === undefined) {
+          throw new Error(
+            `The calculation ${id} of the guide is gone; redo the stage that made it`,
+          );
+        }
+        found.add(result.pobVersion);
+      }
+      const versions = [...found];
       const pobVersion = versions[0];
       if (versions.length !== 1 || pobVersion === undefined) {
         throw new Error(

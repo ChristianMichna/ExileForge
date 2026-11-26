@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { completenessOf, pobVersionsOf } from "../src/stages/s11-publish.js";
+import { calcIdsOf, completenessOf, pobVersionsOf } from "../src/stages/s11-publish.js";
 import type { GuideDraft } from "../src/stages/s10-validate.js";
 
 const weights = {
@@ -22,6 +22,15 @@ describe("S11 publishing", () => {
     expect([...found]).toEqual(["v1"]);
     expect(pobVersionsOf({ a: { pobVersion: "v1" }, b: { pobVersion: "v2" } }).size).toBe(2);
     expect(pobVersionsOf({}).size).toBe(0);
+  });
+
+  it("collects the calc ids referred to anywhere in the draft", () => {
+    const found = calcIdsOf({
+      a: [{ calcs: { x: { calcId: "c1" } } }, { calcId: "c1" }],
+      b: { calcId: "c2" },
+    });
+    expect([...found].sort()).toEqual(["c1", "c2"]);
+    expect(calcIdsOf({}).size).toBe(0);
   });
 
   it("scores the weighted share of non-empty parts", () => {
