@@ -477,6 +477,22 @@ describe("forge pipeline (agents)", () => {
       }
     });
 
+    it("fails the run when the job throws synchronously", async () => {
+      const engine = setup(
+        jobPipeline(() => {
+          throw new Error("sync boom");
+        }),
+      );
+      const { runId, sessionCode } = await engine.createRun(REQUEST, "job");
+      await engine.attach(sessionCode);
+      await vi.waitFor(async () =>
+        expect(await engine.next(runId)).toMatchObject({
+          kind: "failed",
+          error: { code: "job_failed", message: expect.stringContaining("sync boom") },
+        }),
+      );
+    });
+
     it("runs a failed job again when the player resumes the run", async () => {
       let calls = 0;
       const run = vi.fn(() =>
