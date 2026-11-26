@@ -284,6 +284,60 @@
             "origin"
           ]
         },
+        "rarities": {
+          "type": "object",
+          "properties": {
+            "rarities": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Classification id defined by the data release (not a fixed enum)"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "maxAffixes": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    },
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ]
+              }
+            },
+            "origin": {
+              "type": "string",
+              "enum": [
+                "game-data",
+                "pob-data",
+                "pob-code"
+              ]
+            }
+          },
+          "required": [
+            "rarities",
+            "origin"
+          ]
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
