@@ -34,11 +34,13 @@ const config = {
       effects: [{ op: "set-rarity", params: { rarity: "fine" } }, addMod("fine")],
     },
   },
-  essence: {
-    description: "^Fines it, adding a guaranteed modifier$",
-    preconditions: [{ op: "require-rarity", params: { rarities: ["fine"] } }],
-    effects: [{ op: "set-rarity", params: { rarity: "grand" } }],
-  },
+  essence: [
+    {
+      description: "^Fines it, adding a guaranteed modifier$",
+      preconditions: [{ op: "require-rarity", params: { rarities: ["fine"] } }],
+      effects: [{ op: "set-rarity", params: { rarity: "grand" } }],
+    },
+  ],
 };
 
 function rows(description: string) {
@@ -107,7 +109,11 @@ describe("raritiesFrom", () => {
 describe("currencyActions", () => {
   it("builds the action with the release's limits and adds the rarity rule to the essence", async () => {
     const res = await run(rows("Makes a [ItemRarity|Plain] thing Fine"));
-    expect(res.summary).toEqual({ currencyActions: 1, essencesWithRarityRule: 1 });
+    expect(res.summary).toEqual({
+      currencyActions: 1,
+      higherTierActions: 0,
+      essencesWithRarityRule: 1,
+    });
     expect(res.actions).toEqual([
       {
         id: "Test/Orb",
@@ -147,26 +153,42 @@ describe("currencyActions", () => {
     );
   });
 
-  it("leaves higher tiers out", async () => {
+  it("gives a higher tier the minimum mod level of its table row", async () => {
     const t = rows("Makes a Plain thing Fine");
     t.TieredCurrency = [
       { BaseItemType: 0, Tier: 2, MinimumModLevel: 35, LowerTierBaseItemType: null },
     ];
     const res = await run(t);
+    expect(res.summary.higherTierActions).toBe(1);
+    const effects = (
+      res.actions[0] as { effects: { op: string; params: Record<string, unknown> }[] }
+    ).effects;
+    expect(effects.find((e) => e.op === "add-random-mod")?.params.minModLevel).toBe(35);
+    expect(effects.find((e) => e.op === "set-rarity")?.params.minModLevel).toBeUndefined();
+  });
+
+  it("leaves a higher tier without a minimum mod level out", async () => {
+    const t = rows("Makes a Plain thing Fine");
+    t.TieredCurrency = [
+      { BaseItemType: 0, Tier: 2, MinimumModLevel: null, LowerTierBaseItemType: null },
+    ];
+    const res = await run(t);
     expect(res.actions).toEqual([]);
-    expect(res.findings.map((f) => f.message).join("\n")).toMatch(/higher tier/);
+    expect(res.findings.map((f) => f.message).join("\n")).toMatch(/higher tier without/);
   });
 
   it("treats a currency with a lower tier as a higher tier, and reports unused rules and keys without a rule", async () => {
     const t = rows("Makes a Plain thing Fine");
-    t.TieredCurrency = [{ BaseItemType: 0, Tier: 1, MinimumModLevel: 1, LowerTierBaseItemType: 3 }];
+    t.TieredCurrency = [
+      { BaseItemType: 0, Tier: 1, MinimumModLevel: null, LowerTierBaseItemType: 3 },
+    ];
     t.CurrencyItems = (t.CurrencyItems ?? []).map((r, i) =>
       i === 1 ? { ...r, Action: "other_action" } : r,
     );
     const res = await run(t);
     expect(res.actions).toEqual([]);
     const text = res.findings.map((f) => f.message).join("\n");
-    expect(text).toMatch(/higher tier/);
+    expect(text).toMatch(/higher tier without/);
     expect(text).toMatch(/currency actions have no rule.*other_action/);
     const none = await run(rows("Makes a Plain thing Fine"), {
       config: { ...config, rules: { ...config.rules, never_used: config.rules.test_action } },
@@ -182,7 +204,7 @@ describe("currencyActions", () => {
         ...JSON.parse(JSON.stringify(cfg)),
         currencyActions: {
           ...cfg.currencyActions,
-          essence: { ...cfg.currencyActions.essence, description },
+          essence: [{ ...cfg.currencyActions.essence[0], description }],
         },
       }).success;
     expect(bad("^fine$")).toBe(true);
@@ -221,7 +243,7 @@ describe("currencyActions", () => {
     const res = await run(t);
     expect(res.summary.essencesWithRarityRule).toBe(0);
     expect((res.essenceActions[0] as { preconditions: unknown[] }).preconditions).toEqual([]);
-    expect(res.findings.map((f) => f.message).join("\n")).toMatch(/1 essences keep no rarity rule/);
+    expect(res.findings.map((f) => f.message).join("\n")).toMatch(/1 essences keep no rule/);
   });
 });
 
@@ -254,9 +276,9 @@ describe("the real config", () => {
       for (const p of a.preconditions) expect(PreconditionOp.safeParse(p).success).toBe(true);
       for (const e of a.effects) expect(EffectOp.safeParse(e).success).toBe(true);
     }
-    for (const rule of [...cfg.currencyActions.essence.preconditions])
+    for (const rule of [...cfg.currencyActions.essence.flatMap((v) => v.preconditions)])
       expect(PreconditionOp.safeParse(rule).success).toBe(true);
-    for (const rule of cfg.currencyActions.essence.effects)
+    for (const rule of cfg.currencyActions.essence.flatMap((v) => v.effects))
       expect(EffectOp.safeParse(rule).success).toBe(true);
   });
 });
