@@ -10,5 +10,6 @@
   "maxEvaluations": 2000,
   "minImprovement": 0.000001,
   "floorPenalty": 10,
-  "spendAllPoints": true
+  "spendAllPoints": true,
+  "lockedNodeGameIdPrefixes": ["oracle_"]
 }
