@@ -642,3 +642,8 @@ code {
   margin: 0;
   color: var(--ef-color-text-muted);
 }
+
+.connect-status {
+  display: grid;
+  gap: var(--ef-space-3);
+}

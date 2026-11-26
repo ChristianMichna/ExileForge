@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Badge, Callout } from "@astrolabe/ui";
 import type { RunLive } from "../live/run-state";
+import type { Connection } from "../live/useRunEvents";
 
 /** How long a run may wait for Claude before the page explains what to check. */
 export const CONNECT_PATIENCE_MS = 45_000;
@@ -23,7 +24,15 @@ type StepState = "done" | "current" | "todo";
 const STEP_TONE = { done: "success", current: "accent", todo: "neutral" } as const;
 const STEP_LABEL = { done: "Done", current: "Now", todo: "Next" } as const;
 
-function Step({ state, title, children }: { state: StepState; title: string; children: string }) {
+function Step({
+  state,
+  title,
+  children,
+}: {
+  state: StepState;
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <li className="setup-step">
       <Badge tone={STEP_TONE[state]}>{STEP_LABEL[state]}</Badge>
@@ -41,39 +50,65 @@ function Step({ state, title, children }: { state: StepState; title: string; chi
  */
 export function ClaudeConnectionStatus({
   run,
+  connection,
   patienceMs = CONNECT_PATIENCE_MS,
 }: {
   run: RunLive;
+  /** State of the live stream: without it the run phase says nothing about Claude. */
+  connection: Connection;
   patienceMs?: number;
 }) {
+  const live = connection === "live";
   const connected = run.phase !== "created";
   const [impatient, setImpatient] = useState(false);
   useEffect(() => {
-    if (connected) return;
+    if (connected || !live) return;
     const timer = window.setTimeout(() => setImpatient(true), patienceMs);
     return () => window.clearTimeout(timer);
-  }, [connected, patienceMs]);
+  }, [connected, live, patienceMs]);
 
   const hint = hintForFindings(run.lastFindings);
+  const summary = !live
+    ? "Checking the run status…"
+    : run.phase === "failed"
+      ? "The run failed."
+      : run.phase === "done"
+        ? "The run is done."
+        : connected
+          ? "Claude is connected."
+          : "Waiting for Claude to connect.";
+  // A finished run needs no setup help; the run panel shows its result.
+  if (live && run.phase === "done") {
+    return (
+      <p className="connect-status" role="status">
+        {summary}
+      </p>
+    );
+  }
+  const planning: StepState =
+    run.phase === "failed" ? "todo" : live && connected ? "current" : "todo";
   return (
     <div className="connect-status">
+      <p className="ef-visually-hidden" role="status">
+        {summary}
+      </p>
       <ol className="setup-steps">
         <Step state="done" title="Run created">
           Astrolabe is ready and waits for Claude.
         </Step>
         <Step
-          state={connected ? "done" : "current"}
-          title={connected ? "Claude is connected" : "Waiting for Claude to connect"}
+          state={live && connected ? "done" : "current"}
+          title={live && connected ? "Claude is connected" : "Waiting for Claude to connect"}
         >
-          {connected
+          {live && connected
             ? "Claude picked up the run and Astrolabe checks every answer."
             : "Install the Claude extension once, open Claude Desktop, and paste the start sentence into a new chat."}
         </Step>
-        <Step state={connected ? "current" : "todo"} title="Planning">
+        <Step state={planning} title="Planning">
           Claude plans step by step; Path of Building measures each answer.
         </Step>
       </ol>
-      {!connected && impatient ? (
+      {live && !connected && impatient ? (
         <Callout tone="warning" title="Claude has not connected yet" live>
           <ul>
             <li>

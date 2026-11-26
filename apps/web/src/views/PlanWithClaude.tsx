@@ -123,7 +123,7 @@ function Planner({
       ) : (
         <>
           <ConnectClaude runId={runId} created={created} />
-          <ClaudeConnectionStatus run={events.run} />
+          <ClaudeConnectionStatus run={events.run} connection={events.connection} />
           <RunStatusPanel state={events} onNewRun={reset} />
         </>
       )}
