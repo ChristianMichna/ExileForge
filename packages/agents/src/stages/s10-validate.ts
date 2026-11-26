@@ -531,7 +531,9 @@ async function measuredGates(
             "attribute_requirement_unmet",
             `Stage ${stage.key}: ${have} is below the requirement ${need}.`,
             path,
-            returnTo,
+            // The tree search of S6 does not weigh attribute requirements, so a return to it
+            // cannot fix a campaign stage (found in the first full run: five stages, all unfixed).
+            returnTo === "S6" ? undefined : returnTo,
           ),
         );
       }
