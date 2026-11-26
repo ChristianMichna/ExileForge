@@ -6,6 +6,21 @@ const view = {
   guide: publishedGuide,
   catalogReleaseId: publishedGuide.metadata.dataReleaseId,
   current: true,
+  gear: [
+    {
+      budgetTier: "tier-a",
+      slot: "FixtureSlot",
+      target: {
+        kind: "unique",
+        name: "Fixture Unique Name",
+        baseName: "Fixture Base",
+        itemClass: "fixture_class",
+        implicits: [{ modId: "Fixture/Implicit", text: "Implicit text" }],
+        explicits: [{ text: "Unique line" }],
+      },
+      alternatives: [],
+    },
+  ],
   names: {
     "gem:Fixture/Gems/Main": "Main Skill",
     "ascendancy:fixture_asc": "Fixture Ascendancy",
@@ -33,6 +48,7 @@ test("a saved guide opens in the window with its stages and numbers", async ({ p
   await page.evaluate(() => document.fonts.ready);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Fixture Ascendancy");
   await expect(page.getByText("1,234.5").first()).toBeVisible();
+  await expect(page.getByText("Fixture Unique Name")).toBeVisible();
   await expect(page.getByRole("button", { name: "Save as .build file" })).toBeVisible();
   const shot = process.env["GUIDE_SHOT"];
   if (shot !== undefined) await page.screenshot({ path: shot, fullPage: true });
