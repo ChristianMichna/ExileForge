@@ -20,6 +20,7 @@ const rarities = raritiesFrom(
     list: [{ name: "Plain" }, { name: "Fine", affixLimit: 2 }, { name: "Grand", affixLimit: 6 }],
   },
   new Set(["Left", "Right"]),
+  new Set(),
 ).value;
 const realRarities = raritiesFrom(
   cfg.releaseFacts.rarities,
@@ -100,12 +101,14 @@ describe("raritiesFrom", () => {
     const odd = raritiesFrom(
       { affixGenerationTypes: ["Left", "Right"], list: [{ name: "Odd", affixLimit: 3 }] },
       new Set(["Left", "Right"]),
+      new Set(),
     );
     expect(odd.value).toBeUndefined();
     expect(odd.finding?.message).toMatch(/do not split evenly/);
     const unknown = raritiesFrom(
       { affixGenerationTypes: ["Nope"], list: [{ name: "X" }] },
       new Set(["Left"]),
+      new Set(),
     );
     expect(unknown.finding?.message).toMatch(/no mod has generation type Nope/);
   });
@@ -123,7 +126,9 @@ describe("raritiesFrom", () => {
     });
     const unknown = raritiesFrom(cfgFor("Gem", 4), new Set(["Left", "Right"]), new Set(["Ring"]));
     expect(unknown.value).toBeUndefined();
-    expect(unknown.finding?.message).toMatch(/item class Gem has no base item/);
+    expect(unknown.error?.message).toMatch(
+      /item class Gem of affixLimitByItemClass has no base item/,
+    );
     const odd = raritiesFrom(cfgFor("Gem", 3), new Set(["Left", "Right"]), new Set(["Gem"]));
     expect(odd.value).toBeUndefined();
     expect(odd.finding?.message).toMatch(/Gem: 3 affixes do not split evenly/);

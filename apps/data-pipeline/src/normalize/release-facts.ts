@@ -48,8 +48,8 @@ export function classificationsFrom(
 export function raritiesFrom(
   config: NormalizeConfig["releaseFacts"]["rarities"],
   generationTypes: ReadonlySet<string>,
-  itemClasses: ReadonlySet<string> = new Set(),
-): { value?: NonNullable<DataRelease["rarities"]>; finding?: Finding } {
+  itemClasses: ReadonlySet<string>,
+): { value?: NonNullable<DataRelease["rarities"]>; finding?: Finding; error?: Finding } {
   const split = (total: number): Record<string, number> | undefined =>
     total % config.affixGenerationTypes.length === 0
       ? Object.fromEntries(
@@ -86,7 +86,13 @@ export function raritiesFrom(
     const byClass: Record<string, Record<string, number>> = {};
     for (const [cls, total] of Object.entries(r.affixLimitByItemClass ?? {})) {
       if (!itemClasses.has(cls))
-        return fail(`${r.name}: item class ${cls} has no base item in the catalog`);
+        return {
+          error: {
+            kind: "release" as const,
+            id: "rarities",
+            message: `${r.name}: item class ${cls} of affixLimitByItemClass has no base item in the catalog; fix the config or the PoB data`,
+          },
+        };
       const limits = split(total);
       if (!limits)
         return fail(
@@ -259,6 +265,7 @@ export async function buildReleaseFacts(opts: {
   const rarities = raritiesFrom(config.rarities, opts.generationTypes, opts.known.itemClasses);
   if (rarities.value) facts.rarities = rarities.value;
   if (rarities.finding) findings.push(rarities.finding);
+  if (rarities.error) errors.push(rarities.error);
 
   const classifications = classificationsFrom(config.classifications, opts.vocabulary);
   if (classifications.value) facts.classifications = classifications.value;

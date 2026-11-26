@@ -258,8 +258,9 @@ Tabellen in `game-data.json` (Pflichttabellen, fehlen sie, bricht der Lauf ab).
   Summe wird gleichmäßig auf die Generationstypen verteilt (Prefix, Suffix); geht sie nicht auf oder
   fehlt ein Typ, entfällt das Feld mit Finding. Je Seltenheit kann `affixLimitByItemClass` die Summe
   für eine Item-Klasse ersetzen (heute: seltene Juwelen 4, wie in PoBs `Item.lua`); das landet als
-  `maxAffixesByItemClass` im Release. Eine Klasse ohne Basis-Item im Katalog lässt das Feld mit
-  Finding entfallen. Die Aktionen übernehmen die Grenzen zur Laufzeit (`limitsByRarity`) aus
+  `maxAffixesByItemClass` im Release. Eine Klasse ohne Basis-Item im Katalog ist ein Fehler (der Lauf bricht ab).
+  Nicht abbildbar: PoBs Ausnahme für verderbte Abyss-Juwelen (6 statt 4); es gibt heute keine
+  Abyss-Basen. Die Aktionen übernehmen die Grenzen zur Laufzeit (`limitsByRarity`) aus
   Seltenheit und Klasse des Items.
 - **Währungsaktionen** (`currencyActions` in `normalize.json`): Eine Währung wird nur dann zur
   `CraftingAction`, wenn ihr `CurrencyItems.Action`-Schlüssel eine Regel hat **und** die Beschreibung
