@@ -183,6 +183,21 @@ describe("DataRelease item slots", () => {
     expect(DataRelease.safeParse({ ...validRelease, itemSlots: empty }).success).toBe(false);
   });
 
+  it("accepts rarities with affix limits, rejects duplicates", () => {
+    const rarities = {
+      origin: "pob-code",
+      rarities: [
+        { id: "plain", name: "Plain" },
+        { id: "fine", name: "Fine", maxAffixes: { left: 1, right: 1 } },
+      ],
+    };
+    expect(DataRelease.safeParse({ ...validRelease, rarities }).success).toBe(true);
+    const dup = { ...rarities, rarities: [rarities.rarities[0], rarities.rarities[0]] };
+    expect(DataRelease.safeParse({ ...validRelease, rarities: dup }).success).toBe(false);
+    const none = { ...rarities, rarities: [] };
+    expect(DataRelease.safeParse({ ...validRelease, rarities: none }).success).toBe(false);
+  });
+
   it("accepts the origin of the game ids", () => {
     expect(
       DataRelease.safeParse({ ...validRelease, gameIds: { origin: "game-data" } }).success,

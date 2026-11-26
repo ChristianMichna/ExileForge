@@ -175,6 +175,37 @@ export const ReleaseClassifications = z
   });
 export type ReleaseClassifications = z.infer<typeof ReleaseClassifications>;
 
+/**
+ * Item rarities of the release in ascending order, with the most affixes an
+ * item of that rarity carries per generation type (for crafting rules). A
+ * rarity without `maxAffixes` carries none through crafting (e.g. normal) or
+ * is not crafted at all (unique). Absent when the pipeline could not derive
+ * them; consumers then call crafting "uncalibrated" instead of guessing.
+ */
+export const ReleaseRarities = z
+  .object({
+    rarities: z
+      .array(
+        z.object({
+          id: ClassificationId,
+          name: z.string().min(1),
+          /** Mods per generation type id (e.g. prefix and suffix) at most. */
+          maxAffixes: z.record(ClassificationId, z.int().nonnegative()).optional(),
+        }),
+      )
+      .min(1),
+    origin: ReleaseFactOrigin,
+  })
+  .superRefine((v, ctx) => {
+    const seen = new Set<string>();
+    v.rarities.forEach((r, i) => {
+      if (seen.has(r.id))
+        ctx.addIssue({ code: "custom", path: ["rarities", i, "id"], message: "duplicate rarity" });
+      seen.add(r.id);
+    });
+  });
+export type ReleaseRarities = z.infer<typeof ReleaseRarities>;
+
 export const DataRelease = z
   .object({
     id: DataReleaseId,
@@ -195,6 +226,8 @@ export const DataRelease = z
     gameIds: z.object({ origin: ReleaseFactOrigin }).optional(),
     /** Damage types and defence layers of the release; absent when the pipeline could not derive them. */
     classifications: ReleaseClassifications.optional(),
+    /** Item rarities and their affix limits; absent when the pipeline could not derive them. */
+    rarities: ReleaseRarities.optional(),
     createdAt: IsoDateTime,
     previousReleaseId: DataReleaseId.optional(),
     /** Path of the CatalogDiff against previousReleaseId, inside the release. */
