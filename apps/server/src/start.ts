@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { parseOptimizerConfig } from "@astrolabe/optimizer";
 import { createForgePipeline, StageConfig } from "@astrolabe/agents";
 import { loadOrCreateAccessToken } from "./access-token.js";
@@ -19,10 +20,14 @@ import { createApp, LOOPBACK_HOST } from "./http/app.js";
 import type { Logger } from "./logger.js";
 import { createPocPipeline } from "./pipelines/poc-pipeline.js";
 import { createGuideRevalidate } from "./tools/guide-revalidate.js";
+import { GuideSweeper } from "./tools/guide-sweep.js";
 import { RunStore } from "./store/run-store.js";
 
 /** The PoB worker pool as the server uses it (`CalcPool` from apps/calc fits). */
 export type PobPool = CalcRequester & BaseBuildSource & { close(): Promise<void> };
+
+/** The part of a stored guide the sweep reads before deciding whether a check is needed. */
+const BuiltWith = z.object({ metadata: z.object({ dataReleaseId: z.string() }) });
 
 /** Default local port; the .mcpb bridge uses the same default. */
 export const DEFAULT_PORT = 47615;
@@ -202,19 +207,36 @@ async function startServerOwningPool(
     pipelines: [createPocPipeline(config.pipelines.poc), createForgePipeline(stages)],
     calcProfiles: knownProfiles,
   });
+  const guideRevalidate =
+    options.releasesDir === undefined
+      ? undefined
+      : createGuideRevalidate({
+          findGuide: (id) => store.findGuide(id),
+          releasesDir: options.releasesDir,
+          now: () => new Date(),
+          logger: options.logger,
+        });
+  const sweeper =
+    guideRevalidate === undefined
+      ? undefined
+      : new GuideSweeper({
+          listGuideIds: () => store.listGuideIds(),
+          revalidate: guideRevalidate,
+          builtWith: (id) => {
+            const parsed = BuiltWith.safeParse(store.findGuide(id));
+            return parsed.success ? parsed.data.metadata.dataReleaseId : undefined;
+          },
+          save: (guideId, to, outcome, at) => store.savePatchCheck(guideId, to, outcome, at),
+          list: (to) => store.listPatchChecks(to),
+          currentReleaseId: catalog.dataReleaseId,
+          now: () => new Date(),
+          logger: options.logger,
+        });
   const app = createApp({
     ...(craft === undefined ? {} : { craft }),
     ...(economy === undefined ? {} : { economy: economy.price }),
-    ...(options.releasesDir === undefined
-      ? {}
-      : {
-          guideRevalidate: createGuideRevalidate({
-            findGuide: (id) => store.findGuide(id),
-            releasesDir: options.releasesDir,
-            now: () => new Date(),
-            logger: options.logger,
-          }),
-        }),
+    ...(guideRevalidate === undefined ? {} : { guideRevalidate }),
+    ...(sweeper === undefined ? {} : { guideSweep: sweeper }),
     engine,
     catalog,
     calc,
@@ -230,6 +252,7 @@ async function startServerOwningPool(
   app.addHook("onClose", async () => {
     engine.stopJobs();
     try {
+      await sweeper?.stop();
       await pobCalc?.close();
       if (typeof options.calc === "object") await options.calc.pool.close();
     } finally {
@@ -241,6 +264,12 @@ async function startServerOwningPool(
   } catch (error) {
     store.close();
     throw error;
+  }
+  // Right after start: check the stored guides against the release the server runs with.
+  if (sweeper !== undefined) {
+    void sweeper.run().catch((error: unknown) => {
+      options.logger.error("guide sweep crashed", { error });
+    });
   }
   const url = `http://${LOOPBACK_HOST}:${options.port}`;
   options.logger.info("listening", { url, mcp: `${url}/mcp`, tokenFile: options.tokenFile });

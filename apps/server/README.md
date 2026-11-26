@@ -266,3 +266,23 @@ Dann gilt `calc.engine = "none"` (`CalcNone`):
   PoB-Version; es gibt nie `0` oder leere Ersatzwerte.
 - `GET /api/health` meldet `calcEngine: "none"`, `catalogOnly: true` und
   `catalogOnlyReason`.
+
+## Automatische Neuprüfung gespeicherter Guides (F-19)
+
+Mit `--releases-dir` prüft der Server direkt nach dem Start jeden gespeicherten
+Guide, der mit einem älteren Release gebaut wurde, gegen das Release, mit dem
+er läuft (`GuideSweeper`, im Hintergrund). Die Desktop-App startet den Server
+nach jeder Installation eines Daten-Releases neu, damit läuft die Prüfung
+automatisch nach einem Patch.
+
+- Ergebnis je Guide und Release in SQLite (`patch_checks`): das `PatchStatus`
+  oder der Fehlercode (`diff_missing`, `guide_invalid`, ...), nie ein stilles
+  „unverändert".
+- `GET /api/guides/patch-status` liefert `{ enabled, releaseId, running, error?, guides }`
+  (`enabled: false` ohne `--releases-dir`: dann wurde nichts geprüft).
+  `POST /api/guides/patch-status/refresh` prüft alle Guides erneut (202; läuft schon
+  eine Prüfung, ändert sich nichts).
+- Beim Start werden Guides mit vorhandenem Ergebnis für dieses Release nicht erneut
+  geprüft, Guides mit einem Fehler schon. Beim Beenden stoppt der Server die Prüfung
+  nach dem laufenden Guide, bevor er die Datenbank schließt.
+- Die Antwortform ist noch nicht im Vertragspaket (Folge-PR, damit `apps/web` sie nutzt).

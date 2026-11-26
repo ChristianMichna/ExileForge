@@ -3,6 +3,7 @@ import { z } from "zod";
 import { CalcResult } from "@astrolabe/contracts/calc";
 import { RunEvent } from "@astrolabe/contracts/events";
 import { RunRecord } from "../engine/run-record.js";
+import { PatchCheckOutcome, type StoredPatchCheck } from "./patch-check.js";
 
 /**
  * SQLite store for runs and their event log (node:sqlite, no native
@@ -25,6 +26,13 @@ export class RunStore {
       CREATE TABLE IF NOT EXISTS calc_results (
         calc_id TEXT PRIMARY KEY,
         result TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS patch_checks (
+        guide_id TEXT NOT NULL,
+        to_release_id TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        checked_at TEXT NOT NULL,
+        PRIMARY KEY (guide_id, to_release_id)
       );
       CREATE TABLE IF NOT EXISTS events (
         run_id TEXT NOT NULL,
@@ -59,6 +67,57 @@ export class RunStore {
     if (row === undefined) return undefined;
     const record = parseRow(RunRecord, row["record"], `guide ${guideId}`);
     return record.results["S11.guide"]?.value;
+  }
+
+  /** Ids of all stored guides (a run that produced a guide carries its id); newest first, each once. */
+  listGuideIds(): string[] {
+    const rows = this.db
+      .prepare(
+        `SELECT json_extract(record, '$.guideId') AS guide_id FROM runs
+         WHERE json_extract(record, '$.guideId') IS NOT NULL
+         ORDER BY updated_at DESC, rowid DESC`,
+      )
+      .all();
+    const ids: string[] = [];
+    for (const row of rows) {
+      const id = row["guide_id"];
+      if (typeof id === "string" && !ids.includes(id)) ids.push(id);
+    }
+    return ids;
+  }
+
+  /** Keeps the outcome of the newest revalidation of a guide against a release (replaces an older one). */
+  savePatchCheck(
+    guideId: string,
+    toReleaseId: string,
+    outcome: PatchCheckOutcome,
+    checkedAt: string,
+  ): void {
+    this.db
+      .prepare(
+        `INSERT INTO patch_checks (guide_id, to_release_id, outcome, checked_at) VALUES (?, ?, ?, ?)
+         ON CONFLICT(guide_id, to_release_id) DO UPDATE SET outcome = excluded.outcome,
+           checked_at = excluded.checked_at`,
+      )
+      .run(guideId, toReleaseId, JSON.stringify(outcome), checkedAt);
+  }
+
+  /** Stored revalidation outcomes against one release. */
+  listPatchChecks(toReleaseId: string): StoredPatchCheck[] {
+    return this.db
+      .prepare(
+        "SELECT guide_id, outcome, checked_at FROM patch_checks WHERE to_release_id = ? ORDER BY guide_id",
+      )
+      .all(toReleaseId)
+      .map((row) => ({
+        guideId: String(row["guide_id"]),
+        outcome: parseRow(
+          PatchCheckOutcome,
+          row["outcome"],
+          `patch check ${String(row["guide_id"])}`,
+        ),
+        checkedAt: String(row["checked_at"]),
+      }));
   }
 
   /** Saves the run and its new events in one transaction. */
