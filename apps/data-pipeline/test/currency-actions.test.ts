@@ -227,6 +227,43 @@ describe("currencyActions", () => {
     );
   });
 
+  it("quotes the game text of unruled currencies that match the keyword, cut and marked when too long", async () => {
+    const t = rows("Makes a Plain thing Fine");
+    const long = `Rerolls the [Mod|modifiers] ${"x".repeat(40)}`;
+    t.CurrencyItems = (t.CurrencyItems ?? []).map((r, i) =>
+      i === 1
+        ? { ...r, Action: "other_action", Description: long }
+        : i === 3
+          ? { ...r, Action: "third_action", Description: "Does something else" }
+          : r,
+    );
+    const evidence = { keyword: "modifier", maxChars: 30, maxEntries: 1 };
+    const res = await run(t, { config: { ...config, evidence } });
+    const finding = res.findings.find((f) => f.id === "no-rule-text");
+    expect(finding?.message).toContain('other_action: "Rerolls the modifiers xxxxxxxx…"');
+    expect(finding?.message).not.toContain("third_action");
+    expect(finding?.message).not.toContain("test_action");
+    expect(finding?.message).not.toContain("more not shown");
+    // two matching actions but room for one: the overflow is announced
+    const t2 = rows("Makes a Plain thing Fine");
+    t2.CurrencyItems = (t2.CurrencyItems ?? []).map((r, i) =>
+      i === 1
+        ? { ...r, Action: "a_action", Description: "A modifier" }
+        : i === 3
+          ? { ...r, Action: "b_action", Description: "Another modifier" }
+          : r,
+    );
+    const res2 = await run(t2, { config: { ...config, evidence } });
+    expect(res2.findings.find((f) => f.id === "no-rule-text")?.message).toMatch(
+      /\(\+1 more not shown\)/,
+    );
+    // no matching text: no finding at all
+    const t3 = rows("Makes a Plain thing Fine");
+    expect(
+      (await run(t3, { config: { ...config, evidence } })).findings.map((f) => f.id),
+    ).not.toContain("no-rule-text");
+  });
+
   it("rejects a description pattern that is invalid or not anchored", () => {
     const bad = (description: string) =>
       normalizeConfigSchema.safeParse({
