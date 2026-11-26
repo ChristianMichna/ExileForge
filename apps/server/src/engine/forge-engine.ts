@@ -46,6 +46,8 @@ export interface ForgeEngineOptions {
   store: RunStore;
   catalog: CatalogPort;
   calc: CalcPort;
+  /** Set in catalog-only mode: new runs are refused with this reason (`calc_unavailable`). */
+  catalogOnlyReason?: string;
   config: ForgeConfig;
   pipelines: readonly Pipeline[];
   /** Calc profiles whose results may be referenced in text. */
@@ -127,6 +129,10 @@ export class ForgeEngine {
     request: BuildRequest,
     pipelineId: string,
   ): Promise<{ runId: RunId; sessionCode: SessionCode; expiresAt: string }> {
+    if (this.options.catalogOnlyReason !== undefined) {
+      // Catalog-only mode: a run could not measure a single number.
+      throw new ForgeError("calc_unavailable", this.options.catalogOnlyReason);
+    }
     if (!this.pipelines.has(pipelineId)) {
       throw new ForgeError("invalid_request", `Unknown pipeline ${pipelineId}`);
     }

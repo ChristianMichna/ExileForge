@@ -38,9 +38,9 @@ if (values.catalog === undefined) {
   logger.error("--catalog <data release dir> is required");
   process.exit(2);
 }
-if (values.calc !== "fake" && values.calc !== "pob") {
+if (values.calc !== "fake" && values.calc !== "pob" && values.calc !== "none") {
   logger.error(
-    "--calc fake|pob is required (fake = calc-fake, pob = Path of Building worker pool)",
+    "--calc fake|pob|none is required (fake = calc-fake, pob = Path of Building worker pool, none = catalog only)",
   );
   process.exit(2);
 }
@@ -55,6 +55,7 @@ if (badOrigin !== undefined) {
 
 async function chooseCalc(catalogDir: string): Promise<Parameters<typeof startServer>[0]["calc"]> {
   if (values.calc === "fake") return "fake";
+  if (values.calc === "none") return "none";
   // The pool stamps every result with the data release of the catalog the server uses.
   const { dataReleaseId } = await loadCatalogRelease(catalogDir);
   const pool = await startCalcPool({
@@ -76,7 +77,12 @@ async function chooseCalc(catalogDir: string): Promise<Parameters<typeof startSe
       });
     },
   });
-  return { engine: "pob", pool, optimizerConfigPath: values.optimizer };
+  return {
+    engine: "pob",
+    pool,
+    optimizerConfigPath: values.optimizer,
+    pobVersion: pool.meta.pobVersion,
+  };
 }
 
 const catalogDir = values.catalog;
