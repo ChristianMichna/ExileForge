@@ -12,11 +12,13 @@ import {
 import { autoUpdater } from "electron-updater";
 import { join } from "node:path";
 import { createStderrLogger } from "@astrolabe/server";
+import { installRelease, listRemoteReleases, removeLeftovers } from "@astrolabe/release-sync";
 import { IPC } from "../shared/bridge.js";
 import { createAppProtocolHandler } from "./app-protocol.js";
 import { loadDesktopConfig, type DesktopConfig } from "./config.js";
 import { createHandlers } from "./ipc-handlers.js";
-import { findDataRelease, resolveAppDirs } from "./resources.js";
+import { startDataSync, type DataSyncController } from "./data-sync.js";
+import { findDataRelease, knownReleaseIds, resolveAppDirs } from "./resources.js";
 import { APP_SCHEME, APP_URL, isAppUrl, isTrustedSender } from "./security.js";
 import { startServices, type Services } from "./services.js";
 import { StatusStore } from "./status.js";
@@ -37,6 +39,7 @@ protocol.registerSchemesAsPrivileged([
 let mainWindow: BrowserWindow | undefined;
 let services: Services | undefined;
 let updates: UpdateController | undefined;
+let dataSync: DataSyncController | undefined;
 
 /** Repository root when running unpackaged (dist/main.cjs → apps/desktop → repo). */
 const repoRoot = join(__dirname, "..", "..", "..");
@@ -64,6 +67,7 @@ if (!app.requestSingleInstanceLock()) {
   let stopped = false;
   app.on("before-quit", (event) => {
     updates?.stop();
+    dataSync?.stop();
     if (stopped || services === undefined) return;
     // Let the server and SQLite close cleanly before the process ends.
     event.preventDefault();
@@ -84,10 +88,18 @@ async function boot(): Promise<void> {
     userData: app.getPath("userData"),
   });
   const config = await loadDesktopConfig(dirs.desktopConfigPath);
-  const status = new StatusStore(app.getVersion(), {
-    state: "disabled",
-    reason: app.isPackaged ? "Updates are switched off in the settings." : "Not an installed app.",
-  });
+  const status = new StatusStore(
+    app.getVersion(),
+    {
+      state: "disabled",
+      reason: app.isPackaged
+        ? "Updates are switched off in the settings."
+        : "Not an installed app.",
+    },
+    config.dataSync.enabled
+      ? { state: "idle" }
+      : { state: "disabled", reason: "Game data updates are switched off in the settings." },
+  );
 
   hardenSession(`http://127.0.0.1:${config.port}/`);
   const handleApp = createAppProtocolHandler({
@@ -110,6 +122,11 @@ async function boot(): Promise<void> {
     openPath: (path) => shell.openPath(path),
     extensionPath: dirs.extensionPath,
     updates: () => updates,
+    dataSync: () => dataSync,
+    relaunch: () => {
+      app.relaunch();
+      app.quit();
+    },
   });
   registerIpc(handlers, status);
 
@@ -130,6 +147,7 @@ async function boot(): Promise<void> {
       catalogDir,
       forgeConfigPath: dirs.forgeConfigPath,
       stagesConfigPath: dirs.stagesConfigPath,
+      releasesDir: dirs.downloadedReleasesDir,
       logger,
     });
     status.setServer({
@@ -143,6 +161,47 @@ async function boot(): Promise<void> {
     status.setServer({
       state: "failed",
       message: error instanceof Error ? error.message : "The local server failed to start.",
+    });
+  }
+
+  if (config.dataSync.enabled) {
+    const sync = config.dataSync;
+    const userAgent = `Astrolabe/${app.getVersion()} (+https://github.com/${sync.repo})`;
+    const fetchLike = (url: string, init?: RequestInit) => net.fetch(url, init);
+    try {
+      const removed = await removeLeftovers(
+        dirs.downloadedReleasesDir,
+        sync.leftoverMinAgeMinutes * 60_000,
+      );
+      if (removed > 0) logger.info("removed leftovers of interrupted data installs", { removed });
+    } catch (error) {
+      logger.error("could not clean the data release folder", { error });
+    }
+    dataSync = startDataSync({
+      list: () => listRemoteReleases({ fetch: fetchLike, repo: sync.repo, userAgent }),
+      knownIds: async () => [
+        ...(await knownReleaseIds(dirs)),
+        ...(services === undefined ? [] : [services.dataReleaseId]),
+      ],
+      install: (release) =>
+        installRelease({
+          fetch: fetchLike,
+          release,
+          repo: sync.repo,
+          allowedRedirectHosts: sync.allowedRedirectHosts,
+          releasesDir: dirs.downloadedReleasesDir,
+          userAgent,
+          maxDownloadBytes: sync.maxDownloadMegabytes * 1_048_576,
+          maxUnpackedBytes: sync.maxUnpackedMegabytes * 1_048_576,
+          maxChecksumBytes: sync.maxChecksumBytes,
+          maxDecompressionRatio: sync.maxDecompressionRatio,
+          maxEntries: sync.maxEntries,
+        }),
+      setState: (state) => status.setData(state),
+      includePrereleases: sync.includePrereleases,
+      firstCheckDelayMs: sync.firstCheckDelaySeconds * 1000,
+      intervalMs: sync.checkIntervalHours * 3_600_000,
+      onError: (error) => logger.error("game data check failed", { error }),
     });
   }
 
@@ -226,6 +285,14 @@ function registerIpc(handlers: ReturnType<typeof createHandlers>, status: Status
   ipcMain.handle(
     IPC.installUpdate,
     guard(() => handlers.installUpdate()),
+  );
+  ipcMain.handle(
+    IPC.checkForData,
+    guard(() => handlers.checkForData()),
+  );
+  ipcMain.handle(
+    IPC.restartForData,
+    guard(() => handlers.restartForData()),
   );
 }
 

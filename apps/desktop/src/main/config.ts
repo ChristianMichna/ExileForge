@@ -30,6 +30,24 @@ export const DesktopConfig = z.object({
     firstCheckDelaySeconds: z.int().nonnegative(),
     checkIntervalHours: z.number().positive(),
   }),
+  /** New game patches arrive as data releases from GitHub Releases (F-01). */
+  dataSync: z.object({
+    enabled: z.boolean(),
+    /** "owner/name" that publishes the data releases. */
+    repo: z.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/),
+    includePrereleases: z.boolean(),
+    firstCheckDelaySeconds: z.int().nonnegative(),
+    checkIntervalHours: z.number().positive(),
+    /** Hosts a download may be redirected to (https only). */
+    allowedRedirectHosts: z.array(z.string().min(1)).min(1),
+    maxDownloadMegabytes: z.int().positive(),
+    maxUnpackedMegabytes: z.int().positive(),
+    maxChecksumBytes: z.int().positive(),
+    maxDecompressionRatio: z.int().positive(),
+    maxEntries: z.int().positive(),
+    /** Temporary folders of interrupted installs older than this are removed at start. */
+    leftoverMinAgeMinutes: z.int().nonnegative(),
+  }),
 });
 export type DesktopConfig = z.infer<typeof DesktopConfig>;
 

@@ -23,10 +23,21 @@ export type UpdateState =
   | { readonly state: "ready"; readonly version: string }
   | { readonly state: "failed"; readonly message: string };
 
+/** Game data (catalog) updates: new patches arrive as data releases, not as app updates. */
+export type DataState =
+  | { readonly state: "disabled"; readonly reason: string }
+  | { readonly state: "idle" }
+  | { readonly state: "checking" }
+  | { readonly state: "downloading"; readonly releaseId: string }
+  /** Installed and verified; used after the next start. */
+  | { readonly state: "ready"; readonly releaseId: string }
+  | { readonly state: "failed"; readonly message: string };
+
 export interface AppStatus {
   readonly appVersion: string;
   readonly server: ServerState;
   readonly update: UpdateState;
+  readonly data: DataState;
 }
 
 export interface OpenClaudeResult {
@@ -58,6 +69,10 @@ export interface DesktopBridge {
   installClaudeExtension(): Promise<ActionResult>;
   checkForUpdates(): Promise<ActionResult>;
   installUpdate(): Promise<ActionResult>;
+  /** Looks for a new game data release now. */
+  checkForData(): Promise<ActionResult>;
+  /** Restarts the app so that a downloaded data release is used. */
+  restartForData(): Promise<ActionResult>;
 }
 
 export const IPC = {
@@ -68,4 +83,6 @@ export const IPC = {
   installClaudeExtension: "astrolabe:claude:install-extension",
   checkForUpdates: "astrolabe:update:check",
   installUpdate: "astrolabe:update:install",
+  checkForData: "astrolabe:data:check",
+  restartForData: "astrolabe:data:restart",
 } as const;

@@ -1,4 +1,5 @@
-import { readdir, stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
+import { compareReleaseIds, installedReleaseIds } from "@astrolabe/release-sync";
 import { join } from "node:path";
 
 export interface AppDirs {
@@ -52,36 +53,54 @@ async function isRelease(dir: string): Promise<boolean> {
   }
 }
 
+/** The release id a folder's manifest names; undefined when it is not readable. */
+async function manifestId(dir: string): Promise<string | undefined> {
+  try {
+    const manifest = JSON.parse(await readFile(join(dir, "manifest.json"), "utf8")) as {
+      release?: { id?: unknown };
+    };
+    const id = manifest.release?.id;
+    return typeof id === "string" ? id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * Picks the data release to load: an explicit override, then the newest
- * downloaded release, then the one bundled with the installer. Throws with a
- * plain explanation when there is none; there is no empty fallback catalog.
+ * Picks the data release to load: an explicit override, otherwise the newest of the downloaded
+ * releases (folders named by release id) and the one bundled with the installer, by game
+ * version and revision. Throws with a plain explanation when there is none; there is no empty
+ * fallback catalog.
  */
 export async function findDataRelease(dirs: AppDirs, override?: string): Promise<string> {
   if (override !== undefined && override !== "") {
     if (await isRelease(override)) return override;
     throw new Error(`ASTROLABE_DATA_RELEASE points to ${override}, which has no manifest.json.`);
   }
-  let names: string[] = [];
-  try {
-    names = await readdir(dirs.downloadedReleasesDir);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw new Error(`Cannot read ${dirs.downloadedReleasesDir}`, { cause: error });
-    }
+  const ids = await installedReleaseIds(dirs.downloadedReleasesDir);
+  const candidates: { id: string; dir: string }[] = ids.map((id) => ({
+    id,
+    dir: join(dirs.downloadedReleasesDir, id),
+  }));
+  if (await isRelease(dirs.bundledReleaseDir)) {
+    const id = await manifestId(dirs.bundledReleaseDir);
+    // a bundled release whose id cannot be read still counts, but never beats a download
+    candidates.push({ id: id ?? "poe2-0.0+r0", dir: dirs.bundledReleaseDir });
   }
-  // Release ids sort by game version and revision as text only within one game version; the
-  // newest download is the one with the latest modification time instead.
-  const candidates: { dir: string; mtimeMs: number }[] = [];
-  for (const name of names) {
-    const dir = join(dirs.downloadedReleasesDir, name);
-    if (await isRelease(dir)) candidates.push({ dir, mtimeMs: (await stat(dir)).mtimeMs });
-  }
-  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
-  const newest = candidates[0];
-  if (newest !== undefined) return newest.dir;
-  if (await isRelease(dirs.bundledReleaseDir)) return dirs.bundledReleaseDir;
+  candidates.sort((a, b) => compareReleaseIds(b.id, a.id));
+  const best = candidates[0];
+  if (best !== undefined) return best.dir;
   throw new Error(
     "No game data found. This installer was built without a data release, and none has been downloaded yet.",
   );
+}
+
+/** Ids of everything usable right now: downloaded releases plus the bundled one. */
+export async function knownReleaseIds(dirs: AppDirs): Promise<string[]> {
+  const ids = await installedReleaseIds(dirs.downloadedReleasesDir);
+  if (await isRelease(dirs.bundledReleaseDir)) {
+    const id = await manifestId(dirs.bundledReleaseDir);
+    if (id !== undefined) ids.push(id);
+  }
+  return ids;
 }

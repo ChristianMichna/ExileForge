@@ -19,6 +19,8 @@ const bridge: DesktopBridge = {
   installClaudeExtension: () => ipcRenderer.invoke(IPC.installClaudeExtension),
   checkForUpdates: () => ipcRenderer.invoke(IPC.checkForUpdates),
   installUpdate: () => ipcRenderer.invoke(IPC.installUpdate),
+  checkForData: () => ipcRenderer.invoke(IPC.checkForData),
+  restartForData: () => ipcRenderer.invoke(IPC.restartForData),
 };
 
 contextBridge.exposeInMainWorld("astrolabe", bridge);

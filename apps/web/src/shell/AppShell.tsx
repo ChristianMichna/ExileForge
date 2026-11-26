@@ -74,7 +74,7 @@ function StatusBadges() {
     );
   }
   if (desktop.kind === "unreachable") return <Badge tone="danger">App status unavailable</Badge>;
-  const { server, update } = desktop.status;
+  const { server, update, data } = desktop.status;
   return (
     <>
       <Badge tone="accent">Sample data</Badge>
@@ -86,6 +86,11 @@ function StatusBadges() {
         </Badge>
       ) : null}
       {update.state === "ready" ? <UpdateButton version={update.version} /> : null}
+      {data.state === "downloading" ? (
+        <Badge tone="info">Loading game data {data.releaseId}</Badge>
+      ) : null}
+      {data.state === "ready" ? <DataButton releaseId={data.releaseId} /> : null}
+      {data.state === "failed" ? <Badge tone="warning">Game data check failed</Badge> : null}
     </>
   );
 }
@@ -99,6 +104,20 @@ function UpdateButton({ version }: { version: string }) {
         onClick={() => void getDesktopBridge()?.installUpdate()}
       >
         Update {version}: restart
+      </button>
+    </Badge>
+  );
+}
+
+function DataButton({ releaseId }: { releaseId: string }) {
+  return (
+    <Badge tone="info">
+      <button
+        type="button"
+        className="update-link"
+        onClick={() => void getDesktopBridge()?.restartForData()}
+      >
+        New game data {releaseId}: restart
       </button>
     </Badge>
   );

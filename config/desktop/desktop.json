@@ -9,5 +9,24 @@
     "allowedSchemes": ["claude:"],
     "startSentence": "Start Astrolabe session {code}. Call forge_attach with this code and work through all tasks with forge_submit and forge_next until the run is done. Keep going without waiting for me unless the app needs me."
   },
-  "update": { "enabled": true, "firstCheckDelaySeconds": 15, "checkIntervalHours": 6 }
+  "update": { "enabled": true, "firstCheckDelaySeconds": 15, "checkIntervalHours": 6 },
+  "dataSync": {
+    "$comment": "New patches are data releases (F-01): the app looks for them on GitHub Releases, verifies and installs them next to the bundled one. Pre-releases count while 1.0 data is still being proven.",
+    "enabled": true,
+    "repo": "ChristianMichna/astrolabe-poe2",
+    "includePrereleases": true,
+    "firstCheckDelaySeconds": 30,
+    "checkIntervalHours": 1,
+    "allowedRedirectHosts": [
+      "github.com",
+      "release-assets.githubusercontent.com",
+      "objects.githubusercontent.com"
+    ],
+    "maxDownloadMegabytes": 100,
+    "maxUnpackedMegabytes": 500,
+    "maxChecksumBytes": 1024,
+    "maxDecompressionRatio": 50,
+    "maxEntries": 5000,
+    "leftoverMinAgeMinutes": 60
+  }
 }

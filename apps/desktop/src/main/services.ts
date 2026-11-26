@@ -27,6 +27,8 @@ export interface StartServicesOptions {
   catalogDir: string;
   forgeConfigPath: string;
   stagesConfigPath: string;
+  /** Folder with installed data releases (one folder per release id); enables guide_revalidate. */
+  releasesDir?: string;
   logger?: Logger;
 }
 
@@ -50,6 +52,7 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
       configPath: options.forgeConfigPath,
       stagesConfigPath: options.stagesConfigPath,
       calc: "fake",
+      ...(options.releasesDir === undefined ? {} : { releasesDir: options.releasesDir }),
       allowedOrigins: [],
       tokenFile,
       logger,
