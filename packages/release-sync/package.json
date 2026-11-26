@@ -1,0 +1,31 @@
+{
+  "name": "@astrolabe/release-sync",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Finds new data releases on GitHub Releases and installs them into the app's releases folder (F-01/F-19): checksum, safe unpacking, shard verification, atomic placement. No Electron.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@astrolabe/contracts": "workspace:*",
+    "tar": "7.5.23",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}
