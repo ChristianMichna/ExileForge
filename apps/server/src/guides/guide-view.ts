@@ -51,7 +51,7 @@ export async function buildGuideView(
   const results: Record<string, CalcResult> = {};
   for (const { raw, result } of loaded) {
     const valid = CalcResult.safeParse(result);
-    if (valid.success) results[raw] = valid.data;
+    if (valid.success && valid.data.calcId === raw) results[raw] = valid.data;
     else unresolved.add(`calc:${raw}`);
   }
   return {

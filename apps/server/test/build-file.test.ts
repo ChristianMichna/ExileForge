@@ -391,6 +391,11 @@ describe("buildGuideView", () => {
     const view = await buildGuideView(guideDoc, catalog, calc);
     expect(view.names["gem:Fixture/Gems/Main"]).toBe("Main Skill");
     expect(view.results["calc-1"]).toEqual(result);
+    const wrongKey = await buildGuideView(guideDoc, catalog, {
+      getResult: () => Promise.resolve({ ...result, calcId: "other" }),
+    } as never);
+    expect(wrongKey.results["calc-1"]).toBeUndefined();
+    expect(wrongKey.unresolved).toContain("calc:calc-1");
     expect(view.unresolved).not.toContain("gem:Fixture/Gems/Main");
     expect(view.unresolved).not.toContain("calc:calc-1");
     expect(view.unresolved.length).toBeGreaterThan(0);
