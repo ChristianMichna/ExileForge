@@ -7,7 +7,7 @@ import { GuideSweeper } from "../src/tools/guide-sweep.js";
 
 const CURRENT = DataReleaseId.parse("poe2-9.8.9+r1");
 const OLD = "poe2-9.8.8+r1";
-const IDS = ["a", "b", "c", "d"];
+let IDS = ["a", "b", "c", "d"];
 
 function sweeper(store: RunStore, revalidate: (id: string) => Promise<unknown>) {
   return new GuideSweeper({
@@ -22,7 +22,57 @@ function sweeper(store: RunStore, revalidate: (id: string) => Promise<unknown>) 
   });
 }
 
+const GUIDE = "11111111-1111-4111-8111-111111111111";
+const status = (to: string) => ({
+  schemaVersion: 1,
+  guideId: GUIDE,
+  guideRevision: 0,
+  fromReleaseId: OLD,
+  toReleaseId: to,
+  chain: [OLD, to],
+  factChanges: [],
+  checkedAt: "2026-11-26T08:00:00.000Z",
+  checkedReferences: 0,
+  verdict: "unaffected",
+  findings: [],
+});
+
 describe("GuideSweeper", () => {
+  it("stores a verdict, skips checked guides unless forced, hides vanished guides", async () => {
+    IDS = ["a"];
+    const store = new RunStore(":memory:");
+    let calls = 0;
+    const s = sweeper(store, () => {
+      calls += 1;
+      return Promise.resolve(status(CURRENT));
+    });
+    await s.run();
+    expect(s.view().guides[0]?.outcome.kind).toBe("status");
+    await s.run();
+    expect(calls).toBe(1);
+    await s.run({ force: true });
+    expect(calls).toBe(2);
+    IDS = [];
+    expect(s.view().guides).toEqual([]);
+    IDS = ["a", "b", "c", "d"];
+  });
+
+  it("stop() waits for the current guide and does not write after it", async () => {
+    const store = new RunStore(":memory:");
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => (release = r));
+    const s = sweeper(store, async () => {
+      await gate;
+      throw new ForgeError("diff_missing", "x");
+    });
+    const running = s.run();
+    const stopping = s.stop();
+    release();
+    await stopping;
+    await running;
+    expect(store.listPatchChecks(CURRENT)).toEqual([]);
+  });
+
   it("records a verdict or the error of every older guide and skips current ones", async () => {
     const store = new RunStore(":memory:");
     const calls: string[] = [];
@@ -57,10 +107,27 @@ describe("GuideSweeper", () => {
       throw new ForgeError("diff_missing", "x");
     });
     const first = s.run();
-    await s.run();
+    expect(s.run()).toBe(first);
     expect(s.view().running).toBe(true);
     release();
     await first;
     expect(calls).toBe(3);
+  });
+});
+
+describe("RunStore guide helpers", () => {
+  it("overwrites a check of the same guide and release", () => {
+    const store = new RunStore(":memory:");
+    store.savePatchCheck("g", CURRENT, { kind: "error", code: "diff_missing", message: "x" }, "t1");
+    store.savePatchCheck(
+      "g",
+      CURRENT,
+      { kind: "error", code: "guide_invalid", message: "y" },
+      "t2",
+    );
+    const rows = store.listPatchChecks(CURRENT);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ checkedAt: "t2", outcome: { code: "guide_invalid" } });
+    expect(store.listGuideIds()).toEqual([]);
   });
 });

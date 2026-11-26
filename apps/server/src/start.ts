@@ -252,6 +252,7 @@ async function startServerOwningPool(
   app.addHook("onClose", async () => {
     engine.stopJobs();
     try {
+      await sweeper?.stop();
       await pobCalc?.close();
       if (typeof options.calc === "object") await options.calc.pool.close();
     } finally {

@@ -278,5 +278,11 @@ automatisch nach einem Patch.
 - Ergebnis je Guide und Release in SQLite (`patch_checks`): das `PatchStatus`
   oder der Fehlercode (`diff_missing`, `guide_invalid`, ...), nie ein stilles
   „unverändert".
-- `GET /api/guides/patch-status` liefert `{ releaseId, running, error?, guides }`;
-  `POST /api/guides/patch-status/refresh` stößt die Prüfung erneut an (202).
+- `GET /api/guides/patch-status` liefert `{ enabled, releaseId, running, error?, guides }`
+  (`enabled: false` ohne `--releases-dir`: dann wurde nichts geprüft).
+  `POST /api/guides/patch-status/refresh` prüft alle Guides erneut (202; läuft schon
+  eine Prüfung, ändert sich nichts).
+- Beim Start werden Guides mit vorhandenem Ergebnis für dieses Release nicht erneut
+  geprüft, Guides mit einem Fehler schon. Beim Beenden stoppt der Server die Prüfung
+  nach dem laufenden Guide, bevor er die Datenbank schließt.
+- Die Antwortform ist noch nicht im Vertragspaket (Folge-PR, damit `apps/web` sie nutzt).

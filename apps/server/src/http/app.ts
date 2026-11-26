@@ -120,7 +120,12 @@ export function createApp(options: AppOptions): FastifyInstance {
 
   app.get("/api/guides/patch-status", async () => {
     if (options.guideSweep === undefined) {
-      return { releaseId: options.catalog.dataReleaseId, running: false, guides: [] };
+      return {
+        enabled: false,
+        releaseId: options.catalog.dataReleaseId,
+        running: false,
+        guides: [],
+      };
     }
     return options.guideSweep.view();
   });
@@ -130,7 +135,7 @@ export function createApp(options: AppOptions): FastifyInstance {
     if (sweep === undefined) {
       throw new ForgeError("invalid_request", "Checking stored guides needs a releases directory.");
     }
-    void sweep.run().catch((error: unknown) => {
+    void sweep.run({ force: true }).catch((error: unknown) => {
       logger.error("guide sweep crashed", { error });
     });
     return reply.code(202).send(sweep.view());

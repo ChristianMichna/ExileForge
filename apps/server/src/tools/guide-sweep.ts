@@ -23,6 +23,8 @@ export interface GuideSweepDeps {
 }
 
 export interface GuideSweepView {
+  /** False when the check is switched off (no releases directory): an empty list then means "not checked". */
+  enabled: boolean;
   releaseId: string;
   running: boolean;
   /** Set when the last sweep itself failed (not a single guide). */
@@ -37,34 +39,61 @@ export interface GuideSweepView {
  * never skipped silently. Guides built with the current release need nothing.
  */
 export class GuideSweeper {
-  private running = false;
+  private current: Promise<void> | undefined;
+  private stopped = false;
   private error: string | undefined;
 
   constructor(private readonly deps: GuideSweepDeps) {}
 
   view(): GuideSweepView {
+    // Results of guides that no longer exist are not shown.
+    const existing = new Set(this.deps.listGuideIds());
     return {
+      enabled: true,
       releaseId: this.deps.currentReleaseId,
-      running: this.running,
+      running: this.current !== undefined,
       ...(this.error === undefined ? {} : { error: this.error }),
-      guides: this.deps.list(this.deps.currentReleaseId),
+      guides: this.deps.list(this.deps.currentReleaseId).filter((g) => existing.has(g.guideId)),
     };
   }
 
-  /** Runs one sweep; a second call while one runs does nothing. */
-  async run(): Promise<void> {
-    if (this.running) return;
-    this.running = true;
+  /**
+   * Runs one sweep; a call while one runs does nothing (the running one covers the same
+   * guides). Without `force`, guides that already have a verdict for this release are not
+   * checked again; guides whose last check failed are.
+   */
+  run(options: { force?: boolean } = {}): Promise<void> {
+    if (this.current !== undefined) return this.current;
     this.error = undefined;
+    const done = this.sweep(options.force === true).finally(() => {
+      this.current = undefined;
+    });
+    this.current = done;
+    return done;
+  }
+
+  /** Ends a running sweep after the guide it is checking and waits for it; call before the store closes. */
+  async stop(): Promise<void> {
+    this.stopped = true;
+    await this.current;
+  }
+
+  private async sweep(force: boolean): Promise<void> {
     try {
+      const have = new Set(
+        this.deps
+          .list(this.deps.currentReleaseId)
+          .filter((g) => g.outcome.kind === "status")
+          .map((g) => g.guideId),
+      );
       for (const guideId of this.deps.listGuideIds()) {
+        if (this.stopped) return;
+        if (!force && have.has(guideId)) continue;
         await this.check(guideId);
       }
     } catch (error) {
       this.deps.logger.error("guide sweep failed", { error });
       this.error = "The check of the stored guides stopped early. The app log has details.";
-    } finally {
-      this.running = false;
     }
   }
 
@@ -89,6 +118,8 @@ export class GuideSweeper {
         };
       }
     }
+    // The store may close while a check runs; its result is dropped then, not written.
+    if (this.stopped) return;
     this.deps.save(guideId, toReleaseId, outcome, checkedAt);
   }
 }
