@@ -226,3 +226,14 @@ Stufe auf das höchste Level, dessen Level-Anforderung aus den Katalogstufen des
 Charakterlevel der Stufe erfüllt (nie über dem Ziellevel). Ein Gem, das in der Stufe noch nicht
 nutzbar ist, behält sein niedrigstes Level, damit G3 es benennen kann. Die Berechnungen der Stufen
 laufen mit diesen Leveln.
+
+## Patch-Revalidierung (F-19)
+
+`src/tools/revalidate.ts` prüft einen gespeicherten Guide gegen neuere Daten-Releases:
+`revalidateStoredGuide({ guide, releaseDirs, now })` validiert den Guide gegen `GuideDocument`, liest
+die Manifeste der Release-Verzeichnisse (das des Guides zuerst, das geprüfte zuletzt) samt Diff je
+späterem Release und ruft `revalidateGuide` aus `@astrolabe/revalidate`. Ergebnis ist ein
+`PatchStatus`. Fehlt ein Diff oder passt die Kette nicht, gibt es einen `RevalidationError`, nie
+`unaffected`. Noch nicht angebunden: ein MCP-Tool (braucht einen Vertrags-PR; dort dürfen keine
+freien Pfade ankommen, nur Release-IDs, die der Server auf sein Datenverzeichnis abbildet) und die
+Ablage gespeicherter Guides.
