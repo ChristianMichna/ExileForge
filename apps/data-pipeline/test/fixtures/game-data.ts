@@ -40,7 +40,12 @@ export function tables(): Rows {
       { Id: "fixture_dup_b", Name: "Ring", PassiveSkillGraphId: 5 },
       { Id: "fixture_unused", Name: "", PassiveSkillGraphId: 99 },
     ],
-    Inventories: [{ Id: "FixtureHand2" }, { Id: "FixtureFinger" }],
+    Inventories: [
+      { Id: "FixtureHand2" },
+      { Id: "FixtureFinger" },
+      { Id: "FixtureSpareB" },
+      { Id: "FixtureSpareA" },
+    ],
   };
 }
 

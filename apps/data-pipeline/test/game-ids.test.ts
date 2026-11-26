@@ -48,7 +48,17 @@ describe("applyGameIds", () => {
       ["Fake Charm", undefined],
     ]);
     expect(res.summary).toMatchObject({ slotsWithGameId: 2, slotsWithoutGameId: 1 });
-    expect(text).toMatch(/1 slots have no game id: Fake Charm/);
+    expect(text).toMatch(
+      /1 slots have no game id: Fake Charm; Inventories rows no slot maps to: FixtureSpareA, FixtureSpareB$/m,
+    );
+  });
+
+  it("says none when every inventory row is mapped", async () => {
+    const t = tables();
+    t.Inventories = [{ Id: "FixtureHand2" }, { Id: "FixtureFinger" }];
+    const dir = await write(t);
+    const res = await applyGameIds({ gameDataDir: dir, config, passiveNodes: nodes, slots });
+    expect(res.findings.map((f) => f.message).join("\n")).toMatch(/rows no slot maps to: none$/m);
   });
 
   it("is an error when two nodes would get the same id", async () => {
