@@ -88,6 +88,8 @@ ist die PoB-Obergrenze. Nach einem PoB-Update ist der Wert in der Config zu prü
 
 `GuideView` (seit 0.19.0, `guide/view`) ist die Antwort von `GET /api/guides/:id/view`: der Guide mit den Anzeigenamen seiner Katalog-Entitäten (`names`, Schlüssel `<kind>:<id>`), den gespeicherten Rechenergebnissen hinter seinen Zahlen (`results`) und einer Liste dessen, was der Server nicht auflösen konnte (`unresolved`). `catalogReleaseId` und `current` sagen, ob der Guide zum geladenen Daten-Release gehört; bei `current: false` werden keine Namen aufgelöst (alle Katalog-Referenzen stehen in `unresolved`, der Guide muss revalidiert werden), die Ergebnisse tragen ihr Release selbst. Ein gespeichertes Ergebnis, das nicht mehr dem `CalcResult`-Schema entspricht, steht als `calc:<id>` in `unresolved`. Seit 0.20.0 enthält die Antwort `gear`: die Items des Gear-Plans (`GuideItemCard`: Name, Basis, Implicits und Explicits mit Text aus dem Katalog), in der Reihenfolge von `guide.gear.tiers`; ein dem Katalog unbekanntes Item ist `null` und steht in `unresolved`, eine Mod ohne Text hat kein `text`.
 
+`PassiveTreeData` (seit 0.21.0, `guide/tree`) ist die Antwort von `GET /api/tree`: alle Passive-Knoten und -Gruppen des geladenen Releases mit Geometrie, damit das Fenster die Verteilung eines Guides zeichnen kann. Einträge, die ihr Schema verletzen, stehen in `skipped`, nie stillschweigend fehlend.
+
 `DataRelease.itemSlots` listet die Ausrüstungsplätze mit PoBs Slot-Namen (wie in
 `EquippedItem.slot`) und den Basis-Klassen (`BaseItem.itemClass`), die PoB je Slot
 annimmt. Juwelen-Sockel gehören zum Passivbaum und stehen nicht darin.

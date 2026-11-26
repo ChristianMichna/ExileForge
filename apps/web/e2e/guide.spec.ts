@@ -42,14 +42,41 @@ const view = {
   unresolved: [],
 };
 
+const treeData = {
+  dataReleaseId: publishedGuide.metadata.dataReleaseId,
+  passiveNodes: [
+    {
+      id: "fixture_node_0",
+      name: "Fixture Start",
+      kind: "small",
+      stats: [],
+      position: { groupId: "g1", orbit: 0, orbitIndex: 0, point: { x: 0, y: 0 } },
+      connections: ["fixture_node_1"],
+      classStartFor: ["fixture_class"],
+    },
+    {
+      id: "fixture_node_1",
+      name: "Fixture Notable",
+      kind: "notable",
+      stats: [{ text: "Fixture stat line" }],
+      position: { groupId: "g1", orbit: 0, orbitIndex: 0, point: { x: 400, y: 300 } },
+      connections: ["fixture_node_0"],
+    },
+  ],
+  passiveGroups: [{ id: "g1", center: { x: 0, y: 0 }, orbitRadii: [0] }],
+  skipped: [],
+};
+
 test("a saved guide opens in the window with its stages and numbers", async ({ page }) => {
   await page.route(`**/api/guides/${guideId}/view`, (route) => route.fulfill({ json: view }));
+  await page.route("**/api/tree", (route) => route.fulfill({ json: treeData }));
   await page.goto(`/#/guide/${guideId}`);
   await page.evaluate(() => document.fonts.ready);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Fixture Ascendancy");
   await expect(page.getByText("1,234.5").first()).toBeVisible();
   await expect(page.getByText("Fixture Unique Name")).toBeVisible();
   await expect(page.getByRole("button", { name: "Save as .build file" })).toBeVisible();
+  await expect(page.getByText("Fixture Notable").first()).toBeVisible();
   const shot = process.env["GUIDE_SHOT"];
   if (shot !== undefined) await page.screenshot({ path: shot, fullPage: true });
 });
