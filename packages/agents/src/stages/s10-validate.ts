@@ -790,7 +790,12 @@ async function measuredGates(
       ["G5", g5, cfg.stats.dps, "minDps", "dps_below_minimum"],
     ] as const) {
       if (field === "minEhp" ? !ehpSet : !dpsSet) continue;
-      const value = stats[statName];
+      // A campaign stage carries no gear: its EHP and damage count with the first gear tier worn
+      // (an attack needs its weapon to deal damage at all), and that tier's part fixes a gap.
+      // A failed measurement with gear is reported (G3 calc_failed); the ungeared numbers do not stand in.
+      if (gearedFailed === true) continue;
+      const value = (gearedStats ?? stats)[statName];
+      const fixedBy = gearedStats === undefined ? returnTo : gearReturnTo;
       if (derived !== undefined) {
         // Measured, not configured: a stage has some, and keeps a share of the best one before it.
         if (value === undefined) {
@@ -807,7 +812,7 @@ async function measuredGates(
                 ? `Stage ${stage.key} has none of the measured ${statName}.`
                 : `Stage ${stage.key} falls below the allowed share of the best ${statName} of the stages before it.`,
               path,
-              returnTo,
+              fixedBy,
             ),
           );
         }
@@ -829,13 +834,7 @@ async function measuredGates(
       if (value === undefined) list.push(missing(gate, statName));
       else if (value < min) {
         list.push(
-          finding(
-            gate,
-            code,
-            `Stage ${stage.key} is below the configured minimum.`,
-            path,
-            returnTo,
-          ),
+          finding(gate, code, `Stage ${stage.key} is below the configured minimum.`, path, fixedBy),
         );
       }
     }
