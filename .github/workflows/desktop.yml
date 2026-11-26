@@ -1,13 +1,28 @@
 # Windows installer of the desktop app (apps/desktop, ADR-0004).
-# - Pull requests that touch the app: build the unsigned installer and attach it
-#   as an artifact, so it can be tried on a real Windows PC.
-# - "Run workflow" with publish=true: build and publish a GitHub release
-#   (Astrolabe-Setup-<version>.exe + latest.yml) that installed apps update from.
-# The installer bundles a data release built from PoB in the first job.
+# - Pull requests that touch the app: build the unsigned installer, install it on a clean
+#   Windows runner and check it end to end (apps/desktop/e2e), attach it as an artifact.
+# - Push to main (same paths) or "Run workflow" with publish=true: the checked installer is
+#   published as a GitHub release (Astrolabe-Setup-<version>.exe + latest.yml). Installed apps
+#   update themselves from the latest release (electron-updater), so nobody installs by hand again.
+# The installer bundles the newest published data release (data-release.yml).
 name: Desktop installer
 
 on:
   pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "apps/web/**"
+      - "apps/server/**"
+      - "apps/calc/**"
+      - "config/calc/**"
+      - "config/calc-profiles/**"
+      - "config/optimizer/**"
+      - "apps/mcp-bridge/**"
+      - "config/desktop/**"
+      - "config/forge/**"
+      - ".github/workflows/desktop.yml"
+  push:
+    branches: [main]
     paths:
       - "apps/desktop/**"
       - "apps/web/**"
@@ -27,13 +42,14 @@ on:
         required: false
         default: ""
       publish:
-        description: "Publish a GitHub release (version from apps/desktop/package.json)"
+        description: "Publish a GitHub release of this build (pushes to main publish anyway)"
         type: boolean
         default: false
 
 concurrency:
   group: desktop-${{ github.ref }}
-  cancel-in-progress: true
+  # A publish in progress is never cancelled by the next push.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -45,6 +61,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    outputs:
+      tag: ${{ steps.data.outputs.tag }}
     env:
       DATA_RELEASE_TAG: ${{ inputs.data-release-tag }}
       GH_TOKEN: ${{ github.token }}
@@ -52,6 +70,7 @@ jobs:
       # The installer bundles a published data release (data-release.yml, real game data) instead
       # of building a snapshot of its own, so the bundled game data is the one the pipeline made.
       - name: Download and check the data release
+        id: data
         run: |
           set -euo pipefail
           tag="$DATA_RELEASE_TAG"
@@ -60,6 +79,7 @@ jobs:
           fi
           test -n "$tag" || { echo "no data release found" >&2; exit 1; }
           echo "Bundled data release: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
           mkdir -p dl data-snapshots/current/catalog
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'catalog-*.tar.gz*' --dir dl
           (cd dl && sha256sum -c ./*.sha256)
@@ -79,6 +99,8 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -112,28 +134,39 @@ jobs:
       - run: pnpm --filter @astrolabe/mcp-bridge pack:mcpb
       - name: Check the packaged files
         run: node apps/desktop/scripts/stage.mjs
+      - name: Version of this build
+        id: version
+        shell: bash
+        # <major>.<minor> from apps/desktop/package.json, patch = number of the workflow run, so
+        # every build is newer than the one before and installed apps see it as an update.
+        run: |
+          base=$(node -p "require('./apps/desktop/package.json').version.split('.').slice(0, 2).join('.')")
+          echo "version=$base.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
       - name: Build installer
         working-directory: apps/desktop
-        run: pnpm exec electron-builder --win --x64 --publish never
+        shell: bash
+        run: pnpm exec electron-builder --win --x64 --publish never -c.extraMetadata.version=${{ steps.version.outputs.version }}
       - uses: actions/upload-artifact@v5
         with:
           name: Astrolabe-Setup
           path: |
             apps/desktop/release/*.exe
+            apps/desktop/release/*.exe.blockmap
             apps/desktop/release/latest.yml
           retention-days: 14
           if-no-files-found: error
 
-  publish:
-    # Only from main and by hand: installed apps update themselves from this release.
-    name: Publish release
-    needs: installer
-    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+  e2e:
+    # The installer exactly as users get it: installed on a clean runner, started, driven like
+    # Claude Desktop drives it (extension, stringified arguments, Windows paths), real PoB.
+    name: Windows end-to-end
+    needs: [catalog, installer]
     runs-on: windows-latest
     timeout-minutes: 30
-    environment: release
     permissions:
-      contents: write
+      contents: read
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -141,33 +174,55 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --filter @astrolabe/desktop...
       - uses: actions/download-artifact@v5
         with:
-          name: data-release
-          path: apps/desktop/data-release
-      - name: Fetch the pinned PoB and LuaJIT sources
+          name: Astrolabe-Setup
+          path: installer
+      - name: Run the end-to-end check
         shell: bash
-        run: |
-          pob_ref=$(sed -n 's/^POB_REF="\${POB_REF:-\([0-9a-f]*\)}".*/\1/p' tools/setup_pob.sh)
-          lj_ref=$(sed -n 's/^LUAJIT_REF="\([0-9a-f]*\)".*/\1/p' tools/setup_pob.sh)
-          echo "PoB $pob_ref / LuaJIT $lj_ref"
-          test -n "$pob_ref" && test -n "$lj_ref"
-          fetch() { git init -q "$3"; git -C "$3" remote add origin "$1"; git -C "$3" fetch -q --depth 1 origin "$2"; git -C "$3" checkout -q FETCH_HEAD; }
-          fetch https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2.git "$pob_ref" .pob/PathOfBuilding-PoE2
-          fetch https://github.com/LuaJIT/LuaJIT.git "$lj_ref" .pob/luajit-src
-      - uses: ilammy/msvc-dev-cmd@v1
-      - name: Build luajit.exe next to PoB's lua51.dll (MSVC, UCRT like PoB's DLLs)
-        shell: cmd
-        run: |
-          cd .pob\luajit-src\src
-          call msvcbuild.bat
-          copy /Y luajit.exe ..\..\PathOfBuilding-PoE2\runtime\luajit.exe
-      - run: pnpm build
-      - run: pnpm --filter @astrolabe/mcp-bridge pack:mcpb
-      - run: node apps/desktop/scripts/stage.mjs
-      - name: Build installer and publish release
-        working-directory: apps/desktop
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm exec electron-builder --win --x64 --publish always
+          DATA_TAG: ${{ needs.catalog.outputs.tag }}
+        run: |
+          # data-poe2-0.5.5.10-r15 -> poe2-0.5.5.10+r15
+          id="${DATA_TAG#data-}"
+          export EXPECT_DATA_RELEASE_ID="${id%-r*}+r${id##*-r}"
+          cd apps/desktop
+          node --experimental-strip-types e2e/run.ts "$(ls ../../installer/*.exe | head -n1)" ../../e2e-out
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: e2e-windows
+          path: e2e-out/
+          retention-days: 14
+          if-no-files-found: warn
+
+  publish:
+    # Installed apps update themselves from the latest release. Only the installer that passed
+    # the end-to-end check is published, from main.
+    name: Publish release
+    needs: [installer, e2e]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: Astrolabe-Setup
+          path: release
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.installer.outputs.version }}
+        run: |
+          set -euo pipefail
+          ls -l release
+          # Not a pre-release: electron-updater only follows the latest full release (the data
+          # releases are pre-releases and stay out of its way).
+          gh release create "v$VERSION" release/* --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "Astrolabe $VERSION" --latest \
+            --notes "Installer build of commit $GITHUB_SHA. Installed apps update themselves; the data (game version) is bundled from the newest data release."
