@@ -207,7 +207,12 @@ export function createApp(options: AppOptions): FastifyInstance {
     return guide.data;
   });
 
-  app.get("/api/tree", () => PassiveTreeData.parse(buildPassiveTreeData(options.catalog)));
+  // The catalog of a release does not change while the server runs, so the checked answer is kept.
+  let treeData: PassiveTreeData | undefined;
+  app.get("/api/tree", () => {
+    treeData ??= PassiveTreeData.parse(buildPassiveTreeData(options.catalog));
+    return treeData;
+  });
 
   app.get("/api/guides/:guideId/view", async (request) => {
     const { guideId } = GuideParams.parse(request.params);

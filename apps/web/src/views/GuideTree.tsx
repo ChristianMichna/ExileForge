@@ -11,6 +11,8 @@ import { nameOf } from "../guide/RichTextView";
  * something else there.
  */
 
+const SKIPPED_SHOWN = 10;
+
 function TreeBody({ view, data }: { view: GuideView; data: PassiveTreeData }) {
   const { guide } = view;
   const ascendancyId = guide.summary.ascendancyId;
@@ -26,11 +28,22 @@ function TreeBody({ view, data }: { view: GuideView; data: PassiveTreeData }) {
       timeline: buildTimeline(stages),
     };
   }, [data, guide, ascendancyId]);
+  if (data.dataReleaseId !== view.catalogReleaseId) {
+    return (
+      <Callout tone="warning" title="The game data changed">
+        The tree is from {data.dataReleaseId}, but this guide was read with {view.catalogReleaseId}.
+        Reload the guide.
+      </Callout>
+    );
+  }
   return (
     <>
       {data.skipped.length > 0 ? (
         <Callout tone="warning" title="Some tree entries could not be read">
-          {data.skipped.join(", ")}
+          {data.skipped.slice(0, SKIPPED_SHOWN).join(", ")}
+          {data.skipped.length > SKIPPED_SHOWN
+            ? ` and ${data.skipped.length - SKIPPED_SHOWN} more`
+            : ""}
         </Callout>
       ) : null}
       <PassiveTree

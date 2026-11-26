@@ -153,6 +153,22 @@ describe("guide page", () => {
     expect(await screen.findByText(/Tree is down\./)).toBeTruthy();
   });
 
+  it("does not draw a tree of another release than the guide was read with", async () => {
+    vi.stubGlobal("fetch", (url: string) =>
+      url.endsWith("/api/tree")
+        ? json({
+            dataReleaseId: "poe2-0.0.1+r1",
+            passiveNodes: [],
+            passiveGroups: [],
+            skipped: [],
+          })
+        : json(view),
+    );
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText(/The game data changed/)).toBeTruthy();
+  });
+
   it("shows no gear for a guide of older game data and points to revalidation", async () => {
     vi.stubGlobal("fetch", () =>
       json({
