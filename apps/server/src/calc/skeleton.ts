@@ -374,7 +374,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     }
   }
 
-  /** Tree optimisation from an empty tree within a budget; logs when it ends incomplete. */
+  /** Tree optimisation within a budget (from an empty tree, or from `warmStart`); logs when it ends incomplete. */
   private async optimizeFrom(
     start: BuildState,
     job: {
@@ -392,7 +392,10 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     },
     /** Nodes the search must not take besides the player's exclusions. */
     avoided: readonly PassiveNodeId[] = [],
-    /** Nodes to start from (the previous result without the avoided ones) instead of an empty tree. */
+    /**
+     * Nodes to start from (the previous result without the avoided ones) instead of an empty tree.
+     * The optimizer measures this tree as its base, so score scales come from it in later rounds.
+     */
     warmStart: readonly PassiveNodeId[] = [],
   ): Promise<TreeOptimizeResult> {
     const graph = this.graphFor(job.classId);
@@ -612,23 +615,24 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
  * The part of `nodes` that still hangs on the class start without the `blocked` nodes, so a search
  * can continue from a tree whose nodes were banned (nodes cut off from the start are dropped).
  */
-function connectedPart(
+export function connectedPart(
   graph: TreeGraph,
   nodes: readonly PassiveNodeId[],
   blocked: ReadonlySet<string>,
 ): PassiveNodeId[] {
   const wanted = new Set<string>(nodes.map(String));
   const seen = new Set<string>([graph.start]);
-  const stack = [graph.start];
-  while (stack.length > 0) {
-    const from = stack.pop() as string;
-    for (const to of graph.neighbors(from)) {
+  const order: PassiveNodeId[] = [];
+  const queue = [graph.start];
+  for (let i = 0; i < queue.length; i += 1) {
+    for (const to of graph.neighbors(queue[i] as string)) {
       if (wanted.has(to) && !blocked.has(to) && !seen.has(to)) {
         seen.add(to);
-        stack.push(to);
+        queue.push(to);
+        order.push(to as PassiveNodeId);
       }
     }
   }
-  seen.delete(graph.start);
-  return nodes.filter((id) => seen.has(id));
+  // Breadth-first from the start, so every node comes after a node it hangs on.
+  return order;
 }
