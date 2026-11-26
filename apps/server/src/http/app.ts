@@ -3,10 +3,15 @@ import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import { BuildRequest } from "@astrolabe/contracts/build";
+import { CalcResult } from "@astrolabe/contracts/calc";
+import { CalcId } from "@astrolabe/contracts/common";
 import type { RunEvent } from "@astrolabe/contracts/events";
 import { UserIntervention } from "@astrolabe/contracts/forge";
 import {
+  GUIDE_FILE_FORMAT,
+  GuideFile,
   GuideListView,
+  collectCalcIds,
   GuideView,
   PassiveTreeData,
   PublishedGuide,
@@ -26,6 +31,8 @@ export const LOOPBACK_HOST = "127.0.0.1";
 
 /** Max body size; submissions are small structured payloads. */
 const BODY_LIMIT_BYTES = 1_000_000;
+/** Largest guide file the import accepts (guides with their results are a few MB). */
+const GUIDE_FILE_LIMIT_BYTES = 32_000_000;
 const SSE_KEEPALIVE_MS = 15_000;
 /** Open live-event streams over all runs; the app window needs one or two. */
 const MAX_SSE_STREAMS = 16;
@@ -51,6 +58,8 @@ export interface AppOptions extends ForgeMcpDeps {
   findGuide?: (guideId: string) => unknown;
   /** Ids of all stored guides, newest first (see `RunStore.listGuideIds`). */
   listGuideIds?: () => string[];
+  /** Stores an imported guide file (see `RunStore.importGuide`); enables the import route. */
+  importGuide?: (file: GuideFile, importedAt: string) => void;
   /**
    * Per-installation secret. Every request except /api/health must send
    * `Authorization: Bearer <token>`, so other local processes and web pages
@@ -265,6 +274,53 @@ export function createApp(options: AppOptions): FastifyInstance {
         { cause },
       );
     }
+  });
+
+  // A guide file is large (the guide and its stored PoB results), so this route takes more than the default.
+  app.post("/api/guides/import", { bodyLimit: GUIDE_FILE_LIMIT_BYTES }, async (request, reply) => {
+    if (options.importGuide === undefined) {
+      throw new ForgeError("invalid_request", "Importing guides needs the run store.");
+    }
+    const parsed = GuideFile.safeParse(request.body);
+    if (!parsed.success) {
+      throw new ForgeError("invalid_request", "This is not a valid Astrolabe guide file.", {
+        cause: parsed.error,
+      });
+    }
+    options.importGuide(parsed.data, new Date().toISOString());
+    reply.code(201);
+    return { guideId: parsed.data.guide.metadata.guideId };
+  });
+
+  app.get("/api/guides/:guideId/file", async (request) => {
+    const { guideId } = GuideParams.parse(request.params);
+    if (options.findGuide === undefined) {
+      throw new ForgeError("invalid_request", "Exporting guides needs the run store.");
+    }
+    const stored = options.findGuide(guideId);
+    if (stored === undefined) throw new ForgeError("unknown_run", `No stored guide ${guideId}.`);
+    const guide = PublishedGuide.safeParse(stored);
+    if (!guide.success) {
+      throw new ForgeError("invalid_request", `Stored guide ${guideId} is not a valid guide.`, {
+        cause: guide.error,
+      });
+    }
+    const results: Record<string, CalcResult> = {};
+    const missing: string[] = [];
+    for (const calcId of collectCalcIds(guide.data)) {
+      const parsedId = CalcId.safeParse(calcId);
+      const result = parsedId.success ? await options.calc.getResult(parsedId.data) : undefined;
+      const valid = CalcResult.safeParse(result);
+      if (valid.success && valid.data.calcId === calcId) results[calcId] = valid.data;
+      else missing.push(calcId);
+    }
+    if (missing.length > 0) {
+      throw new ForgeError(
+        "invalid_request",
+        `Guide ${guideId} cannot be exported: no valid stored result for ${missing.join(", ")}.`,
+      );
+    }
+    return GuideFile.parse({ format: GUIDE_FILE_FORMAT, version: 1, guide: guide.data, results });
   });
 
   app.post("/api/runs", async (request, reply) => {
