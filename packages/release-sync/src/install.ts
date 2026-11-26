@@ -193,7 +193,7 @@ async function moveIntoPlace(from: string, target: string, id: string): Promise<
  */
 export async function installRelease(
   options: InstallOptions,
-): Promise<{ id: string; dir: string; alreadyInstalled: boolean }> {
+): Promise<{ id: string; dir: string; alreadyInstalled: boolean; cleanupFailure?: unknown }> {
   const { release, releasesDir } = options;
   parseReleaseId(release.id);
   if (release.catalogSize > options.maxDownloadBytes) {
@@ -215,7 +215,6 @@ export async function installRelease(
   }
   const work = join(releasesDir, `.installing-${randomUUID()}`);
   await mkdir(work);
-  let failure: unknown;
   try {
     const checksumText = await readSmallText(
       await fetchOk(options, release.checksumUrl),
@@ -271,26 +270,29 @@ export async function installRelease(
     }
     await verifyReleaseDir(unpacked, release.id);
     const moved = await moveIntoPlace(unpacked, target, release.id);
-    return { id: release.id, dir: target, alreadyInstalled: !moved };
+    // the release is in place; a temporary folder that stays behind is reported, not fatal
+    const cleanupFailure = await removeWork(work);
+    return {
+      id: release.id,
+      dir: target,
+      alreadyInstalled: !moved,
+      ...(cleanupFailure === undefined ? {} : { cleanupFailure }),
+    };
   } catch (error) {
-    failure = wrap(error, `Installing ${release.id} failed`);
+    const failure = wrap(error, `Installing ${release.id} failed`);
+    // never hide the real error behind a cleanup problem
+    failure.cleanupFailure = await removeWork(work);
     throw failure;
-  } finally {
-    try {
-      await rm(work, {
-        recursive: true,
-        force: true,
-        maxRetries: 3,
-        retryDelay: RENAME_BACKOFF_MS,
-      });
-    } catch (cleanup) {
-      // never hide the real error behind a cleanup problem
-      if (failure instanceof ReleaseInstallError) failure.cleanupFailure = cleanup;
-      else
-        throw new ReleaseInstallError(`Could not remove the temporary folder ${work}`, {
-          cause: cleanup,
-        });
-    }
+  }
+}
+
+/** Removes the temporary folder; returns the problem instead of throwing it. */
+async function removeWork(work: string): Promise<unknown> {
+  try {
+    await rm(work, { recursive: true, force: true, maxRetries: 3, retryDelay: RENAME_BACKOFF_MS });
+    return undefined;
+  } catch (error) {
+    return error;
   }
 }
 
