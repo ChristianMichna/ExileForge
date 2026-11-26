@@ -8,10 +8,6 @@ type Rule = Cfg["rules"][string]["effects"][number];
 type Rarities = NonNullable<DataRelease["rarities"]>;
 
 /** The game's markup in descriptions: "[ItemRarity|Magic]" shows "Magic", "[Corrupted]" shows "Corrupted". */
-/** Longest game text kept per currency in the findings, and how many currencies are listed. */
-const MAX_EVIDENCE_CHARS = 300;
-const MAX_EVIDENCE_ENTRIES = 40;
-
 export function stripMarkup(text: string): string {
   return text
     .replace(/\[([^\]|]*)\|([^\]]*)\]/g, "$2")
@@ -153,6 +149,8 @@ export async function currencyActions(opts: {
   // the game's own text of currencies that change modifiers but have no rule: the evidence
   // needed to write a rule (or to see that none is possible)
   const unruledTexts = new Map<string, string>();
+  const ev = config.evidence;
+  const evidenceKeyword = new RegExp(ev.keyword, "i");
   const seenKeys = new Set<string>();
   for (const row of currency) {
     const base = bases.get(row.BaseItemType);
@@ -160,8 +158,11 @@ export async function currencyActions(opts: {
     if (row.Action && !config.rules[row.Action]) {
       withoutRule.add(row.Action);
       const text = stripMarkup(row.Description ?? "");
-      if (/modifier/i.test(text) && !unruledTexts.has(row.Action))
-        unruledTexts.set(row.Action, text.slice(0, MAX_EVIDENCE_CHARS));
+      if (evidenceKeyword.test(text) && !unruledTexts.has(row.Action))
+        unruledTexts.set(
+          row.Action,
+          text.length > ev.maxChars ? `${text.slice(0, ev.maxChars)}…` : text,
+        );
     } else if (row.Action && !seenKeys.has(row.Action)) seenKeys.add(row.Action);
     if (!base || !base.Id || !spec) continue;
     const id = base.Id;
@@ -222,18 +223,17 @@ export async function currencyActions(opts: {
       message: `${String(withoutRule.size)} currency actions have no rule and give no crafting action: ${[...withoutRule].sort().join(", ")}`,
     });
 
-  if (unruledTexts.size > 0)
+  if (unruledTexts.size > 0) {
+    const listed = [...unruledTexts].sort(([a], [b]) => a.localeCompare(b)).slice(0, ev.maxEntries);
+    const more = unruledTexts.size - listed.length;
     findings.push({
       kind: "currencyAction",
       id: "no-rule-text",
-      message: `texts of ${String(unruledTexts.size)} currencies that mention modifiers but have no rule: ${[
-        ...unruledTexts,
-      ]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(0, MAX_EVIDENCE_ENTRIES)
-        .map(([key, text]) => `${key}: "${text}"`)
-        .join(" | ")}`,
+      message: `texts of ${String(unruledTexts.size)} currency actions that match "${ev.keyword}" but have no rule (first currency of each action): ${listed
+        .map(([key, text]) => `${key}: ${JSON.stringify(text)}`)
+        .join(" | ")}${more > 0 ? ` (+${String(more)} more not shown)` : ""}`,
     });
+  }
 
   const variants = config.essence.map((v, i) => ({
     pattern: new RegExp(v.description),
