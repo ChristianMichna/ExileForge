@@ -104,6 +104,34 @@ describe("optimizeTree", () => {
     expect(result.violations[0]).toMatchObject({ metric: "Res", required: 100 });
   });
 
+  it("holds a metric to another metric measured in the same evaluation", async () => {
+    const evaluator = new FakeEvaluator(model);
+    const result = await optimizeTree({
+      graph,
+      allocated: [],
+      budget: 2,
+      objective: { weights: { Dps: 1 }, floorsFromMetrics: { Res: "Life" } },
+      evaluator,
+      config,
+    });
+    expect(result.feasible).toBe(false);
+    expect(result.violations).toHaveLength(1);
+    expect(result.violations[0]).toMatchObject({
+      metric: "Res",
+      required: result.metrics["Life"],
+      actual: result.metrics["Res"],
+    });
+    const met = await optimizeTree({
+      graph,
+      allocated: [],
+      budget: 2,
+      objective: { weights: { Dps: 1 }, floorsFromMetrics: { Dps: "Life" } },
+      evaluator,
+      config,
+    });
+    expect(met.feasible).toBe(true);
+  });
+
   it("swaps a weak node for a better one when the budget is full", async () => {
     const evaluator = new FakeEvaluator(model);
     const result = await optimizeTree({

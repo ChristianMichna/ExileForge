@@ -31,6 +31,9 @@ const plan = await optimizeProgression({
   und Calc-Profil gibt der Aufrufer vor (PoB-Ausgabenamen, siehe `config/calc-profiles`).
   Ein verletzter Floor wird mit `floorPenalty` bestraft und steht im Ergebnis
   (`violations`, `feasible: false`); er wird nie versteckt.
+  `floorsFromMetrics` (Metrik → Metrik) verlangt einen Wert mindestens in Höhe einer
+  anderen, in derselben Auswertung gemessenen Metrik, z. B. `Int` gegen `ReqInt`;
+  er wirkt wie ein Floor.
 - Ergebnis: `allocated` (in Vergabereihenfolge), `added`, `removed`, `unspent`,
   Metriken des Start- und Endzustands samt `calcId`, `stoppedBy`, Zahl der
   PoB-Rechnungen und alle fehlgeschlagenen Zustände (`failedEvaluations`).

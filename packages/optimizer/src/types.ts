@@ -70,6 +70,11 @@ export interface Objective {
   weights: Readonly<Record<string, number>>;
   /** Metric -> minimum value (hard constraint, e.g. resistances, attributes, spirit). */
   floors?: Readonly<Record<string, number>>;
+  /**
+   * Metric -> metric it must reach, both measured in the same evaluation (e.g. an attribute
+   * against the highest requirement of any item or gem). Handled like a floor.
+   */
+  floorsFromMetrics?: Readonly<Record<string, string>>;
   /** Metric -> normalization; default is the starting value, or 1 if that is 0. */
   scales?: Readonly<Record<string, number>>;
 }
