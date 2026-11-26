@@ -18,6 +18,7 @@ import { gemChanges } from "../guide/gem-changes";
 import { loadGuideList, loadGuideView } from "../api/guides";
 import { RichTextView, nameOf } from "../guide/RichTextView";
 import { BuildFileExportButton } from "./BuildFileExport";
+import { GuideFileExportButton, GuideImportButton } from "./GuideFile";
 import { PageHeader } from "../shell/PageHeader";
 import { useGuideId } from "../shell/route";
 
@@ -27,7 +28,9 @@ export function GuidePage() {
 }
 
 function GuideList() {
-  const list = useLoaded<GuideListView>(loadGuideList, "list");
+  // An import adds a guide, so the list is asked again under a new key.
+  const [imports, setImports] = useState(0);
+  const list = useLoaded<GuideListView>(loadGuideList, `list-${imports}`);
   return (
     <div className="page">
       <PageHeader
@@ -35,6 +38,7 @@ function GuideList() {
         title="Saved guides"
         subtitle="Guides Claude finished for you on this computer."
       />
+      <GuideImportButton onImported={() => setImports((n) => n + 1)} />
       {list.status === "loading" ? <p>Loading guides …</p> : null}
       {list.status === "error" ? (
         <Callout tone="danger" title="Guides could not be loaded" live>
@@ -43,7 +47,8 @@ function GuideList() {
       ) : null}
       {list.status === "ready" && list.value.guides.length === 0 ? (
         <Callout tone="info" title="No guide yet">
-          When Claude finishes a guide in a run, it shows up here.
+          When Claude finishes a guide in a run, it shows up here. A guide file someone gave you can
+          be imported with the button above.
         </Callout>
       ) : null}
       {list.status === "ready" ? (
@@ -108,7 +113,12 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
       <PageHeader
         kicker={`Guide · ${guide.metadata.dataReleaseId} · PoB ${guide.metadata.pobVersion}`}
         title={`${ascendancy ?? summary.ascendancyId}: ${skill ?? summary.mainSkillId}`}
-        actions={<BuildFileExportButton guideId={guideId} />}
+        actions={
+          <>
+            <BuildFileExportButton guideId={guideId} />
+            <GuideFileExportButton guideId={guideId} />
+          </>
+        }
       />
       {view.current ? null : (
         <Callout tone="warning" title="Older game data">
