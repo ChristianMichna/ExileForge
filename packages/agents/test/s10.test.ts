@@ -79,7 +79,21 @@ const ctx = (known: (id: string) => boolean = () => true) =>
   ({
     catalog: {
       dataReleaseId: "poe2-1.0.0+r1",
-      get: (r: { id: string }) => (known(r.id) ? {} : undefined),
+      get: (r: { id: string }) =>
+        known(r.id)
+          ? {
+              entity: {
+                id: r.id,
+                name: r.id,
+                kind: "skill",
+                tags: [],
+                levels: [
+                  { level: 1, requirements: { level: 5, attributes: {} }, stats: {} },
+                  { level: 2, requirements: { level: 50, attributes: {} }, stats: {} },
+                ],
+              },
+            }
+          : undefined,
     },
   }) as never as PipelineContext;
 const codes = async (d: GuideDraft, c = ctx(), cfg?: never) =>
@@ -383,6 +397,33 @@ describe("S10 measured gates", () => {
     expect(gates.find((g) => g.gate === "G7")?.findings.map((f) => f.code)).toContain(
       "check_not_built",
     );
+  });
+
+  it("flags a gem whose level the character cannot use yet, or that the catalog lacks (G3)", async () => {
+    const withGem = (level: number, charLevel: number) =>
+      draft({
+        progression: {
+          stages: [
+            stage({
+              key: "a",
+              kind: "campaign",
+              state: {
+                ...STATE,
+                level: charLevel,
+                skills: [{ ...STATE.skills[0], gem: { gemId: "GemMain", level, quality: 0 } }],
+              },
+            }),
+          ],
+        },
+      });
+    const found = async (d: GuideDraft) =>
+      (await runGates(withStats(good), d, cfg as never))
+        .flatMap((g) => g.findings)
+        .filter((f) => f.code.startsWith("gem_level"));
+    expect(await found(withGem(1, 5))).toEqual([]);
+    const low = await found(withGem(2, 20));
+    expect(low.map((f) => [f.code, f.returnTo])).toEqual([["gem_level_requirement_unmet", "S6"]]);
+    expect((await found(withGem(9, 20))).map((f) => f.code)).toEqual(["gem_level_unknown"]);
   });
 
   it("separates a missing stat from a value below the minimum", async () => {
