@@ -22,13 +22,10 @@ on:
       - ".github/workflows/desktop.yml"
   workflow_dispatch:
     inputs:
-      game-version:
-        description: "Game version of the bundled data release, e.g. 0.5 or 1.0.0.3"
-        required: true
-      revision:
-        description: "Pipeline revision for this game version (release id poe2-<game>+r<n>)"
-        required: true
-        default: "1"
+      data-release-tag:
+        description: "Tag of the data release to bundle, e.g. data-poe2-0.5.5.10-r15 (empty: the newest published one)"
+        required: false
+        default: ""
       publish:
         description: "Publish a GitHub release (version from apps/desktop/package.json)"
         type: boolean
@@ -45,29 +42,29 @@ jobs:
   catalog:
     name: Data release for the installer
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
+    permissions:
+      contents: read
     env:
-      # Only the installer job needs the Electron binary (any value, even "0", skips it).
-      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-      GAME_VERSION: ${{ inputs.game-version || '0.0' }}
-      REVISION: ${{ inputs.revision || '1' }}
+      DATA_RELEASE_TAG: ${{ inputs.data-release-tag }}
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Set up headless PoB
-        run: tools/setup_pob.sh
-      - name: Build snapshot and catalog
+      # The installer bundles a published data release (data-release.yml, real game data) instead
+      # of building a snapshot of its own, so the bundled game data is the one the pipeline made.
+      - name: Download and check the data release
         run: |
-          pnpm exec turbo run build --filter=@astrolabe/data-pipeline
-          node apps/data-pipeline/dist/cli.js snapshot \
-            --game-version "$GAME_VERSION" --revision "$REVISION" --out data-snapshots/current
-          node apps/data-pipeline/dist/cli.js catalog data-snapshots/current \
-            --out data-snapshots/current/catalog
+          set -euo pipefail
+          tag="$DATA_RELEASE_TAG"
+          if [ -z "$tag" ]; then
+            tag=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName' | grep '^data-poe2-' | sort -V | tail -n1)
+          fi
+          test -n "$tag" || { echo "no data release found" >&2; exit 1; }
+          echo "Bundled data release: $tag"
+          mkdir -p dl data-snapshots/current/catalog
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'catalog-*.tar.gz*' --dir dl
+          (cd dl && sha256sum -c ./*.sha256)
+          tar xzf dl/catalog-*.tar.gz -C data-snapshots/current/catalog
+          test -f data-snapshots/current/catalog/manifest.json
       - uses: actions/upload-artifact@v5
         with:
           name: data-release
