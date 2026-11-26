@@ -303,29 +303,63 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
   ): Promise<TreeOptimizeResult> {
     const avoid = (settings.unsupportedMods ?? "avoid") === "avoid";
     const maxRounds = settings.unsupportedMaxRounds ?? DEFAULT_UNSUPPORTED_ROUNDS;
-    const nodes = this.options.catalog.list("passiveNode").map((e) => e.entity as PassiveNode);
+    const nodes = new Map<PassiveNodeId, PassiveNode>(
+      this.options.catalog.list("passiveNode").map((e) => {
+        const node = e.entity as PassiveNode;
+        return [node.id, node];
+      }),
+    );
     const banned = new Set<PassiveNodeId>();
     for (let round = 0; ; round += 1) {
       const result = await this.optimizeFrom(start, job, [...banned]);
-      if (!avoid || !result.feasible) return result;
+      if (!avoid) return result;
+      if (!result.feasible) {
+        if (banned.size === 0) return result;
+        throw new Error(
+          `The tree search found no feasible tree after banning the nodes ${JSON.stringify([...banned])} (their mods are not calculated by Path of Building)`,
+        );
+      }
       const state = BuildState.parse({
         ...start,
         tree: { allocated: result.allocated.map((nodeId) => ({ nodeId })), ascendancy: [] },
       });
       const unsupported = await this.unsupportedTexts(state, [], job);
       const triggers = new Map<PassiveNodeId, string[]>();
+      const textless: PassiveNodeId[] = [];
+      const matched = new Set<string>();
       for (const id of result.allocated) {
-        const lines = nodes
-          .find((n) => n.id === id)
-          ?.stats.flatMap((st) =>
-            st.text !== undefined && unsupported.has(st.text) ? [st.text] : [],
-          );
-        if (lines !== undefined && lines.length > 0) triggers.set(id, lines);
+        const node = nodes.get(id);
+        if (node === undefined) {
+          throw new Error(`The tree search allocated the node ${id}, which is not in the catalog`);
+        }
+        const lines: string[] = [];
+        for (const st of node.stats) {
+          if (st.text === undefined) {
+            textless.push(id);
+          } else if (unsupported.has(st.text)) {
+            lines.push(st.text);
+            matched.add(st.text);
+          }
+        }
+        if (lines.length > 0) triggers.set(id, lines);
+      }
+      if (textless.length > 0) {
+        this.options.logger.warn("tree nodes without mod text cannot be checked against PoB", {
+          candidate: job.candidateKey,
+          nodes: textless,
+        });
+      }
+      const unattributed = [...unsupported].filter((line) => !matched.has(line));
+      if (unattributed.length > 0) {
+        this.options.logger.warn("PoB does not calculate mod lines that match no tree node", {
+          candidate: job.candidateKey,
+          lines: unattributed,
+        });
       }
       if (triggers.size === 0) return result;
       if (round + 1 >= maxRounds) {
         throw new Error(
-          `The tree search still picks nodes whose mods Path of Building does not calculate after ${String(maxRounds)} rounds`,
+          `The tree search still picks nodes whose mods Path of Building does not calculate after ${String(maxRounds)} rounds: ${JSON.stringify(Object.fromEntries(triggers))}`,
         );
       }
       this.options.logger.info("tree search avoids nodes PoB does not calculate", {
