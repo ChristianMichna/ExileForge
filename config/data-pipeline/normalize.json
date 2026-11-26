@@ -12,47 +12,21 @@
   },
   "passiveNodeKinds": {
     "flags": [
-      [
-        "isOnlyImage",
-        "decoration"
-      ],
-      [
-        "isKeystone",
-        "keystone"
-      ],
-      [
-        "isJewelSocket",
-        "jewelSocket"
-      ],
-      [
-        "isAscendancyStart",
-        "ascendancyStart"
-      ],
-      [
-        "isNotable",
-        "notable"
-      ],
-      [
-        "isAttribute",
-        "attribute"
-      ]
+      ["isOnlyImage", "decoration"],
+      ["isKeystone", "keystone"],
+      ["isJewelSocket", "jewelSocket"],
+      ["isAscendancyStart", "ascendancyStart"],
+      ["isNotable", "notable"],
+      ["isAttribute", "attribute"]
     ],
     "default": "small"
   },
   "modTiers": {
     "$comment": "Tier 1 = highest required level within group + generation type + domains. Only these generation types are tiered.",
-    "generationTypes": [
-      "Prefix",
-      "Suffix"
-    ]
+    "generationTypes": ["Prefix", "Suffix"]
   },
   "modGenerationTypeFallback": "unspecified",
-  "baseItemPropertyGroups": [
-    "weapon",
-    "armour",
-    "flask",
-    "charm"
-  ],
+  "baseItemPropertyGroups": ["weapon", "armour", "flask", "charm"],
   "classAttributePrefix": "base_",
   "essence": {
     "$comment": "Essences become crafting actions from PoB's per-class mod table (Data/Essence.lua). op is the name agreed with the crafting thread (add-specific-mod, params modByItemClass); until packages/crafting-sim implements it the simulator reports the action as uncalibrated. PoB gives no rarity rule for essences, so none is set.",
@@ -61,10 +35,7 @@
   },
   "currency": {
     "$comment": "Currency-like base items from the game-data tables (docs/adr/0005). itemClasses decides which CurrencyItems rows count; with includeExchangeItems every item of CurrencyExchange (the game's exchange list) counts too, whatever its class; items of other classes are reported as left out. Ids are BaseItemTypes.Id (metadata path), not PoB's name-based equipment ids.",
-    "itemClasses": [
-      "StackableCurrency",
-      "Omen"
-    ],
+    "itemClasses": ["StackableCurrency", "Omen"],
     "includeExchangeItems": true,
     "tags": {
       "action": "currency_action:",
@@ -110,9 +81,7 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": [
-                "normal"
-              ]
+              "rarities": ["normal"]
             }
           }
         ],
@@ -126,10 +95,7 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ],
+              "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "magic"
@@ -143,9 +109,7 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": [
-                "magic"
-              ]
+              "rarities": ["magic"]
             }
           }
         ],
@@ -153,10 +117,7 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ],
+              "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "magic"
@@ -170,9 +131,7 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": [
-                "magic"
-              ]
+              "rarities": ["magic"]
             }
           }
         ],
@@ -186,10 +145,7 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ],
+              "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "rare"
@@ -203,9 +159,7 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": [
-                "rare"
-              ]
+              "rarities": ["rare"]
             }
           }
         ],
@@ -213,10 +167,7 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ],
+              "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "rare"
@@ -230,9 +181,7 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": [
-                "rare"
-              ]
+              "rarities": ["rare"]
             }
           }
         ],
@@ -240,19 +189,13 @@
           {
             "op": "remove-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ]
+              "generationTypes": ["Prefix", "Suffix"]
             }
           },
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ],
+              "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "rare"
@@ -267,10 +210,7 @@
           {
             "op": "remove-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ]
+              "generationTypes": ["Prefix", "Suffix"]
             }
           }
         ]
@@ -282,10 +222,7 @@
           {
             "op": "clear-mods",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ]
+              "generationTypes": ["Prefix", "Suffix"]
             }
           },
           {
@@ -302,10 +239,7 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": [
-                "normal",
-                "magic"
-              ]
+              "rarities": ["normal", "magic"]
             }
           }
         ],
@@ -313,10 +247,7 @@
           {
             "op": "clear-mods",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ]
+              "generationTypes": ["Prefix", "Suffix"]
             }
           },
           {
@@ -328,10 +259,7 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ],
+              "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 4,
               "limitsForRarity": "rare"
@@ -347,9 +275,7 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": [
-                "magic"
-              ]
+              "rarities": ["magic"]
             }
           }
         ],
@@ -369,9 +295,7 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": [
-                "rare"
-              ]
+              "rarities": ["rare"]
             }
           }
         ],
@@ -379,10 +303,7 @@
           {
             "op": "remove-random-mod",
             "params": {
-              "generationTypes": [
-                "Prefix",
-                "Suffix"
-              ]
+              "generationTypes": ["Prefix", "Suffix"]
             }
           }
         ],
@@ -398,24 +319,11 @@
       "fromLevel": 2
     },
     "classifications": {
-      "damageTypes": [
-        "Physical",
-        "Lightning",
-        "Cold",
-        "Fire",
-        "Chaos"
-      ],
-      "defenceLayers": [
-        "Armour",
-        "Evasion",
-        "EnergyShield"
-      ]
+      "damageTypes": ["Physical", "Lightning", "Cold", "Fire", "Chaos"],
+      "defenceLayers": ["Armour", "Evasion", "EnergyShield"]
     },
     "rarities": {
-      "affixGenerationTypes": [
-        "Prefix",
-        "Suffix"
-      ],
+      "affixGenerationTypes": ["Prefix", "Suffix"],
       "list": [
         {
           "name": "Normal"
