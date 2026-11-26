@@ -18,7 +18,11 @@ const validation = { gates: [], completenessScore: 100, scoringConfigVersion: "1
 const validated = { ...guide, validation };
 const stored = { ...validated, metadata: { ...guide.metadata, dataReleaseId: RELEASE } };
 
-function app(findGuide: ((id: string) => unknown) | undefined, catalogOverride?: CatalogPort) {
+function app(
+  findGuide: ((id: string) => unknown) | undefined,
+  catalogOverride?: CatalogPort,
+  listGuideIds?: () => string[],
+) {
   const store = new RunStore(":memory:");
   const catalog = catalogOverride ?? fixtureCatalog();
   const calc = new CalcFake({ dataReleaseId: RELEASE });
@@ -41,6 +45,7 @@ function app(findGuide: ((id: string) => unknown) | undefined, catalogOverride?:
     defaultPipelineId: "poc",
     accessToken: TOKEN,
     ...(findGuide === undefined ? {} : { findGuide }),
+    ...(listGuideIds === undefined ? {} : { listGuideIds }),
   });
 }
 
@@ -191,5 +196,69 @@ describe("buildFileResolvers", () => {
     const bare = buildFileResolvers({ ...catalog, release: undefined } as CatalogPort);
     expect(bare.slotGameId("Helmet")).toBeUndefined();
     expect(bare.rarityName("rare")).toBeUndefined();
+  });
+});
+
+describe("guide routes", () => {
+  const get = (url: string, a: ReturnType<typeof app>) => a.inject({ method: "GET", url, headers });
+
+  it("serves a stored guide and refuses an unknown or damaged one", async () => {
+    const a = app((id) => (id === GUIDE_ID ? stored : id === "bad" ? { nope: 1 } : undefined));
+    const ok = await get(`/api/guides/${GUIDE_ID}`, a);
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json<{ metadata: { guideId: string } }>().metadata.guideId).toBe(GUIDE_ID);
+    expect((await get("/api/guides/unknown", a)).statusCode).toBe(404);
+    expect((await get("/api/guides/bad", a)).statusCode).toBe(400);
+  });
+
+  it("lists guides with names and says which ones it cannot read", async () => {
+    const a = app(
+      (id) => (id === GUIDE_ID ? stored : { nope: 1 }),
+      undefined,
+      () => [GUIDE_ID, "bad"],
+    );
+    const res = await get("/api/guides", a);
+    expect(res.statusCode).toBe(200);
+    const body = res.json<{ guides: Record<string, unknown>[] }>();
+    expect(body.guides[0]).toMatchObject({
+      guideId: GUIDE_ID,
+      dataReleaseId: RELEASE,
+      ascendancyId: "fixture_asc",
+      current: true,
+    });
+    expect(body.guides[1]).toEqual({ guideId: "bad", error: "The stored guide cannot be read." });
+  });
+
+  it("keeps listing when reading one stored guide throws, and omits unknown names", async () => {
+    const a = app(
+      (id) => {
+        if (id === "broken") throw new Error("damaged run record");
+        return stored;
+      },
+      undefined,
+      () => ["broken", GUIDE_ID],
+    );
+    const body = (await get("/api/guides", a)).json<{ guides: Record<string, unknown>[] }>();
+    expect(body.guides[0]).toEqual({
+      guideId: "broken",
+      error: "The stored guide cannot be read.",
+    });
+    expect(body.guides[1]).toMatchObject({ guideId: GUIDE_ID });
+    // The fixture catalog knows neither the guide's main skill nor its ascendancy by name.
+    expect(Object.keys(body.guides[1] ?? {})).not.toContain("mainSkillName");
+    expect(Object.keys(body.guides[1] ?? {})).not.toContain("ascendancyName");
+  });
+
+  it("needs the access token and the run store", async () => {
+    const a = app(
+      () => stored,
+      undefined,
+      () => [],
+    );
+    expect(
+      (await a.inject({ method: "GET", url: "/api/guides", headers: { host: headers.host } }))
+        .statusCode,
+    ).toBe(401);
+    expect((await get("/api/guides", app(undefined))).statusCode).toBe(400);
   });
 });
