@@ -4,6 +4,7 @@ import { CalcResult } from "./calc/result.js";
 import { CalcMethods } from "./calc/rpc.js";
 import { BuildRequest } from "./build/request.js";
 import { GuideDocument } from "./guide/document.js";
+import { PatchStatus } from "./guide/patch-status.js";
 import { ForgeTools } from "./forge/tools.js";
 import { EconomyTools, PriceBook } from "./economy/price.js";
 import { CraftTools } from "./craft/sim.js";
@@ -27,6 +28,7 @@ export const jsonSchemas: Readonly<Record<string, z.ZodType>> = {
   ),
   "build/request": BuildRequest,
   "guide/document": GuideDocument,
+  "guide/patch-status": PatchStatus,
   "events/run-event": RunEvent,
   "economy/price-book": PriceBook,
   ...Object.fromEntries(
