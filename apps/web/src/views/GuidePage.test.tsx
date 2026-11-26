@@ -268,6 +268,64 @@ describe("guide page", () => {
     expect((await screen.findAllByText(/Worker timed out\./)).length).toBeGreaterThan(0);
   });
 
+  it("marks a result of another release as outdated and shows the cost of a respec", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const guide = {
+      ...publishedGuide,
+      progression: {
+        stages: [
+          {
+            ...stage,
+            calcs: { mapping: { status: "ok", calcId: "calc-1" } },
+            respecCost: {
+              status: "ok",
+              value: { amount: 2.5, currencyItemId: "Fixture/Items/Currency" },
+              source: {
+                kind: "market",
+                provider: "fixture",
+                league: "Fixture",
+                fetchedAt: "2026-01-01T00:00:00Z",
+                confidence: "high",
+              },
+            },
+          },
+        ],
+      },
+    };
+    const result = {
+      ...view.results["calc-1"],
+      dataReleaseId: "poe2-0.0.1+r1",
+      stats: { CombinedDPS: 4321 },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide, results: { "calc-1": result } }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("4,321")).toBeTruthy();
+    expect(screen.getByText("Outdated after patch")).toBeTruthy();
+    expect(screen.getByText("2.5")).toBeTruthy();
+  });
+
+  it("says when a stage has no calculation and when its stored result is gone", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const noCalc = { ...publishedGuide, progression: { stages: [{ ...stage, calcs: {} }] } };
+    vi.stubGlobal("fetch", () => json({ ...view, guide: noCalc }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    const first = render(<App />);
+    expect(await screen.findByText("No calculation")).toBeTruthy();
+    first.unmount();
+    const gone = {
+      ...publishedGuide,
+      progression: {
+        stages: [{ ...stage, calcs: { mapping: { status: "ok", calcId: "calc-gone" } } }],
+      },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide: gone }));
+    render(<App />);
+    expect(
+      (await screen.findAllByText(/stored result of this calculation is not available/)).length,
+    ).toBeGreaterThan(0);
+  });
+
   it("shows no gear for a guide of older game data and points to revalidation", async () => {
     vi.stubGlobal("fetch", () =>
       json({
