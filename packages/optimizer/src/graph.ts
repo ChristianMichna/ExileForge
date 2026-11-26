@@ -15,10 +15,25 @@ export class TreeGraph {
     this.adjacency = adjacency;
   }
 
-  static build(nodes: readonly PassiveNode[], startNodeId: PassiveNodeId): TreeGraph {
+  /**
+   * `lockedGameIdPrefixes`: nodes of the normal tree that PoB only lets a build allocate when
+   * another node is taken first (e.g. the nodes an ascendancy unlocks). The search leaves
+   * them out until the catalog says what unlocks them (PassiveNode.unlockedBy).
+   */
+  static build(
+    nodes: readonly PassiveNode[],
+    startNodeId: PassiveNodeId,
+    lockedGameIdPrefixes: readonly string[] = [],
+  ): TreeGraph {
     const traversable = new Map<string, PassiveNode>();
     for (const node of nodes) {
       if (node.ascendancyId !== undefined) continue;
+      if (
+        node.gameId !== undefined &&
+        lockedGameIdPrefixes.some((prefix) => node.gameId?.startsWith(prefix) === true)
+      ) {
+        continue;
+      }
       if (node.classStartFor.length > 0 && node.id !== startNodeId) continue;
       traversable.set(node.id, node);
     }

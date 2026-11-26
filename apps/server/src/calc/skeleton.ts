@@ -329,7 +329,11 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     const entry = this.options.catalog.get({ kind: "characterClass", id: classId });
     if (entry === undefined) throw new Error(`Class ${classId} is not in the catalog`);
     const nodes = this.options.catalog.list("passiveNode").map((e) => e.entity as PassiveNode);
-    const graph = TreeGraph.build(nodes, (entry.entity as CharacterClass).startNodeId);
+    const graph = TreeGraph.build(
+      nodes,
+      (entry.entity as CharacterClass).startNodeId,
+      this.options.optimizerConfig.lockedNodeGameIdPrefixes,
+    );
     this.graphs.set(classId, graph);
     return graph;
   }

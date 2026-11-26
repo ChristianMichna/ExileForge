@@ -19,6 +19,7 @@ export interface FixtureNode {
   edges?: string[];
   ascendancy?: boolean;
   classStart?: boolean;
+  gameId?: string;
 }
 
 export function makeNodes(nodes: readonly FixtureNode[]): PassiveNode[] {
@@ -32,12 +33,17 @@ export function makeNodes(nodes: readonly FixtureNode[]): PassiveNode[] {
       connections: n.edges ?? [],
       classStartFor: n.classStart ? ["fixture-class"] : [],
       ...(n.ascendancy ? { ascendancyId: "fixture-asc" } : {}),
+      ...(n.gameId === undefined ? {} : { gameId: n.gameId }),
     }),
   );
 }
 
-export function graphOf(nodes: readonly FixtureNode[], start = "start"): TreeGraph {
-  return TreeGraph.build(makeNodes(nodes), start as PassiveNodeId);
+export function graphOf(
+  nodes: readonly FixtureNode[],
+  start = "start",
+  lockedGameIdPrefixes: readonly string[] = [],
+): TreeGraph {
+  return TreeGraph.build(makeNodes(nodes), start as PassiveNodeId, lockedGameIdPrefixes);
 }
 
 /** Per-node fantasy contributions. */
