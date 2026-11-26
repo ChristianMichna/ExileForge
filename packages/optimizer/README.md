@@ -35,7 +35,7 @@ const plan = await optimizeProgression({
   anderen, in derselben Auswertung gemessenen Metrik, z. B. `Int` gegen `ReqInt`;
   er wirkt wie ein Floor.
 - `TreeGraph.build(..., availableNodeIds)`: Knoten mit `PassiveNode.unlockedBy` (PoB `unlockConstraint`, z. B. die Oracle-Knoten des normalen Baums) gehören nur dazu, wenn alle freischaltenden Knoten in `availableNodeIds` stehen (Standard: leer, also ausgeschlossen); sonst lehnt PoB die Allokation ab.
-- `TreeGraph.buildAscendancy(nodes, ascendancyId, startNodeId)`: der Graph einer Ascendancy (nur deren Knoten, Suche ab ihrem Startknoten). Man optimiert ihn mit dem Hauptbaum als `baseAllocated` des Evaluators und dem Punktebudget der Ascendancy.
+- `TreeGraph.buildAscendancy(nodes, ascendancyId, startNodeId, availableNodeIds)` (Start = `Ascendancy.startNodeId`; Knoten mit `unlockedBy` nur, wenn alle freischaltenden Knoten in `availableNodeIds` stehen): der Graph einer Ascendancy (nur deren Knoten, Suche ab ihrem Startknoten). Man optimiert ihn mit dem Hauptbaum als `baseAllocated` des Evaluators und dem Punktebudget der Ascendancy.
 - Ergebnis: `allocated` (in Vergabereihenfolge), `added`, `removed`, `unspent`,
   Metriken des Start- und Endzustands samt `calcId`, `stoppedBy`, Zahl der
   PoB-Rechnungen und alle fehlgeschlagenen Zustände (`failedEvaluations`).
