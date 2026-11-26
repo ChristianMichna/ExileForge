@@ -623,3 +623,27 @@ code {
 .guide-faq summary {
   cursor: pointer;
 }
+
+.setup-steps {
+  display: grid;
+  gap: var(--ef-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-step {
+  display: flex;
+  gap: var(--ef-space-3);
+  align-items: flex-start;
+}
+
+.setup-step p {
+  margin: 0;
+  color: var(--ef-color-text-muted);
+}
+
+.connect-status {
+  display: grid;
+  gap: var(--ef-space-3);
+}
