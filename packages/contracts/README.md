@@ -83,6 +83,13 @@ sie nicht lesen konnte, nie als `0`. Jeder Wert nennt seinen Ursprung (`game-dat
 `EquippedItem.slot`) und den Basis-Klassen (`BaseItem.itemClass`), die PoB je Slot
 annimmt. Juwelen-Sockel gehören zum Passivbaum und stehen nicht darin.
 
+`DataRelease.rarities` listet die Seltenheiten in aufsteigender Reihenfolge mit der
+höchsten Zahl an Affixen je Generationstyp (`maxAffixes`) für das Crafting. Fehlt
+`maxAffixes`, trägt die Seltenheit durch Crafting keine Affixe (normal) oder wird nicht
+gecraftet (einzigartig). Die Grenzen gelten je Seltenheit; Abweichungen je Item-Klasse
+(PoB: seltene Juwelen 4 statt 6) kennt der Vertrag noch nicht, Verbraucher müssen das als
+Lücke behandeln. Das Feld ist optional und fehlt, wenn die Pipeline es nicht ableiten konnte.
+
 `DataRelease.classifications` nennt, welche Klassifikations-Ids des Release
 Schadensarten und Verteidigungsschichten sind (`damageTypes`, `defenceLayers`).
 Der Guide prüft seine Angaben dagegen. Das Feld ist optional und fehlt, wenn die
