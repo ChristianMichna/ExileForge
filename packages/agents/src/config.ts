@@ -55,8 +55,8 @@ export const StageConfig = z
          * calculate: `avoid` searches again without them (the numbers would ignore their effect),
          * `accept` keeps them (G2 then needs `s10.acceptedUnsupportedModPatterns` for them).
          */
-        ascendancyUnsupportedMods: z.enum(["avoid", "accept"]).default("avoid"),
-        ascendancyMaxRounds: z.number().int().positive().default(4),
+        unsupportedMods: z.enum(["avoid", "accept"]).default("avoid"),
+        unsupportedMaxRounds: z.number().int().positive().default(4),
       })
       .optional(),
     /**

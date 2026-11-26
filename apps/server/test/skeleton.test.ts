@@ -52,8 +52,8 @@ function setup(
   stagesResult?: object,
   usedCatalog = catalog,
   targetExtra: {
-    ascendancyUnsupportedMods?: "avoid" | "accept";
-    ascendancyMaxRounds?: number;
+    unsupportedMods?: "avoid" | "accept";
+    unsupportedMaxRounds?: number;
   } = {},
 ) {
   const optimize = vi.fn<(input: TreeOptimizeInput) => Promise<never>>(() =>
@@ -276,6 +276,7 @@ describe("PobSkeleton", () => {
       const again = setup(done, undefined, skipped);
       again.optimize.mockResolvedValueOnce(done as never);
       again.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      again.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never); // main tree
       again.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never); // baseline
       again.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
       again.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAscStart"] } as never);
@@ -286,6 +287,7 @@ describe("PobSkeleton", () => {
       const odd = setup(done, undefined, skipped);
       odd.optimize.mockResolvedValueOnce(done as never);
       odd.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      odd.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never); // main tree
       odd.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never);
       odd.getResult.mockResolvedValueOnce({ unsupportedMods: [text, "Other spelling"] } as never);
       await expect(odd.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 })).rejects.toThrow(
@@ -295,21 +297,23 @@ describe("PobSkeleton", () => {
       const base = setup(done, undefined, skipped);
       base.optimize.mockResolvedValueOnce(done as never);
       base.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      base.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never); // main tree
       base.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
       base.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
       const kept = await base.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 });
       expect(kept.state.tree.ascendancy).toEqual(["FixAsc1"]);
       // the round cap fails visibly
-      const capped = setup(done, undefined, skipped, { ascendancyMaxRounds: 1 });
+      const capped = setup(done, undefined, skipped, { unsupportedMaxRounds: 1 });
       capped.optimize.mockResolvedValueOnce(done as never);
       capped.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      capped.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never); // main tree
       capped.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never);
       capped.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
       await expect(capped.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 })).rejects.toThrow(
         /after 1 rounds/,
       );
       // accept keeps the node without measuring
-      const accepted = setup(done, undefined, skipped, { ascendancyUnsupportedMods: "accept" });
+      const accepted = setup(done, undefined, skipped, { unsupportedMods: "accept" });
       accepted.optimize.mockResolvedValueOnce(done as never);
       accepted.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
       const acc = await accepted.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 });
@@ -329,6 +333,38 @@ describe("PobSkeleton", () => {
       const plain = setup(done);
       await plain.skeleton.optimizeTree(input);
       expect(plain.optimize).toHaveBeenCalledTimes(1);
+    });
+
+    it("bans main tree nodes whose mods PoB does not calculate and searches again", async () => {
+      const text = "Fixture main tree mod PoB ignores";
+      const flawed = new MemoryCatalog(RELEASE, [
+        ...SHARDS,
+        CatalogShard.parse({
+          schemaVersion: 1,
+          dataReleaseId: RELEASE,
+          kind: "passiveNode",
+          entities: [
+            node("FixStartA", ["FixN1"], { classStartFor: ["FixClassA"] }),
+            node("FixN1", ["FixStartA", "FixN2"]),
+            node("FixN2", ["FixN1"], { stats: [{ text }] }),
+          ],
+        }),
+      ]);
+      const { skeleton, optimize, getResult } = setup(done, undefined, flawed);
+      optimize.mockResolvedValueOnce(done as never);
+      optimize.mockResolvedValueOnce({ ...done, allocated: ["FixN1"] } as never);
+      getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
+      const out = await skeleton.optimizeTree(input);
+      expect(optimize.mock.calls[1]?.[0].forbiddenNodeIds).toContain("FixN2");
+      expect(out.state.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1"]);
+      // the cap fails visibly
+      const capped = setup(done, undefined, flawed, { unsupportedMaxRounds: 1 });
+      capped.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
+      await expect(capped.skeleton.optimizeTree(input)).rejects.toThrow(/after 1 rounds/);
+      // accept keeps the node and measures nothing
+      const accepted = setup(done, undefined, flawed, { unsupportedMods: "accept" });
+      const kept = await accepted.skeleton.optimizeTree(input);
+      expect(kept.state.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1", "FixN2"]);
     });
 
     it("fails when the objective floors cannot be met", async () => {
