@@ -6,6 +6,7 @@ import { BuildRequest } from "./build/request.js";
 import { GuideDocument } from "./guide/document.js";
 import { GuideView } from "./guide/view.js";
 import { PassiveTreeData } from "./guide/tree.js";
+import { GuideFile } from "./guide/file.js";
 import { GuideListView } from "./guide/list.js";
 import { GuidePatchStatusView, GuideTools, PatchStatus } from "./guide/patch-status.js";
 import { ForgeTools } from "./forge/tools.js";
@@ -36,6 +37,7 @@ export const jsonSchemas: Readonly<Record<string, z.ZodType>> = {
   "guide/list": GuideListView,
   "guide/view": GuideView,
   "guide/tree": PassiveTreeData,
+  "guide/file": GuideFile,
   "events/run-event": RunEvent,
   "economy/price-book": PriceBook,
   ...Object.fromEntries(
