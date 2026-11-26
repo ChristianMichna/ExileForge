@@ -5,6 +5,7 @@ import { z } from "zod";
 import { BuildRequest } from "@astrolabe/contracts/build";
 import type { RunEvent } from "@astrolabe/contracts/events";
 import { UserIntervention } from "@astrolabe/contracts/forge";
+import type { GuideSweeper } from "../tools/guide-sweep.js";
 import { ForgeError } from "../engine/errors.js";
 import type { ForgeEngine } from "../engine/forge-engine.js";
 import type { Logger } from "../logger.js";
@@ -34,6 +35,8 @@ export interface AppOptions extends ForgeMcpDeps {
   defaultPipelineId: string;
   /** Set in catalog-only mode (no matching engine); shown by /api/health and the app window. */
   catalogOnlyReason?: string;
+  /** Automatic revalidation of stored guides (F-19); absent without a releases directory. */
+  guideSweep?: GuideSweeper;
   /**
    * Per-installation secret. Every request except /api/health must send
    * `Authorization: Bearer <token>`, so other local processes and web pages
@@ -114,6 +117,24 @@ export function createApp(options: AppOptions): FastifyInstance {
       ? {}
       : { catalogOnly: true, catalogOnlyReason: options.catalogOnlyReason }),
   }));
+
+  app.get("/api/guides/patch-status", async () => {
+    if (options.guideSweep === undefined) {
+      return { releaseId: options.catalog.dataReleaseId, running: false, guides: [] };
+    }
+    return options.guideSweep.view();
+  });
+
+  app.post("/api/guides/patch-status/refresh", async (_request, reply) => {
+    const sweep = options.guideSweep;
+    if (sweep === undefined) {
+      throw new ForgeError("invalid_request", "Checking stored guides needs a releases directory.");
+    }
+    void sweep.run().catch((error: unknown) => {
+      logger.error("guide sweep crashed", { error });
+    });
+    return reply.code(202).send(sweep.view());
+  });
 
   app.post("/api/runs", async (request, reply) => {
     const body = CreateRunBody.parse(request.body);
