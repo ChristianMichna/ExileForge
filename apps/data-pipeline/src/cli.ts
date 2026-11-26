@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { loadPobSources } from "./config.ts";
@@ -13,6 +13,14 @@ import { loadNormalizeConfig } from "./normalize/catalog.ts";
 import { resolveModStats } from "./normalize/mod-stats.ts";
 import { buildCatalog } from "./normalize/release.ts";
 import { StatMatcher } from "./normalize/stat-matcher.ts";
+import {
+  decide,
+  exitCodeFor,
+  readPinnedCommit,
+  renderReport,
+  watchConfigSchema,
+} from "./watch/watch.ts";
+import { latestPobRelease, listDataGameVersions } from "./watch/github.ts";
 import { buildSnapshot } from "./snapshot/build.ts";
 import { readManifest, readShard } from "./snapshot/snapshot.ts";
 
@@ -34,6 +42,12 @@ const USAGE = `astrolabe-data <command>
       Read the configured game-data tables (currencies, essences, omens) of the
       current patch from the update servers and write them with a manifest.
       Needs network access; meant for CI.
+
+  patch-watch --repo <owner/name> [--config config/data-pipeline/watch.json]
+              [--game-config config/data-pipeline/game-data.json] [--out <report.md>]
+      Compare the game patch the update server announces with the published data
+      releases and the latest PoB-PoE2 release with the pinned one. Prints a report;
+      exits 3 (EXIT_SOMETHING_TO_DO) when there is something to do (new patch or new PoB release). Needs network.
 
   catalog-diff <fromCatalogDir> <toCatalogDir>
       Compare two built catalogs; writes diff.json into <toCatalogDir> and records it
@@ -168,6 +182,44 @@ async function main(argv: string[]): Promise<void> {
     console.warn(`game data of patch ${manifest.patch.version} (${tool.name} ${tool.version})`);
     for (const t of manifest.tables) console.warn(`  ${t.name}: ${String(t.count)} rows`);
     for (const m of manifest.missing) console.warn(`  missing: ${m.name} (${m.reason})`);
+    return;
+  }
+  if (command === "patch-watch") {
+    const { values } = parseArgs({
+      args: rest,
+      options: {
+        repo: { type: "string" },
+        config: { type: "string", default: "config/data-pipeline/watch.json" },
+        "game-config": { type: "string", default: "config/data-pipeline/game-data.json" },
+        out: { type: "string" },
+      },
+      strict: true,
+    });
+    const repo = values.repo ?? fail("--repo is required");
+    const watch = watchConfigSchema.parse(
+      JSON.parse(await readFile(resolve(values.config), "utf8")),
+    );
+    const gameConfig = await loadGameDataConfig(resolve(values["game-config"]));
+    const token = process.env["GITHUB_TOKEN"];
+    const [patch, versions, pob, pinText] = await Promise.all([
+      queryPatchServer(gameConfig.patchServer),
+      listDataGameVersions(fetch, repo, watch.requestTimeoutSeconds, token),
+      latestPobRelease(fetch, watch.pobRepo, watch.requestTimeoutSeconds, token),
+      readFile(resolve(watch.pinFile), "utf8"),
+    ]);
+    const report = decide({
+      gamePatch: patch.version,
+      dataGameVersions: versions,
+      pob: {
+        pinnedSha: readPinnedCommit(pinText, watch.pinPattern),
+        latestTag: pob.tag,
+        latestSha: pob.sha,
+      },
+    });
+    const text = renderReport(report);
+    process.stdout.write(`${text}\n`);
+    if (values.out !== undefined) await writeFile(values.out, text);
+    process.exitCode = exitCodeFor(report);
     return;
   }
   if (command === "catalog-diff") {

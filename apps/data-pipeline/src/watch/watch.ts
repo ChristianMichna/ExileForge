@@ -1,0 +1,121 @@
+import { z } from "zod";
+
+export const watchConfigSchema = z
+  .object({
+    $comment: z.string().optional(),
+    /** "owner/name" of the upstream Path of Building repository. */
+    pobRepo: z.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/),
+    /** File that pins the PoB commit, relative to the repository root. */
+    pinFile: z.string().min(1),
+    /** Regular expression with one group that captures the pinned 40-character commit. */
+    pinPattern: z.string().min(1),
+    /** Every request ends as an error after this long. */
+    requestTimeoutSeconds: z.int().positive(),
+  })
+  .strict();
+export type WatchConfig = z.infer<typeof watchConfigSchema>;
+
+/** The commit pinned in the pin file; throws when the file does not contain exactly one pin. */
+export function readPinnedCommit(pinFileText: string, pattern: string): string {
+  const matches = [...pinFileText.matchAll(new RegExp(pattern, "g"))];
+  const sha = matches[0]?.[1];
+  if (matches.length !== 1 || sha === undefined || !/^[0-9a-f]{40}$/.test(sha)) {
+    throw new Error(
+      `The pin file has ${String(matches.length)} matches for the PoB pin, expected exactly one commit`,
+    );
+  }
+  return sha;
+}
+
+export interface WatchInput {
+  /** Game version the update server announces now, e.g. "0.5.5.10". */
+  gamePatch: string;
+  /** Game versions of the published data releases. */
+  dataGameVersions: readonly string[];
+  pob: { pinnedSha: string; latestTag: string; latestSha: string };
+}
+
+export type WatchFindingKind = "new-game-patch" | "new-pob-release";
+
+export interface WatchFinding {
+  kind: WatchFindingKind;
+  title: string;
+  /** What to do next, in order. */
+  steps: string[];
+}
+
+export interface WatchReport {
+  gamePatch: string;
+  latestPobTag: string;
+  findings: WatchFinding[];
+  /**
+   * True when a new game patch is out and PoB-PoE2 has no release newer than the pinned one. The
+   * watcher cannot tell whether the pinned release already covers the new patch (a pin bumped
+   * earlier, a fix release for the old patch), so a person reads the release notes: if they do not
+   * cover it, the app stays in catalog-only mode for the patch (project plan, "Grenzen und Umgang
+   * damit").
+   */
+  needsPobCheck: boolean;
+}
+
+/** Decides what the hourly watcher reports; pure, so every case is tested. */
+export function decide(input: WatchInput): WatchReport {
+  const newGamePatch = !input.dataGameVersions.includes(input.gamePatch);
+  const newPob = input.pob.latestSha !== input.pob.pinnedSha;
+  const findings: WatchFinding[] = [];
+  if (newPob) {
+    findings.push({
+      kind: "new-pob-release",
+      title: `New PoB-PoE2 release ${input.pob.latestTag}`,
+      steps: [
+        `Bump POB_REF in the pin file to ${input.pob.latestSha} (release ${input.pob.latestTag}).`,
+        "Let CI run the golden builds and compare the values; release notes list mechanics that changed.",
+        newGamePatch
+          ? `Then run the "Data release" workflow with game-version ${input.gamePatch}.`
+          : 'Then run the "Data release" workflow with the next revision of the current game version.',
+      ],
+    });
+  }
+  if (newGamePatch) {
+    findings.push({
+      kind: "new-game-patch",
+      title: `New game patch ${input.gamePatch} has no data release`,
+      steps: newPob
+        ? [`Publish a data release for ${input.gamePatch} after the PoB bump above.`]
+        : [
+            `PoB-PoE2 has no release newer than the pinned ${input.pob.latestTag}. Check its release notes: do they cover game patch ${input.gamePatch}?`,
+            `If yes (for example the pin was raised for this patch already), run the "Data release" workflow with game-version ${input.gamePatch}.`,
+            "If no, do not publish a data release for the patch as complete: the app stays in catalog-only mode for it until PoB catches up. This check runs hourly.",
+          ],
+    });
+  }
+  return {
+    gamePatch: input.gamePatch,
+    latestPobTag: input.pob.latestTag,
+    findings,
+    needsPobCheck: newGamePatch && !newPob,
+  };
+}
+
+export function renderReport(report: WatchReport): string {
+  if (report.findings.length === 0) {
+    return `Up to date: game patch ${report.gamePatch} has a data release and the pinned PoB is ${report.latestPobTag}.\n`;
+  }
+  const lines = [
+    `Game patch ${report.gamePatch}, latest PoB-PoE2 release ${report.latestPobTag}.`,
+    "",
+  ];
+  for (const f of report.findings) {
+    lines.push(`### ${f.title}`, ...f.steps.map((s, i) => `${String(i + 1)}. ${s}`), "");
+  }
+  if (report.needsPobCheck) {
+    lines.push("**Catalog-only for the new patch unless PoB already covers it.**", "");
+  }
+  return lines.join("\n");
+}
+
+/** Exit code of the command: 0 nothing to do, 3 something to do (errors exit 1 on their own). */
+export const EXIT_NOTHING_TO_DO = 0;
+export const EXIT_SOMETHING_TO_DO = 3;
+export const exitCodeFor = (report: WatchReport): number =>
+  report.findings.length > 0 ? EXIT_SOMETHING_TO_DO : EXIT_NOTHING_TO_DO;

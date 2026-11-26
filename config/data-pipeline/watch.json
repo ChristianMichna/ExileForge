@@ -1,0 +1,7 @@
+{
+  "$comment": "Patch watcher (F-01): which upstream releases and which pin file the hourly watcher compares. Data, not code.",
+  "pobRepo": "PathOfBuildingCommunity/PathOfBuilding-PoE2",
+  "pinFile": "tools/setup_pob.sh",
+  "requestTimeoutSeconds": 20,
+  "pinPattern": "POB_REF=\"\\$\\{POB_REF:-([0-9a-f]{40})\\}\""
+}
