@@ -165,12 +165,13 @@ export async function applyGameIds(opts: {
   if (unmapped.length > 0) {
     // Evidence for the next mapping: the inventory rows no slot uses, so a pairing can be
     // verified against the data instead of guessed.
+    // A row counts as used as soon as the config names it, even for a slot the release lacks.
     const used = new Set(Object.values(config.slots.map));
     const free = [...inventoryIds].filter((id) => !used.has(id)).sort();
     findings.push({
       kind: "gameId",
       id: "slots",
-      message: `${String(unmapped.length)} slots have no game id: ${unmapped.join(", ")}; ${config.slots.table} rows no slot maps to: ${free.join(", ")}`,
+      message: `${String(unmapped.length)} slots have no game id: ${unmapped.join(", ")}; ${config.slots.table} rows no slot maps to: ${free.length > 0 ? free.join(", ") : "none"}`,
     });
   }
   return { passiveGameIds, slots, summary, findings, errors };
