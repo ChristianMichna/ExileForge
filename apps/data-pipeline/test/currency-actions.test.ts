@@ -428,7 +428,7 @@ describe("with the simulator", () => {
       };
     });
     t.TieredCurrency = entries.some(([, e]) => e.tier)
-      ? entries.flatMap(([id, e], n) =>
+      ? entries.flatMap(([, e], n) =>
           e.tier
             ? [
                 {
