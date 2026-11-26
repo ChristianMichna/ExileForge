@@ -23,8 +23,12 @@ import type {
   EntityRef,
 } from "@astrolabe/contracts/common";
 
-/** Which engine answers: the PoB worker pool, or calc-fake (fantasy values, tests and PoC only). */
-export type CalcEngineKind = "pob" | "fake";
+/**
+ * Which engine answers: the PoB worker pool, calc-fake (fantasy values, tests and PoC only), or
+ * none: catalog-only mode, where every calculation fails with an explanation (the data release has
+ * no matching Path of Building yet).
+ */
+export type CalcEngineKind = "pob" | "fake" | "none";
 
 /**
  * The pipeline's narrow view of the calc service. A failed calculation is a
