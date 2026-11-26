@@ -285,6 +285,9 @@ Tabellen in `game-data.json` (Pflichttabellen, fehlen sie, bricht der Lauf ab).
   einzigartige Items; keine Regel verbietet Flags (z. B. verderbt); Mods von Juwelen liegen in einer
   anderen Domäne als `Item` (Konfiguration der Aktionen); Juwelen-Crafting bleibt deshalb
   unkalibriert, auch wenn die Grenze stimmt. Items mit eigenen Grenzen fehlen.
+- Findings `no-rule-text`: der Spieltext (ohne Markup) der ersten Währung je Action ohne Regel, dessen Text das Stichwort
+  aus `currencyActions.evidence` trifft (Stichwort, Zeichen- und Eintragsgrenze stehen in der Config;
+  Kürzungen sind mit „…“ und „(+N more not shown)“ markiert). Das ist der Beleg für neue Regeln, statt sie zu raten.
 - Nicht abgebildet: Orb der Alteration (Text nennt keine Anzahl),
   alles, was keine Modänderung ist.
 

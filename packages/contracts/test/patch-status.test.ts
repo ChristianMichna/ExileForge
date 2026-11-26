@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GuideRevalidateErrorCode, PatchStatus } from "../src/index.js";
+import { GuidePatchStatusView, GuideRevalidateErrorCode, PatchStatus } from "../src/index.js";
 
 const base = {
   schemaVersion: 1,
@@ -103,5 +103,58 @@ describe("guide.revalidate", () => {
     expect(tool.input.safeParse({ guideId: "x", toReleaseId: input.toReleaseId }).success).toBe(
       false,
     );
+  });
+});
+
+describe("GuidePatchStatusView", () => {
+  const view = {
+    enabled: true,
+    releaseId: "poe2-9.8.8+r1",
+    running: false,
+    guides: [
+      {
+        guideId: base.guideId,
+        checkedAt: "2026-11-26T05:00:00Z",
+        outcome: { kind: "status", status: { ...base, verdict: "unaffected", findings: [] } },
+      },
+      {
+        guideId: base.guideId,
+        checkedAt: "2026-11-26T05:00:00Z",
+        outcome: { kind: "error", code: "diff_missing", message: "The chain is incomplete." },
+      },
+    ],
+  };
+  it("accepts verdicts and errors, and only known error codes", () => {
+    expect(GuidePatchStatusView.safeParse(view).success).toBe(true);
+    const bad = {
+      ...view,
+      guides: [
+        {
+          guideId: base.guideId,
+          checkedAt: "2026-11-26T05:00:00Z",
+          outcome: { kind: "error", code: "whatever", message: "x" },
+        },
+      ],
+    };
+    expect(GuidePatchStatusView.safeParse(bad).success).toBe(false);
+    expect(GuidePatchStatusView.safeParse({ ...view, guides: [], enabled: false }).success).toBe(
+      true,
+    );
+  });
+  it("accepts the internal code and a sweep error, and rejects an empty one or a bad release id", () => {
+    const internal = {
+      ...view,
+      error: "The check stopped early.",
+      guides: [
+        {
+          guideId: base.guideId,
+          checkedAt: "2026-11-26T05:00:00Z",
+          outcome: { kind: "error", code: "internal", message: "The check failed." },
+        },
+      ],
+    };
+    expect(GuidePatchStatusView.safeParse(internal).success).toBe(true);
+    expect(GuidePatchStatusView.safeParse({ ...internal, error: "" }).success).toBe(false);
+    expect(GuidePatchStatusView.safeParse({ ...view, releaseId: "nope" }).success).toBe(false);
   });
 });

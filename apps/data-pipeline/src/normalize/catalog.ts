@@ -145,6 +145,15 @@ export const normalizeConfigSchema = z
         $comment: z.string().optional(),
         /** CraftingAction.kind of these currencies. */
         kind: z.string().min(1),
+        /** Which texts of currencies without a rule are quoted in the findings (see the config's $comment). */
+        evidence: z
+          .object({
+            $comment: z.string().optional(),
+            keyword: z.string().min(1),
+            maxChars: z.int().positive(),
+            maxEntries: z.int().positive(),
+          })
+          .strict(),
         /**
          * Rules by `CurrencyItems.Action`. `description` must match the game's description
          * (markup removed) or the currency is left out; rules are ops of crafting-sim, and
