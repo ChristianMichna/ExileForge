@@ -1,7 +1,14 @@
 import type { PassiveNodeId } from "@astrolabe/contracts";
 import { describe, expect, it } from "vitest";
-import { OptimizerError, optimizeTree } from "../src/index.ts";
-import { config, FakeEvaluator, graphOf, type FakeModel, type FixtureNode } from "./fixtures.ts";
+import { OptimizerError, optimizeTree, TreeGraph } from "../src/index.ts";
+import {
+  config,
+  FakeEvaluator,
+  graphOf,
+  makeNodes,
+  type FakeModel,
+  type FixtureNode,
+} from "./fixtures.ts";
 
 const id = (s: string): PassiveNodeId => s as PassiveNodeId;
 
@@ -120,6 +127,31 @@ describe("optimizeTree", () => {
     expect(partial.has("l2")).toBe(true);
     const full = graphOf(shape, "start", new Set(["key1", "key2"]));
     expect(full.has("l1")).toBe(true);
+  });
+
+  it("searches an ascendancy graph from its own start, with its own nodes only", async () => {
+    const asc: FixtureNode[] = [
+      { id: "main-start", edges: ["m1"], classStart: true },
+      { id: "m1" },
+      { id: "as", edges: ["x1", "y1"], ascendancy: true },
+      { id: "x1", edges: ["x2"], ascendancy: true },
+      { id: "x2", ascendancy: true },
+      { id: "y1", ascendancy: true },
+    ];
+    const ascGraph = TreeGraph.buildAscendancy(makeNodes(asc), "fixture-asc", id("as"));
+    expect([...ascGraph.ids()].sort()).toEqual(["as", "x1", "x2", "y1"]);
+    const result = await optimizeTree({
+      graph: ascGraph,
+      allocated: [],
+      budget: 2,
+      objective: { weights: { Dps: 1 } },
+      evaluator: new FakeEvaluator({ stats: { x1: { dmg: 5 }, x2: { dmg: 60 }, y1: { dmg: 1 } } }),
+      config,
+    });
+    expect([...result.allocated].sort()).toEqual(["x1", "x2"]);
+    expect(() => TreeGraph.buildAscendancy(makeNodes(asc), "other-asc", id("as"))).toThrow(
+      OptimizerError,
+    );
   });
 
   it("holds a metric to another metric measured in the same evaluation", async () => {

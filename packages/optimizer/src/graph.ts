@@ -33,8 +33,32 @@ export class TreeGraph {
       if (node.classStartFor.length > 0 && node.id !== startNodeId) continue;
       traversable.set(node.id, node);
     }
+    return TreeGraph.fromTraversable(traversable, startNodeId, "tree");
+  }
+
+  /**
+   * The graph of one ascendancy: only its own nodes, searched from its start node. The main tree
+   * is not part of it; evaluate the result on top of the main tree (the evaluator's base).
+   */
+  static buildAscendancy(
+    nodes: readonly PassiveNode[],
+    ascendancyId: string,
+    startNodeId: PassiveNodeId,
+  ): TreeGraph {
+    const traversable = new Map<string, PassiveNode>();
+    for (const node of nodes) {
+      if (node.ascendancyId === ascendancyId) traversable.set(node.id, node);
+    }
+    return TreeGraph.fromTraversable(traversable, startNodeId, `ascendancy ${ascendancyId}`);
+  }
+
+  private static fromTraversable(
+    traversable: ReadonlyMap<string, PassiveNode>,
+    startNodeId: PassiveNodeId,
+    what: string,
+  ): TreeGraph {
     if (!traversable.has(startNodeId)) {
-      throw new OptimizerError("invalid_input", `Start node ${startNodeId} is not in the tree`);
+      throw new OptimizerError("invalid_input", `Start node ${startNodeId} is not in the ${what}`);
     }
     const sets = new Map<string, Set<string>>();
     for (const id of traversable.keys()) sets.set(id, new Set());
