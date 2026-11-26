@@ -86,6 +86,8 @@ ist die PoB-Obergrenze. Nach einem PoB-Update ist der Wert in der Config zu prü
 
 `GuideListView` (seit 0.18.0, `guide/list`) ist die Antwort von `GET /api/guides`: je gespeichertem Guide Release, Ascendancy- und Skill-Name (fehlt, wenn der Katalog die ID nicht kennt) und `current`, oder `{ guideId, error }` für einen nicht lesbaren.
 
+`GuideView` (seit 0.19.0, `guide/view`) ist die Antwort von `GET /api/guides/:id/view`: der Guide mit den Anzeigenamen seiner Katalog-Entitäten (`names`, Schlüssel `<kind>:<id>`), den gespeicherten Rechenergebnissen hinter seinen Zahlen (`results`) und einer Liste dessen, was der Server nicht auflösen konnte (`unresolved`).
+
 `DataRelease.itemSlots` listet die Ausrüstungsplätze mit PoBs Slot-Namen (wie in
 `EquippedItem.slot`) und den Basis-Klassen (`BaseItem.itemClass`), die PoB je Slot
 annimmt. Juwelen-Sockel gehören zum Passivbaum und stehen nicht darin.

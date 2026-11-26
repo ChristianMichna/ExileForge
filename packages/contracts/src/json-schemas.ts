@@ -4,6 +4,7 @@ import { CalcResult } from "./calc/result.js";
 import { CalcMethods } from "./calc/rpc.js";
 import { BuildRequest } from "./build/request.js";
 import { GuideDocument } from "./guide/document.js";
+import { GuideView } from "./guide/view.js";
 import { GuideListView } from "./guide/list.js";
 import { GuidePatchStatusView, GuideTools, PatchStatus } from "./guide/patch-status.js";
 import { ForgeTools } from "./forge/tools.js";
@@ -32,6 +33,7 @@ export const jsonSchemas: Readonly<Record<string, z.ZodType>> = {
   "guide/patch-status": PatchStatus,
   "guide/patch-status-view": GuidePatchStatusView,
   "guide/list": GuideListView,
+  "guide/view": GuideView,
   "events/run-event": RunEvent,
   "economy/price-book": PriceBook,
   ...Object.fromEntries(

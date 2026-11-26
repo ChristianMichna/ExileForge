@@ -262,3 +262,66 @@ describe("guide routes", () => {
     expect((await get("/api/guides", app(undefined))).statusCode).toBe(400);
   });
 });
+
+describe("GET /api/guides/:guideId/view", () => {
+  it("returns the guide with names and the stored results it can find, and lists the rest", async () => {
+    const a = app(() => stored);
+    const res = await a.inject({
+      method: "GET",
+      url: `/api/guides/${GUIDE_ID}/view`,
+      headers,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json<{
+      guide: { metadata: { guideId: string } };
+      names: Record<string, string>;
+      results: Record<string, unknown>;
+      unresolved: string[];
+    }>();
+    expect(body.guide.metadata.guideId).toBe(GUIDE_ID);
+    // The fixture catalog knows none of the fixture guide's entities, and the fake calc none of its calc ids.
+    expect(body.unresolved).toContain("gem:Fixture/Gems/Main");
+    expect(body.unresolved).toContain("calc:calc-1");
+    expect(body.names).toEqual({});
+    expect(body.results).toEqual({});
+  });
+
+  it("answers 404 for an unknown guide and 400 for a damaged one", async () => {
+    const missing = await app(() => undefined).inject({
+      method: "GET",
+      url: `/api/guides/${GUIDE_ID}/view`,
+      headers,
+    });
+    expect(missing.statusCode).toBe(404);
+    const damaged = await app(() => ({ nope: 1 })).inject({
+      method: "GET",
+      url: `/api/guides/${GUIDE_ID}/view`,
+      headers,
+    });
+    expect(damaged.statusCode).toBe(400);
+  });
+});
+
+describe("buildGuideView", () => {
+  it("resolves names and stored results and lists the rest", async () => {
+    const { buildGuideView } = await import("../src/guides/guide-view.js");
+    const { PublishedGuide } = await import("@astrolabe/contracts/guide");
+    const guideDoc = PublishedGuide.parse(stored);
+    const catalog = {
+      get: (ref: { kind: string; id: string }) =>
+        ref.kind === "gem" && ref.id === "Fixture/Gems/Main"
+          ? { kind: "gem", id: ref.id, name: "Main Skill", entity: {} }
+          : undefined,
+    } as unknown as CatalogPort;
+    const result = { calcId: "calc-1", stats: { FixtureStatA: 1 } };
+    const calc = {
+      getResult: (id: string) => Promise.resolve(id === "calc-1" ? result : undefined),
+    } as never;
+    const view = await buildGuideView(guideDoc, catalog, calc);
+    expect(view.names["gem:Fixture/Gems/Main"]).toBe("Main Skill");
+    expect(view.results["calc-1"]).toBe(result);
+    expect(view.unresolved).not.toContain("gem:Fixture/Gems/Main");
+    expect(view.unresolved).not.toContain("calc:calc-1");
+    expect(view.unresolved.length).toBeGreaterThan(0);
+  });
+});
