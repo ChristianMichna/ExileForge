@@ -7,6 +7,14 @@ import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
 import { TreeSection } from "./GuideTree";
 import { StageNumbers } from "./StageNumbers";
+import {
+  AtlasSection,
+  EntityName,
+  FaqSection,
+  PlaystyleSection,
+  VariantsSection,
+} from "./GuideText";
+import { gemChanges } from "../guide/gem-changes";
 import { loadGuideList, loadGuideView } from "../api/guides";
 import { RichTextView, nameOf } from "../guide/RichTextView";
 import { BuildFileExportButton } from "./BuildFileExport";
@@ -93,6 +101,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
   const { summary, mechanics } = guide;
   const ascendancy = nameOf(view, { kind: "ascendancy", id: summary.ascendancyId });
   const skill = nameOf(view, { kind: "gem", id: summary.mainSkillId });
+  const sortedStages = [...guide.progression.stages].sort((a, b) => a.order - b.order);
   const [stageKey, setStageKey] = useState(guide.progression.stages[0]?.key ?? "");
   return (
     <div className="page">
@@ -168,23 +177,96 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
         variant="dial"
         value={stageKey}
         onChange={setStageKey}
-        items={[...guide.progression.stages]
-          .sort((a, b) => a.order - b.order)
-          .map((stage) => ({
-            id: stage.key,
-            label: stage.label,
-            hint: `Level ${stage.levelRange[0]}–${stage.levelRange[1]}`,
-            content: <StageView stage={stage} view={view} />,
-          }))}
+        items={sortedStages.map((stage, i) => ({
+          id: stage.key,
+          label: stage.label,
+          hint: `Level ${stage.levelRange[0]}–${stage.levelRange[1]}`,
+          content: <StageView stage={stage} previous={sortedStages[i - 1]} view={view} />,
+        }))}
       />
       <GearSection view={view} />
       <CraftingSection view={view} />
       <TreeSection view={view} />
+      <PlaystyleSection view={view} />
+      <AtlasSection view={view} />
+      <VariantsSection view={view} />
+      <FaqSection view={view} />
     </div>
   );
 }
 
-function StageView({ stage, view }: { stage: ProgressionStage; view: GuideView }) {
+function GemChangeList({
+  previous,
+  stage,
+  view,
+}: {
+  previous: ProgressionStage | undefined;
+  stage: ProgressionStage;
+  view: GuideView;
+}) {
+  const changes = gemChanges(previous, stage);
+  if (previous === undefined || changes.length === 0) return null;
+  const gem = (id: string) => <EntityName view={view} entity={{ kind: "gem", id }} />;
+  const gems = (ids: readonly string[]) =>
+    ids.map((id, i) => (
+      <span key={`${id}-${i}`}>
+        {i > 0 ? ", " : ""}
+        {gem(id)}
+      </span>
+    ));
+  return (
+    <>
+      <h3>Changes since {previous.label}</h3>
+      <ul>
+        {changes.map((c, i) => (
+          <li key={i}>
+            {c.kind === "new" ? (
+              <>
+                New skill {gem(c.gemId)}
+                {c.added.length > 0 ? <> with {gems(c.added)}</> : null}
+              </>
+            ) : null}
+            {c.kind === "removed" ? (
+              <>
+                Drop {gem(c.gemId)}
+                {c.dropped.length > 0 ? <> (with {gems(c.dropped)})</> : null}
+              </>
+            ) : null}
+            {c.kind === "level" ? (
+              <>
+                {gem(c.gemId)}: level {c.from} → {c.to}
+              </>
+            ) : null}
+            {c.kind === "swap" && c.fromGemId !== undefined ? (
+              <>
+                Swap {gem(c.fromGemId)} for {gem(c.gemId)}
+                {c.added.length > 0 ? <>; add {gems(c.added)}</> : null}
+                {c.dropped.length > 0 ? <>; drop {gems(c.dropped)}</> : null}
+              </>
+            ) : null}
+            {c.kind === "supports" ? (
+              <>
+                {gem(c.gemId)}
+                {c.added.length > 0 ? <>: add {gems(c.added)}</> : null}
+                {c.dropped.length > 0 ? <>; drop {gems(c.dropped)}</> : null}
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function StageView({
+  stage,
+  previous,
+  view,
+}: {
+  stage: ProgressionStage;
+  previous: ProgressionStage | undefined;
+  view: GuideView;
+}) {
   const { state } = stage;
   return (
     <div className="stage">
@@ -230,6 +312,7 @@ function StageView({ stage, view }: { stage: ProgressionStage; view: GuideView }
             </li>
           ))}
         </ul>
+        <GemChangeList previous={previous} stage={stage} view={view} />
         <p>
           {state.tree.allocated.length} passive points allocated
           {state.tree.ascendancy.length > 0
