@@ -24,6 +24,7 @@ import type { CalcProfileId } from "@astrolabe/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { Logger } from "../logger.js";
+import { scaleGemLevels } from "./gem-levels.js";
 import type { PobCalc } from "./pob-calc.js";
 
 /** Settings of the skeleton build (config/agents/stages.json → s3). */
@@ -227,11 +228,16 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
           `Stage ${stage.key} could not meet the objective floors: ${JSON.stringify(stage.violations)}`,
         );
       }
-      const state = BuildState.parse({
-        ...base,
+      // The gems of a stage are at the level its character level allows, not at the target's.
+      const state = scaleGemLevels(
+        BuildState.parse({
+          ...base,
+          level,
+          tree: { allocated: stage.allocated.map((nodeId) => ({ nodeId })), ascendancy: [] },
+        }),
         level,
-        tree: { allocated: stage.allocated.map((nodeId) => ({ nodeId })), ascendancy: [] },
-      });
+        this.options.catalog,
+      );
       const calcs = await this.options.calc.calculate({
         state,
         profiles: settings.calcProfiles,

@@ -218,3 +218,11 @@ Liga der Anfrage; ohne Preise bleiben Kosten `uncalibrated`. Offen (siehe
 `packages/economy/README.md`): Abbildung der Währungs-Items und der Kontakt im
 User-Agent; bis dahin scheitert `economy_price` mit einem klaren Fehler. Die Desktop-App
 muss `economy.cacheDir` und `appVersion` setzen.
+
+## Gem-Level je Stufe
+
+Der Zielbuild trägt die Gem-Level seines Endziels. `scaleGemLevels` setzt in S6 die Gems jeder
+Stufe auf das höchste Level, dessen Level-Anforderung aus den Katalogstufen des Gems das
+Charakterlevel der Stufe erfüllt (nie über dem Ziellevel). Ein Gem, das in der Stufe noch nicht
+nutzbar ist, behält sein niedrigstes Level, damit G3 es benennen kann. Die Berechnungen der Stufen
+laufen mit diesen Leveln.
