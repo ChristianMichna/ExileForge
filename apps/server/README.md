@@ -27,15 +27,15 @@ Bei Befunden bleibt dieselbe Aufgabe offen (`attempt + 1`, Befunde in
 Frontend (Frage „Retry the task" / „Abort the run"). Deterministische Schritte
 (z. B. S3-Skelettrechnung) macht der Server ohne Claude.
 
-| MCP-Werkzeug | Vertrag | Zweck |
-| --- | --- | --- |
-| `forge_attach` | `forge.attach` | Sitzungscode → Lauf, erste Aufgabe |
-| `forge_next` | `forge.next` | nächste Aufgabe; wartet bis zu `waitLongPollSeconds`, solange der Nutzer dran ist |
-| `forge_submit` | `forge.submit` | Abgabe; Antwort enthält Befunde und immer den nächsten Schritt |
-| `forge_ask_user` | `forge.ask_user` | Rückfrage als Karte im Frontend |
-| `forge_status` | `forge.status` | Zustand des Laufs |
-| `catalog_search`, `catalog_get` | – | IDs und Katalogdaten (als Daten gekennzeichnet); `catalog_search` filtert nach Text, Art und `tags` (mindestens eines von beiden nötig ist nicht gefordert, ohne Filter kommen Einträge in Katalogreihenfolge) |
-| `calc_evaluate` | – | Build-Zustand rechnen, Ergebnis mit `calcId`, Engine und PoB-Version |
+| MCP-Werkzeug                    | Vertrag          | Zweck                                                                                                                                                                                                          |
+| ------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forge_attach`                  | `forge.attach`   | Sitzungscode → Lauf, erste Aufgabe                                                                                                                                                                             |
+| `forge_next`                    | `forge.next`     | nächste Aufgabe; wartet bis zu `waitLongPollSeconds`, solange der Nutzer dran ist                                                                                                                              |
+| `forge_submit`                  | `forge.submit`   | Abgabe; Antwort enthält Befunde und immer den nächsten Schritt                                                                                                                                                 |
+| `forge_ask_user`                | `forge.ask_user` | Rückfrage als Karte im Frontend                                                                                                                                                                                |
+| `forge_status`                  | `forge.status`   | Zustand des Laufs                                                                                                                                                                                              |
+| `catalog_search`, `catalog_get` | –                | IDs und Katalogdaten (als Daten gekennzeichnet); `catalog_search` filtert nach Text, Art und `tags` (mindestens eines von beiden nötig ist nicht gefordert, ohne Filter kommen Einträge in Katalogreihenfolge) |
+| `calc_evaluate`                 | –                | Build-Zustand rechnen, Ergebnis mit `calcId`, Engine und PoB-Version                                                                                                                                           |
 
 Werkzeugnamen nutzen `_` statt `.`, weil Claude-Werkzeugnamen nur
 `[a-zA-Z0-9_-]` erlauben; die Verträge behalten die Punkt-Namen. Dazu gibt es
@@ -45,14 +45,14 @@ weiterzuführen.
 
 ## REST-API (Frontend)
 
-| Methode | Pfad | Inhalt |
-| --- | --- | --- |
-| `GET` | `/api/health` | `calcEngine` (`fake`/`pob`), `dataReleaseId` |
-| `POST` | `/api/runs` | `{ request: BuildRequest, pipelineId? }` → `runId`, `sessionCode`, `expiresAt` |
-| `GET` | `/api/runs/:runId` | ganzer Laufzustand (Ergebnisse, offene Fragen, aktuelle Aufgabe) |
-| `POST` | `/api/runs/:runId/session-code` | neuer Code, z. B. für einen neuen Chat |
-| `POST` | `/api/runs/:runId/interventions` | `UserIntervention` (Variante wählen, sperren, ablehnen, Pause, Antwort, Stufe neu) |
-| `GET` | `/api/runs/:runId/events` | SSE, `id` = `seq` des Laufs; `Last-Event-ID` spielt Verpasstes nach |
+| Methode | Pfad                             | Inhalt                                                                             |
+| ------- | -------------------------------- | ---------------------------------------------------------------------------------- |
+| `GET`   | `/api/health`                    | `calcEngine` (`fake`/`pob`), `dataReleaseId`                                       |
+| `POST`  | `/api/runs`                      | `{ request: BuildRequest, pipelineId? }` → `runId`, `sessionCode`, `expiresAt`     |
+| `GET`   | `/api/runs/:runId`               | ganzer Laufzustand (Ergebnisse, offene Fragen, aktuelle Aufgabe)                   |
+| `POST`  | `/api/runs/:runId/session-code`  | neuer Code, z. B. für einen neuen Chat                                             |
+| `POST`  | `/api/runs/:runId/interventions` | `UserIntervention` (Variante wählen, sperren, ablehnen, Pause, Antwort, Stufe neu) |
+| `GET`   | `/api/runs/:runId/events`        | SSE, `id` = `seq` des Laufs; `Last-Event-ID` spielt Verpasstes nach                |
 
 Schutz:
 
@@ -293,6 +293,15 @@ automatisch nach einem Patch.
   Ergebnisse bleiben, ungültige gespeicherte Ergebnisse stehen als `calc:<id>` in `unresolved`.
   Die Antwort enthält je eindeutiger `calcId` ein vollständiges `CalcResult` (einige hundert KB
   bei großen Guides, lokal unkritisch).
+- `GET /api/guides/:guideId/file` liefert den Guide als `GuideFile` (Guide und die gespeicherten
+  PoB-Ergebnisse, auf die seine Zahlen verweisen), zum Weitergeben. Fehlt ein gültiges Ergebnis,
+  endet der Export mit einem Fehler, der die `calcId`s nennt (nie eine Datei mit fehlenden Zahlen).
+  `POST /api/guides/import` (Body bis 32 MB) liest so eine Datei ein: Format und Vertrag werden
+  geprüft, auch dass jede `calcId` des Guides ihr Ergebnis in der Datei hat (400 sonst; die
+  Ergebnisse sind die Messungen der anderen Installation und werden nicht neu berechnet), die Ergebnisse unverändert gespeichert (ein anderes Ergebnis unter einer
+  schon gespeicherten `calcId` lehnt den Import ab), dann der Guide in `imported_guides`
+  (derselbe Guide noch einmal ersetzt die Kopie; ein Guide, den ein eigener Lauf erzeugt hat,
+  wird nicht überschrieben). Importierte Guides stehen in `GET /api/guides` nach denen der Läufe.
 - `GET /api/tree` liefert `PassiveTreeData`: alle Passive-Knoten und -Gruppen des geladenen
   Releases mit Geometrie für die Baumansicht im Fenster; Einträge, die ihr Schema verletzen,
   stehen in `skipped`.

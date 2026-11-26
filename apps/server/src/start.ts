@@ -246,6 +246,7 @@ async function startServerOwningPool(
     ...(sweeper === undefined ? {} : { guideSweep: sweeper }),
     findGuide: (id) => store.findGuide(id),
     listGuideIds: () => store.listGuideIds(),
+    importGuide: (file, at) => store.importGuide(file, at),
     engine,
     catalog,
     calc,
