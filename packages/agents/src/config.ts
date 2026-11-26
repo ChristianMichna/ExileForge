@@ -221,6 +221,16 @@ export const StageConfig = z
           .refine((t) => new Set(t.map((x) => x.fromLevel)).size === t.length, {
             message: "duplicate fromLevel",
           }),
+        /**
+         * Thresholds derived from the guide's own measurements instead of fixed numbers (product
+         * owner decision 26.11.2026: automatic): a stage must keep at least this share of the
+         * previous stage's EHP and damage, and the first stage must have any. Patch-agnostic: no
+         * value depends on the game version. Replaces `thresholds`, which must then be empty.
+         */
+        derived: z.object({ minRatioToBest: z.number().positive().max(1) }).optional(),
+      })
+      .refine((c) => c.derived === undefined || c.thresholds.length === 0, {
+        message: "derived thresholds replace the fixed ones: `thresholds` must be empty",
       })
       .optional(),
     /**
