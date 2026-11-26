@@ -161,24 +161,59 @@ describe("revalidateGuide", () => {
   });
 });
 
+/** Loosely typed view of the fixture, to overwrite single fields. */
+type Loose = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- test-only view of a JSON document
+
 describe("a complete GuideDocument", () => {
-  it("is valid and every catalog id of the contracts is found", async () => {
+  it("is valid, and each place of a catalog id is found at its own pointer", async () => {
     const { guide: full } = await import("./guide-fixture.js");
     const { GuideDocument } = await import("@astrolabe/contracts");
-    expect(GuideDocument.safeParse(full).success).toBe(true);
-    const found = new Set(collectGuideRefs(full).map((r) => `${r.kind}:${r.id}`));
-    for (const expected of [
-      "characterClass:fixture_class",
-      "ascendancy:fixture_asc",
-      "gem:Fixture/Gems/Main",
-      "gem:Fixture/Gems/Support",
-      "passiveNode:fixture_node_1",
-      "uniqueItem:Fixture Unique",
-      "baseItem:Fixture/Items/BaseAlpha",
-      "baseItem:Fixture/Currency/A",
-      "mod:FixtureMod1",
-      "craftingAction:Fixture/Currency/A",
-    ])
-      expect(found, expected).toContain(expected);
+    // every place gets an id of its own, so one field cannot hide another
+    const doc = structuredClone(full) as unknown as Loose;
+    const stage = doc["progression"].stages[0];
+    stage.respecs = ["respec-node"];
+    stage.state.tree.ascendancy = ["asc-node"];
+    stage.state.items[0].item = { ...stage.state.items[0].item, uniqueId: "uniq-state" };
+    doc["summary"].classId = "class-summary";
+    doc["summary"].ascendancyId = "asc-summary";
+    doc["summary"].mainSkillId = "gem-summary";
+    doc["request"].mainSkillId = "gem-request";
+    stage.allocationOrder = ["node-order"];
+    doc["crafting"][0].start.baseItemId = "base-start";
+    doc["crafting"][0].steps[0].actionIds = ["action-step"];
+    doc["atlas"].avoidMods = [{ modId: "mod-avoid", reason: [{ type: "text", text: "x" }] }];
+    expect(GuideDocument.safeParse(doc).success).toBe(true);
+    const at = new Map(collectGuideRefs(doc).map((r) => [r.location, `${r.kind}:${r.id}`]));
+    const expected: Record<string, string> = {
+      "/summary/classId": "characterClass:class-summary",
+      "/summary/ascendancyId": "ascendancy:asc-summary",
+      "/summary/mainSkillId": "gem:gem-summary",
+      "/request/mainSkillId": "gem:gem-request",
+      "/progression/stages/0/allocationOrder/0": "passiveNode:node-order",
+      "/progression/stages/0/respecs/0": "passiveNode:respec-node",
+      "/progression/stages/0/state/tree/ascendancy/0": "passiveNode:asc-node",
+      "/progression/stages/0/state/tree/allocated/0/nodeId": "passiveNode:fixture_node_1",
+      "/progression/stages/0/state/skills/0/gem/gemId": "gem:Fixture/Gems/Main",
+      "/progression/stages/0/state/skills/0/supports/0/gemId": "gem:Fixture/Gems/Support",
+      "/progression/stages/0/state/items/0/item/uniqueId": "uniqueItem:uniq-state",
+      "/crafting/0/start/baseItemId": "baseItem:base-start",
+      "/crafting/0/steps/0/actionIds/0": "craftingAction:action-step",
+      "/crafting/0/target/mods/0/modId": "mod:FixtureMod1",
+      "/atlas/avoidMods/0/modId": "mod:mod-avoid",
+      "/mechanics/explanation/2/ref": "gem:Fixture/Gems/Main",
+    };
+    for (const [location, ref] of Object.entries(expected))
+      expect(at.get(location), location).toBe(ref);
+  });
+  it("does not look at the request's exclusions or the old validation protocol", async () => {
+    const { guide: full } = await import("./guide-fixture.js");
+    const doc = {
+      ...full,
+      request: { ...full.request, exclusions: [{ kind: "gem", id: "gem-excluded" }] },
+      validation: { gates: [{ findings: [{ entity: { kind: "mod", id: "mod-old" } }] }] },
+    };
+    const ids = collectGuideRefs(doc).map((r) => r.id);
+    expect(ids).not.toContain("gem-excluded");
+    expect(ids).not.toContain("mod-old");
   });
 });
