@@ -13,6 +13,8 @@ export interface AppDirs {
   /** Data releases the app downloaded itself: <userData>/data-releases/<release id>/ */
   readonly downloadedReleasesDir: string;
   readonly bundledReleaseDir: string;
+  /** Guide files (`*.json`) the server imports on start when it lacks them: `example-guides/` packaged, `examples/guides/` in the repository. */
+  readonly exampleGuidesDir: string;
   readonly databasePath: string;
   /** Holds PathOfBuilding-PoE2/ (src, runtime with luajit.exe): `pob/` packaged, `.pob/` in the repository. */
   readonly pobHome: string;
@@ -50,6 +52,9 @@ export function resolveAppDirs(opts: {
     bundledReleaseDir: opts.packaged
       ? join(root, "data-release")
       : join(root, "data-snapshots", "current", "catalog"),
+    exampleGuidesDir: opts.packaged
+      ? join(root, "example-guides")
+      : join(root, "examples", "guides"),
     databasePath: join(opts.userData, "astrolabe.sqlite"),
     pobHome: join(root, opts.packaged ? "pob" : ".pob"),
     calcWorkerLua: opts.packaged

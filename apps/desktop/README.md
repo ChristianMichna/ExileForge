@@ -142,3 +142,5 @@ Netz: Die Datenprüfung läuft in einer eigenen Sitzung (`astrolabe-data-sync`) 
 geschlossen. Abfragen haben Zeitgrenzen (`listTimeoutSeconds`, `installTimeoutMinutes`) und werden beim Beenden
 abgebrochen. Ein bereits installiertes, wartendes Release bleibt auch dann sichtbar, wenn eine spätere Prüfung
 fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträglich beschädigt wird (Folgeaufgabe).
+
+**Beispiel-Guides** (F-20): Der Installer bringt `examples/guides/` als `example-guides/` mit (`extraResources`); `AppDirs.exampleGuidesDir` reicht den Ordner an den Server, der die Guide-Dateien beim Start einspielt, soweit er sie noch nicht kennt.
