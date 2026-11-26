@@ -6895,7 +6895,9 @@
       "type": "object",
       "propertyNames": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "maxLength": 128,
+        "description": "Id of a single PoB calculation"
       },
       "additionalProperties": {
         "type": "object",
