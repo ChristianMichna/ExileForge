@@ -29,7 +29,7 @@ function options(pool: PobPool, optimizerConfigPath: string) {
     catalogDir: writeFixtureRelease(),
     configPath: join(root, "config/forge/forge.json"),
     stagesConfigPath: join(root, "config/agents/stages.json"),
-    calc: { engine: "pob" as const, pool, optimizerConfigPath },
+    calc: { engine: "pob" as const, pool, optimizerConfigPath, pobVersion: "v9.9.9" },
     allowedOrigins: [],
     tokenFile: join(dir, "token"),
     logger: createMemoryLogger(),

@@ -13,6 +13,7 @@ export type ForgeErrorCode =
   | "invalid_intervention"
   | "invalid_request"
   | "economy_failed"
+  | "calc_unavailable"
   | GuideRevalidateErrorCode;
 
 /** Expected failure of a forge operation (bad input or state), not a bug. */

@@ -32,6 +32,8 @@ export interface AppOptions extends ForgeMcpDeps {
   allowedOrigins: readonly string[];
   /** Default pipeline for new runs. */
   defaultPipelineId: string;
+  /** Set in catalog-only mode (no matching engine); shown by /api/health and the app window. */
+  catalogOnlyReason?: string;
   /**
    * Per-installation secret. Every request except /api/health must send
    * `Authorization: Bearer <token>`, so other local processes and web pages
@@ -108,6 +110,9 @@ export function createApp(options: AppOptions): FastifyInstance {
     ok: true,
     calcEngine: engine.calcEngine,
     dataReleaseId: options.catalog.dataReleaseId,
+    ...(options.catalogOnlyReason === undefined
+      ? {}
+      : { catalogOnly: true, catalogOnlyReason: options.catalogOnlyReason }),
   }));
 
   app.post("/api/runs", async (request, reply) => {

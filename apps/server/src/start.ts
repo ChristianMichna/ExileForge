@@ -4,6 +4,7 @@ import { parseOptimizerConfig } from "@astrolabe/optimizer";
 import { createForgePipeline, StageConfig } from "@astrolabe/agents";
 import { loadOrCreateAccessToken } from "./access-token.js";
 import { CalcFake } from "./calc/calc-fake.js";
+import { CalcNone, catalogOnlyReason, pobMismatch } from "./calc/calc-none.js";
 import { ClassBaseBuilds, type BaseBuildSource } from "./calc/base-builds.js";
 import { PersistedCalc } from "./calc/persisted-calc.js";
 import { PobCalc, type CalcRequester } from "./calc/pob-calc.js";
@@ -42,7 +43,10 @@ export interface StartOptions {
    * the PoB worker pool the caller starts (apps/calc `startCalcPool`); with it
    * the real pipeline "forge" is the default and S3 measures skeleton builds.
    */
-  calc: "fake" | { engine: "pob"; pool: PobPool; optimizerConfigPath: string };
+  calc:
+    | "fake"
+    | "none"
+    | { engine: "pob"; pool: PobPool; optimizerConfigPath: string; pobVersion: string };
   /** config/crafting/sim.json; enables the MCP tool craft_simulate. */
   craftConfigPath?: string;
   /** Market prices (poe.ninja); enables economy_price and crafting costs. Absent = no price tool. */
@@ -66,7 +70,7 @@ export async function startServer(
   try {
     return await startServerOwningPool(options);
   } catch (error) {
-    if (options.calc !== "fake") {
+    if (typeof options.calc === "object") {
       try {
         await options.calc.pool.close();
       } catch (closeError) {
@@ -90,12 +94,33 @@ async function startServerOwningPool(
   let calc: CalcPort;
   let pobCalc: PobCalc | undefined;
   let skeleton: PobSkeleton | undefined;
-  if (options.calc === "fake") {
+  // Catalog-only mode: no engine, or the installed PoB does not fit the data release.
+  let catalogOnly: string | undefined;
+  if (options.calc === "none") {
+    catalogOnly = catalogOnlyReason({
+      pobVersion: undefined,
+      releasePobVersion: catalog.release?.pobVersion,
+    });
+  } else if (
+    options.calc !== "fake" &&
+    pobMismatch(options.calc.pobVersion, catalog.release?.pobVersion)
+  ) {
+    catalogOnly = catalogOnlyReason({
+      pobVersion: options.calc.pobVersion,
+      releasePobVersion: catalog.release?.pobVersion,
+    });
+  }
+  if (catalogOnly !== undefined) {
+    options.logger.info(catalogOnly, { dataReleaseId: catalog.dataReleaseId });
+    // Stored results of earlier runs stay readable; only new calculations are refused.
+    calc = new PersistedCalc(new CalcNone(catalogOnly), store);
+  } else if (options.calc === "fake") {
     options.logger.info("calc engine is calc-fake: values are not from Path of Building", {
       dataReleaseId: catalog.dataReleaseId,
     });
     calc = new PersistedCalc(new CalcFake({ dataReleaseId: catalog.dataReleaseId }), store);
   } else {
+    if (options.calc === "none") throw new Error("catalog-only mode always has a reason");
     const { pool, optimizerConfigPath } = options.calc;
     pobCalc = new PobCalc({
       pool,
@@ -142,6 +167,7 @@ async function startServerOwningPool(
       ? undefined
       : await createCraft(options.craftConfigPath, catalog, economy, options.logger);
   const engine = new ForgeEngine({
+    ...(catalogOnly === undefined ? {} : { catalogOnlyReason: catalogOnly }),
     store,
     catalog,
     calc,
@@ -198,13 +224,14 @@ async function startServerOwningPool(
     port: options.port,
     allowedOrigins: options.allowedOrigins,
     defaultPipelineId: pobCalc === undefined ? "poc" : "forge",
+    ...(catalogOnly === undefined ? {} : { catalogOnlyReason: catalogOnly }),
     accessToken,
   });
   app.addHook("onClose", async () => {
     engine.stopJobs();
     try {
       await pobCalc?.close();
-      if (options.calc !== "fake") await options.calc.pool.close();
+      if (typeof options.calc === "object") await options.calc.pool.close();
     } finally {
       store.close();
     }

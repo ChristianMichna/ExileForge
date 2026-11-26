@@ -249,3 +249,20 @@ Mit `--releases-dir <Ordner>` (oder `releasesDir` in `startServer`) bietet der M
 - Die Kette wird von `toReleaseId` über `previousReleaseId` bis zum Release des Guides gebaut.
 - Fehlercodes (Tool-Fehler): `guide_not_found`, `release_unknown`, `release_not_newer`, `diff_missing`,
   `guide_invalid`. Nie ein stilles „unaffected", wenn die Prüfung nicht möglich ist.
+
+## Nur-Katalog-Modus (F-01, Day-0)
+
+Gibt es für einen Daten-Release noch keine passende PoB-Version (neuer Patch,
+`release.pobVersion` ≠ installierte PoB), startet der Server trotzdem: mit
+`--calc none` ausdrücklich, mit `--calc pob` automatisch, wenn die PoB-Version
+des Pools nicht zum Release passt (der Pool wird beim Beenden geschlossen).
+Dann gilt `calc.engine = "none"` (`CalcNone`):
+
+- Gespeicherte Rechenergebnisse früherer Läufe bleiben lesbar; neue Rechnungen
+  scheitern mit `calc_unavailable`.
+- Katalog, Suche, `guide_revalidate` und das Fenster laufen weiter.
+- Neue Läufe (`POST /api/runs`) und `calc_evaluate` antworten mit dem Fehler
+  `calc_unavailable` (HTTP 409 / MCP-Fehler) und nennen Grund und fehlende
+  PoB-Version; es gibt nie `0` oder leere Ersatzwerte.
+- `GET /api/health` meldet `calcEngine: "none"`, `catalogOnly: true` und
+  `catalogOnlyReason`.
