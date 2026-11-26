@@ -266,9 +266,9 @@ describe("S10 measured gates", () => {
     expect(await run({ ...good, A: 70 })).toContain("G3:attribute_requirement_unmet");
     expect(await run(good)).not.toContain("G3:attribute_requirement_unmet");
     // PoB leaves the requirement out when nothing asks for the attribute: no requirement.
-    expect(await run({ ...good, ReqA: undefined as never })).not.toContain(
-      "G3:attribute_requirement_unmet",
-    );
+    const noRequirement = await run({ ...good, ReqA: undefined as never });
+    expect(noRequirement).not.toContain("G3:attribute_requirement_unmet");
+    expect(noRequirement).not.toContain("G3:stat_missing");
     expect(await run({ ...good, A: undefined as never })).toContain("G3:stat_missing");
   });
 
