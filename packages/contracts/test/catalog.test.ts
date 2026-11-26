@@ -84,6 +84,22 @@ describe("DataRelease progression facts", () => {
     expect(DataRelease.safeParse({ ...validRelease, passivePoints: zero }).success).toBe(false);
   });
 
+  it("accepts ascendancy points and rejects zero main points or an unknown origin", () => {
+    const asc = { points: 8, secondaryPoints: 8, origin: "pob-code" };
+    const withAsc = { ...validRelease, passivePoints: { ...facts.passivePoints, ascendancy: asc } };
+    expect(DataRelease.safeParse(withAsc).success).toBe(true);
+    for (const bad of [
+      { ...asc, points: 0 },
+      { ...asc, origin: "memory" },
+    ])
+      expect(
+        DataRelease.safeParse({
+          ...validRelease,
+          passivePoints: { ...facts.passivePoints, ascendancy: bad },
+        }).success,
+      ).toBe(false);
+  });
+
   it("rejects an unknown origin, duplicate acts and a start level above the maximum", () => {
     expect(
       DataRelease.safeParse({ ...validRelease, maxCharacterLevel: { value: 50, origin: "memory" } })

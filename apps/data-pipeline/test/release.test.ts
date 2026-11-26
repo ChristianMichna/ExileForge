@@ -162,6 +162,11 @@ describe("release facts", () => {
         fromLevel: cfg.releaseFacts.mainTree.fromLevel,
         origin: "pob-code",
       },
+      ascendancy: {
+        points: cfg.releaseFacts.ascendancy.points,
+        secondaryPoints: cfg.releaseFacts.ascendancy.secondaryPoints,
+        origin: "pob-code",
+      },
       weaponSetByAct: {
         acts: [
           { act: 1, areaLevel: 9, points: 3 },
