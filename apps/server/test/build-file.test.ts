@@ -401,3 +401,178 @@ describe("buildGuideView", () => {
     expect(view.unresolved.length).toBeGreaterThan(0);
   });
 });
+
+describe("buildGuideView gear cards", () => {
+  const entities: Record<string, unknown> = {
+    "uniqueItem:Fixture Unique": {
+      id: "Fixture Unique",
+      name: "Fixture Unique Name",
+      baseItemId: "Fixture/Base",
+      mods: [{ text: "Unique line", stats: [], unresolved: [] }],
+      variants: [],
+      dropSources: [],
+    },
+    "baseItem:Fixture/Base": {
+      id: "Fixture/Base",
+      name: "Fixture Base",
+      itemClass: "fixture_class",
+      tags: [],
+      requirements: {},
+      implicitModIds: ["Fixture/Implicit"],
+      properties: {},
+    },
+    "mod:Fixture/Implicit": {
+      id: "Fixture/Implicit",
+      groups: [],
+      generationType: "implicit",
+      domains: ["item"],
+      requiredLevel: 1,
+      stats: [],
+      spawnWeights: [],
+      text: "Implicit text",
+    },
+  };
+  const catalog = {
+    dataReleaseId: RELEASE,
+    get: (ref: { kind: string; id: string }) => {
+      const entity = entities[`${ref.kind}:${ref.id}`];
+      return entity === undefined ? undefined : { ...ref, name: "n", entity };
+    },
+  } as unknown as CatalogPort;
+  const calc = { getResult: () => Promise.resolve(undefined) } as never;
+
+  it("describes the unique of the gear plan from the catalog", async () => {
+    const { buildGuideView } = await import("../src/guides/guide-view.js");
+    const { PublishedGuide, GuideView } = await import("@astrolabe/contracts/guide");
+    const view = await buildGuideView(PublishedGuide.parse(stored), catalog, calc);
+    expect(() => GuideView.parse(view)).not.toThrow();
+    const card = view.gear[0]?.target;
+    expect(card).toMatchObject({
+      kind: "unique",
+      name: "Fixture Unique Name",
+      baseName: "Fixture Base",
+    });
+    expect(card?.implicits[0]?.text).toBe("Implicit text");
+    expect(card?.explicits[0]?.text).toBe("Unique line");
+  });
+
+  it("gives no card and lists the entry when the catalog does not know the item", async () => {
+    const { buildGuideView } = await import("../src/guides/guide-view.js");
+    const { PublishedGuide } = await import("@astrolabe/contracts/guide");
+    const empty = { dataReleaseId: RELEASE, get: () => undefined } as unknown as CatalogPort;
+    const view = await buildGuideView(PublishedGuide.parse(stored), empty, calc);
+    expect(view.gear[0]?.target).toBeNull();
+    expect(view.unresolved).toContain("uniqueItem:Fixture Unique");
+  });
+
+  async function viewWith(
+    patch: (slot: { target: unknown; minimum?: unknown }) => void,
+    cat: CatalogPort = catalog,
+  ) {
+    const { buildGuideView } = await import("../src/guides/guide-view.js");
+    const { PublishedGuide } = await import("@astrolabe/contracts/guide");
+    const doc = PublishedGuide.parse(structuredClone(stored));
+    const slot = doc.gear.tiers[0]?.slots[0];
+    if (slot === undefined) throw new Error("fixture has no gear slot");
+    patch(slot as never);
+    return buildGuideView(doc, cat, calc);
+  }
+
+  const withRarities = {
+    dataReleaseId: RELEASE,
+    release: { rarities: { rarities: [{ id: "rare_id", name: "Rare" }] } },
+    get: catalog.get,
+  } as unknown as CatalogPort;
+
+  it("describes a crafted item with the rarity name of the release and its mod tiers", async () => {
+    entities["mod:Fixture/Prefix"] = {
+      id: "Fixture/Prefix",
+      groups: [],
+      generationType: "prefix",
+      domains: ["item"],
+      tier: 2,
+      requiredLevel: 1,
+      stats: [],
+      spawnWeights: [],
+      text: "Prefix text",
+    };
+    const view = await viewWith((slot) => {
+      slot.target = {
+        kind: "crafted",
+        baseItemId: "Fixture/Base",
+        rarity: "rare_id",
+        mods: [
+          { modId: "Fixture/Prefix", rollFraction: 0.5, required: true },
+          { modId: "Fixture/Missing", rollFraction: 0.5, required: true },
+        ],
+        socketables: [],
+      };
+      slot.minimum = { kind: "unique", uniqueId: "Fixture Unique" };
+    }, withRarities);
+    const card = view.gear[0]?.target;
+    expect(card).toMatchObject({ kind: "crafted", rarityId: "rare_id", rarityName: "Rare" });
+    expect(card?.explicits[0]).toMatchObject({
+      text: "Prefix text",
+      generationType: "prefix",
+      tier: 2,
+    });
+    expect(card?.explicits[1]).toEqual({ modId: "Fixture/Missing" });
+    expect(view.unresolved).toContain("mod:Fixture/Missing");
+    expect(view.gear[0]?.minimum).toMatchObject({ kind: "unique", name: "Fixture Unique Name" });
+  });
+
+  it("leaves the rarity name out and lists the rarity when the release does not know it", async () => {
+    const view = await viewWith((slot) => {
+      slot.target = {
+        kind: "crafted",
+        baseItemId: "Fixture/Base",
+        rarity: "unknown_rarity",
+        mods: [],
+        socketables: [],
+      };
+    }, withRarities);
+    expect(view.gear[0]?.target?.rarityName).toBeUndefined();
+    expect(view.gear[0]?.target?.rarityId).toBe("unknown_rarity");
+    expect(view.unresolved).toContain("rarity:unknown_rarity");
+  });
+
+  it("gives no cards and reads no entity for a guide of another release", async () => {
+    let reads = 0;
+    const counting = {
+      dataReleaseId: "poe2-0.0.1+r1",
+      get: (ref: { kind: string; id: string }) => {
+        reads += 1;
+        return catalog.get(ref as never);
+      },
+    } as unknown as CatalogPort;
+    const view = await viewWith(() => {}, counting);
+    expect(view.current).toBe(false);
+    expect(view.gear[0]?.target).toBeNull();
+    expect(reads).toBe(0);
+  });
+
+  it("shows only the lines of the chosen unique variant", async () => {
+    entities["uniqueItem:Fixture Unique"] = {
+      ...(entities["uniqueItem:Fixture Unique"] as object),
+      mods: [
+        { text: "All variants", stats: [], unresolved: [] },
+        { text: "Variant A only", stats: [], unresolved: [], variantIds: ["a"] },
+        { text: "Variant B only", stats: [], unresolved: [], variantIds: ["b"] },
+      ],
+    };
+    const view = await viewWith((slot) => {
+      slot.target = { kind: "unique", uniqueId: "Fixture Unique", variantId: "a" };
+    });
+    expect(view.gear[0]?.target?.explicits.map((l) => l.text)).toEqual([
+      "All variants",
+      "Variant A only",
+    ]);
+  });
+
+  it("treats a catalog entity that breaks its schema as unknown", async () => {
+    entities["baseItem:Fixture/Base"] = { id: "Fixture/Base" };
+    const view = await viewWith(() => {});
+    expect(view.gear[0]?.target).toBeNull();
+    expect(view.unresolved).toContain("baseItem:Fixture/Base");
+  });
+});

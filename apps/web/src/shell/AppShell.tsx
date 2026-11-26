@@ -20,7 +20,7 @@ export function AppShell({ route, children }: { route: RouteId; children: ReactN
         <a className="brand" href="#/" aria-label="Astrolabe, go to build overview">
           <Sigil size={36} />
           <span className="brand__name">
-            Exile<span className="brand__accent">Forge</span>
+            Astro<span className="brand__accent">labe</span>
           </span>
         </a>
         <nav className="nav" aria-label="Main navigation">

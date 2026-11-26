@@ -6891,6 +6891,343 @@
     "current": {
       "type": "boolean"
     },
+    "gear": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "budgetTier": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+          },
+          "slot": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "unique",
+                      "crafted"
+                    ]
+                  },
+                  "rarityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Classification id defined by the data release (not a fixed enum)"
+                  },
+                  "rarityName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "baseName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "itemClass": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Classification id defined by the data release (not a fixed enum)"
+                  },
+                  "implicits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "modId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "generationType": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Classification id defined by the data release (not a fixed enum)"
+                        },
+                        "tier": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  },
+                  "explicits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "modId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "generationType": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Classification id defined by the data release (not a fixed enum)"
+                        },
+                        "tier": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "baseName",
+                  "itemClass",
+                  "implicits",
+                  "explicits"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "unique",
+                      "crafted"
+                    ]
+                  },
+                  "rarityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Classification id defined by the data release (not a fixed enum)"
+                  },
+                  "rarityName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "baseName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "itemClass": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Classification id defined by the data release (not a fixed enum)"
+                  },
+                  "implicits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "modId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "generationType": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Classification id defined by the data release (not a fixed enum)"
+                        },
+                        "tier": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  },
+                  "explicits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "modId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "generationType": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "Classification id defined by the data release (not a fixed enum)"
+                        },
+                        "tier": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "baseName",
+                  "itemClass",
+                  "implicits",
+                  "explicits"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "alternatives": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "unique",
+                        "crafted"
+                      ]
+                    },
+                    "rarityId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    },
+                    "rarityName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "baseName": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "itemClass": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Classification id defined by the data release (not a fixed enum)"
+                    },
+                    "implicits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "modId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "generationType": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256,
+                            "description": "Classification id defined by the data release (not a fixed enum)"
+                          },
+                          "tier": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        }
+                      }
+                    },
+                    "explicits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "modId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "generationType": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256,
+                            "description": "Classification id defined by the data release (not a fixed enum)"
+                          },
+                          "tier": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "baseName",
+                    "itemClass",
+                    "implicits",
+                    "explicits"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "budgetTier",
+          "slot",
+          "target",
+          "alternatives"
+        ]
+      }
+    },
     "names": {
       "type": "object",
       "propertyNames": {
@@ -7009,6 +7346,7 @@
     "guide",
     "catalogReleaseId",
     "current",
+    "gear",
     "names",
     "results",
     "unresolved"
