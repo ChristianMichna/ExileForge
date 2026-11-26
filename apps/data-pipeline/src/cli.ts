@@ -13,7 +13,13 @@ import { loadNormalizeConfig } from "./normalize/catalog.ts";
 import { resolveModStats } from "./normalize/mod-stats.ts";
 import { buildCatalog } from "./normalize/release.ts";
 import { StatMatcher } from "./normalize/stat-matcher.ts";
-import { decide, readPinnedCommit, renderReport, watchConfigSchema } from "./watch/watch.ts";
+import {
+  decide,
+  exitCodeFor,
+  readPinnedCommit,
+  renderReport,
+  watchConfigSchema,
+} from "./watch/watch.ts";
 import { latestPobRelease, listDataGameVersions } from "./watch/github.ts";
 import { buildSnapshot } from "./snapshot/build.ts";
 import { readManifest, readShard } from "./snapshot/snapshot.ts";
@@ -41,7 +47,7 @@ const USAGE = `astrolabe-data <command>
               [--game-config config/data-pipeline/game-data.json] [--out <report.md>]
       Compare the game patch the update server announces with the published data
       releases and the latest PoB-PoE2 release with the pinned one. Prints a report;
-      exits 3 when there is something to do (new patch or new PoB release). Needs network.
+      exits 3 (EXIT_SOMETHING_TO_DO) when there is something to do (new patch or new PoB release). Needs network.
 
   catalog-diff <fromCatalogDir> <toCatalogDir>
       Compare two built catalogs; writes diff.json into <toCatalogDir> and records it
@@ -197,8 +203,8 @@ async function main(argv: string[]): Promise<void> {
     const token = process.env["GITHUB_TOKEN"];
     const [patch, versions, pob, pinText] = await Promise.all([
       queryPatchServer(gameConfig.patchServer),
-      listDataGameVersions(fetch, repo, token),
-      latestPobRelease(fetch, watch.pobRepo, token),
+      listDataGameVersions(fetch, repo, watch.requestTimeoutSeconds, token),
+      latestPobRelease(fetch, watch.pobRepo, watch.requestTimeoutSeconds, token),
       readFile(resolve(watch.pinFile), "utf8"),
     ]);
     const report = decide({
@@ -213,7 +219,7 @@ async function main(argv: string[]): Promise<void> {
     const text = renderReport(report);
     process.stdout.write(`${text}\n`);
     if (values.out !== undefined) await writeFile(values.out, text);
-    if (report.findings.length > 0) process.exitCode = 3;
+    process.exitCode = exitCodeFor(report);
     return;
   }
   if (command === "catalog-diff") {

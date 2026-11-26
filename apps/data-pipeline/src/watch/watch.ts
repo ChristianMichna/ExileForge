@@ -9,6 +9,8 @@ export const watchConfigSchema = z
     pinFile: z.string().min(1),
     /** Regular expression with one group that captures the pinned 40-character commit. */
     pinPattern: z.string().min(1),
+    /** Every request ends as an error after this long. */
+    requestTimeoutSeconds: z.int().positive(),
   })
   .strict();
 export type WatchConfig = z.infer<typeof watchConfigSchema>;
@@ -47,11 +49,13 @@ export interface WatchReport {
   latestPobTag: string;
   findings: WatchFinding[];
   /**
-   * True while a new game patch has no matching PoB release: a data release for it would carry PoB
-   * data of an older patch, so the app must stay in catalog-only mode for it (project plan,
-   * "Grenzen und Umgang damit").
+   * True when a new game patch is out and PoB-PoE2 has no release newer than the pinned one. The
+   * watcher cannot tell whether the pinned release already covers the new patch (a pin bumped
+   * earlier, a fix release for the old patch), so a person reads the release notes: if they do not
+   * cover it, the app stays in catalog-only mode for the patch (project plan, "Grenzen und Umgang
+   * damit").
    */
-  catalogOnlyUntilPob: boolean;
+  needsPobCheck: boolean;
 }
 
 /** Decides what the hourly watcher reports; pure, so every case is tested. */
@@ -79,9 +83,9 @@ export function decide(input: WatchInput): WatchReport {
       steps: newPob
         ? [`Publish a data release for ${input.gamePatch} after the PoB bump above.`]
         : [
-            `PoB-PoE2 has no release newer than the pinned one, so its data still describes an older patch.`,
-            "Do not publish a data release for the new patch as complete. The app stays in catalog-only mode for it until PoB catches up.",
-            "Watch the PoB-PoE2 releases; this check runs hourly.",
+            `PoB-PoE2 has no release newer than the pinned ${input.pob.latestTag}. Check its release notes: do they cover game patch ${input.gamePatch}?`,
+            `If yes (for example the pin was raised for this patch already), run the "Data release" workflow with game-version ${input.gamePatch}.`,
+            "If no, do not publish a data release for the patch as complete: the app stays in catalog-only mode for it until PoB catches up. This check runs hourly.",
           ],
     });
   }
@@ -89,7 +93,7 @@ export function decide(input: WatchInput): WatchReport {
     gamePatch: input.gamePatch,
     latestPobTag: input.pob.latestTag,
     findings,
-    catalogOnlyUntilPob: newGamePatch && !newPob,
+    needsPobCheck: newGamePatch && !newPob,
   };
 }
 
@@ -104,7 +108,14 @@ export function renderReport(report: WatchReport): string {
   for (const f of report.findings) {
     lines.push(`### ${f.title}`, ...f.steps.map((s, i) => `${String(i + 1)}. ${s}`), "");
   }
-  if (report.catalogOnlyUntilPob)
-    lines.push("**Catalog-only for the new patch until PoB has a matching release.**", "");
+  if (report.needsPobCheck) {
+    lines.push("**Catalog-only for the new patch unless PoB already covers it.**", "");
+  }
   return lines.join("\n");
 }
+
+/** Exit code of the command: 0 nothing to do, 3 something to do (errors exit 1 on their own). */
+export const EXIT_NOTHING_TO_DO = 0;
+export const EXIT_SOMETHING_TO_DO = 3;
+export const exitCodeFor = (report: WatchReport): number =>
+  report.findings.length > 0 ? EXIT_SOMETHING_TO_DO : EXIT_NOTHING_TO_DO;

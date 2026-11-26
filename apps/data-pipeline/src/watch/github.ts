@@ -1,18 +1,36 @@
 import { z } from "zod";
+import { PobVersion } from "@astrolabe/contracts";
 
-type FetchLike = (url: string, init?: { headers?: Record<string, string> }) => Promise<Response>;
+type FetchLike = (
+  url: string,
+  init?: { headers?: Record<string, string>; signal?: AbortSignal },
+) => Promise<Response>;
 
 const RELEASE_ID_TAG = /^data-poe2-(\d+(?:\.\d+){1,3})-r[1-9]\d*$/;
 
-async function getJson(fetch: FetchLike, url: string, token: string | undefined): Promise<unknown> {
+async function getJson(
+  fetch: FetchLike,
+  url: string,
+  token: string | undefined,
+  timeoutSeconds: number,
+): Promise<unknown> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "astrolabe-patch-watch",
   };
   if (token !== undefined && token !== "") headers["Authorization"] = `Bearer ${token}`;
-  const response = await fetch(url, { headers });
+  let response: Response;
+  try {
+    response = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutSeconds * 1000) });
+  } catch (cause) {
+    throw new Error(`Could not reach GitHub for ${url}`, { cause });
+  }
   if (!response.ok) throw new Error(`GitHub answered ${String(response.status)} for ${url}`);
-  return response.json();
+  try {
+    return await response.json();
+  } catch (cause) {
+    throw new Error(`GitHub's answer for ${url} is not valid JSON`, { cause });
+  }
 }
 
 /** Game versions of the data releases published in this repository (drafts ignored). */
@@ -40,11 +58,19 @@ export async function listDataGameVersions(
 export async function latestPobRelease(
   fetch: FetchLike,
   pobRepo: string,
+  timeoutSeconds: number,
   token?: string,
 ): Promise<{ tag: string; sha: string }> {
   const release = z
-    .object({ tag_name: z.string().min(1) })
-    .parse(await getJson(fetch, `https://api.github.com/repos/${pobRepo}/releases/latest`, token));
+    .object({ tag_name: PobVersion })
+    .parse(
+      await getJson(
+        fetch,
+        `https://api.github.com/repos/${pobRepo}/releases/latest`,
+        token,
+        timeoutSeconds,
+      ),
+    );
   const commit = z
     .object({ sha: z.string().regex(/^[0-9a-f]{40}$/) })
     .parse(
@@ -52,6 +78,7 @@ export async function latestPobRelease(
         fetch,
         `https://api.github.com/repos/${pobRepo}/commits/${encodeURIComponent(release.tag_name)}`,
         token,
+        timeoutSeconds,
       ),
     );
   return { tag: release.tag_name, sha: commit.sha };

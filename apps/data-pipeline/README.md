@@ -358,8 +358,16 @@ PoB-PoE2-Release mit dem Pin (`config/data-pipeline/watch.json`: Repo, Pin-Datei
 alles erledigt ist.
 
 - Neues PoB-Release: Pin anheben, Golden Builds in CI vergleichen, danach „Data release“ starten.
-- Neuer Spielpatch ohne neues PoB-Release: **Katalog-only**. Ein Daten-Release würde PoB-Daten eines älteren Patches
-  tragen und darf nicht als vollständig veröffentlicht werden (Projektplan, „Grenzen und Umgang damit“).
+- Neuer Spielpatch ohne neues PoB-Release: Der Watcher kann nicht wissen, ob das gepinnte PoB den Patch schon
+  abdeckt (Pin früher angehoben, Fix-Release für den alten Patch). Er fragt deshalb nach den Release-Notes: Deckt es
+  den Patch ab, „Data release“ starten; sonst **Katalog-only**: ein Daten-Release würde PoB-Daten eines älteren
+  Patches tragen und darf nicht als vollständig veröffentlicht werden (Projektplan, „Grenzen und Umgang damit“).
+- Als Daten-Release zählt, was auch die App lädt: veröffentlicht, mit Katalog- und Prüfsummen-Asset; Pre-Releases
+  zählen mit (wie `includePrereleases` der App). Es werden die ersten 100 Releases gelesen.
+- Der Plan sah einen automatisch geöffneten PR für den Pin vor. Der Watcher öffnet bewusst nur ein Issue: ein PR
+  aus dem Workflow löst keine CI aus, und der Pin gehört erst nach dem Golden-Build-Vergleich angehoben.
+- Ein dauerhaft fehlschlagender Lauf zeigt sich nur als roter Lauf; GitHub schaltet geplante Workflows nach 60 Tagen
+  ohne Repository-Aktivität ab.
 
 Der Watcher meldet nur. Pin-Anhebung und Veröffentlichung bleiben Entscheidungen von Menschen: Daten-Releases sind
 unveränderlich, und ein PoB-Wechsel braucht den Vergleich der Golden Builds.
