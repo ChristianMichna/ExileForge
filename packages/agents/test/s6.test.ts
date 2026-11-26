@@ -18,7 +18,7 @@ const s6: S6Config = {
     { key: "late", label: "Late", kind: "endgame", levelRange: [11, 20], passivePoints: 2 },
   ],
   calcProfiles: ["default"],
-  objective: { weights: { FakeMetric: 1 }, floors: {} },
+  objective: { weights: { FakeMetric: 1 }, floors: {}, floorsFromMetrics: {} },
 };
 const text = (t: string): RichText => [{ type: "text", text: t }];
 const tree = (key: string, nodes: string[]): ProgressionStageTree => ({

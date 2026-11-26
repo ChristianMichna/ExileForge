@@ -302,7 +302,7 @@ describe("forge pipeline (agents)", () => {
     it("asks for the gem setup after the choice when S5 is configured", async () => {
       const s5 = {
         calcProfiles: ["default"],
-        objective: { weights: { FakeMetric: 1 }, floors: {} },
+        objective: { weights: { FakeMetric: 1 }, floors: {}, floorsFromMetrics: {} },
       };
       const engine = setup(createForgePipeline({ ...STAGES, s5 }), fastSkeleton, {
         maxCharacterLevel: { value: 20, origin: "pob-code" },
@@ -322,7 +322,7 @@ describe("forge pipeline (agents)", () => {
     it("stops visibly when the release has no level and point facts", async () => {
       const s5 = {
         calcProfiles: ["default"],
-        objective: { weights: { FakeMetric: 1 }, floors: {} },
+        objective: { weights: { FakeMetric: 1 }, floors: {}, floorsFromMetrics: {} },
       };
       const engine = setup(createForgePipeline({ ...STAGES, s5 }), fastSkeleton);
       const { runId } = await driveToS3(engine);

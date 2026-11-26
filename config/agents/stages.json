@@ -32,7 +32,8 @@
         "FullDPS": 1,
         "TotalEHP": 0.4
       },
-      "floors": {}
+      "floors": {},
+      "floorsFromMetrics": { "Str": "ReqStr", "Dex": "ReqDex", "Int": "ReqInt" }
     }
   },
   "s6": {
@@ -43,7 +44,8 @@
         "FullDPS": 1,
         "TotalEHP": 0.4
       },
-      "floors": {}
+      "floors": {},
+      "floorsFromMetrics": { "Str": "ReqStr", "Dex": "ReqDex", "Int": "ReqInt" }
     }
   },
   "s7": {
