@@ -451,6 +451,26 @@ local function collectStats(warnings)
 			end
 		end
 	end
+	-- A minion skill keeps its numbers (DPS, life, ...) in its own table, output.Minion
+	-- (CalcPerform.lua), not in the top-level output; they are reported with the prefix "Minion"
+	-- (MinionCombinedDPS, MinionTotalDPS, ...). Without a minion the stats are absent.
+	if type(output.Minion) == "table" then
+		for key, value in pairs(output.Minion) do
+			if type(key) == "string" and type(value) == "number" then
+				local name = "Minion" .. key
+				if isFiniteNumber(value) then
+					if stats[name] == nil then
+						stats[name] = value
+					elseif stats[name] ~= value then
+						-- PoB's own top-level field of that name wins; the clash is made visible.
+						warnings[#warnings + 1] = "Minion stat " .. name .. " clashes with a top-level PoB stat of the same name; the top-level value is kept"
+					end
+				else
+					nonFinite[#nonFinite + 1] = "Minion" .. key .. "=" .. tostring(value)
+				end
+			end
+		end
+	end
 	-- PoB sets ReqStr/ReqDex/ReqInt only when something asks for more than zero, but always
 	-- sets the matching "<name>String" marker once the requirement block ran (CalcPerform.lua).
 	-- Marker present and requirement absent means "no requirement", i.e. zero.

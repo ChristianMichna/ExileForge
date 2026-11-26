@@ -2,7 +2,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BuildState } from "@astrolabe/contracts/build";
-import { type CalcProfileId, EntityKind, EntityRef } from "@astrolabe/contracts/common";
+import {
+  type CalcProfileId,
+  EntityKind,
+  EntityRef,
+  type JsonValue,
+} from "@astrolabe/contracts/common";
 import { CraftTools, EconomyTools, GuideTools } from "@astrolabe/contracts";
 import { ForgeTools, RunId, SessionCode } from "@astrolabe/contracts/forge";
 import { entityFindings, stateEntities } from "../engine/checks.js";
@@ -86,7 +91,7 @@ export function createForgeMcpServer(deps: ForgeMcpDeps): McpServer {
       inputSchema: t["forge.submit"].input,
       annotations: { openWorldHint: false },
     },
-    (input) => run(() => engine.submit(input)),
+    (input) => run(() => engine.submit({ ...input, payload: payloadValue(input.payload) })),
   );
   server.registerTool(
     mcpToolName("forge.ask_user"),
@@ -291,5 +296,21 @@ async function handle(fn: () => Promise<unknown>, logger: Logger): Promise<CallT
         },
       ],
     };
+  }
+}
+
+/**
+ * Some MCP clients hand a structured argument over as a JSON string. A payload that is a string
+ * holding a JSON object or array is parsed; anything else stays as it came and fails the task's
+ * schema check with a finding, so nothing is guessed.
+ */
+export function payloadValue(payload: JsonValue): JsonValue {
+  if (typeof payload !== "string") return payload;
+  try {
+    const parsed: unknown = JSON.parse(payload);
+    return typeof parsed === "object" && parsed !== null ? (parsed as JsonValue) : payload;
+  } catch {
+    // Not JSON: the task's schema check reports it with the usual finding.
+    return payload;
   }
 }
