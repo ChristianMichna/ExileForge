@@ -40,6 +40,29 @@ describe("loadReleaseForRevalidation", () => {
   });
 });
 
+describe("broken release files", () => {
+  it("fails loudly on a missing or invalid diff file and on a manifest outside the contract", async () => {
+    await expect(loadReleaseForRevalidation(releaseDir(NEXT, chained))).rejects.toThrow(
+      /Cannot read diff/,
+    );
+    const bad = releaseDir(NEXT, chained, { schemaVersion: 1, nope: true });
+    await expect(loadReleaseForRevalidation(bad)).rejects.toThrow(/does not match the contract/);
+    const dir = mkdtempSync(join(tmpdir(), "astrolabe-reval-"));
+    writeFileSync(join(dir, "manifest.json"), JSON.stringify({ schemaVersion: 1 }));
+    await expect(loadReleaseForRevalidation(dir)).rejects.toThrow(/manifest/);
+  });
+  it("does not read the diff of the guide's own release", async () => {
+    const own = releaseDir(RELEASE, {
+      previousReleaseId: "poe2-9.8.6+r1",
+      diffPath: "missing.json",
+    });
+    const dirs = [own, releaseDir(NEXT, chained, diffOf({}))];
+    expect(
+      (await revalidateStoredGuide({ guide, releaseDirs: dirs, now: () => new Date() })).verdict,
+    ).toBe("unaffected");
+  });
+});
+
 describe("revalidateStoredGuide", () => {
   const now = () => new Date("2026-11-26T05:00:00Z");
   it("refuses a guide that does not match the contract", async () => {

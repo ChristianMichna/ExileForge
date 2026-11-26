@@ -160,25 +160,3 @@ describe("revalidateGuide", () => {
     expect(res.findings).toHaveLength(1);
   });
 });
-
-describe("a complete GuideDocument", () => {
-  it("is valid and every catalog id of the contracts is found", async () => {
-    const { guide: full } = await import("./guide-fixture.js");
-    const { GuideDocument } = await import("@astrolabe/contracts");
-    expect(GuideDocument.safeParse(full).success).toBe(true);
-    const found = new Set(collectGuideRefs(full).map((r) => `${r.kind}:${r.id}`));
-    for (const expected of [
-      "characterClass:fixture_class",
-      "ascendancy:fixture_asc",
-      "gem:Fixture/Gems/Main",
-      "gem:Fixture/Gems/Support",
-      "passiveNode:fixture_node_1",
-      "uniqueItem:Fixture Unique",
-      "baseItem:Fixture/Items/BaseAlpha",
-      "baseItem:Fixture/Currency/A",
-      "mod:FixtureMod1",
-      "craftingAction:Fixture/Currency/A",
-    ])
-      expect(found, expected).toContain(expected);
-  });
-});

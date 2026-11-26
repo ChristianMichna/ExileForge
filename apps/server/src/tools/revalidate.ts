@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { z } from "zod";
 import {
   CatalogDiff,
@@ -36,10 +36,18 @@ async function readParsed<T extends z.ZodType>(
 }
 
 /** Reads a data release directory's manifest and, if it has one, its diff against the previous release. */
-export async function loadReleaseForRevalidation(dir: string): Promise<ReleaseForRevalidation> {
+export async function loadReleaseForRevalidation(
+  dir: string,
+  options: { withDiff?: boolean } = {},
+): Promise<ReleaseForRevalidation> {
   const { release } = await readParsed(CatalogManifest, join(dir, "manifest.json"), "manifest");
-  if (release.diffPath === undefined) return { release };
-  const diff = await readParsed(CatalogDiff, join(dir, release.diffPath), "diff");
+  if (release.diffPath === undefined || options.withDiff === false) return { release };
+  const diffPath = resolve(dir, release.diffPath);
+  const inside = relative(resolve(dir), diffPath);
+  // the contract already forbids this; a second check, because the path comes from a downloaded file
+  if (inside.startsWith("..") || inside === "")
+    throw new RevalidationError(`The diff path of ${release.id} leaves the release directory`);
+  const diff = await readParsed(CatalogDiff, diffPath, "diff");
   if (diff.from !== release.previousReleaseId || diff.to !== release.id)
     throw new RevalidationError(
       `The diff of ${release.id} goes from ${diff.from} to ${diff.to}, expected ${String(release.previousReleaseId)} to ${release.id}`,
@@ -62,7 +70,10 @@ export async function revalidateStoredGuide(input: {
     throw new RevalidationError(
       `The guide does not match the contract: ${z.prettifyError(parsed.error)}`,
     );
-  const loaded = await Promise.all(input.releaseDirs.map(loadReleaseForRevalidation));
+  // the guide's own release needs no diff: only its manifest is read
+  const loaded = await Promise.all(
+    input.releaseDirs.map((dir, i) => loadReleaseForRevalidation(dir, { withDiff: i > 0 })),
+  );
   const first = loaded[0];
   const last = loaded[loaded.length - 1];
   if (!first || !last || loaded.length < 2)
