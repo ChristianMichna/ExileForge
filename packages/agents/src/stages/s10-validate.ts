@@ -459,11 +459,12 @@ function unreachable(
 /** G3 tree connectivity of one stage: the main tree from the class start, ascendancy nodes from theirs. */
 function connectivity(
   ctx: PipelineContext,
-  stage: GuideDraft["progression"]["stages"][number],
+  label: string,
+  state: BuildState,
   path: string,
+  returnTo: TaskType,
 ): Finding[] {
   const out: Finding[] = [];
-  const state = stage.state;
   const cls = ctx.catalog.get({ kind: "characterClass", id: state.classId });
   const asc =
     state.ascendancyId === undefined
@@ -503,7 +504,7 @@ function connectivity(
         finding(
           "G3",
           "tree_start_unknown",
-          `Stage ${stage.key}: the catalog has no start node for the ${what} tree, so its connection was not checked.`,
+          `${label}: the catalog has no start node for the ${what} tree, so its connection was not checked.`,
           path,
         ),
       );
@@ -515,7 +516,7 @@ function connectivity(
         finding(
           "G3",
           "tree_start_unknown",
-          `Stage ${stage.key}: the start node of the ${what} tree is not a passive node of the catalog, so its connection was not checked.`,
+          `${label}: the start node of the ${what} tree is not a passive node of the catalog, so its connection was not checked.`,
           path,
         ),
       );
@@ -529,9 +530,9 @@ function connectivity(
         finding(
           "G3",
           "tree_node_unconnected",
-          `Stage ${stage.key}: ${ids.join(", ")} of the ${what} tree are not joined to its start by allocated nodes.`,
+          `${label}: ${ids.join(", ")} of the ${what} tree are not joined to its start by allocated nodes.`,
           path,
-          "S6",
+          returnTo,
         ),
       );
     }
@@ -545,12 +546,13 @@ async function measuredGates(
   draft: GuideDraft,
   cfg: S10Config,
   stageTable?: readonly S6Row[],
+  targetBuild?: TargetBuild,
 ): Promise<{
   g2: Finding[];
   g3: Finding[];
   g4: Finding[];
   g5: Finding[];
-  thresholdsSet: { ehp: boolean; dps: boolean };
+  thresholdsSet: { ehp: boolean; dps: boolean; ascendancy: boolean };
 }> {
   const g2: Finding[] = [];
   const g3: Finding[] = [];
@@ -565,6 +567,44 @@ async function measuredGates(
   const dpsSet = cfg.thresholds.some((t) => t.minDps !== undefined);
   const table = stageTableOf(stageTable, ctx.catalog.release);
   if (typeof table === "string") g3.push(finding("G3", "points_unknown", table));
+  // The target build carries the ascendancy nodes (S5); the stages only order the main tree.
+  const target = targetBuild?.state;
+  if (target !== undefined) {
+    g3.push(...connectivity(ctx, "The target build", target, "/target/state/tree", "S5"));
+  }
+  const ascendancyLimit = ctx.catalog.release?.passivePoints?.ascendancy?.points;
+  if (target !== undefined && ascendancyLimit !== undefined) {
+    const start =
+      target.ascendancyId === undefined
+        ? undefined
+        : Ascendancy.pick({ startNodeId: true }).parse(
+            ctx.catalog.get({ kind: "ascendancy", id: target.ascendancyId })?.entity ?? {},
+          ).startNodeId;
+    const used = new Set(target.tree.ascendancy.filter((id) => id !== start)).size;
+    if (used < ascendancyLimit) {
+      g3.push(
+        finding(
+          "G3",
+          "ascendancy_points_unspent",
+          "The target build leaves ascendancy points of the release unspent.",
+          "/target/state/tree/ascendancy",
+          undefined,
+          "warning",
+        ),
+      );
+    }
+    if (used > ascendancyLimit) {
+      g3.push(
+        finding(
+          "G3",
+          "ascendancy_points_overspent",
+          "The target build allocates more ascendancy nodes than the release grants points.",
+          "/target/state/tree/ascendancy",
+          "S5",
+        ),
+      );
+    }
+  }
   for (const [
     index,
     { stage, path, returnTo, stats, unsupportedMods, gearedStats, gearedFailed, gearReturnTo },
@@ -598,7 +638,15 @@ async function measuredGates(
         }
       }
     }
-    g3.push(...connectivity(ctx, stage, `/progression/stages/${String(index)}/state/tree`));
+    g3.push(
+      ...connectivity(
+        ctx,
+        `Stage ${stage.key}`,
+        stage.state,
+        `/progression/stages/${String(index)}/state/tree`,
+        "S6",
+      ),
+    );
     if (typeof table !== "string") {
       const row = table.find((r) => r.key === stage.key);
       // PoB counts a node once and takes off the smaller weapon set, as both sets draw on the same points.
@@ -777,14 +825,24 @@ async function measuredGates(
       );
     }
   }
-  return { g2, g3, g4, g5, thresholdsSet: { ehp: ehpSet, dps: dpsSet } };
+  return {
+    g2,
+    g3,
+    g4,
+    g5,
+    thresholdsSet: {
+      ehp: ehpSet,
+      dps: dpsSet,
+      ascendancy: ascendancyLimit !== undefined && targetBuild !== undefined,
+    },
+  };
 }
 
 /** What a gate still does not check, given the config; undefined if nothing is missing. */
 function gapOf(
   gate: Finding["gate"],
   cfg: S10Config | undefined,
-  thresholds: { ehp: boolean; dps: boolean } | undefined,
+  thresholds: { ehp: boolean; dps: boolean; ascendancy: boolean } | undefined,
 ): string | undefined {
   if (
     cfg === undefined &&
@@ -792,7 +850,11 @@ function gapOf(
   ) {
     return `the whole gate (no "s10" block in config/agents/stages.json)`;
   }
-  if (gate === "G3") return "ascendancy points";
+  if (gate === "G3") {
+    return thresholds?.ascendancy === true
+      ? undefined
+      : "ascendancy points (the data release has no passivePoints.ascendancy)";
+  }
   if (gate === "G4") {
     return thresholds?.ehp === true ? undefined : "the EHP minimum (no threshold configured)";
   }
@@ -809,8 +871,10 @@ export async function runGates(
   cfg?: S10Config,
   critic?: CriticVerdict,
   stageTable?: readonly S6Row[],
+  targetBuild?: TargetBuild,
 ): Promise<GateResult[]> {
-  const measured = cfg === undefined ? undefined : await measuredGates(ctx, draft, cfg, stageTable);
+  const measured =
+    cfg === undefined ? undefined : await measuredGates(ctx, draft, cfg, stageTable, targetBuild);
   const g1 = draftEntities(draft)
     .filter((e) => ctx.catalog.get(e.ref) === undefined)
     .map((e) =>
@@ -966,7 +1030,7 @@ export function validateStep(inputs: S10Inputs, cfg?: S10Config): PlanStep {
       const draft = assembleDraft(runCtx, inputs);
       const stored = runCtx.result(S10_CRITIC_KEY);
       const critic = stored === undefined ? undefined : readCritic(stored);
-      const gates = await runGates(runCtx, draft, cfg, critic, inputs.stageTable);
+      const gates = await runGates(runCtx, draft, cfg, critic, inputs.stageTable, inputs.target);
       return JSON.parse(
         JSON.stringify({
           passed: gates.every((g) => g.passed),
