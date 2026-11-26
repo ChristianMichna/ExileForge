@@ -12,6 +12,8 @@ export interface RunLive {
   readonly calcFailure: string | undefined;
   readonly question: { readonly question: string; readonly options: readonly string[] } | undefined;
   readonly guideReady: boolean;
+  /** Id of the finished guide (from `guide.ready`), for the export. */
+  readonly guideId: string | undefined;
 }
 
 export const EMPTY_RUN: RunLive = {
@@ -25,6 +27,7 @@ export const EMPTY_RUN: RunLive = {
   calcFailure: undefined,
   question: undefined,
   guideReady: false,
+  guideId: undefined,
 };
 
 /** Folds one event into the state. Events at or below `lastSeq` are ignored (replays). */
@@ -68,6 +71,6 @@ export function applyRunEvent(state: RunLive, event: RunEvent): RunLive {
     case "feedback.queued":
       return next;
     case "guide.ready":
-      return { ...next, guideReady: true };
+      return { ...next, guideReady: true, guideId: event.guideId };
   }
 }

@@ -13,4 +13,8 @@ Desktop-App (`apps/desktop`, `astrolabe://app/`) und als Vorschau im Browser mit
   (`enabled: false`), steht das da statt einer leeren Liste. Während die Prüfung läuft, fragt die Seite
   nach jeder Antwort nach 3 s erneut; schlägt eine Anfrage fehl, bleibt die letzte Liste mit einem Hinweis
   und „Try again“ stehen. Die Antwort wird gegen `GuidePatchStatusView` der Verträge geprüft.
+- **Export** (`src/views/BuildFileExport.tsx`, F-12): Ist ein Guide fertig (`guide.ready` liefert die
+  `guideId`), speichert „Save as .build file“ ihn über `GET /api/guides/:id/build-file` als Datei des
+  Build Planners. Was das Release nicht kennt (`omitted`), steht als Hinweis unter dem Knopf; Fehler
+  des Servers erscheinen mit seinem Text, dann wird nichts gespeichert.
 - Im Nur-Katalog-Modus (`calcEngine: "none"`) ersetzt ein Hinweis das Planungsformular.

@@ -68,4 +68,12 @@ describe("applyRunEvent", () => {
     s = applyRunEvent(s, ev(2, { type: "run.phase", phase: "planning" }));
     expect(s.question).toBeUndefined();
   });
+
+  it("keeps the guide id of guide.ready for the export", () => {
+    const id = "00000000-0000-4000-8000-000000000001";
+    const s = applyRunEvent(EMPTY_RUN, ev(0, { type: "guide.ready", guideId: id }));
+    expect(s.guideReady).toBe(true);
+    expect(s.guideId).toBe(id);
+    expect(EMPTY_RUN.guideId).toBeUndefined();
+  });
 });

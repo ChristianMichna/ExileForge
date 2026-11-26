@@ -1,4 +1,5 @@
 import { Badge, Button, Callout, Panel, type BadgeTone } from "@astrolabe/ui";
+import { BuildFileExportButton } from "./BuildFileExport";
 import type { RunLive } from "../live/run-state";
 import type { RunEventsState } from "../live/useRunEvents";
 
@@ -88,6 +89,7 @@ export function RunStatusPanel({
         {run.guideReady ? (
           <Callout tone="success" title="The guide is ready">
             The finished guide opens here once the guide view is available.
+            {run.guideId === undefined ? null : <BuildFileExportButton guideId={run.guideId} />}
           </Callout>
         ) : null}
         {protocolError ? (
