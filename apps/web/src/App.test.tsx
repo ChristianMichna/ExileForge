@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { App } from "./App";
+import type { AppStatus } from "./desktop/bridge";
 import { parseRoute } from "./shell/route";
 
 afterEach(() => {
@@ -61,5 +62,45 @@ describe("planning view", () => {
 
   it("parses the plan route", () => {
     expect(parseRoute("#/plan")).toBe("plan");
+  });
+});
+
+describe("catalog-only mode", () => {
+  function installBridge(reason: string | undefined) {
+    const status: AppStatus = {
+      appVersion: "0.0.0",
+      server: {
+        state: "ready",
+        port: 1,
+        calcEngine: "none",
+        dataReleaseId: "poe2-1.0.0+r1",
+        ...(reason === undefined ? {} : { catalogOnlyReason: reason }),
+      },
+      update: { state: "idle" },
+      data: { state: "idle" },
+    };
+    window.astrolabe = {
+      getStatus: () => Promise.resolve(status),
+      onStatus: () => () => undefined,
+    } as never;
+  }
+  afterEach(() => {
+    delete window.astrolabe;
+  });
+
+  it("shows the badge and replaces the planning form with the reason", async () => {
+    installBridge("Catalog only: needs Path of Building v1.0.0");
+    window.location.hash = "#/plan";
+    render(<App />);
+    expect(await screen.findByText("Catalog only")).toBeTruthy();
+    expect(screen.getByText(/needs Path of Building v1\.0\.0/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /plan/i })).toBeNull();
+  });
+
+  it("falls back to a fixed text without a reason", async () => {
+    installBridge(undefined);
+    window.location.hash = "#/plan";
+    render(<App />);
+    expect(await screen.findByText(/no matching Path of Building/)).toBeTruthy();
   });
 });
