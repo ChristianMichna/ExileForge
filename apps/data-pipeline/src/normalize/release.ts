@@ -17,6 +17,7 @@ import {
   type NormalizeSummary,
 } from "./catalog.ts";
 import { currencyBaseItems } from "./currency.ts";
+import { currencyActions } from "./currency-actions.ts";
 import { essenceActions } from "./essence.ts";
 import { applyGameIds } from "./game-ids.ts";
 import { buildReleaseFacts } from "./release-facts.ts";
@@ -105,6 +106,7 @@ export async function buildCatalog(
         Array.isArray(m.tags) ? m.tags.map((t: unknown) => String(t)) : [],
       ),
     ),
+    generationTypes: new Set(norm.entities.mod.map((m) => String(m.generationType))),
     ...(extra.gameDataDir === undefined ? {} : { gameDataDir: extra.gameDataDir }),
   });
   const currencyFindings: Finding[] = [];
@@ -126,6 +128,7 @@ export async function buildCatalog(
     });
   }
   const essenceFindings: Finding[] = [];
+  let currencyActionSummary: NormalizeSummary["currencyActions"];
   if (extra.gameDataDir === undefined)
     essenceFindings.push({
       kind: "essence",
@@ -144,8 +147,18 @@ export async function buildCatalog(
       },
       cfg.config.essence,
     );
-    norm.entities.craftingAction.push(...res.actions);
-    essenceFindings.push(...res.findings);
+    const rules = await currencyActions({
+      gameDataDir: extra.gameDataDir,
+      config: cfg.config.currencyActions,
+      rarities: facts.rarities,
+      baseItemIds: new Set(norm.entities.baseItem.map((b) => String(b.id))),
+      modGenerationTypes: new Set(norm.entities.mod.map((m) => String(m.generationType))),
+      modDomains: new Set(norm.entities.mod.flatMap((m) => (m.domains as string[]) ?? [])),
+      essenceActions: res.actions,
+    });
+    norm.entities.craftingAction.push(...rules.essenceActions, ...rules.actions);
+    essenceFindings.push(...res.findings, ...rules.findings);
+    currencyActionSummary = rules.summary;
   }
   const gameIdFindings: Finding[] = [];
   const gameIdErrors: Finding[] = [];
@@ -202,7 +215,11 @@ export async function buildCatalog(
     JSON.stringify(
       {
         releaseId: snap.releaseId,
-        summary: { ...norm.summary, ...(gameIdSummary ? { gameIds: gameIdSummary } : {}) },
+        summary: {
+          ...norm.summary,
+          ...(gameIdSummary ? { gameIds: gameIdSummary } : {}),
+          ...(currencyActionSummary ? { currencyActions: currencyActionSummary } : {}),
+        },
         errors,
         warnings: [
           ...norm.warnings,
@@ -277,6 +294,10 @@ export async function buildCatalog(
       ...essenceFindings,
       ...gameIdFindings,
     ],
-    summary: { ...norm.summary, ...(gameIdSummary ? { gameIds: gameIdSummary } : {}) },
+    summary: {
+      ...norm.summary,
+      ...(gameIdSummary ? { gameIds: gameIdSummary } : {}),
+      ...(currencyActionSummary ? { currencyActions: currencyActionSummary } : {}),
+    },
   };
 }

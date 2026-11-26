@@ -251,6 +251,27 @@ Tabellen in `game-data.json` (Pflichttabellen, fehlen sie, bricht der Lauf ab).
   gleich heißt; `Weapon 2` und die Swap-Slots bleiben offen, bis die Zuordnung im Spiel geprüft ist.
 - Eine `gameId` darf in einem Release nur einmal vorkommen (Fehler sonst).
 
+## Seltenheiten und Währungsaktionen
+
+- **Seltenheiten** (`DataRelease.rarities`, Herkunft `pob-code`): Namen und Affix-Summen stehen in
+  PoBs Code (`Item.lua`: magisch 2, selten 6), in `releaseFacts.rarities` der Konfiguration. Die
+  Summe wird gleichmäßig auf die Generationstypen verteilt (Prefix, Suffix); geht sie nicht auf oder
+  fehlt ein Typ, entfällt das Feld mit Finding. Bekannte Lücke: PoB gibt seltenen Juwelen 4 Affixe.
+- **Währungsaktionen** (`currencyActions` in `normalize.json`): Eine Währung wird nur dann zur
+  `CraftingAction`, wenn ihr `CurrencyItems.Action`-Schlüssel eine Regel hat **und** die Beschreibung
+  des Spiels (ohne Markup) zum Muster der Regel passt. Sonst bleibt sie draußen und steht in den
+  Findings. Höhere Stufen (`TieredCurrency.Tier` > 1 oder mit `LowerTierBaseItemType`) fehlen, weil der
+  Simulator keinen Mindest-Modlevel kennt. Regeln ohne Treffer, Actions ohne Regel und Währungen
+  ohne Katalog-Item stehen ebenfalls in den Findings. Regeln nutzen nur Ops von `crafting-sim`; ein Test prüft das gegen dessen
+  Vokabular. Heute: Transmutation, Augmentation, Regal, Exalted, Chaos, Annulment, Scouring.
+- **Essenzen** bekommen die Raritätsregel (magisch → selten) nur, wenn ihre eigene Beschreibung passt;
+  damit ist `add-specific-mod` im Simulator nicht mehr `uncalibrated`.
+- Bekannte Lücken: Annulment und Scouring nennen keine Seltenheit und wirken damit auch auf
+  einzigartige Items; keine Regel verbietet Flags (z. B. verderbt); die Affix-Grenzen gelten je
+  Seltenheit (PoB: seltene Juwelen 4, manche Items eigene Grenzen).
+- Nicht abgebildet: Orb der Alteration (Text nennt keine Anzahl), Alchemie (zwei Seltenheiten),
+  alles, was keine Modänderung ist.
+
 ## Crafting-Daten aus den Update-Servern
 
 PoB kennt Währungen und Omens nicht und Essences nur zum Teil. Christian hat am
