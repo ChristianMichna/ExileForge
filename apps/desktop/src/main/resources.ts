@@ -14,11 +14,17 @@ export interface AppDirs {
   readonly downloadedReleasesDir: string;
   readonly bundledReleaseDir: string;
   readonly databasePath: string;
+  /** Holds PathOfBuilding-PoE2/ (src, runtime with luajit.exe): `pob/` packaged, `.pob/` in the repository. */
+  readonly pobHome: string;
+  /** The calc worker's Lua entry point (`calc-lua/worker.lua` packaged). */
+  readonly calcWorkerLua: string;
+  readonly optimizerConfigPath: string;
 }
 
 /**
  * Folder layout. Packaged: everything sits in `process.resourcesPath` (see
- * electron-builder.yml extraResources). Development: the repository.
+ * electron-builder.yml extraResources). Development: the repository. The calc service reads
+ * `config/calc` and `config/calc-profiles` below `resourcesRoot`.
  */
 export function resolveAppDirs(opts: {
   packaged: boolean;
@@ -41,6 +47,11 @@ export function resolveAppDirs(opts: {
       ? join(root, "data-release")
       : join(root, "data-snapshots", "current", "catalog"),
     databasePath: join(opts.userData, "astrolabe.sqlite"),
+    pobHome: join(root, opts.packaged ? "pob" : ".pob"),
+    calcWorkerLua: opts.packaged
+      ? join(root, "calc-lua", "worker.lua")
+      : join(root, "apps", "calc", "lua", "worker.lua"),
+    optimizerConfigPath: join(root, "config", "optimizer", "tree.json"),
   };
 }
 

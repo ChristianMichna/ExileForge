@@ -82,6 +82,9 @@ importers:
 
   apps/desktop:
     devDependencies:
+      '@astrolabe/calc':
+        specifier: workspace:*
+        version: link:../calc
       '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

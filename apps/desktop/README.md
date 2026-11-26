@@ -110,10 +110,15 @@ schützt das nicht gegen ein manipuliertes Release-Konto. Eine Signatur
 
 ## Offen
 
-- **PoB-Rechendienst**: Der Server nutzt noch `calc-fake`; die App zeigt das
-  („PoB offline", Hinweis im Plan-Dialog). Sobald der Calc-Adapter fertig ist,
-  gehören LuaJIT und PoB für Windows als `extraResources` in den Installer
-  (`tools/build_windows_luajit.sh`, `apps/calc`).
+- **PoB-Rechendienst**: Der Installer bringt PoB (ohne Bilder und Texturen), `luajit.exe`, die
+  Worker-Lua-Datei, `config/calc`, `config/calc-profiles` und `config/optimizer` mit
+  (`extraResources`, `.github/workflows/desktop.yml` holt PoB und baut `luajit.exe` mit MSVC). Beim Start
+  prüft die App `pob/PathOfBuilding-PoE2/src/HeadlessWrapper.lua` (in der Entwicklung `.pob/` nach
+  `tools/setup_pob.sh`): ist PoB da, startet der Pool (`calcEngine: "pob"`); fehlt es ganz, läuft die App mit
+  `calc-fake` und sagt das („PoB offline"). Startet ein vorhandenes PoB nicht, bricht der Start mit dem Fehler
+  ab, es gibt keinen stillen Rückfall auf Fantasiewerte. Ungeprüft: ein Lauf des installierten Programms auf
+  einem Windows-PC (nur der CI-Build deckt die Pakete ab). Der Pool ist im CJS-Bundle geprüft
+  (`WORKER_LUA` ist dort `undefined`, der Pfad kommt aus `AppDirs.calcWorkerLua`).
 - **Daten-Releases nachladen** (ADR-0004 Punkt 5): Die App findet heruntergeladene
   Releases schon (`<userData>/data-releases/`), der Download selbst fehlt noch.
 - Windows-Verhalten (Installer, SmartScreen, Update, `claude://`) ist hier nur

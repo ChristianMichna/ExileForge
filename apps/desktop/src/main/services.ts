@@ -1,7 +1,11 @@
 import { z } from "zod";
+import { access } from "node:fs/promises";
+import { join } from "node:path";
+import { pobInstallFromHome, startCalcPool } from "@astrolabe/calc";
 import {
   createStderrLogger,
   defaultTokenFile,
+  loadCatalogRelease,
   loadOrCreateAccessToken,
   startServer,
   type Logger,
@@ -37,20 +41,91 @@ export interface StartServicesOptions {
   /** Folder with installed data releases (one folder per release id); enables guide_revalidate. */
   releasesDir?: string;
   logger?: Logger;
+  /**
+   * Where Path of Building and the calc service files are. The real engine starts when PoB is
+   * installed there; without it the app runs on calc-fake and says so (`calcEngine`).
+   */
+  pob?: PobLocation;
+}
+
+export interface PobLocation {
+  /** Holds `config/calc` and `config/calc-profiles`. */
+  resourcesRoot: string;
+  /** Holds PathOfBuilding-PoE2/ with src and runtime. */
+  pobHome: string;
+  workerLua: string;
+  optimizerConfigPath: string;
+}
+
+type StartCalc = Parameters<typeof startServer>[0]["calc"];
+
+async function installed(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw new Error(`Cannot inspect ${path}`, { cause: error });
+  }
+}
+
+/**
+ * The real calc engine when PoB is installed, calc-fake when it is not there at all. A PoB that
+ * is installed but does not start is an error, never a silent fallback to fake numbers.
+ */
+async function chooseCalc(
+  pob: PobLocation | undefined,
+  catalogDir: string,
+  logger: Logger,
+): Promise<StartCalc> {
+  if (pob === undefined) return "fake";
+  const wrapper = join(pob.pobHome, "PathOfBuilding-PoE2", "src", "HeadlessWrapper.lua");
+  if (!(await installed(wrapper))) {
+    logger.info("Path of Building is not installed; the app runs on calc-fake", {
+      pobHome: pob.pobHome,
+    });
+    return "fake";
+  }
+  const { dataReleaseId } = await loadCatalogRelease(catalogDir);
+  const pool = await startCalcPool({
+    root: pob.resourcesRoot,
+    install: { ...pobInstallFromHome(pob.pobHome), workerLua: pob.workerLua },
+    dataReleaseId,
+    onEvent: (event) => {
+      const problem = "error" in event ? { error: event.error } : {};
+      const level =
+        event.type === "release-failed" ||
+        event.type === "slot-disabled" ||
+        event.type === "worker-start-failed"
+          ? "error"
+          : "info";
+      logger[level]("calc pool", {
+        event: event.type,
+        slot: "slot" in event ? event.slot : undefined,
+        ...problem,
+      });
+    },
+  });
+  return {
+    engine: "pob",
+    pool,
+    optimizerConfigPath: pob.optimizerConfigPath,
+    pobVersion: pool.meta.pobVersion,
+  };
 }
 
 /**
  * Starts the local server in-process on 127.0.0.1. The access token lives in
  * the same file the .mcpb bridge reads, so Claude Desktop finds it.
  *
- * The calc engine is still calc-fake: the PoB worker pool (apps/calc) is
- * connected to the server by the calc adapter. `calcEngine` in the result
- * tells the UI honestly which one is running.
+ * The calc engine is the PoB worker pool (apps/calc) when PoB is installed next to the app,
+ * otherwise calc-fake. `calcEngine` in the result tells the UI honestly which one is running.
  */
 export async function startServices(options: StartServicesOptions): Promise<Services> {
   const logger = options.logger ?? createStderrLogger("server");
   const tokenFile = defaultTokenFile();
   let started: Awaited<ReturnType<typeof startServer>>;
+  const calc = await chooseCalc(options.pob, options.catalogDir, logger);
   try {
     started = await startServer({
       port: options.port,
@@ -58,13 +133,15 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
       catalogDir: options.catalogDir,
       configPath: options.forgeConfigPath,
       stagesConfigPath: options.stagesConfigPath,
-      calc: "fake",
+      calc,
       ...(options.releasesDir === undefined ? {} : { releasesDir: options.releasesDir }),
       allowedOrigins: [],
       tokenFile,
       logger,
     });
   } catch (error) {
+    // No PoB worker processes stay behind when the server did not start.
+    if (typeof calc === "object") await calc.pool.close();
     if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
       throw new Error(
         `Port ${options.port} is already in use. Close the other program or Astrolabe window that uses it.`,

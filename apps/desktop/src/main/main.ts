@@ -148,6 +148,12 @@ async function boot(): Promise<void> {
       forgeConfigPath: dirs.forgeConfigPath,
       stagesConfigPath: dirs.stagesConfigPath,
       releasesDir: dirs.downloadedReleasesDir,
+      pob: {
+        resourcesRoot: dirs.resourcesRoot,
+        pobHome: dirs.pobHome,
+        workerLua: dirs.calcWorkerLua,
+        optimizerConfigPath: dirs.optimizerConfigPath,
+      },
       logger,
     });
     status.setServer({
