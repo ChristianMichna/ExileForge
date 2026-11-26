@@ -256,7 +256,12 @@ Tabellen in `game-data.json` (Pflichttabellen, fehlen sie, bricht der Lauf ab).
 - **Seltenheiten** (`DataRelease.rarities`, Herkunft `pob-code`): Namen und Affix-Summen stehen in
   PoBs Code (`Item.lua`: magisch 2, selten 6), in `releaseFacts.rarities` der Konfiguration. Die
   Summe wird gleichmäßig auf die Generationstypen verteilt (Prefix, Suffix); geht sie nicht auf oder
-  fehlt ein Typ, entfällt das Feld mit Finding. Bekannte Lücke: PoB gibt seltenen Juwelen 4 Affixe.
+  fehlt ein Typ, entfällt das Feld mit Finding. Je Seltenheit kann `affixLimitByItemClass` die Summe
+  für eine Item-Klasse ersetzen (heute: seltene Juwelen 4, wie in PoBs `Item.lua`); das landet als
+  `maxAffixesByItemClass` im Release. Eine Klasse ohne Basis-Item im Katalog ist ein Fehler (der Lauf bricht ab).
+  Nicht abbildbar: PoBs Ausnahme für verderbte Abyss-Juwelen (6 statt 4); es gibt heute keine
+  Abyss-Basen. Die Aktionen übernehmen die Grenzen zur Laufzeit (`limitsByRarity`) aus
+  Seltenheit und Klasse des Items.
 - **Währungsaktionen** (`currencyActions` in `normalize.json`): Eine Währung wird nur dann zur
   `CraftingAction`, wenn ihr `CurrencyItems.Action`-Schlüssel eine Regel hat **und** die Beschreibung
   des Spiels (ohne Markup) zum Muster der Regel passt. Sonst bleibt sie draußen und steht in den
@@ -269,8 +274,9 @@ Tabellen in `game-data.json` (Pflichttabellen, fehlen sie, bricht der Lauf ab).
   passt (normale: magisch → selten; Perfect: entfernt einen Mod einer seltenen Essenz und fügt den
   garantierten Mod hinzu); damit ist `add-specific-mod` im Simulator nicht mehr `uncalibrated`.
 - Bekannte Lücken: Annulment und Scouring nennen keine Seltenheit und wirken damit auch auf
-  einzigartige Items; keine Regel verbietet Flags (z. B. verderbt); die Affix-Grenzen gelten je
-  Seltenheit (PoB: seltene Juwelen 4, manche Items eigene Grenzen).
+  einzigartige Items; keine Regel verbietet Flags (z. B. verderbt); Mods von Juwelen liegen in einer
+  anderen Domäne als `Item` (Konfiguration der Aktionen); Juwelen-Crafting bleibt deshalb
+  unkalibriert, auch wenn die Grenze stimmt. Items mit eigenen Grenzen fehlen.
 - Nicht abgebildet: Orb der Alteration (Text nennt keine Anzahl),
   alles, was keine Modänderung ist.
 

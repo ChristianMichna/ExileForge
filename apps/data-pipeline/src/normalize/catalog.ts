@@ -148,7 +148,7 @@ export const normalizeConfigSchema = z
         /**
          * Rules by `CurrencyItems.Action`. `description` must match the game's description
          * (markup removed) or the currency is left out; rules are ops of crafting-sim, and
-         * `limitsForRarity` in add-random-mod params is replaced by the release's affix limits.
+         * `limitsByRarity: true` in an add effect makes the simulator take the affix limits from the release.
          */
         rules: z.record(z.string().min(1), currencyRuleSchema),
         /**
@@ -161,8 +161,8 @@ export const normalizeConfigSchema = z
             z
               .object({
                 description: descriptionPattern,
-                /** Affix limits of this rarity are set on the essence's own `add-specific-mod`. */
-                limitsForRarity: z.string().min(1).optional(),
+                /** Set `limitsByRarity` on the essence's own `add-specific-mod`. */
+                limitsByRarity: z.literal(true).optional(),
                 preconditions: z.array(ruleSchema),
                 effects: z.array(ruleSchema).min(1),
               })
@@ -192,7 +192,14 @@ export const normalizeConfigSchema = z
             list: z
               .array(
                 z
-                  .object({ name: z.string().min(1), affixLimit: z.int().positive().optional() })
+                  .object({
+                    name: z.string().min(1),
+                    affixLimit: z.int().positive().optional(),
+                    /** Totals that replace `affixLimit` for base items of an item class (catalog class id). */
+                    affixLimitByItemClass: z
+                      .record(z.string().min(1), z.int().positive())
+                      .optional(),
+                  })
                   .strict(),
               )
               .min(1),

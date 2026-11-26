@@ -41,22 +41,6 @@ function parseRows<T extends z.ZodType>(table: string, rows: readonly unknown[],
 }
 
 /**
- * Replaces `limitsForRarity` in `add-random-mod` params by the release's
- * `limits` for that rarity; every other rule is passed through as it is.
- */
-function expand(
-  rule: Rule,
-  rarities: Rarities,
-): { rule: { op: string; params: Record<string, unknown> } } | { problem: string } {
-  const { limitsForRarity, ...rest } = rule.params as Record<string, unknown>;
-  if (limitsForRarity === undefined) return { rule: { op: rule.op, params: rest } };
-  const rarity = rarities.rarities.find((r) => r.id === limitsForRarity);
-  if (!rarity?.maxAffixes)
-    return { problem: `rarity "${String(limitsForRarity)}" has no affix limits` };
-  return { rule: { op: rule.op, params: { ...rest, limits: rarity.maxAffixes } } };
-}
-
-/**
  * Crafting actions of the currencies whose effect the game's own description
  * states, and the rules of the essences. A currency row is turned into an
  * action only when (1) the config has a rule for its `Action`, (2) the
@@ -68,7 +52,7 @@ function expand(
  * minimum level of the added mods); without a positive value it is left out.
  * Essences keep their existing action and gain the preconditions and leading
  * effects of the first essence rule whose description matches theirs; the
- * rule's `limitsForRarity` becomes the affix limits of their own mod. Nothing is guessed.
+ * rule's `limitsByRarity` is set on their own mod, so its affix limits come from the release. Nothing is guessed.
  */
 export async function currencyActions(opts: {
   gameDataDir: string;
@@ -99,8 +83,6 @@ export async function currencyActions(opts: {
   const rarityIds = new Set(rarities.rarities.map((r) => r.id));
 
   const checkRules = (what: string, rules: readonly Rule[]): string | undefined => {
-    const expanded = rules.map((r) => expand(r, rarities));
-    for (const e of expanded) if ("problem" in e) return `${what}: ${e.problem}`;
     for (const r of rules) {
       const p = r.params as Record<string, unknown>;
       const rs = [
@@ -118,11 +100,7 @@ export async function currencyActions(opts: {
     return undefined;
   };
   const build = (rules: readonly Rule[]) =>
-    rules.map((r) => {
-      const e = expand(r, rarities);
-      if ("problem" in e) throw new Error(e.problem);
-      return e.rule;
-    });
+    rules.map((r) => ({ op: r.op, params: { ...(r.params as Record<string, unknown>) } }));
 
   const manifest = await readGameDataManifest(opts.gameDataDir);
   const table = (name: string) => readGameDataTable(opts.gameDataDir, manifest, name);
@@ -236,13 +214,7 @@ export async function currencyActions(opts: {
   const variants = config.essence.map((v, i) => ({
     pattern: new RegExp(v.description),
     rule: v,
-    limits: v.limitsForRarity
-      ? rarities.rarities.find((r) => r.id === v.limitsForRarity)?.maxAffixes
-      : undefined,
-    problem:
-      v.limitsForRarity && !rarities.rarities.find((r) => r.id === v.limitsForRarity)?.maxAffixes
-        ? `essence rule ${String(i)}: rarity "${v.limitsForRarity}" has no affix limits`
-        : checkRules(`essence rule ${String(i)}`, [...v.preconditions, ...v.effects]),
+    problem: checkRules(`essence rule ${String(i)}`, [...v.preconditions, ...v.effects]),
   }));
   for (const v of variants)
     if (v.problem) findings.push({ kind: "currencyAction", id: "essence", message: v.problem });
@@ -253,8 +225,8 @@ export async function currencyActions(opts: {
     if (!v) return action;
     summary.essencesWithRule++;
     const own = (action.effects as { op: string; params: Record<string, unknown> }[]).map((e) =>
-      v.limits && e.op === "add-specific-mod"
-        ? { ...e, params: { ...e.params, limits: v.limits } }
+      v.rule.limitsByRarity && e.op === "add-specific-mod"
+        ? { ...e, params: { ...e.params, limitsByRarity: true } }
         : e,
     );
     return {
