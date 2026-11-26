@@ -21,6 +21,7 @@ import type {
   SkeletonPort,
   TargetPort,
 } from "@astrolabe/agents";
+import { CalcNone } from "../calc/calc-none.js";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 import type { RunStore } from "../store/run-store.js";
@@ -127,6 +128,10 @@ export class ForgeEngine {
     request: BuildRequest,
     pipelineId: string,
   ): Promise<{ runId: RunId; sessionCode: SessionCode; expiresAt: string }> {
+    if (this.options.calc instanceof CalcNone) {
+      // Catalog-only mode: a run could not measure a single number.
+      throw new ForgeError("calc_unavailable", this.options.calc.reason);
+    }
     if (!this.pipelines.has(pipelineId)) {
       throw new ForgeError("invalid_request", `Unknown pipeline ${pipelineId}`);
     }
