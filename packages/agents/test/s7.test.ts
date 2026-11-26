@@ -161,7 +161,10 @@ describe("S7 gear", () => {
       } as Record<string, unknown>;
       const ctx = {
         ...(checkCtx() as object),
-        catalog: { get: (r: { id: string }) => ({ entity: entities[r.id] }) },
+        catalog: {
+          get: (r: { id: string }) => ({ entity: entities[r.id] }),
+          release: { rarities: { rarities: [{ id: "FixRare", name: "Fix" }] } },
+        },
       } as never;
       const wrong = { slots: [choice("SlotA", unique), choice("SlotB", unique)] };
       const findings = await make().check?.(wrong, ctx);
@@ -193,12 +196,19 @@ describe("S7 gear", () => {
           },
         }) as never;
       const slots = { slots: [choice("SlotA", crafted), choice("SlotB", unique)] };
-      const bad = await make().check?.(slots, withRarities(["normal", "rare"]));
-      expect(bad?.[0]).toMatchObject({
-        code: "unknown_rarity",
-        path: "/slots/0/target/rarity",
-      });
+      const bad = (await make().check?.(slots, withRarities(["normal", "rare"])))?.filter(
+        (f) => f.code === "unknown_rarity",
+      );
+      expect(bad).toHaveLength(1);
+      expect(bad?.[0]).toMatchObject({ path: "/slots/0/target/rarity" });
       expect(bad?.[0]?.message).toContain("normal, rare");
+      const none = await make().check?.(slots, {
+        ...(checkCtx() as object),
+        catalog: { get: () => ({ entity: {} }) },
+      } as never);
+      expect(none?.filter((f) => f.code === "rarity_unchecked")).toMatchObject([
+        { severity: "warning" },
+      ]);
       const ok = await make().check?.(slots, withRarities(["FixRare"]));
       expect(ok?.map((f) => f.code) ?? []).not.toContain("unknown_rarity");
     });

@@ -123,7 +123,10 @@ const ok = (value: number) => ({
 const ctxWith = (over: object = {}) =>
   ({
     run: { request: { dataReleaseId: "poe2-1.0.0+r1", exclusions: [] }, interventions: [] },
-    catalog: { get: () => ({ entity: {} }) },
+    catalog: {
+      get: () => ({ entity: {} }),
+      release: { rarities: { rarities: [{ id: "FixRare", name: "Fix" }] } },
+    },
     result: () => submission,
     ...over,
   }) as never as PipelineContext;
@@ -178,6 +181,22 @@ describe("S8 craft task", () => {
     expect(bad[0]?.path).toBe("/startRarity");
     const good = CraftSubmission.parse({ ...submission, startRarity: "magic" });
     expect(await task.check(good, withRelease)).toEqual([]);
+  });
+
+  it("warns when the release has no rarities to check the start rarity against", async () => {
+    const craft = { simulate: () => Promise.resolve({ successChance: ok(0.2) }) };
+    const task = craftTask(
+      ctxWith(),
+      { promptVersion: "t" } as StageConfig,
+      slot(),
+      {} as never,
+    ) as never as {
+      check: (c: unknown, x: unknown) => Promise<{ code: string; severity: string }[]>;
+    };
+    const bare = ctxWith({ craft, catalog: { get: () => ({ entity: {} }) } });
+    expect(await task.check(CraftSubmission.parse(submission), bare)).toMatchObject([
+      { code: "rarity_unchecked", severity: "warning" },
+    ]);
   });
 
   it("warns when the simulator cannot evaluate the strategy", async () => {

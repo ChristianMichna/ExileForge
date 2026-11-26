@@ -195,6 +195,15 @@ export function craftTask(
         });
         return findings;
       }
+      if (rarityIds === undefined) {
+        findings.push({
+          gate: "G1",
+          severity: "warning",
+          code: "rarity_unchecked",
+          message: "The data release lists no rarities, so the start rarity could not be checked.",
+          path: "/startRarity",
+        });
+      }
       const request = simRequest(checkCtx, slot, c);
       if (typeof request === "string") {
         findings.push({
