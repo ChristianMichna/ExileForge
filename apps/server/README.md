@@ -291,6 +291,9 @@ automatisch nach einem Patch.
   Ergebnisse bleiben, ungültige gespeicherte Ergebnisse stehen als `calc:<id>` in `unresolved`.
   Die Antwort enthält je eindeutiger `calcId` ein vollständiges `CalcResult` (einige hundert KB
   bei großen Guides, lokal unkritisch).
+- `GET /api/tree` liefert `PassiveTreeData`: alle Passive-Knoten und -Gruppen des geladenen
+  Releases mit Geometrie für die Baumansicht im Fenster; Einträge, die ihr Schema verletzen,
+  stehen in `skipped`.
 - `GET /api/guides/:guideId/build-file` liefert den Guide als `.build`-Datei des Build Planners
   (F-12): `{ file, omitted }`. Die Spiel-IDs und Namen kommen aus dem geladenen Release
   (`src/export/build-file-resolvers.ts`: Knoten-`gameId`, Slot-`gameId`, Unique-, Ascendancy-

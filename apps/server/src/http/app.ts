@@ -5,9 +5,15 @@ import { z } from "zod";
 import { BuildRequest } from "@astrolabe/contracts/build";
 import type { RunEvent } from "@astrolabe/contracts/events";
 import { UserIntervention } from "@astrolabe/contracts/forge";
-import { GuideListView, GuideView, PublishedGuide } from "@astrolabe/contracts/guide";
+import {
+  GuideListView,
+  GuideView,
+  PassiveTreeData,
+  PublishedGuide,
+} from "@astrolabe/contracts/guide";
 import { guideToBuildFile } from "@astrolabe/exporters";
 import { buildGuideView } from "../guides/guide-view.js";
+import { buildPassiveTreeData } from "../guides/tree-data.js";
 import { buildFileResolvers } from "../export/build-file-resolvers.js";
 import type { GuideSweeper } from "../tools/guide-sweep.js";
 import { ForgeError } from "../engine/errors.js";
@@ -199,6 +205,13 @@ export function createApp(options: AppOptions): FastifyInstance {
       });
     }
     return guide.data;
+  });
+
+  // The catalog of a release does not change while the server runs, so the checked answer is kept.
+  let treeData: PassiveTreeData | undefined;
+  app.get("/api/tree", () => {
+    treeData ??= PassiveTreeData.parse(buildPassiveTreeData(options.catalog));
+    return treeData;
   });
 
   app.get("/api/guides/:guideId/view", async (request) => {
