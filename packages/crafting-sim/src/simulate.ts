@@ -404,7 +404,10 @@ function compileAction(
   // every rarity the item can have while this action runs, to check them against the release
   const rarityIds = [
     start.rarity,
-    ...action.effects.flatMap((e) => (e.op === "set-rarity" ? [e.params.rarity] : [])),
+    ...action.effects.flatMap((e) => {
+      const target = e.op === "set-rarity" ? e.params["rarity"] : undefined;
+      return typeof target === "string" ? [target] : [];
+    }),
   ];
 
   for (const rule of action.preconditions) {
