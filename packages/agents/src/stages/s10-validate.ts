@@ -470,7 +470,8 @@ async function measuredGates(
           "unsupported_mod",
           `Stage ${stage.key}: Path of Building does not calculate the mod "${mod}", so the numbers ignore it.`,
           path,
-          returnTo,
+          // S6 only orders the tree: it cannot change what a campaign stage wears or casts
+          returnTo === "S6" ? undefined : returnTo,
         ),
       );
     }
@@ -549,7 +550,10 @@ function gapOf(
   cfg: S10Config | undefined,
   thresholds: { ehp: boolean; dps: boolean } | undefined,
 ): string | undefined {
-  if (cfg === undefined && (gate === "G2" || gate === "G3" || gate === "G4" || gate === "G5")) {
+  if (
+    cfg === undefined &&
+    (gate === "G2" || gate === "G3" || gate === "G4" || gate === "G5" || gate === "G7")
+  ) {
     return `the whole gate (no "s10" block in config/agents/stages.json)`;
   }
   if (gate === "G3") return "gem level requirements, ascendancy points and tree connectivity";
@@ -558,6 +562,9 @@ function gapOf(
   }
   if (gate === "G5") {
     return thresholds?.dps === true ? undefined : "the damage minimum (no threshold configured)";
+  }
+  if (gate === "G7") {
+    return "crafting plans for the rares of earlier gear tiers (S8 plans the last tier only)";
   }
   return undefined;
 }
@@ -587,14 +594,13 @@ export async function runGates(
     const outcomes = Object.entries(s.calcs);
     return [
       ...requiredProfiles
-        .filter((profile) => s.calcs[profile] === undefined)
+        .filter((profile) => outcomes.length > 0 && s.calcs[profile] === undefined)
         .map((profile) =>
           finding(
             "G2",
             "profile_missing",
             `Stage ${s.key} has no calculation for the required profile ${profile}.`,
             path,
-            "S6",
           ),
         ),
       ...(outcomes.length === 0
@@ -640,9 +646,10 @@ export async function runGates(
           finding(
             "G6",
             code,
-            `Stage ${s.key}: skill ${old.key} of the stage before was lost or weakened (${code}).`,
+            `Stage ${s.key}: skill ${old.key} of the stage before was lost, got another active gem or fewer supports.`,
             `${path}/state/skills`,
-            "S6",
+            // The skills come from the target build, S6 only orders the tree
+            "S5",
           ),
         );
       }
@@ -657,7 +664,6 @@ export async function runGates(
             "too_few_stages",
             "The progression has fewer stages than the configured minimum.",
             "/progression/stages",
-            "S6",
           ),
         ]
       : []),
@@ -668,28 +674,26 @@ export async function runGates(
             "too_few_gear_tiers",
             "The gear plan has fewer tiers than the configured minimum.",
             "/gear/tiers",
-            "S7",
           ),
         ]
       : []),
   ];
   const planned = new Set<string>(draft.crafting.map((c: CraftingPlan) => c.key));
-  const rares = new Set<string>();
-  const g7 = draft.gear.tiers.flatMap((tier) =>
-    tier.slots
-      .filter((sl) => sl.acquisition === "craft" && sl.target.kind === "crafted")
-      .filter((sl) => !planned.has(craftKey(sl.slot)) && !rares.has(sl.slot))
-      .map((sl) => {
-        rares.add(sl.slot);
-        return finding(
+  // S8 plans the rares of the last tier only, so only those can be fixed by a return.
+  const g7 =
+    draft.gear.tiers
+      .at(-1)
+      ?.slots.filter((sl) => sl.acquisition === "craft" && sl.target.kind === "crafted")
+      .filter((sl) => !planned.has(craftKey(sl.slot)))
+      .map((sl) =>
+        finding(
           "G7",
           "craft_plan_missing",
-          `Rare slot ${sl.slot} (tier ${tier.budgetTier}) has no crafting plan.`,
+          `Rare slot ${sl.slot} has no crafting plan.`,
           "/crafting",
           "S8",
-        );
-      }),
-  );
+        ),
+      ) ?? [];
   const found: Partial<Record<Finding["gate"], Finding[]>> = {
     G3: measured?.g3 ?? [],
     G4: measured?.g4 ?? [],

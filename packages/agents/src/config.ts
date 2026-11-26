@@ -235,5 +235,15 @@ export const StageConfig = z
         "s10.calcProfile must equal s7.objective.calcProfile: the gates read the gear measurement S7 made",
       path: ["s10", "calcProfile"],
     },
+  )
+  .refine(
+    (c) =>
+      c.s10 === undefined ||
+      c.s6 === undefined ||
+      c.s10.requiredCalcProfiles.every((p) => c.s6?.calcProfiles.includes(p) === true),
+    {
+      message: "s10.requiredCalcProfiles must be profiles S6 calculates (s6.calcProfiles)",
+      path: ["s10", "requiredCalcProfiles"],
+    },
   );
 export type StageConfig = z.infer<typeof StageConfig>;

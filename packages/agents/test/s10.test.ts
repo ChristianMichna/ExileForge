@@ -330,7 +330,7 @@ describe("S10 measured gates", () => {
       ).find((g) => g.gate === "G2")?.findings ?? [];
     expect(await gate2(["Harmless"])).toEqual([]);
     const bad = (await gate2(["Harmless", "Odd mod"])).find((f) => f.code === "unsupported_mod");
-    expect(bad?.returnTo).toBe("S6");
+    expect(bad?.returnTo).toBeUndefined();
     expect(bad?.message).toContain("Odd mod");
     const missing = await gate2([], { requiredCalcProfiles: ["mapping", "boss"] });
     expect(missing.map((f) => f.code)).toEqual(["profile_missing"]);
@@ -357,20 +357,29 @@ describe("S10 measured gates", () => {
     expect((await two([])).map((f) => f.code)).toEqual(["skill_lost"]);
     const changed = await two([skill({ gem: { gemId: "Other", level: 1, quality: 0 } })]);
     expect(changed.map((f) => f.code)).toEqual(["skill_gem_changed"]);
-    expect(changed[0]?.returnTo).toBe("S6");
+    expect(changed[0]?.returnTo).toBe("S5");
     expect((await two([skill({ supports: [] })])).map((f) => f.code)).toEqual(["supports_lost"]);
   });
 
   it("enforces the configured minimum counts (G7)", async () => {
     const found = async (over: object) =>
       (await runGates(withStats(good), draft(), { ...cfg, ...over } as never)).flatMap((g) =>
-        g.findings.filter((f) => f.gate === "G7").map((f) => f.code),
+        g.findings
+          .filter((f) => f.gate === "G7" && f.code !== "check_not_built")
+          .map((f) => f.code),
       );
     expect(await found({ minProgressionStages: 1, minGearTiers: 1 })).toEqual([]);
     expect(await found({ minProgressionStages: 5, minGearTiers: 1 })).toEqual(["too_few_stages"]);
     expect(await found({ minProgressionStages: 1, minGearTiers: 4 })).toEqual([
       "too_few_gear_tiers",
     ]);
+  });
+
+  it("keeps G7 open while earlier-tier rares have no plan of their own", async () => {
+    const gates = await runGates(withStats(good), draft(), cfg as never);
+    expect(gates.find((g) => g.gate === "G7")?.findings.map((f) => f.code)).toContain(
+      "check_not_built",
+    );
   });
 
   it("separates a missing stat from a value below the minimum", async () => {
