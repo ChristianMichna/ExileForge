@@ -183,6 +183,26 @@ describe("S7 gear", () => {
       expect(bad?.map((f) => f.code)).toEqual(["base_unresolved"]);
     });
 
+    it("rejects a rarity that is not an id of the release", async () => {
+      const withRarities = (ids: string[]) =>
+        ({
+          ...(checkCtx() as object),
+          catalog: {
+            get: () => ({ entity: {} }),
+            release: { rarities: { rarities: ids.map((id) => ({ id, name: id })) } },
+          },
+        }) as never;
+      const slots = { slots: [choice("SlotA", crafted), choice("SlotB", unique)] };
+      const bad = await make().check?.(slots, withRarities(["normal", "rare"]));
+      expect(bad?.[0]).toMatchObject({
+        code: "unknown_rarity",
+        path: "/slots/0/target/rarity",
+      });
+      expect(bad?.[0]?.message).toContain("normal, rare");
+      const ok = await make().check?.(slots, withRarities(["FixRare"]));
+      expect(ok?.map((f) => f.code) ?? []).not.toContain("unknown_rarity");
+    });
+
     it("rejects trade items in solo self-found mode", async () => {
       const findings = await make().check?.(full, checkCtx({ ssf: true }));
       expect(findings?.map((f) => f.code)).toEqual(["trade_in_ssf", "trade_in_ssf"]);
