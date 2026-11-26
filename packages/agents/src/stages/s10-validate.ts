@@ -750,6 +750,33 @@ async function measuredGates(
       }
     }
   }
+  if (!cfg.thresholdsCalibrated) {
+    // the numbers are starting values, not a product decision: the report must say so
+    if (ehpSet) {
+      g4.push(
+        finding(
+          "G4",
+          "thresholds_uncalibrated",
+          "The EHP minimums are uncalibrated starting values.",
+          undefined,
+          undefined,
+          "warning",
+        ),
+      );
+    }
+    if (dpsSet) {
+      g5.push(
+        finding(
+          "G5",
+          "thresholds_uncalibrated",
+          "The damage minimums are uncalibrated starting values.",
+          undefined,
+          undefined,
+          "warning",
+        ),
+      );
+    }
+  }
   return { g2, g3, g4, g5, thresholdsSet: { ehp: ehpSet, dps: dpsSet } };
 }
 

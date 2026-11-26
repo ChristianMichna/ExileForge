@@ -233,6 +233,7 @@ describe("S10 measured gates", () => {
       dps: "Dps",
     },
     resistanceCapStageKinds: ["endgame"],
+    thresholdsCalibrated: true,
     thresholds: [
       { fromLevel: 10, minEhp: 100, minDps: 1000 },
       { fromLevel: 50, minEhp: 400 },
@@ -607,6 +608,21 @@ describe("S10 measured gates", () => {
     const g4 = gates.find((g) => g.gate === "G4")?.findings ?? [];
     expect(g4).toEqual([
       expect.objectContaining({ code: "stats_unavailable", returnTo: "S7.gear-mid" }),
+    ]);
+  });
+
+  it("reports uncalibrated thresholds as a warning, not as a pass without a note (G4, G5)", async () => {
+    const gates = await runGates(withStats(good), stageAt(90), {
+      ...cfg,
+      thresholdsCalibrated: false,
+    } as never);
+    const warned = gates
+      .filter((g) => g.gate === "G4" || g.gate === "G5")
+      .flatMap((g) => g.findings.filter((f) => f.code === "thresholds_uncalibrated"))
+      .map((f) => [f.gate, f.severity]);
+    expect(warned).toEqual([
+      ["G4", "warning"],
+      ["G5", "warning"],
     ]);
   });
 
