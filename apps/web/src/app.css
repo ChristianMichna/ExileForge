@@ -572,3 +572,44 @@ code {
 .gear-slot h3 {
   margin-bottom: var(--ef-space-2);
 }
+
+.craft-flow {
+  list-style: none;
+  margin: 0 0 var(--ef-space-4);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-5);
+}
+
+.craft-step {
+  position: relative;
+}
+
+.craft-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: var(--ef-space-5);
+  bottom: calc(-1 * var(--ef-space-5));
+  height: var(--ef-space-5);
+  border-left: 1px solid var(--ef-color-verdigris-dim);
+}
+
+.craft-step__card {
+  border: 1px solid var(--ef-color-line-strong);
+  padding: var(--ef-space-4);
+}
+
+.craft-step__order {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-muted);
+  margin: 0;
+}
+
+.craft-step__fail {
+  color: var(--ef-color-text-muted);
+  margin: var(--ef-space-3) 0 0;
+}

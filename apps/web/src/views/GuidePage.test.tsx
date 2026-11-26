@@ -142,6 +142,62 @@ describe("guide page", () => {
     expect(screen.getByText(/Unknown modifier \(Fixture\/NoText\)/)).toBeTruthy();
   });
 
+  it("shows the crafting flow with uncalibrated numbers as such and measured ones with their source", async () => {
+    const measuredStep = {
+      ...publishedGuide.crafting[0]?.steps[0],
+      successChance: {
+        status: "ok",
+        value: 0.25,
+        source: {
+          kind: "derived",
+          formula: "crafting.chance",
+          formulaVersion: "1",
+          inputs: [
+            {
+              kind: "market",
+              provider: "fixture",
+              league: "Fixture",
+              fetchedAt: "2026-01-01T00:00:00Z",
+              confidence: "high",
+            },
+          ],
+        },
+      },
+    };
+    const guide = {
+      ...publishedGuide,
+      crafting: [{ ...publishedGuide.crafting[0], steps: [measuredStep] }],
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("Step 1")).toBeTruthy();
+    expect(screen.getByText("25.0")).toBeTruthy();
+    expect(
+      screen.getAllByText(/Derived · crafting\.chance v1; market Fixture/).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(/On failure: go to step 1/)).toBeTruthy();
+    expect(screen.getAllByText(/uncalibrated/i).length).toBeGreaterThan(0);
+  });
+
+  it("shows a failed crafting number as an error, not as 0", async () => {
+    const failedStep = {
+      ...publishedGuide.crafting[0]?.steps[0],
+      expectedCost: {
+        status: "failed",
+        error: { code: "price_failed", message: "Price lookup failed." },
+      },
+    };
+    const guide = {
+      ...publishedGuide,
+      crafting: [{ ...publishedGuide.crafting[0], steps: [failedStep] }],
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText(/Price lookup failed\./)).toBeTruthy();
+  });
+
   it("says when the tree data cannot be loaded", async () => {
     vi.stubGlobal("fetch", (url: string) =>
       url.endsWith("/api/tree")

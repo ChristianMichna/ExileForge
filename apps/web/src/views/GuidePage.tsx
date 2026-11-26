@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge, Button, Callout, GuideNotes, Panel, Tabs } from "@astrolabe/ui";
 import type { ProgressionStage } from "@astrolabe/contracts/build";
 import type { GuideListView, GuideView } from "@astrolabe/contracts/guide";
+import { CraftingSection } from "./GuideCrafting";
 import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
 import { TreeSection } from "./GuideTree";
@@ -176,6 +177,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
           }))}
       />
       <GearSection view={view} />
+      <CraftingSection view={view} />
       <TreeSection view={view} />
     </div>
   );
