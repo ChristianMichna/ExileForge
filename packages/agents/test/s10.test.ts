@@ -509,6 +509,20 @@ describe("S10 measured gates", () => {
     expect(await run(good)).not.toEqual(
       expect.arrayContaining([expect.stringContaining("dps_below")]),
     );
+    // a failed measurement with gear is not replaced by the ungeared numbers
+    const failed = {
+      ...(ctx() as object),
+      run: { request: { calcOverrides: {} } },
+      calc: {
+        calculate: () => Promise.resolve({ mapping: { status: "failed" } }),
+        getResult: () => Promise.resolve({ calcProfile: "mapping", stats: { ...good, Dps: 0 } }),
+      },
+    } as never as PipelineContext;
+    const codesOfFailed = (await runGates(failed, stageAt(20, "campaign"), cfg as never)).flatMap(
+      (g) => g.findings.map((f) => f.code),
+    );
+    expect(codesOfFailed).toContain("calc_failed");
+    expect(codesOfFailed).not.toContain("dps_below_minimum");
     // a gap with gear goes to the gear part, not to the tree order of S6
     expect(await run({ ...good, Dps: 1 })).toContain("dps_below_minimum:S7.gear-end");
   });
@@ -716,8 +730,10 @@ describe("S10 measured gates", () => {
     /** One stage per stats entry, levels 10, 20, ...; `levels` overrides them. */
     const chain = (list: (Record<string, number> | undefined)[], levels?: number[]) => {
       const byId = new Map<string, Record<string, number> | undefined>();
+      const idOfLevel = new Map<number, string>();
       const stages = list.map((stats, i) => {
         byId.set(`c${String(i)}`, stats);
+        idOfLevel.set(levels?.[i] ?? 10 * (i + 1), `c${String(i)}`);
         return stage({
           key: `s${String(i)}`,
           kind: "campaign",
@@ -729,7 +745,11 @@ describe("S10 measured gates", () => {
         ...(ctx() as object),
         run: { request: { calcOverrides: {} } },
         calc: {
-          calculate: () => Promise.resolve({ mapping: { status: "ok", calcId: "c" } }),
+          // the measurement with the first gear tier of a stage gives that stage's numbers
+          calculate: (input: { state: { level: number } }) =>
+            Promise.resolve({
+              mapping: { status: "ok", calcId: idOfLevel.get(input.state.level) ?? "none" },
+            }),
           getResult: (id: string) => {
             const stats = byId.get(id);
             return Promise.resolve(

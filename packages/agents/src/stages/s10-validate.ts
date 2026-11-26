@@ -792,6 +792,8 @@ async function measuredGates(
       if (field === "minEhp" ? !ehpSet : !dpsSet) continue;
       // A campaign stage carries no gear: its EHP and damage count with the first gear tier worn
       // (an attack needs its weapon to deal damage at all), and that tier's part fixes a gap.
+      // A failed measurement with gear is reported (G3 calc_failed); the ungeared numbers do not stand in.
+      if (gearedFailed === true) continue;
       const value = (gearedStats ?? stats)[statName];
       const fixedBy = gearedStats === undefined ? returnTo : gearReturnTo;
       if (derived !== undefined) {
