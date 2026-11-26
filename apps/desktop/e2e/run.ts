@@ -349,58 +349,17 @@ async function main(): Promise<void> {
     }
   });
 
-  // A recorded guide (a real run's result, see fixtures/guide-file.json) on the data release it
-  // was made with: import, open the guide page, export the .build file. The app is restarted on
-  // that release (ASTROLABE_DATA_RELEASE), because a guide opens only on its own release.
-  const guideFile = JSON.parse(
-    readFileSync(join(import.meta.dirname, "fixtures", "guide-file.json"), "utf8"),
-  ) as {
-    guide: { metadata: { guideId: string; dataReleaseId: string } };
-  };
-  const guideRelease = guideFile.guide.metadata.dataReleaseId;
-  const guideId = guideFile.guide.metadata.guideId;
-  await step(`Restart on ${guideRelease}, the release of the recorded guide`, async () => {
-    mcp?.close();
-    mcp = undefined;
-    await browser?.close().catch(() => undefined);
-    browser = undefined;
-    page = undefined;
-    killTree(app);
-    await sleep(3000);
-    const dir = env("E2E_GUIDE_DATA_DIR");
-    if (!existsSync(join(dir, "manifest.json"))) throw new Error(`no data release in ${dir}`);
-    app = spawn(join(installDir, "Astrolabe.exe"), [`--remote-debugging-port=${DEBUG_PORT}`], {
-      stdio: "ignore",
-      env: { ...process.env, ASTROLABE_DATA_RELEASE: dir },
-    });
-    await until("the health check", 300_000, async () => {
-      const health = (await api(token, "/api/health").catch(() => undefined)) as
-        { dataReleaseId?: string } | undefined;
-      return health?.dataReleaseId === guideRelease ? health : undefined;
-    });
-    browser = await chromium.connectOverCDP(`http://127.0.0.1:${DEBUG_PORT}`);
-    page = await until("the app window", 60_000, async () =>
-      browser
-        ?.contexts()
-        .flatMap((c) => c.pages())
-        .find((p) => p.url().startsWith("astrolabe://")),
-    );
-    await page.waitForLoadState("load");
-  });
-
   const recordingFile = join(import.meta.dirname, "fixtures", "run-recording.json");
   if (existsSync(recordingFile)) {
     const recording = JSON.parse(readFileSync(recordingFile, "utf8")) as Recording;
-    if (recording.request.dataReleaseId !== guideRelease) {
+    if (recording.request.dataReleaseId !== expectedRelease) {
       throw new Error(
-        `run recording is for ${recording.request.dataReleaseId}, the guide fixture for ${guideRelease}`,
+        `run recording is for ${recording.request.dataReleaseId}, the installer bundles ${expectedRelease}; record a run on that release`,
       );
     }
     const replayedGuide = await step(
       "Replay a whole recorded run S0 to S11 with the real PoB",
       async () => {
-        mcp = McpStdioClient.start(resolveLaunch(manifest, extensionDir, process.execPath));
-        await mcp.initialize();
         const created = (await api(token, "/api/runs", {
           method: "POST",
           body: JSON.stringify({ request: recording.request }),
@@ -474,6 +433,45 @@ async function main(): Promise<void> {
       error: "skipped",
     });
   }
+
+  // A recorded guide (a real run's result, see fixtures/guide-file.json) on the data release it
+  // was made with: import, open the guide page, export the .build file. The app is restarted on
+  // that release (ASTROLABE_DATA_RELEASE), because a guide opens only on its own release.
+  const guideFile = JSON.parse(
+    readFileSync(join(import.meta.dirname, "fixtures", "guide-file.json"), "utf8"),
+  ) as {
+    guide: { metadata: { guideId: string; dataReleaseId: string } };
+  };
+  const guideRelease = guideFile.guide.metadata.dataReleaseId;
+  const guideId = guideFile.guide.metadata.guideId;
+  await step(`Restart on ${guideRelease}, the release of the recorded guide`, async () => {
+    mcp?.close();
+    mcp = undefined;
+    await browser?.close().catch(() => undefined);
+    browser = undefined;
+    page = undefined;
+    killTree(app);
+    await sleep(3000);
+    const dir = env("E2E_GUIDE_DATA_DIR");
+    if (!existsSync(join(dir, "manifest.json"))) throw new Error(`no data release in ${dir}`);
+    app = spawn(join(installDir, "Astrolabe.exe"), [`--remote-debugging-port=${DEBUG_PORT}`], {
+      stdio: "ignore",
+      env: { ...process.env, ASTROLABE_DATA_RELEASE: dir },
+    });
+    await until("the health check", 300_000, async () => {
+      const health = (await api(token, "/api/health").catch(() => undefined)) as
+        { dataReleaseId?: string } | undefined;
+      return health?.dataReleaseId === guideRelease ? health : undefined;
+    });
+    browser = await chromium.connectOverCDP(`http://127.0.0.1:${DEBUG_PORT}`);
+    page = await until("the app window", 60_000, async () =>
+      browser
+        ?.contexts()
+        .flatMap((c) => c.pages())
+        .find((p) => p.url().startsWith("astrolabe://")),
+    );
+    await page.waitForLoadState("load");
+  });
 
   await step("Import the recorded guide and open its page", async () => {
     const imported = (await api(token, "/api/guides/import", {
