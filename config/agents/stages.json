@@ -103,6 +103,10 @@
     },
     "resistanceCapStageKinds": ["endgame"],
     "thresholds": [],
+    "minProgressionStages": 2,
+    "minGearTiers": 1,
+    "requiredCalcProfiles": ["mapping"],
+    "acceptedUnsupportedMods": [],
     "maxReturnsPerStage": 2
   },
   "s11": {

@@ -17,4 +17,12 @@ describe("config/agents/stages.json", () => {
     raw.s10.calcProfile = "pinnacle";
     expect(StageConfig.safeParse(raw).success).toBe(false);
   });
+
+  it("rejects required gate profiles that S6 does not calculate", () => {
+    const raw = JSON.parse(
+      readFileSync(new URL("../../../config/agents/stages.json", import.meta.url), "utf8"),
+    ) as { s10: { requiredCalcProfiles: string[] } };
+    raw.s10.requiredCalcProfiles = ["not-calculated"];
+    expect(StageConfig.safeParse(raw).success).toBe(false);
+  });
 });

@@ -161,6 +161,13 @@ export const StageConfig = z
       .object({
         /** The calc profile of a stage that the gates read. */
         calcProfile: CalcProfileId,
+        /** Fewest progression stages and gear tiers a guide may have (G7). */
+        minProgressionStages: z.int().positive(),
+        minGearTiers: z.int().positive(),
+        /** Profiles every progression stage must have a calculation for (G2). */
+        requiredCalcProfiles: z.array(CalcProfileId),
+        /** Unsupported-mod texts (as PoB reports them) the product owner has accepted as harmless; every other one fails G2. */
+        acceptedUnsupportedMods: z.array(z.string().min(1)),
         /** How often gate findings may send the same stage back before the run fails. */
         maxReturnsPerStage: z.int().min(1).max(10),
         stats: z.object({
@@ -227,6 +234,16 @@ export const StageConfig = z
       message:
         "s10.calcProfile must equal s7.objective.calcProfile: the gates read the gear measurement S7 made",
       path: ["s10", "calcProfile"],
+    },
+  )
+  .refine(
+    (c) =>
+      c.s10 === undefined ||
+      c.s6 === undefined ||
+      c.s10.requiredCalcProfiles.every((p) => c.s6?.calcProfiles.includes(p) === true),
+    {
+      message: "s10.requiredCalcProfiles must be profiles S6 calculates (s6.calcProfiles)",
+      path: ["s10", "requiredCalcProfiles"],
     },
   );
 export type StageConfig = z.infer<typeof StageConfig>;

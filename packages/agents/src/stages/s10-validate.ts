@@ -332,13 +332,6 @@ const finding = (
     ...(returnTo === undefined ? {} : { returnTo }),
   });
 
-/** What a gate does not check yet; such a gate cannot pass. */
-const NOT_BUILT: Partial<Record<Finding["gate"], string>> = {
-  G2: "the required calc profiles of the config and the list of unsupported mods",
-  G6: "the continuity of skills between stages (lost gems)",
-  G7: "the minimum counts of the guide parts and rares of earlier tiers",
-};
-
 type S10Config = NonNullable<StageConfig["s10"]>;
 
 /** One thing the gates measure: a progression stage, or for the endgame stage the geared build. */
@@ -350,6 +343,8 @@ interface Subject {
   /** The stage or part that fixes a finding about this subject. */
   returnTo: TaskType;
   stats?: StatMap;
+  /** Mods PoB read but does not calculate, from the same result as `stats`. */
+  unsupportedMods?: readonly string[];
 }
 
 /**
@@ -367,7 +362,7 @@ async function stageStats(
       outcome?.status === "ok" && outcome.calcId !== undefined
         ? await ctx.calc.getResult(outcome.calcId as CalcId)
         : undefined;
-    return loaded?.calcProfile === profile ? loaded.stats : undefined;
+    return loaded?.calcProfile === profile ? loaded : undefined;
   };
   const lastTier = draft.gear.tiers.length - 1;
   // Redoing only the last tier's part is cheaper and is the part whose items decide the numbers.
@@ -377,7 +372,7 @@ async function stageStats(
   const out: Subject[] = [];
   for (const [index, stage] of draft.progression.stages.entries()) {
     const geared = stage.kind === "endgame";
-    const stats = await read(
+    const loaded = await read(
       geared ? draft.gear.tiers[lastTier]?.calcs[profile] : stage.calcs[profile],
     );
     out.push({
@@ -386,7 +381,9 @@ async function stageStats(
         ? `/gear/tiers/${String(lastTier)}/calcs`
         : `/progression/stages/${String(index)}/calcs`,
       returnTo: geared ? gearPart : "S6",
-      ...(stats === undefined ? {} : { stats }),
+      ...(loaded === undefined
+        ? {}
+        : { stats: loaded.stats, unsupportedMods: loaded.unsupportedMods }),
     });
   }
   return out;
@@ -399,11 +396,13 @@ async function measuredGates(
   cfg: S10Config,
   stageTable?: readonly S6Row[],
 ): Promise<{
+  g2: Finding[];
   g3: Finding[];
   g4: Finding[];
   g5: Finding[];
   thresholdsSet: { ehp: boolean; dps: boolean };
 }> {
+  const g2: Finding[] = [];
   const g3: Finding[] = [];
   const g4: Finding[] = [];
   const g5: Finding[] = [];
@@ -416,7 +415,7 @@ async function measuredGates(
   const dpsSet = cfg.thresholds.some((t) => t.minDps !== undefined);
   const table = stageTableOf(stageTable, ctx.catalog.release);
   if (typeof table === "string") g3.push(finding("G3", "points_unknown", table));
-  for (const [index, { stage, path, returnTo, stats }] of (
+  for (const [index, { stage, path, returnTo, stats, unsupportedMods }] of (
     await stageStats(ctx, draft, cfg.calcProfile)
   ).entries()) {
     if (typeof table !== "string") {
@@ -460,6 +459,19 @@ async function measuredGates(
           `Stage ${stage.key} reserves more spirit than it has.`,
           path,
           returnTo,
+        ),
+      );
+    }
+    for (const mod of unsupportedMods ?? []) {
+      if (cfg.acceptedUnsupportedMods.includes(mod)) continue;
+      g2.push(
+        finding(
+          "G2",
+          "unsupported_mod",
+          `Stage ${stage.key}: Path of Building does not calculate the mod "${mod}", so the numbers ignore it.`,
+          path,
+          // S6 only orders the tree: it cannot change what a campaign stage wears or casts
+          returnTo === "S6" ? undefined : returnTo,
         ),
       );
     }
@@ -529,7 +541,7 @@ async function measuredGates(
       }
     }
   }
-  return { g3, g4, g5, thresholdsSet: { ehp: ehpSet, dps: dpsSet } };
+  return { g2, g3, g4, g5, thresholdsSet: { ehp: ehpSet, dps: dpsSet } };
 }
 
 /** What a gate still does not check, given the config; undefined if nothing is missing. */
@@ -538,7 +550,10 @@ function gapOf(
   cfg: S10Config | undefined,
   thresholds: { ehp: boolean; dps: boolean } | undefined,
 ): string | undefined {
-  if (cfg === undefined && (gate === "G3" || gate === "G4" || gate === "G5")) {
+  if (
+    cfg === undefined &&
+    (gate === "G2" || gate === "G3" || gate === "G4" || gate === "G5" || gate === "G7")
+  ) {
     return `the whole gate (no "s10" block in config/agents/stages.json)`;
   }
   if (gate === "G3") return "gem level requirements, ascendancy points and tree connectivity";
@@ -548,7 +563,10 @@ function gapOf(
   if (gate === "G5") {
     return thresholds?.dps === true ? undefined : "the damage minimum (no threshold configured)";
   }
-  return NOT_BUILT[gate];
+  if (gate === "G7") {
+    return "crafting plans for the rares of earlier gear tiers (S8 plans the last tier only)";
+  }
+  return undefined;
 }
 
 /** Runs the deterministic gates over the draft; a gate passes only if everything it covers was checked. */
@@ -570,10 +588,21 @@ export async function runGates(
         e.path,
       ),
     );
+  const requiredProfiles = cfg?.requiredCalcProfiles ?? [];
   const g2 = draft.progression.stages.flatMap((s, i) => {
     const path = `/progression/stages/${i}/calcs`;
     const outcomes = Object.entries(s.calcs);
     return [
+      ...requiredProfiles
+        .filter((profile) => outcomes.length > 0 && s.calcs[profile] === undefined)
+        .map((profile) =>
+          finding(
+            "G2",
+            "profile_missing",
+            `Stage ${s.key} has no calculation for the required profile ${profile}.`,
+            path,
+          ),
+        ),
       ...(outcomes.length === 0
         ? [finding("G2", "calc_missing", `Stage ${s.key} has no calculation.`, path, "S6")]
         : []),
@@ -590,42 +619,90 @@ export async function runGates(
         ),
     ];
   });
-  const g6 = draft.progression.stages.flatMap((s, i) =>
-    s.respecs.length > 0 && s.respecCost?.status !== "ok"
-      ? [
+  const g6 = draft.progression.stages.flatMap((s, i) => {
+    const path = `/progression/stages/${String(i)}`;
+    const out: Finding[] = [];
+    if (s.respecs.length > 0 && s.respecCost?.status !== "ok") {
+      out.push(
+        finding(
+          "G6",
+          "respec_cost_not_measured",
+          `Stage ${s.key} respecs passives but has no measured respec cost.`,
+          `${path}/respecCost`,
+          "S6",
+        ),
+      );
+    }
+    // Continuity: a skill of the previous stage carries on with its gem and at least its supports.
+    const before = draft.progression.stages[i - 1];
+    for (const old of before?.state.skills ?? []) {
+      const now = s.state.skills.find((k) => k.key === old.key);
+      let code: string | undefined;
+      if (now === undefined) code = "skill_lost";
+      else if (now.gem.gemId !== old.gem.gemId) code = "skill_gem_changed";
+      else if (now.supports.length < old.supports.length) code = "supports_lost";
+      if (code !== undefined) {
+        out.push(
           finding(
             "G6",
-            "respec_cost_not_measured",
-            `Stage ${s.key} respecs passives but has no measured respec cost.`,
-            `/progression/stages/${i}/respecCost`,
-            "S6",
+            code,
+            `Stage ${s.key}: skill ${old.key} of the stage before was lost, got another active gem or fewer supports.`,
+            `${path}/state/skills`,
+            // The skills come from the target build, S6 only orders the tree
+            "S5",
+          ),
+        );
+      }
+    }
+    return out;
+  });
+  const g7Counts = [
+    ...(cfg !== undefined && draft.progression.stages.length < cfg.minProgressionStages
+      ? [
+          finding(
+            "G7",
+            "too_few_stages",
+            "The progression has fewer stages than the configured minimum.",
+            "/progression/stages",
           ),
         ]
-      : [],
-  );
+      : []),
+    ...(cfg !== undefined && draft.gear.tiers.length < cfg.minGearTiers
+      ? [
+          finding(
+            "G7",
+            "too_few_gear_tiers",
+            "The gear plan has fewer tiers than the configured minimum.",
+            "/gear/tiers",
+          ),
+        ]
+      : []),
+  ];
   const planned = new Set<string>(draft.crafting.map((c: CraftingPlan) => c.key));
-  const g7 = draft.gear.tiers
-    .at(-1)
-    ?.slots.filter((s) => s.acquisition === "craft" && s.target.kind === "crafted")
-    .filter((s) => !planned.has(craftKey(s.slot)))
-    .map((s) =>
-      finding(
-        "G7",
-        "craft_plan_missing",
-        `Rare slot ${s.slot} has no crafting plan.`,
-        "/crafting",
-        "S8",
-      ),
-    );
+  // S8 plans the rares of the last tier only, so only those can be fixed by a return.
+  const g7 =
+    draft.gear.tiers
+      .at(-1)
+      ?.slots.filter((sl) => sl.acquisition === "craft" && sl.target.kind === "crafted")
+      .filter((sl) => !planned.has(craftKey(sl.slot)))
+      .map((sl) =>
+        finding(
+          "G7",
+          "craft_plan_missing",
+          `Rare slot ${sl.slot} has no crafting plan.`,
+          "/crafting",
+          "S8",
+        ),
+      ) ?? [];
   const found: Partial<Record<Finding["gate"], Finding[]>> = {
     G3: measured?.g3 ?? [],
     G4: measured?.g4 ?? [],
     G5: measured?.g5 ?? [],
     G8: criticGate(critic),
     G1: g1,
-    G2: g2,
+    G2: [...g2, ...(measured?.g2 ?? [])],
     G6: g6,
-    G7: g7 ?? [],
+    G7: [...g7Counts, ...g7],
   };
   return (["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"] as const).map((gate) => {
     const findings = [...(found[gate] ?? [])];
