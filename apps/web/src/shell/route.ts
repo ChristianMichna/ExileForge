@@ -3,10 +3,10 @@ import { useSyncExternalStore } from "react";
 // Hash routing: the Electron shell loads the build from file://, where
 // path-based routing has no server to fall back on.
 
-export type RouteId = "overview" | "tree" | "design" | "plan";
+export type RouteId = "overview" | "tree" | "design" | "plan" | "guide";
 
 export interface NavEntry {
-  readonly id: RouteId | "guide" | "crafting";
+  readonly id: RouteId | "crafting";
   readonly label: string;
   readonly href?: string;
   /** Not built yet; shown so the structure of the app is visible. */
@@ -18,7 +18,7 @@ export interface NavEntry {
 export const NAV: readonly NavEntry[] = [
   { id: "overview", label: "Build", href: "#/" },
   { id: "plan", label: "Plan", href: "#/plan", desktopOnly: true },
-  { id: "guide", label: "Guide", upcoming: true },
+  { id: "guide", label: "Guide", href: "#/guide", desktopOnly: true },
   { id: "tree", label: "Passive Tree", href: "#/tree" },
   { id: "crafting", label: "Crafting", upcoming: true },
   { id: "design", label: "Design System", href: "#/design" },
@@ -28,7 +28,16 @@ export function parseRoute(hash: string): RouteId {
   if (hash === "#/design") return "design";
   if (hash === "#/tree") return "tree";
   if (hash === "#/plan") return "plan";
+  if (hash === "#/guide" || hash.startsWith("#/guide/")) return "guide";
   return "overview";
+}
+
+/** The guide a `#/guide/<id>` route names; undefined for the list. */
+export function guideIdOf(hash: string): string | undefined {
+  const prefix = "#/guide/";
+  if (!hash.startsWith(prefix)) return undefined;
+  const id = decodeURIComponent(hash.slice(prefix.length));
+  return id === "" ? undefined : id;
 }
 
 function subscribe(onChange: () => void): () => void {
@@ -41,5 +50,14 @@ export function useRoute(): RouteId {
     subscribe,
     () => parseRoute(window.location.hash),
     () => "overview",
+  );
+}
+
+/** The current guide id of the hash route, re-read when the hash changes. */
+export function useGuideId(): string | undefined {
+  return useSyncExternalStore(
+    subscribe,
+    () => guideIdOf(window.location.hash),
+    () => undefined,
   );
 }
