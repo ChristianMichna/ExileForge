@@ -33,6 +33,7 @@ const pool = await startCalcPool({ root: "." }); // config/ und .pob/ unter root
 const { handle } = await pool.request("build.load", { format: "code", payload: code });
 const result = await pool.request("calc.stats", { handle, profile: "as-saved" });
 result.stats.CombinedDPS; // Zahl aus PoB, mit result.calcId, pobVersion, calcProfile
+result.stats.MinionCombinedDPS; // nur bei Minion-Skills: PoB hält sie im Block output.Minion, hier mit Präfix "Minion"; fehlt der Schlüssel, gibt es keinen Minion (nicht 0)
 await pool.request("build.release", { handle });
 await pool.close();
 ```
