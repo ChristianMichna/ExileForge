@@ -103,3 +103,18 @@ describe("importExampleGuides", () => {
     expect(logger.entries.some((e) => e.level === "error")).toBe(true);
   });
 });
+
+describe("the guides shipped in examples/guides", () => {
+  it("are all valid guide files that import into an empty store", async () => {
+    const store = new RunStore(":memory:");
+    const dir = new URL("../../../examples/guides", import.meta.url).pathname;
+    const outcome = await importExampleGuides(
+      dir,
+      store,
+      createMemoryLogger(),
+      () => new Date("2026-11-27T00:00:00Z"),
+    );
+    expect(outcome.failed).toEqual([]);
+    expect(outcome.imported).toBeGreaterThan(0);
+  });
+});
