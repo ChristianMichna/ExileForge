@@ -1,10 +1,10 @@
-import type { PassiveNode, PassiveNodeId } from "@astrolabe/contracts";
+import type { AscendancyId, PassiveNode, PassiveNodeId } from "@astrolabe/contracts";
 import { OptimizerError } from "./errors.ts";
 
 /**
- * The main passive tree as an undirected graph for one class. Ascendancy
- * nodes and the start nodes of other classes are not part of it: pathing runs
- * through neither (ascendancy points are a separate allocation).
+ * A passive tree as an undirected graph: the main tree of one class (`build`; ascendancy nodes
+ * and the start nodes of other classes are not part of it, pathing runs through neither) or the
+ * nodes of one ascendancy (`buildAscendancy`, a separate allocation with its own points).
  */
 export class TreeGraph {
   readonly start: string;
@@ -33,8 +33,38 @@ export class TreeGraph {
       if (node.classStartFor.length > 0 && node.id !== startNodeId) continue;
       traversable.set(node.id, node);
     }
+    return TreeGraph.fromTraversable(traversable, startNodeId, "tree");
+  }
+
+  /**
+   * The graph of one ascendancy: only its own nodes, searched from its start node. The main tree
+   * is not part of it (edges between the two are dropped); evaluate the result on top of the
+   * main tree (the evaluator's base). `startNodeId` is `Ascendancy.startNodeId` of the catalog.
+   */
+  static buildAscendancy(
+    nodes: readonly PassiveNode[],
+    ascendancyId: AscendancyId,
+    startNodeId: PassiveNodeId,
+    availableNodeIds: ReadonlySet<string> = new Set(),
+  ): TreeGraph {
+    const traversable = new Map<string, PassiveNode>();
+    for (const node of nodes) {
+      if (node.ascendancyId !== ascendancyId) continue;
+      // like `build`: a node PoB only allocates after other nodes is offered only if they are
+      // already there (the search cannot allocate them in the same pass)
+      if (node.unlockedBy?.nodeIds.some((id) => !availableNodeIds.has(id)) === true) continue;
+      traversable.set(node.id, node);
+    }
+    return TreeGraph.fromTraversable(traversable, startNodeId, `ascendancy ${ascendancyId}`);
+  }
+
+  private static fromTraversable(
+    traversable: ReadonlyMap<string, PassiveNode>,
+    startNodeId: PassiveNodeId,
+    what: string,
+  ): TreeGraph {
     if (!traversable.has(startNodeId)) {
-      throw new OptimizerError("invalid_input", `Start node ${startNodeId} is not in the tree`);
+      throw new OptimizerError("invalid_input", `Start node ${startNodeId} is not in the ${what}`);
     }
     const sets = new Map<string, Set<string>>();
     for (const id of traversable.keys()) sets.set(id, new Set());
