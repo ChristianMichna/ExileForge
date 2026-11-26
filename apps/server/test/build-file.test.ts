@@ -6,6 +6,7 @@ import { buildFileResolvers } from "../src/export/build-file-resolvers.js";
 import { createApp } from "../src/http/app.js";
 import { createMemoryLogger } from "../src/logger.js";
 import { createPocPipeline } from "../src/pipelines/poc-pipeline.js";
+import type { CalcPort } from "../src/ports/calc.js";
 import type { CatalogPort } from "../src/ports/catalog.js";
 import { RunStore } from "../src/store/run-store.js";
 import { guide } from "./guide-fixture.js";
@@ -16,16 +17,28 @@ const headers = { host: "127.0.0.1:1", authorization: `Bearer ${TOKEN}` };
 const GUIDE_ID = guide.metadata.guideId;
 const validation = { gates: [], completenessScore: 100, scoringConfigVersion: "1", passed: true };
 const validated = { ...guide, validation };
+const validResult = {
+  calcId: "calc-1",
+  pobVersion: "v0.23.1",
+  dataReleaseId: RELEASE,
+  calcProfile: "default",
+  inputHash: "a".repeat(64),
+  computedAt: "2026-11-26T12:00:00Z",
+  stats: { FixtureStatA: 1 },
+  warnings: [],
+  unsupportedMods: [],
+};
 const stored = { ...validated, metadata: { ...guide.metadata, dataReleaseId: RELEASE } };
 
 function app(
   findGuide: ((id: string) => unknown) | undefined,
   catalogOverride?: CatalogPort,
   listGuideIds?: () => string[],
+  calcOverride?: CalcPort,
 ) {
   const store = new RunStore(":memory:");
   const catalog = catalogOverride ?? fixtureCatalog();
-  const calc = new CalcFake({ dataReleaseId: RELEASE });
+  const calc = calcOverride ?? new CalcFake({ dataReleaseId: RELEASE });
   return createApp({
     engine: new ForgeEngine({
       store,
@@ -284,6 +297,63 @@ describe("GET /api/guides/:guideId/view", () => {
     expect(body.unresolved).toContain("calc:calc-1");
     expect(body.names).toEqual({});
     expect(body.results).toEqual({});
+    expect(body).toMatchObject({ catalogReleaseId: RELEASE, current: true });
+  });
+
+  it("passes a valid stored result through the contract and lists a damaged one", async () => {
+    const calc = {
+      getResult: (id: string) =>
+        Promise.resolve(
+          id === "calc-1" ? validResult : id === "calc-2" ? { calcId: id, stats: {} } : undefined,
+        ),
+    } as unknown as CalcPort;
+    const res = await app(() => stored, undefined, undefined, calc).inject({
+      method: "GET",
+      url: `/api/guides/${GUIDE_ID}/view`,
+      headers,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json<{ results: Record<string, unknown>; unresolved: string[] }>();
+    expect(body.results["calc-1"]).toEqual(validResult);
+    expect(body.unresolved).not.toContain("calc:calc-1");
+    if (JSON.stringify(stored).includes("calc-2")) expect(body.unresolved).toContain("calc:calc-2");
+  });
+
+  it("marks a guide of another release and resolves no names for it", async () => {
+    const older = {
+      ...stored,
+      metadata: { ...stored.metadata, dataReleaseId: "poe2-0.0.1+r1" },
+    };
+    const catalog = fixtureCatalog();
+    const known = {
+      ...catalog,
+      get: () => ({ kind: "gem", id: "x", name: "Would be wrong", entity: {} }),
+    } as unknown as CatalogPort;
+    const res = await app(() => older, known).inject({
+      method: "GET",
+      url: `/api/guides/${GUIDE_ID}/view`,
+      headers,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json<{
+      current: boolean;
+      catalogReleaseId: string;
+      names: Record<string, string>;
+      unresolved: string[];
+    }>();
+    expect(body.current).toBe(false);
+    expect(body.catalogReleaseId).toBe(RELEASE);
+    expect(body.names).toEqual({});
+    expect(body.unresolved).toContain("gem:Fixture/Gems/Main");
+  });
+
+  it("needs the access token", async () => {
+    const res = await app(() => stored).inject({
+      method: "GET",
+      url: `/api/guides/${GUIDE_ID}/view`,
+      headers: { host: headers.host },
+    });
+    expect(res.statusCode).toBe(401);
   });
 
   it("answers 404 for an unknown guide and 400 for a damaged one", async () => {
@@ -308,18 +378,19 @@ describe("buildGuideView", () => {
     const { PublishedGuide } = await import("@astrolabe/contracts/guide");
     const guideDoc = PublishedGuide.parse(stored);
     const catalog = {
+      dataReleaseId: RELEASE,
       get: (ref: { kind: string; id: string }) =>
         ref.kind === "gem" && ref.id === "Fixture/Gems/Main"
           ? { kind: "gem", id: ref.id, name: "Main Skill", entity: {} }
           : undefined,
     } as unknown as CatalogPort;
-    const result = { calcId: "calc-1", stats: { FixtureStatA: 1 } };
+    const result = validResult;
     const calc = {
       getResult: (id: string) => Promise.resolve(id === "calc-1" ? result : undefined),
     } as never;
     const view = await buildGuideView(guideDoc, catalog, calc);
     expect(view.names["gem:Fixture/Gems/Main"]).toBe("Main Skill");
-    expect(view.results["calc-1"]).toBe(result);
+    expect(view.results["calc-1"]).toEqual(result);
     expect(view.unresolved).not.toContain("gem:Fixture/Gems/Main");
     expect(view.unresolved).not.toContain("calc:calc-1");
     expect(view.unresolved.length).toBeGreaterThan(0);

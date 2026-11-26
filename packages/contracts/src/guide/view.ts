@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CalcResult } from "../calc/result.js";
+import { DataReleaseId } from "../common/version.js";
 import { PublishedGuide } from "./document.js";
 
 /**
@@ -10,6 +11,14 @@ import { PublishedGuide } from "./document.js";
  */
 export const GuideView = z.object({
   guide: PublishedGuide,
+  /** The data release the server (and so the catalog behind `names`) runs with. */
+  catalogReleaseId: DataReleaseId,
+  /**
+   * The guide was built with `catalogReleaseId`. When false, no names are resolved (the same id
+   * can mean something else in another release): every catalog reference is in `unresolved`
+   * and the guide needs revalidation. Results carry their own release and stay.
+   */
+  current: z.boolean(),
   /** Display names by `<kind>:<id>` of the entity (e.g. `gem:Metadata/Items/Gem/Foo`). */
   names: z.record(z.string().min(1), z.string().min(1)),
   /** Stored calculation results by calc id, for the numbers of the guide and of its stages. */

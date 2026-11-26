@@ -86,7 +86,7 @@ ist die PoB-Obergrenze. Nach einem PoB-Update ist der Wert in der Config zu prü
 
 `GuideListView` (seit 0.18.0, `guide/list`) ist die Antwort von `GET /api/guides`: je gespeichertem Guide Release, Ascendancy- und Skill-Name (fehlt, wenn der Katalog die ID nicht kennt) und `current`, oder `{ guideId, error }` für einen nicht lesbaren.
 
-`GuideView` (seit 0.19.0, `guide/view`) ist die Antwort von `GET /api/guides/:id/view`: der Guide mit den Anzeigenamen seiner Katalog-Entitäten (`names`, Schlüssel `<kind>:<id>`), den gespeicherten Rechenergebnissen hinter seinen Zahlen (`results`) und einer Liste dessen, was der Server nicht auflösen konnte (`unresolved`).
+`GuideView` (seit 0.19.0, `guide/view`) ist die Antwort von `GET /api/guides/:id/view`: der Guide mit den Anzeigenamen seiner Katalog-Entitäten (`names`, Schlüssel `<kind>:<id>`), den gespeicherten Rechenergebnissen hinter seinen Zahlen (`results`) und einer Liste dessen, was der Server nicht auflösen konnte (`unresolved`). `catalogReleaseId` und `current` sagen, ob der Guide zum geladenen Daten-Release gehört; bei `current: false` werden keine Namen aufgelöst (alle Katalog-Referenzen stehen in `unresolved`, der Guide muss revalidiert werden), die Ergebnisse tragen ihr Release selbst. Ein gespeichertes Ergebnis, das nicht mehr dem `CalcResult`-Schema entspricht, steht als `calc:<id>` in `unresolved`.
 
 `DataRelease.itemSlots` listet die Ausrüstungsplätze mit PoBs Slot-Namen (wie in
 `EquippedItem.slot`) und den Basis-Klassen (`BaseItem.itemClass`), die PoB je Slot
