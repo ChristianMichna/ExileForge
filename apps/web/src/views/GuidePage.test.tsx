@@ -172,9 +172,30 @@ describe("guide page", () => {
     window.location.hash = `#/guide/${GUIDE_ID}`;
     render(<App />);
     expect(await screen.findByText("Step 1")).toBeTruthy();
-    expect(screen.getByText("25%")).toBeTruthy();
+    expect(screen.getByText("25.0")).toBeTruthy();
+    expect(
+      screen.getAllByText(/Derived · crafting\.chance v1; market Fixture/).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByText(/On failure: go to step 1/)).toBeTruthy();
     expect(screen.getAllByText(/uncalibrated/i).length).toBeGreaterThan(0);
+  });
+
+  it("shows a failed crafting number as an error, not as 0", async () => {
+    const failedStep = {
+      ...publishedGuide.crafting[0]?.steps[0],
+      expectedCost: {
+        status: "failed",
+        error: { code: "price_failed", message: "Price lookup failed." },
+      },
+    };
+    const guide = {
+      ...publishedGuide,
+      crafting: [{ ...publishedGuide.crafting[0], steps: [failedStep] }],
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText(/Price lookup failed\./)).toBeTruthy();
   });
 
   it("shows no gear for a guide of older game data and points to revalidation", async () => {

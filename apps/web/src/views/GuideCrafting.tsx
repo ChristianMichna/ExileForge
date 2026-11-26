@@ -47,14 +47,14 @@ function StepNode({ step, view }: { step: CraftStep; view: GuideView }) {
     <li className="craft-step">
       <div className="craft-step__card">
         <p className="craft-step__order">Step {step.order + 1}</p>
-        <h4>{actions.join(" + ")}</h4>
+        <h3>{actions.join(" + ")}</h3>
         <p>
           <RichTextView text={step.goal} view={view} />
         </p>
         <StatGrid>
           <StatValue
-            label="Chance"
-            format="percent"
+            label="Chance (%)"
+            format="decimal1"
             state={measuredState(step.successChance, 100)}
           />
           <StatValue
@@ -64,6 +64,7 @@ function StepNode({ step, view }: { step: CraftStep; view: GuideView }) {
           />
           <StatValue
             label={priceLabel(step.expectedCost, view)}
+            format="decimal1"
             state={priceState(step.expectedCost)}
           />
         </StatGrid>
@@ -84,11 +85,12 @@ function Plan({ plan, view }: { plan: CraftingPlan; view: GuideView }) {
         <li className="craft-step craft-step--start">
           <div className="craft-step__card">
             <p className="craft-step__order">Start</p>
-            <h4>{base ?? plan.start.baseItemId}</h4>
+            <h3>{base ?? plan.start.baseItemId}</h3>
             <p>Item level {plan.start.itemLevel}</p>
             <StatGrid>
               <StatValue
                 label={priceLabel(plan.start.cost, view)}
+                format="decimal1"
                 state={priceState(plan.start.cost)}
               />
             </StatGrid>
@@ -97,13 +99,14 @@ function Plan({ plan, view }: { plan: CraftingPlan; view: GuideView }) {
         {[...plan.steps]
           .sort((a, b) => a.order - b.order)
           .map((step) => (
-            <StepNode key={step.order} step={step} view={view} />
+            <StepNode key={`${step.order}-${step.actionIds.join("+")}`} step={step} view={view} />
           ))}
       </ol>
       <StatGrid>
         <StatValue
           label={`Expected total · ${priceLabel(plan.expectedTotal, view)}`}
           emphasis
+          format="decimal1"
           state={priceState(plan.expectedTotal)}
         />
       </StatGrid>

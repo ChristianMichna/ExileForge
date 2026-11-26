@@ -13,6 +13,7 @@ Desktop-App (`apps/desktop`, `astrolabe://app/`) und als Vorschau im Browser mit
   (`enabled: false`), steht das da statt einer leeren Liste. Während die Prüfung läuft, fragt die Seite
   nach jeder Antwort nach 3 s erneut; schlägt eine Anfrage fehl, bleibt die letzte Liste mit einem Hinweis
   und „Try again“ stehen. Die Antwort wird gegen `GuidePatchStatusView` der Verträge geprüft.
+- **Guide-Seite** (`src/views/GuidePage.tsx`, F-12): Liste gespeicherter Guides und ein Guide mit Zusammenfassung, Stufen, Gear (`GuideGear.tsx`, Items mit Katalogtexten), Crafting als Ablauf (`GuideCrafting.tsx`, Zahlen mit Herkunft über `guide/measured.ts`; „uncalibrated“ und Fehler bleiben sichtbar, nie 0) und Passive Tree je Stufe (`GuideTree.tsx`). Alles kommt von `GET /api/guides/:id/view` (`GuideView`); bei einem Guide älterer Daten gibt es keine Namen, Items und keinen Baum, sondern den Hinweis zur Revalidierung.
 - **Export** (`src/views/BuildFileExport.tsx`, F-12): Ist ein Guide fertig (`guide.ready` liefert die
   `guideId`), speichert „Save as .build file“ ihn über `GET /api/guides/:id/build-file` als Datei des
   Build Planners. Was das Release nicht kennt (`omitted`), steht als Hinweis unter dem Knopf; Fehler
