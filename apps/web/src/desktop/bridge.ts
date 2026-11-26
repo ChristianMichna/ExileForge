@@ -9,7 +9,9 @@ export type ServerState =
   | {
       readonly state: "ready";
       readonly port: number;
-      readonly calcEngine: "fake" | "pob";
+      readonly calcEngine: "fake" | "pob" | "none";
+      /** Set when calcEngine is "none": why planning is unavailable. */
+      readonly catalogOnlyReason?: string;
       readonly dataReleaseId: string;
     }
   | { readonly state: "failed"; readonly message: string };

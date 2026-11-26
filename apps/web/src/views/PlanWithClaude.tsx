@@ -62,6 +62,9 @@ export function PlanWithClaude() {
         <Planner
           dataReleaseId={desktop.status.server.dataReleaseId}
           calcEngine={desktop.status.server.calcEngine}
+          {...(desktop.status.server.catalogOnlyReason === undefined
+            ? {}
+            : { catalogOnlyReason: desktop.status.server.catalogOnlyReason })}
         />
       )}
     </div>
@@ -71,9 +74,11 @@ export function PlanWithClaude() {
 function Planner({
   dataReleaseId,
   calcEngine,
+  catalogOnlyReason,
 }: {
   dataReleaseId: string;
-  calcEngine: "fake" | "pob";
+  catalogOnlyReason?: string;
+  calcEngine: "fake" | "pob" | "none";
 }) {
   const [runId, setRunId] = useState<string | undefined>(loadRunId);
   const [created, setCreated] = useState<CreatedRun | undefined>();
@@ -89,6 +94,16 @@ function Planner({
     setCreated(undefined);
     setRunId(undefined);
   };
+
+  if (calcEngine === "none") {
+    return (
+      <Callout tone="warning" title="Catalog only: planning is paused">
+        {catalogOnlyReason ?? "There is no matching Path of Building for this game data yet."}{" "}
+        Browsing game data and checking saved guides still work. Planning returns as soon as a
+        matching Path of Building release is installed.
+      </Callout>
+    );
+  }
 
   return (
     <>

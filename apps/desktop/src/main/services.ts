@@ -7,8 +7,10 @@ import {
   type Logger,
 } from "@astrolabe/server";
 
-const Health = z.object({
-  calcEngine: z.enum(["fake", "pob"]),
+export const Health = z.object({
+  calcEngine: z.enum(["fake", "pob", "none"]),
+  /** Catalog-only mode: why there is no engine for this data release. */
+  catalogOnlyReason: z.string().min(1).max(500).optional(),
   dataReleaseId: z.string().min(1),
 });
 
@@ -16,7 +18,8 @@ export interface Services {
   readonly url: string;
   readonly token: string;
   readonly port: number;
-  readonly calcEngine: "fake" | "pob";
+  readonly calcEngine: "fake" | "pob" | "none";
+  readonly catalogOnlyReason?: string;
   readonly dataReleaseId: string;
   stop(): Promise<void>;
 }
@@ -85,6 +88,9 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
     token,
     port: options.port,
     calcEngine: health.calcEngine,
+    ...(health.catalogOnlyReason === undefined
+      ? {}
+      : { catalogOnlyReason: health.catalogOnlyReason }),
     dataReleaseId: health.dataReleaseId,
     stop: () => started.app.close(),
   };
