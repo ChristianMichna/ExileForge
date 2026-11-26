@@ -486,6 +486,33 @@ describe("S10 measured gates", () => {
     expect(seen[0]).toHaveLength(1);
   });
 
+  it("counts a campaign stage's EHP and damage with the first gear tier worn (G4, G5)", async () => {
+    const run = async (geared: Record<string, number>) => {
+      const c = {
+        ...(ctx() as object),
+        run: { request: { calcOverrides: {} } },
+        calc: {
+          calculate: () => Promise.resolve({ mapping: { status: "ok", calcId: "geared" } }),
+          getResult: (id: string) =>
+            Promise.resolve({
+              calcProfile: "mapping",
+              // the stage itself carries no weapon: no damage
+              stats: id === "geared" ? geared : { ...good, Dps: 0 },
+            }),
+        },
+      } as never as PipelineContext;
+      return (await runGates(c, stageAt(20, "campaign"), cfg as never)).flatMap((g) =>
+        g.findings.map((f) => `${f.code}:${String(f.returnTo)}`),
+      );
+    };
+    expect(await run(good)).not.toContain("dps_below_minimum:S6");
+    expect(await run(good)).not.toEqual(
+      expect.arrayContaining([expect.stringContaining("dps_below")]),
+    );
+    // a gap with gear goes to the gear part, not to the tree order of S6
+    expect(await run({ ...good, Dps: 1 })).toContain("dps_below_minimum:S7.gear-end");
+  });
+
   it("fails G2 for a missing required profile and for unsupported mods nobody accepted", async () => {
     const gate2 = async (unsupported: string[], over: object = {}, st = stage()) =>
       (
