@@ -189,6 +189,10 @@ export const normalizeConfigSchema = z
         mainTree: z
           .object({ perLevel: z.int().positive(), fromLevel: z.int().positive() })
           .strict(),
+        /** Ascendancy point limits PoB hard-codes in its code (origin pob-code). */
+        ascendancy: z
+          .object({ points: z.int().positive(), secondaryPoints: z.int().nonnegative() })
+          .strict(),
         /**
          * Lists PoB hard-codes in its code (origin pob-code), by PoB's names. The release id
          * is the name in snake case; it must exist in the release's mod tags.

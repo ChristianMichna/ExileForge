@@ -71,6 +71,18 @@ export const PassivePoints = z
         .min(1),
       origin: ReleaseFactOrigin,
     }),
+    /**
+     * Ascendancy points a character can allocate in total: PoB's limits for the main and the
+     * secondary ascendancy (Build.lua). The source has no split per stage or act, so none is
+     * given; a consumer must not invent one.
+     */
+    ascendancy: z
+      .object({
+        points: z.int().positive(),
+        secondaryPoints: z.int().nonnegative(),
+        origin: ReleaseFactOrigin,
+      })
+      .optional(),
   })
   .superRefine((p, ctx) => {
     const seen = new Set<number>();
