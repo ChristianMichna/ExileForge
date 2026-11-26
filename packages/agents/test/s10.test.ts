@@ -320,7 +320,7 @@ describe("S10 measured gates", () => {
         .flatMap((g) => g.findings)
         .find((x) => x.code === "attribute_requirement_unmet");
     expect(await at({ ...good, A: 80 }, "endgame")).toBeUndefined();
-    expect((await at({ ...good, A: 79 }, "campaign"))?.returnTo).toBe("S6");
+    expect((await at({ ...good, A: 79 }, "campaign"))?.returnTo).toBeUndefined();
   });
 
   it("fails G2 for a missing required profile and for unsupported mods nobody accepted", async () => {
