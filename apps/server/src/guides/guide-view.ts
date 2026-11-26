@@ -14,7 +14,7 @@ import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 
 /** Every value of a field named `calcId` anywhere in the guide (calc segments, outcomes, sources). */
-function collectCalcIds(guide: unknown): string[] {
+export function collectCalcIds(guide: unknown): string[] {
   const found = new Set<string>();
   const walk = (node: unknown): void => {
     if (Array.isArray(node)) return node.forEach(walk);

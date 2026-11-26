@@ -1,7 +1,10 @@
+import { isDeepStrictEqual } from "node:util";
 import { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { CalcResult } from "@astrolabe/contracts/calc";
 import { RunEvent } from "@astrolabe/contracts/events";
+import type { GuideFile } from "@astrolabe/contracts/guide";
+import { ForgeError } from "../engine/errors.js";
 import { RunRecord } from "../engine/run-record.js";
 import type { Logger } from "../logger.js";
 import { GuidePatchCheck, PatchCheckOutcome } from "@astrolabe/contracts";
@@ -30,6 +33,11 @@ export class RunStore {
       CREATE TABLE IF NOT EXISTS calc_results (
         calc_id TEXT PRIMARY KEY,
         result TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS imported_guides (
+        guide_id TEXT PRIMARY KEY,
+        guide TEXT NOT NULL,
+        imported_at TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS patch_checks (
         guide_id TEXT NOT NULL,
@@ -68,13 +76,76 @@ export class RunStore {
       )
       .all(guideId);
     const row = rows[0];
-    if (row === undefined) return undefined;
+    if (row === undefined) return this.findImportedGuide(guideId);
     const record = parseRow(RunRecord, row["record"], `guide ${guideId}`);
     return record.results["S11.guide"]?.value;
   }
 
-  /** Ids of all stored guides (a run that produced a guide carries its id); newest first, each once. */
+  private findImportedGuide(guideId: string): unknown {
+    const row = this.db
+      .prepare("SELECT guide FROM imported_guides WHERE guide_id = ?")
+      .get(guideId);
+    if (row === undefined) return undefined;
+    const text = row["guide"];
+    if (typeof text !== "string") throw new Error(`Stored imported guide ${guideId} is not text`);
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      throw new Error(`Stored imported guide ${guideId} is not valid JSON`, { cause: error });
+    }
+  }
+
+  /**
+   * Stores a guide file: its results (never replacing a different result stored under the same
+   * calcId) and the guide itself. Importing the same guide again replaces the copy; a guide
+   * that one of this installation's own runs produced is not overwritten. All or nothing.
+   */
+  importGuide(file: GuideFile, importedAt: string): void {
+    const guideId = file.guide.metadata.guideId;
+    if (this.runGuideIds().includes(guideId)) {
+      throw new ForgeError(
+        "invalid_request",
+        `Guide ${guideId} was made by this installation; it is not replaced by an import.`,
+      );
+    }
+    for (const [calcId, result] of Object.entries(file.results)) {
+      const existing = this.loadCalcResult(calcId);
+      if (existing !== undefined && !isDeepStrictEqual(existing, result)) {
+        throw new ForgeError(
+          "invalid_request",
+          `Result ${calcId} differs from the one already stored under that id; the file is not imported.`,
+        );
+      }
+    }
+    this.db.exec("BEGIN");
+    try {
+      for (const result of Object.values(file.results)) this.saveCalcResult(result);
+      this.db
+        .prepare(
+          "INSERT OR REPLACE INTO imported_guides (guide_id, guide, imported_at) VALUES (?, ?, ?)",
+        )
+        .run(guideId, JSON.stringify(file.guide), importedAt);
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw new Error(`Guide ${guideId} could not be stored`, { cause: error });
+    }
+  }
+
+  /** Ids of all stored guides: guides of runs, newest first, then imported ones, newest first. */
   listGuideIds(): string[] {
+    const ids = this.runGuideIds();
+    const imported = this.db
+      .prepare("SELECT guide_id FROM imported_guides ORDER BY imported_at DESC, rowid DESC")
+      .all();
+    for (const row of imported) {
+      const id = row["guide_id"];
+      if (typeof id === "string" && !ids.includes(id)) ids.push(id);
+    }
+    return ids;
+  }
+
+  private runGuideIds(): string[] {
     const rows = this.db
       .prepare(
         `SELECT json_extract(record, '$.guideId') AS guide_id FROM runs
