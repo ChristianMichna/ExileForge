@@ -22,8 +22,6 @@ export const OptimizerConfig = z.object({
   floorPenalty: z.number().positive(),
   /** Spend all points even when the best step does not raise the score. */
   spendAllPoints: z.boolean(),
-  /** Game id prefixes of normal-tree nodes PoB only unlocks through another node; left out. */
-  lockedNodeGameIdPrefixes: z.array(z.string().min(1)).default([]),
 });
 export type OptimizerConfig = z.infer<typeof OptimizerConfig>;
 

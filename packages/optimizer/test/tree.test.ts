@@ -104,20 +104,22 @@ describe("optimizeTree", () => {
     expect(result.violations[0]).toMatchObject({ metric: "Res", required: 100 });
   });
 
-  it("leaves out nodes whose game id marks them as unlocked by another node", async () => {
-    const locked = graphOf(
-      [
-        { id: "start", edges: ["a1", "l1"], classStart: true },
-        { id: "a1" },
-        { id: "l1", edges: ["l2"], gameId: "locked_fixture_1" },
-        { id: "l2", gameId: "locked_fixture_2" },
-      ],
-      "start",
-      ["locked_fixture_"],
-    );
-    expect(locked.has("a1")).toBe(true);
-    expect(locked.has("l1")).toBe(false);
-    expect(locked.has("l2")).toBe(false);
+  it("offers a node that needs other nodes only when all of them are in the build", () => {
+    const shape = [
+      { id: "start", edges: ["a1", "l1"], classStart: true },
+      { id: "a1" },
+      { id: "l1", edges: ["l2"], unlockedBy: ["key1", "key2"] },
+      { id: "l2", unlockedBy: ["key1"] },
+    ];
+    const without = graphOf(shape);
+    expect(without.has("a1")).toBe(true);
+    expect(without.has("l1")).toBe(false);
+    expect(without.has("l2")).toBe(false);
+    const partial = graphOf(shape, "start", new Set(["key1"]));
+    expect(partial.has("l1")).toBe(false);
+    expect(partial.has("l2")).toBe(true);
+    const full = graphOf(shape, "start", new Set(["key1", "key2"]));
+    expect(full.has("l1")).toBe(true);
   });
 
   it("holds a metric to another metric measured in the same evaluation", async () => {
