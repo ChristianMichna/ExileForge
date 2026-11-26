@@ -282,7 +282,7 @@ automatisch nach einem Patch.
   (F-12): `{ file, omitted }`. Die Spiel-IDs und Namen kommen aus dem geladenen Release
   (`src/export/build-file-resolvers.ts`: Knoten-`gameId`, Slot-`gameId`, Unique-, Ascendancy-
   und Raritätsnamen); was das Release nicht kennt, steht in `omitted`, nie erfunden. Ein Guide
-  eines anderen Releases wird abgelehnt (400, erst neu prüfen), ein unbekannter ist 404.
+  eines anderen Releases wird abgelehnt (400, erst neu prüfen), ein unbekannter ist 404. Offene Annahme: Der Ascendancy-Name im Export ist die Katalog-ID (PoBs `internalId`, z. B. `Druid1`); ob das die Schreibweise des Spiels ist, steht noch nicht fest (docs/data-model.md).
 - `GET /api/guides/patch-status` liefert `{ enabled, releaseId, running, error?, guides }`
   (`enabled: false` ohne `--releases-dir`: dann wurde nichts geprüft).
   `POST /api/guides/patch-status/refresh` prüft alle Guides erneut (202; läuft schon

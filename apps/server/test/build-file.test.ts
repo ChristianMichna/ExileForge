@@ -18,9 +18,9 @@ const validation = { gates: [], completenessScore: 100, scoringConfigVersion: "1
 const validated = { ...guide, validation };
 const stored = { ...validated, metadata: { ...guide.metadata, dataReleaseId: RELEASE } };
 
-function app(findGuide: ((id: string) => unknown) | undefined) {
+function app(findGuide: ((id: string) => unknown) | undefined, catalogOverride?: CatalogPort) {
   const store = new RunStore(":memory:");
-  const catalog = fixtureCatalog();
+  const catalog = catalogOverride ?? fixtureCatalog();
   const calc = new CalcFake({ dataReleaseId: RELEASE });
   return createApp({
     engine: new ForgeEngine({
@@ -65,6 +65,50 @@ describe("GET /api/guides/:guideId/build-file", () => {
     expect(body.file.passives).toEqual([]);
     expect(body.omitted).toContain("passive fixture_node_1: the release has no game id");
     expect(body.file.name.length).toBeGreaterThan(0);
+  });
+
+  it("writes the game ids the release carries", async () => {
+    const base = fixtureCatalog();
+    const catalog: CatalogPort = {
+      dataReleaseId: base.dataReleaseId,
+      release: base.release,
+      get: (ref) =>
+        ref.kind === "passiveNode" && ref.id === "fixture_node_1"
+          ? { kind: "passiveNode", id: ref.id, entity: { gameId: "game_node_1" } }
+          : base.get(ref),
+      search: (q) => base.search(q),
+      list: (k) => base.list(k),
+      hasStat: (id) => base.hasStat(id),
+    };
+    const res = await app(() => stored, catalog).inject({
+      method: "GET",
+      url: `/api/guides/${GUIDE_ID}/build-file`,
+      headers,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json<{ file: { passives: { id: string }[] }; omitted: string[] }>();
+    expect(body.file.passives.map((p) => p.id)).toEqual(["game_node_1"]);
+    expect(body.omitted).not.toContain("passive fixture_node_1: the release has no game id");
+  });
+
+  it("explains a guide whose stages are out of level order instead of answering 500", async () => {
+    const first = stored.progression.stages[0];
+    const empty = {
+      ...stored,
+      progression: {
+        stages: [
+          { ...first, levelRange: [20, 30] },
+          { ...first, key: "stage-2", order: 1, levelRange: [1, 10] },
+        ],
+      },
+    };
+    const res = await app(() => empty).inject({
+      method: "GET",
+      url: `/api/guides/${GUIDE_ID}/build-file`,
+      headers,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json<{ error: { message: string } }>().error.message).toMatch(/cannot be exported/);
   });
 
   it("answers 404 for an unknown guide", async () => {

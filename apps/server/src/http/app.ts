@@ -175,7 +175,15 @@ export function createApp(options: AppOptions): FastifyInstance {
       options.catalog.get({ kind: "gem", id: mainSkillId })?.name,
     ].filter((part): part is string => part !== undefined);
     const name = (parts.length > 0 ? parts.join(" ") : guideId).slice(0, BUILD_FILE_NAME_MAX_CHARS);
-    return guideToBuildFile(guide.data, buildFileResolvers(options.catalog), name);
+    try {
+      return guideToBuildFile(guide.data, buildFileResolvers(options.catalog), name);
+    } catch (cause) {
+      throw new ForgeError(
+        "invalid_request",
+        `Guide ${guideId} cannot be exported: ${cause instanceof Error ? cause.message : "unknown error"}`,
+        { cause },
+      );
+    }
   });
 
   app.post("/api/runs", async (request, reply) => {
