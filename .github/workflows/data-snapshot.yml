@@ -90,12 +90,12 @@ jobs:
             const seen = new Map();
             for (const r of read("CurrencyItems")) {
               if (r.Action !== "use_essence") continue;
-              const d = String(r.Description ?? "").replace(/\[([^\]|]*)\|([^\]]*)\]/g, "$2").replace(/\[([^\]]*)\]/g, "$1");
+              const d = String(r.Description ?? "");
               const e = seen.get(d) ?? { n: 0, names: [] };
               e.n++; if (e.names.length < 3) e.names.push(bases[r.BaseItemType]?.Name);
               seen.set(d, e);
             }
-            const strip = (x) => String(x ?? "").replace(/\\[([^\\]|]*)\\|([^\\]]*)\\]/g, "$2").replace(/\\[([^\\]]*)\\]/g, "$1");
+            const strip = (x) => String(x ?? "");
             const cur = read("CurrencyItems");
             for (const t of read("TieredCurrency")) {
               const c = cur.find((r) => r.BaseItemType === t.BaseItemType);
