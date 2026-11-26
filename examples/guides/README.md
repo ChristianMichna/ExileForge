@@ -9,3 +9,13 @@ diesen Ordner als `example-guides/` mit, damit die Guide-Seite ohne eigenen Lauf
 - Ein Guide zeigt Namen und Baum nur, wenn die Daten-Release der App die seines Laufs ist; sonst
   steht „Older game data“ dabei.
 - Eine Datei, die sich nicht einspielen lässt, steht mit Grund im Log; der Server startet trotzdem.
+
+## Datei erzeugen
+
+Aus einem Guide und seinen gespeicherten PoB-Ergebnissen entsteht die Datei mit
+
+```bash
+node tools/make-guide-file.mjs <guide.json> <results.json> examples/guides/<name>.json
+```
+
+Das Skript prüft die Datei gegen `GuideFile` und bricht bei Fehlern ab; die Ausgabedatei muss ein neuer Pfad sein, nie eine der Eingaben.
