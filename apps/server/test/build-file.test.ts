@@ -428,6 +428,20 @@ describe("refName", () => {
     expect(refName(catalog, "mod", "Fixture/Mod")).toBe("+10 to Strength; +5 to Dexterity");
   });
 
+  it("leaves a mod without usable text undefined", async () => {
+    const { refName } = await import("../src/guides/guide-view.js");
+    const of = (entity: unknown): CatalogPort =>
+      ({
+        dataReleaseId: RELEASE,
+        get: (ref: object) => ({ ...ref, entity }),
+      }) as unknown as CatalogPort;
+    expect(refName(of({ ...modEntity, text: undefined }), "mod", "x")).toBeUndefined();
+    expect(refName(of({ ...modEntity, text: "" }), "mod", "x")).toBeUndefined();
+    expect(refName(of({ ...modEntity, text: " \n " }), "mod", "x")).toBeUndefined();
+    expect(refName(of({ nonsense: true }), "mod", "x")).toBeUndefined();
+    expect(refName(of({}), "gem", "x")).toBeUndefined();
+  });
+
   it("prefers a real name and leaves unknown or nameless non-mods undefined", async () => {
     const { refName } = await import("../src/guides/guide-view.js");
     expect(refName(catalog, "gem", "Fixture/Gem")).toBe("Gem Name");

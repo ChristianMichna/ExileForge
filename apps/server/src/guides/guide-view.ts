@@ -1,5 +1,5 @@
 import { CalcResult } from "@astrolabe/contracts/calc";
-import { CalcId } from "@astrolabe/contracts/common";
+import { CalcId, type EntityKind } from "@astrolabe/contracts/common";
 import { BaseItem, Mod, UniqueItem } from "@astrolabe/contracts/catalog";
 import type { ItemSpec } from "@astrolabe/contracts/build";
 import type {
@@ -117,14 +117,18 @@ function gearEntries(
  * The display name of a referenced entity. A mod has no name in the catalog; its rendered text
  * (lines joined with "; ") stands in for it, so a mod id in a guide reads like the game shows it.
  */
-export function refName(catalog: CatalogPort, kind: string, id: string): string | undefined {
-  const entry = catalog.get({ kind, id } as Parameters<CatalogPort["get"]>[0]);
+export function refName(catalog: CatalogPort, kind: EntityKind, id: string): string | undefined {
+  const entry = catalog.get({ kind, id });
   if (entry === undefined) return undefined;
   if (entry.name !== undefined) return entry.name;
   if (kind !== "mod") return undefined;
   const mod = Mod.safeParse(entry.entity);
-  const text = mod.success ? mod.data.text : undefined;
-  return text === undefined ? undefined : text.split("\n").join("; ");
+  if (!mod.success || mod.data.text === undefined) return undefined;
+  const lines = mod.data.text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l !== "");
+  return lines.length === 0 ? undefined : lines.join("; ");
 }
 
 /**
