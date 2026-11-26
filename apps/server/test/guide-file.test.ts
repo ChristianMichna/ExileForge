@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { GUIDE_FILE_FORMAT, GuideFile } from "@astrolabe/contracts/guide";
+import { GUIDE_FILE_FORMAT, GuideFile, collectCalcIds } from "@astrolabe/contracts/guide";
 import { CalcFake } from "../src/calc/calc-fake.js";
 import { PersistedCalc } from "../src/calc/persisted-calc.js";
 import { ForgeEngine } from "../src/engine/forge-engine.js";
 import { createApp } from "../src/http/app.js";
-import { collectCalcIds } from "../src/guides/guide-view.js";
 import { createMemoryLogger } from "../src/logger.js";
 import { createPocPipeline } from "../src/pipelines/poc-pipeline.js";
 import type { CalcPort } from "../src/ports/calc.js";
@@ -40,7 +39,7 @@ const file = {
   results: Object.fromEntries(calcIds.map((id) => [id, resultOf(id)])),
 };
 
-function appOver(store: RunStore) {
+function appOver(store: RunStore, findGuide?: (id: string) => unknown) {
   const catalog = fixtureCatalog();
   const calc: CalcPort = new PersistedCalc(new CalcFake({ dataReleaseId: RELEASE }), store);
   return createApp({
@@ -61,7 +60,7 @@ function appOver(store: RunStore) {
     allowedOrigins: [],
     defaultPipelineId: "poc",
     accessToken: TOKEN,
-    findGuide: (id) => store.findGuide(id),
+    findGuide: findGuide ?? ((id) => store.findGuide(id)),
     listGuideIds: () => store.listGuideIds(),
     importGuide: (f, at) => store.importGuide(f, at),
   });
@@ -146,15 +145,11 @@ describe("guide file routes", () => {
     expect(again.statusCode).toBe(201);
   });
 
-  it("does not export a guide whose results are missing", async () => {
-    const store = new RunStore(":memory:");
-    store.importGuide(GuideFile.parse({ ...file, results: {} }), "2026-11-26T12:00:00Z");
-    const out = await appOver(store).inject({
-      method: "GET",
-      url: `/api/guides/${GUIDE_ID}/file`,
-      headers,
-    });
+  it("does not export a guide whose stored results are missing", async () => {
+    // The guide is found (as a run's guide would be), but no result of it is stored.
+    const a = appOver(new RunStore(":memory:"), () => stored);
+    const out = await a.inject({ method: "GET", url: `/api/guides/${GUIDE_ID}/file`, headers });
     expect(out.statusCode).toBe(400);
-    expect(out.json<{ message?: string; error?: string }>()).toBeDefined();
+    expect(out.body).toContain(calcIds[0]);
   });
 });

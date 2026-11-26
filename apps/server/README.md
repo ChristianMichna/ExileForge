@@ -297,7 +297,8 @@ automatisch nach einem Patch.
   PoB-Ergebnisse, auf die seine Zahlen verweisen), zum Weitergeben. Fehlt ein gültiges Ergebnis,
   endet der Export mit einem Fehler, der die `calcId`s nennt (nie eine Datei mit fehlenden Zahlen).
   `POST /api/guides/import` (Body bis 32 MB) liest so eine Datei ein: Format und Vertrag werden
-  geprüft (400 sonst), die Ergebnisse unverändert gespeichert (ein anderes Ergebnis unter einer
+  geprüft, auch dass jede `calcId` des Guides ihr Ergebnis in der Datei hat (400 sonst; die
+  Ergebnisse sind die Messungen der anderen Installation und werden nicht neu berechnet), die Ergebnisse unverändert gespeichert (ein anderes Ergebnis unter einer
   schon gespeicherten `calcId` lehnt den Import ab), dann der Guide in `imported_guides`
   (derselbe Guide noch einmal ersetzt die Kopie; ein Guide, den ein eigener Lauf erzeugt hat,
   wird nicht überschrieben). Importierte Guides stehen in `GET /api/guides` nach denen der Läufe.

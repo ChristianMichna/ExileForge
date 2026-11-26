@@ -9,24 +9,10 @@ import type {
   GuideView,
   PublishedGuide,
 } from "@astrolabe/contracts/guide";
+import { collectCalcIds } from "@astrolabe/contracts/guide";
 import { collectGuideRefs } from "@astrolabe/revalidate";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
-
-/** Every value of a field named `calcId` anywhere in the guide (calc segments, outcomes, sources). */
-export function collectCalcIds(guide: unknown): string[] {
-  const found = new Set<string>();
-  const walk = (node: unknown): void => {
-    if (Array.isArray(node)) return node.forEach(walk);
-    if (typeof node !== "object" || node === null) return;
-    for (const [field, value] of Object.entries(node)) {
-      if (field === "calcId" && typeof value === "string" && value !== "") found.add(value);
-      else walk(value);
-    }
-  };
-  walk(guide);
-  return [...found];
-}
 
 /** The item as the catalog describes it, or null where the catalog lacks it (listed in `unresolved`). */
 function itemCard(

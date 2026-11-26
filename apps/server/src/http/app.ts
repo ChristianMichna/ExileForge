@@ -11,12 +11,13 @@ import {
   GUIDE_FILE_FORMAT,
   GuideFile,
   GuideListView,
+  collectCalcIds,
   GuideView,
   PassiveTreeData,
   PublishedGuide,
 } from "@astrolabe/contracts/guide";
 import { guideToBuildFile } from "@astrolabe/exporters";
-import { buildGuideView, collectCalcIds } from "../guides/guide-view.js";
+import { buildGuideView } from "../guides/guide-view.js";
 import { buildPassiveTreeData } from "../guides/tree-data.js";
 import { buildFileResolvers } from "../export/build-file-resolvers.js";
 import type { GuideSweeper } from "../tools/guide-sweep.js";
