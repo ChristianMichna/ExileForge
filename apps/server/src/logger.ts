@@ -1,6 +1,7 @@
 /** Minimal structured logger: one JSON line per entry on stderr (no console.log in product code). */
 export interface Logger {
   info(message: string, context?: Record<string, unknown>): void;
+  warn(message: string, context?: Record<string, unknown>): void;
   error(message: string, context?: Record<string, unknown>): void;
 }
 
@@ -17,6 +18,7 @@ export function createStderrLogger(component: string): Logger {
   };
   return {
     info: (message, context) => write("info", message, context),
+    warn: (message, context) => write("warn", message, context),
     error: (message, context) => write("error", message, context),
   };
 }
@@ -43,6 +45,7 @@ export function createMemoryLogger(): Logger & { entries: { level: string; messa
   return {
     entries,
     info: (message) => entries.push({ level: "info", message }),
+    warn: (message) => entries.push({ level: "warn", message }),
     error: (message) => entries.push({ level: "error", message }),
   };
 }

@@ -47,7 +47,15 @@ const profile = SkillProfile.parse({
 });
 const cand = ArchetypeCandidate.parse(candidate("a", "FixClassA", "FixAscA1"));
 
-function setup(optimizeResult: object, stagesResult?: object, usedCatalog = catalog) {
+function setup(
+  optimizeResult: object,
+  stagesResult?: object,
+  usedCatalog = catalog,
+  targetExtra: {
+    ascendancyUnsupportedMods?: "avoid" | "accept";
+    ascendancyMaxRounds?: number;
+  } = {},
+) {
   const optimize = vi.fn<(input: TreeOptimizeInput) => Promise<never>>(() =>
     Promise.resolve(optimizeResult as never),
   );
@@ -70,7 +78,11 @@ function setup(optimizeResult: object, stagesResult?: object, usedCatalog = cata
       calcProfiles: ["as-saved"],
       objective: { weights: { FullDPS: 1 }, floors: {} },
     },
-    target: { calcProfiles: ["as-saved"], objective: { weights: { FullDPS: 1 }, floors: {} } },
+    target: {
+      calcProfiles: ["as-saved"],
+      objective: { weights: { FullDPS: 1 }, floors: {} },
+      ...targetExtra,
+    },
     progression: { calcProfiles: ["as-saved"], objective: { weights: { FullDPS: 1 }, floors: {} } },
     logger: createMemoryLogger(),
     optimize,
@@ -264,11 +276,44 @@ describe("PobSkeleton", () => {
       const again = setup(done, undefined, skipped);
       again.optimize.mockResolvedValueOnce(done as never);
       again.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      again.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never); // baseline
       again.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
       again.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAscStart"] } as never);
       const second = await again.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 });
       expect(again.optimize.mock.calls[2]?.[0].forbiddenNodeIds).toContain("FixAsc1");
       expect(second.state.tree.ascendancy).toEqual(["FixAscStart"]);
+      // a line PoB reports that no chosen node carries must fail, not pass silently
+      const odd = setup(done, undefined, skipped);
+      odd.optimize.mockResolvedValueOnce(done as never);
+      odd.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      odd.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never);
+      odd.getResult.mockResolvedValueOnce({ unsupportedMods: [text, "Other spelling"] } as never);
+      await expect(odd.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 })).rejects.toThrow(
+        /do not match by text/,
+      );
+      // texts the main tree already has do not ban a node
+      const base = setup(done, undefined, skipped);
+      base.optimize.mockResolvedValueOnce(done as never);
+      base.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      base.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
+      base.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
+      const kept = await base.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 });
+      expect(kept.state.tree.ascendancy).toEqual(["FixAsc1"]);
+      // the round cap fails visibly
+      const capped = setup(done, undefined, skipped, { ascendancyMaxRounds: 1 });
+      capped.optimize.mockResolvedValueOnce(done as never);
+      capped.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      capped.getResult.mockResolvedValueOnce({ unsupportedMods: [] } as never);
+      capped.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
+      await expect(capped.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 })).rejects.toThrow(
+        /after 1 rounds/,
+      );
+      // accept keeps the node without measuring
+      const accepted = setup(done, undefined, skipped, { ascendancyUnsupportedMods: "accept" });
+      accepted.optimize.mockResolvedValueOnce(done as never);
+      accepted.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      const acc = await accepted.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 });
+      expect(acc.state.tree.ascendancy).toEqual(["FixAsc1"]);
       // an ascendancy search that fails is a failed job, not a target without ascendancy
       optimize.mockResolvedValueOnce(done as never);
       optimize.mockResolvedValueOnce({

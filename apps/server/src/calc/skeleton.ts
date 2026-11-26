@@ -49,7 +49,7 @@ export interface ProgressionSettings {
 
 /** Settings of the endgame target tree (config/agents/stages.json → s5, without level and points). */
 /** Upper bound of ascendancy search rounds that ban nodes PoB does not calculate. */
-const MAX_ASCENDANCY_ROUNDS = 4;
+const DEFAULT_ASCENDANCY_ROUNDS = 4;
 
 export interface TargetSettings {
   calcProfiles: readonly CalcProfileId[];
@@ -60,6 +60,8 @@ export interface TargetSettings {
   };
   /** See `s5.ascendancyUnsupportedMods` in config/agents/stages.json; `avoid` when absent. */
   ascendancyUnsupportedMods?: "avoid" | "accept";
+  /** See `s5.ascendancyMaxRounds`; searches that may repeat after banning nodes. */
+  ascendancyMaxRounds?: number;
 }
 
 export interface PobSkeletonOptions {
@@ -375,6 +377,14 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     const optimize = this.options.optimize ?? optimizeTree;
     const avoid = (this.options.target?.ascendancyUnsupportedMods ?? "avoid") === "avoid";
     const banned = new Set<PassiveNodeId>(excluded);
+    const maxRounds = this.options.target?.ascendancyMaxRounds ?? DEFAULT_ASCENDANCY_ROUNDS;
+    if (!avoid) {
+      this.options.logger.info("ascendancy search accepts mods PoB does not calculate", {
+        ascendancy: ascendancyId,
+      });
+    }
+    // The main tree's own unsupported mods are no reason to ban an ascendancy node.
+    const baseline = avoid ? await this.unsupportedTexts(withMainTree, [], job) : new Set<string>();
     // Each round searches without the nodes banned so far; a node is banned when PoB reports its
     // text as a mod it does not calculate. The rounds end when the result has none (or at the cap).
     for (let round = 0; ; round += 1) {
@@ -399,19 +409,48 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       this.checkAscendancyResult(result, ascendancyId);
       if (!avoid) return result.allocated;
       const unsupported = await this.unsupportedTexts(withMainTree, result.allocated, job);
-      const bad = result.allocated.filter((id) => {
+      const chosen = result.allocated.map((id) => {
         const node = nodes.find((n) => n.id === id);
-        return node?.stats.some((st) => st.text !== undefined && unsupported.has(st.text)) === true;
+        if (node === undefined) throw new Error(`Ascendancy node ${id} is not in the catalog`);
+        return node;
       });
-      if (bad.length === 0) return result.allocated;
-      if (round + 1 >= MAX_ASCENDANCY_ROUNDS) {
+      const textless = chosen.filter((n) => n.stats.some((st) => st.text === undefined));
+      if (textless.length > 0) {
+        // PoB cannot report such a node as unsupported, so the search cannot vouch for it.
+        this.options.logger.warn("ascendancy nodes without a stat text cannot be checked", {
+          ascendancy: ascendancyId,
+          nodes: textless.map((n) => n.id),
+        });
+      }
+      const triggers = new Map<PassiveNodeId, string[]>();
+      const matched = new Set<string>();
+      for (const node of chosen) {
+        for (const st of node.stats) {
+          if (st.text === undefined || !unsupported.has(st.text)) continue;
+          matched.add(st.text);
+          if (baseline.has(st.text)) continue;
+          triggers.set(node.id, [...(triggers.get(node.id) ?? []), st.text]);
+        }
+      }
+      // Every line PoB reports beyond the main tree must belong to a chosen node; otherwise the
+      // texts do not match and "avoid" would silently do nothing.
+      const unattributed = [...unsupported].filter((t) => !baseline.has(t) && !matched.has(t));
+      if (unattributed.length > 0) {
         throw new Error(
-          `The ascendancy search still picks nodes whose mods Path of Building does not calculate after ${String(MAX_ASCENDANCY_ROUNDS)} rounds`,
+          `Path of Building reports mods the ascendancy ${ascendancyId} nodes do not match by text: ${JSON.stringify(unattributed)}`,
+        );
+      }
+      const bad = [...triggers.keys()];
+      if (bad.length === 0) return result.allocated;
+      if (round + 1 >= maxRounds) {
+        throw new Error(
+          `The ascendancy search still picks nodes whose mods Path of Building does not calculate after ${String(maxRounds)} rounds`,
         );
       }
       this.options.logger.info("ascendancy search avoids nodes PoB does not calculate", {
         ascendancy: ascendancyId,
         nodes: bad,
+        lines: Object.fromEntries(triggers),
       });
       for (const id of bad) banned.add(id);
     }
@@ -430,7 +469,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
           `The engine could not evaluate any ascendancy node (first failures: ${JSON.stringify(result.failedEvaluations.slice(0, 3))})`,
         );
       }
-      this.options.logger.info("ascendancy search had failed evaluations", {
+      this.options.logger.warn("ascendancy search had failed evaluations", {
         ascendancy: ascendancyId,
         failedEvaluations: result.failedEvaluationCount,
         firstFailures: result.failedEvaluations.slice(0, 3),

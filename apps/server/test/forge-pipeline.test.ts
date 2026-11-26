@@ -304,6 +304,7 @@ describe("forge pipeline (agents)", () => {
         calcProfiles: ["default"],
         objective: { weights: { FakeMetric: 1 }, floors: {}, floorsFromMetrics: {} },
         ascendancyUnsupportedMods: "avoid" as const,
+        ascendancyMaxRounds: 4,
       };
       const engine = setup(createForgePipeline({ ...STAGES, s5 }), fastSkeleton, {
         maxCharacterLevel: { value: 20, origin: "pob-code" },
@@ -325,6 +326,7 @@ describe("forge pipeline (agents)", () => {
         calcProfiles: ["default"],
         objective: { weights: { FakeMetric: 1 }, floors: {}, floorsFromMetrics: {} },
         ascendancyUnsupportedMods: "avoid" as const,
+        ascendancyMaxRounds: 4,
       };
       const engine = setup(createForgePipeline({ ...STAGES, s5 }), fastSkeleton);
       const { runId } = await driveToS3(engine);
