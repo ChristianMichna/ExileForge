@@ -78,6 +78,25 @@ jobs:
             --out data-snapshots/current/catalog \
             --game-data data-snapshots/current/game-data 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Probe currency actions and descriptions (log only)
+        run: |
+          set -o pipefail
+          node -e '
+            const fs = require("fs");
+            const dir = "data-snapshots/current/game-data";
+            const manifest = JSON.parse(fs.readFileSync(dir + "/manifest.json", "utf8"));
+            const read = (n) => JSON.parse(fs.readFileSync(dir + "/" + manifest.tables.find((x) => x.name === n).path, "utf8"));
+            const bases = read("BaseItemTypes");
+            const items = read("CurrencyItems");
+            const seen = new Map();
+            for (const r of items) {
+              const key = r.Action ?? "";
+              if (seen.has(key)) { seen.get(key).n++; continue; }
+              seen.set(key, { n: 1, name: bases[r.BaseItemType]?.Name, desc: r.Description });
+            }
+            for (const [action, v] of seen) console.log("ACTION " + JSON.stringify(action) + " x" + v.n + " | " + v.name + " | " + JSON.stringify(v.desc));
+          ' | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: List currency-like base items (id | name | tags)
         run: |
           set -o pipefail
