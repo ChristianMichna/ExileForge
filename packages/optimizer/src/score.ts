@@ -2,7 +2,13 @@ import type { FloorViolation, Metrics, Objective } from "./types.ts";
 
 /** All metric names an objective needs from the engine. */
 export function objectiveMetrics(objective: Objective): string[] {
-  return [...new Set([...Object.keys(objective.weights), ...Object.keys(objective.floors ?? {})])];
+  return [
+    ...new Set([
+      ...Object.keys(objective.weights),
+      ...Object.keys(objective.floors ?? {}),
+      ...Object.entries(objective.floorsFromMetrics ?? {}).flat(),
+    ]),
+  ];
 }
 
 export class Scorer {
@@ -24,6 +30,11 @@ export class Scorer {
   violations(metrics: Metrics): FloorViolation[] {
     const out: FloorViolation[] = [];
     for (const [metric, required] of Object.entries(this.objective.floors ?? {})) {
+      const actual = metrics[metric] as number;
+      if (actual < required) out.push({ metric, required, actual });
+    }
+    for (const [metric, other] of Object.entries(this.objective.floorsFromMetrics ?? {})) {
+      const required = metrics[other] as number;
       const actual = metrics[metric] as number;
       if (actual < required) out.push({ metric, required, actual });
     }
