@@ -11,6 +11,7 @@ import {
   type TargetBuild,
   TaskType,
 } from "@astrolabe/contracts/build";
+import { Gem } from "@astrolabe/contracts/catalog";
 import type { StatMap } from "@astrolabe/contracts/calc";
 import { GuideDocument } from "@astrolabe/contracts/guide";
 import type { CalcId, EntityRef, JsonValue } from "@astrolabe/contracts/common";
@@ -419,6 +420,35 @@ async function measuredGates(
   for (const [index, { stage, path, returnTo, stats, unsupportedMods }] of (
     await stageStats(ctx, draft, cfg.calcProfile)
   ).entries()) {
+    for (const skill of stage.state.skills) {
+      for (const ref of [skill.gem, ...skill.supports]) {
+        const entry = ctx.catalog.get({ kind: "gem", id: ref.gemId });
+        if (entry === undefined) continue; // G1 reports unknown entities
+        const level = Gem.parse(entry.entity).levels.find((l) => l.level === ref.level);
+        const stagePath = `/progression/stages/${String(index)}/state/skills`;
+        if (level === undefined) {
+          g3.push(
+            finding(
+              "G3",
+              "gem_level_unknown",
+              `Stage ${stage.key}: ${ref.gemId} has no level ${String(ref.level)} in the catalog.`,
+              stagePath,
+              "S6",
+            ),
+          );
+        } else if ((level.requirements.level ?? 0) > stage.state.level) {
+          g3.push(
+            finding(
+              "G3",
+              "gem_level_requirement_unmet",
+              `Stage ${stage.key}: ${ref.gemId} at level ${String(ref.level)} needs a higher character level than the stage has.`,
+              stagePath,
+              "S6",
+            ),
+          );
+        }
+      }
+    }
     if (typeof table !== "string") {
       const row = table.find((r) => r.key === stage.key);
       // PoB counts a node once and takes off the smaller weapon set, as both sets draw on the same points.
@@ -570,7 +600,7 @@ function gapOf(
   ) {
     return `the whole gate (no "s10" block in config/agents/stages.json)`;
   }
-  if (gate === "G3") return "gem level requirements, ascendancy points and tree connectivity";
+  if (gate === "G3") return "ascendancy points and tree connectivity";
   if (gate === "G4") {
     return thresholds?.ehp === true ? undefined : "the EHP minimum (no threshold configured)";
   }

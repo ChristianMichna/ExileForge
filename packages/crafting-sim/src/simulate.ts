@@ -506,7 +506,7 @@ function compileAction(
         const candidates = poolFor(catalog.mods(), r.params, start.itemLevel, baseTags);
         if (candidates.length === 0) {
           problems.push(
-            `${where}: no mod with a spawn weight for base ${start.baseItemId} in domain ${r.params.domain} at item level ${start.itemLevel}`,
+            `${where}: no mod with a spawn weight for base ${start.baseItemId} in domain ${r.params.domain} at item level ${start.itemLevel}${r.params.minModLevel === undefined ? "" : ` and minimum mod level ${r.params.minModLevel}`}`,
           );
           break;
         }
@@ -552,7 +552,7 @@ function countMods(s: State, catalog: SimCatalog, gens: readonly string[] | unde
 
 function poolFor(
   mods: readonly Mod[],
-  params: { generationTypes: string[]; domain: string },
+  params: { generationTypes: string[]; domain: string; minModLevel?: number | undefined },
   itemLevel: number,
   baseTags: readonly string[],
 ): { mod: Mod; weight: number }[] {
@@ -561,6 +561,7 @@ function poolFor(
     if (!params.generationTypes.includes(mod.generationType)) continue;
     if (!mod.domains.includes(params.domain)) continue;
     if (mod.requiredLevel > itemLevel) continue;
+    if (params.minModLevel !== undefined && mod.requiredLevel < params.minModLevel) continue;
     const match = mod.spawnWeights.find((w) => baseTags.includes(w.tag));
     if (match && match.weight > 0) out.push({ mod, weight: match.weight });
   }

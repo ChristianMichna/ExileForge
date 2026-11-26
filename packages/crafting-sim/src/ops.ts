@@ -25,12 +25,15 @@ const id = z.string().min(1);
 
 export const AddRandomMod = z.object({
   op: z.literal("add-random-mod"),
-  params: z.object({
+  // strict: an unknown parameter (e.g. one from a newer release) must fail loudly, not vanish
+  params: z.strictObject({
     generationTypes: z.array(id).min(1),
     /** Maximum number of mods per generation type on one item; every listed type needs one. */
     limits: z.record(id, z.int().nonnegative()),
     domain: id,
     count: z.int().positive().default(1),
+    /** Only mods whose required level is at least this (higher currency tiers); absent: no lower bound. */
+    minModLevel: z.int().nonnegative().optional(),
   }),
 });
 
