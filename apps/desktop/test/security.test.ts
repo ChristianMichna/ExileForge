@@ -35,3 +35,18 @@ describe("security helpers", () => {
     expect(CONTENT_SECURITY_POLICY).toContain("connect-src 'self'");
   });
 });
+
+import { isDataSyncUrl } from "../src/main/security.js";
+
+describe("data sync requests", () => {
+  const hosts = ["github.com", "release-assets.githubusercontent.com"];
+  it("allows the GitHub API and the configured download hosts over https only", () => {
+    expect(isDataSyncUrl("https://api.github.com/repos/o/r/releases", hosts)).toBe(true);
+    expect(isDataSyncUrl("https://github.com/o/r/releases/download/t/f", hosts)).toBe(true);
+    expect(isDataSyncUrl("http://github.com/o/r", hosts)).toBe(false);
+    expect(isDataSyncUrl("https://evil.example/x", hosts)).toBe(false);
+    expect(isDataSyncUrl("https://github.com:8443/x", hosts)).toBe(false);
+    expect(isDataSyncUrl("https://u:p@github.com/x", hosts)).toBe(false);
+    expect(isDataSyncUrl("not a url", hosts)).toBe(false);
+  });
+});

@@ -19,7 +19,7 @@ import { loadDesktopConfig, type DesktopConfig } from "./config.js";
 import { createHandlers } from "./ipc-handlers.js";
 import { startDataSync, type DataSyncController } from "./data-sync.js";
 import { findDataRelease, knownReleaseIds, resolveAppDirs } from "./resources.js";
-import { APP_SCHEME, APP_URL, isAppUrl, isTrustedSender } from "./security.js";
+import { APP_SCHEME, APP_URL, isAppUrl, isDataSyncUrl, isTrustedSender } from "./security.js";
 import { startServices, type Services } from "./services.js";
 import { StatusStore } from "./status.js";
 import { startUpdates, type UpdateController } from "./updater.js";
@@ -101,7 +101,10 @@ async function boot(): Promise<void> {
       : { state: "disabled", reason: "Game data updates are switched off in the settings." },
   );
 
-  hardenSession(`http://127.0.0.1:${config.port}/`);
+  hardenSession(
+    `http://127.0.0.1:${config.port}/`,
+    config.dataSync.enabled ? config.dataSync.allowedRedirectHosts : [],
+  );
   const handleApp = createAppProtocolHandler({
     webRoot: dirs.webRoot,
     serverUrl: () => services?.url,
@@ -237,7 +240,7 @@ function createWindow(config: DesktopConfig): BrowserWindow {
 }
 
 /** No camera, location, notifications or other permission for the page; no foreign requests. */
-function hardenSession(serverPrefix: string): void {
+function hardenSession(serverPrefix: string, dataSyncHosts: readonly string[]): void {
   const ses = session.defaultSession;
   ses.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   ses.setPermissionCheckHandler(() => false);
@@ -248,6 +251,7 @@ function hardenSession(serverPrefix: string): void {
     const allowed =
       isAppUrl(url) ||
       url.startsWith(serverPrefix) ||
+      (dataSyncHosts.length > 0 && isDataSyncUrl(url, dataSyncHosts)) ||
       url.startsWith("devtools:") ||
       url.startsWith("data:") ||
       url.startsWith("blob:");
