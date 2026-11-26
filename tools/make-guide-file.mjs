@@ -15,9 +15,7 @@ if ([guidePath, resultsPath].includes(outPath)) {
   console.error("The output file must not be one of the inputs.");
   process.exit(2);
 }
-const contracts = await import(
-  pathToFileURL(resolve("packages/contracts/dist/index.js")).href
-);
+const contracts = await import(pathToFileURL(resolve("packages/contracts/dist/index.js")).href);
 const guide = JSON.parse(readFileSync(guidePath, "utf8"));
 const raw = JSON.parse(readFileSync(resultsPath, "utf8"));
 const results = Array.isArray(raw) ? Object.fromEntries(raw.map((r) => [r.calcId, r])) : raw;
