@@ -76,25 +76,33 @@ const draft = (over: object = {}) =>
     variants: [],
     ...over,
   }) as never as GuideDraft;
+/** A tiny tree: class start S1 - N1, ascendancy start S2 - N2. */
+const EDGES: Record<string, string[]> = { S1: ["N1"], N1: ["S1"], S2: ["N2"], N2: ["S2"] };
 const ctx = (known: (id: string) => boolean = () => true) =>
   ({
     catalog: {
       dataReleaseId: "poe2-1.0.0+r1",
-      get: (r: { id: string }) =>
-        known(r.id)
-          ? {
-              entity: {
-                id: r.id,
-                name: r.id,
-                kind: "skill",
-                tags: [],
-                levels: [
-                  { level: 1, requirements: { level: 5, attributes: {} }, stats: {} },
-                  { level: 2, requirements: { level: 50, attributes: {} }, stats: {} },
-                ],
-              },
-            }
-          : undefined,
+      get: (r: { id: string; kind?: string }) =>
+        r.kind === "characterClass"
+          ? { entity: { id: r.id, startNodeId: "S1" } }
+          : r.kind === "ascendancy"
+            ? { entity: { id: r.id, startNodeId: "S2" } }
+            : r.kind === "passiveNode"
+              ? { entity: { id: r.id, connections: EDGES[r.id] ?? [] } }
+              : known(r.id)
+                ? {
+                    entity: {
+                      id: r.id,
+                      name: r.id,
+                      kind: "skill",
+                      tags: [],
+                      levels: [
+                        { level: 1, requirements: { level: 5, attributes: {} }, stats: {} },
+                        { level: 2, requirements: { level: 50, attributes: {} }, stats: {} },
+                      ],
+                    },
+                  }
+                : undefined,
     },
   }) as never as PipelineContext;
 const codes = async (d: GuideDraft, c = ctx(), cfg?: never) =>
@@ -344,6 +352,28 @@ describe("S10 measured gates", () => {
       .flatMap((g) => g.findings)
       .find((x) => x.code === "calc_failed");
     expect(f?.returnTo).toBe("S7.gear-end");
+  });
+
+  it("flags allocated nodes that no allocated path joins to the start (G3)", async () => {
+    const lone = (nodeId: string) =>
+      draft({
+        progression: {
+          stages: [
+            stage({
+              state: {
+                ...STATE,
+                tree: { allocated: [{ nodeId, weaponSet: 0 }], ascendancy: ["N2"] },
+              },
+            }),
+          ],
+        },
+      });
+    const found = async (nodeId: string) =>
+      (await runGates(withStats(good), lone(nodeId), cfg as never))
+        .flatMap((g) => g.findings)
+        .find((f) => f.code === "tree_node_unconnected");
+    expect(await found("N1")).toBeUndefined();
+    expect((await found("N9"))?.returnTo).toBe("S6");
   });
 
   it("measures a campaign stage's attributes with the first gear tier's items (G3)", async () => {
