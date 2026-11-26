@@ -581,6 +581,18 @@ async function measuredGates(
             ctx.catalog.get({ kind: "ascendancy", id: target.ascendancyId })?.entity ?? {},
           ).startNodeId;
     const used = new Set(target.tree.ascendancy.filter((id) => id !== start)).size;
+    if (used < ascendancyLimit) {
+      g3.push(
+        finding(
+          "G3",
+          "ascendancy_points_unspent",
+          "The target build leaves ascendancy points of the release unspent.",
+          "/target/state/tree/ascendancy",
+          undefined,
+          "warning",
+        ),
+      );
+    }
     if (used > ascendancyLimit) {
       g3.push(
         finding(
@@ -818,7 +830,11 @@ async function measuredGates(
     g3,
     g4,
     g5,
-    thresholdsSet: { ehp: ehpSet, dps: dpsSet, ascendancy: ascendancyLimit !== undefined },
+    thresholdsSet: {
+      ehp: ehpSet,
+      dps: dpsSet,
+      ascendancy: ascendancyLimit !== undefined && targetBuild !== undefined,
+    },
   };
 }
 

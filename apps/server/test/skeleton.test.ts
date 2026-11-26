@@ -243,6 +243,17 @@ describe("PobSkeleton", () => {
       const loaded = withBuild.mock.calls[1]?.[0] as { tree: { allocated: unknown[] } };
       expect(loaded.tree.allocated).toHaveLength(2);
       expect(out.state.tree.ascendancy).toEqual(["FixAsc1"]);
+      // an ascendancy search that fails is a failed job, not a target without ascendancy
+      optimize.mockResolvedValueOnce(done as never);
+      optimize.mockResolvedValueOnce({
+        ...done,
+        allocated: [],
+        failedEvaluationCount: 2,
+        failedEvaluations: [{ error: "x" }],
+      } as never);
+      await expect(skeleton.optimizeTree({ ...input, ascendancyPoints: 3 })).rejects.toThrow(
+        /could not evaluate any ascendancy node/,
+      );
       // without points there is no ascendancy search
       const plain = setup(done);
       await plain.skeleton.optimizeTree(input);

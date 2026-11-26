@@ -154,6 +154,12 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       objective: settings.objective,
       calcProfile: settings.calcProfiles[0] as CalcProfileId,
     });
+    // Checked before the ascendancy search, which would spend a whole search on a failed target.
+    if (!result.feasible) {
+      throw new Error(
+        `The tree optimisation could not meet the objective floors: ${JSON.stringify(result.violations)}`,
+      );
+    }
     const allocated = result.allocated.map((nodeId) => ({ nodeId }));
     const ascendancy =
       input.ascendancyPoints === undefined || input.candidate.ascendancyId === undefined
@@ -177,11 +183,6 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     });
     // The target is the validated endgame build: an incomplete tree or a failed measurement must
     // show up as a failed job, never as a target with missing numbers.
-    if (!result.feasible) {
-      throw new Error(
-        `The tree optimisation could not meet the objective floors: ${JSON.stringify(result.violations)}`,
-      );
-    }
     for (const [profileId, outcome] of Object.entries(calcs)) {
       if (outcome.status === "failed") {
         throw new Error(
@@ -385,7 +386,18 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         forbiddenNodeIds: excluded.filter((id) => graph.has(id)),
       }),
     );
+    if (!result.feasible) {
+      throw new Error(
+        `The ascendancy search could not meet the objective floors: ${JSON.stringify(result.violations)}`,
+      );
+    }
     if (result.failedEvaluationCount > 0) {
+      // A search whose evaluations failed can end empty, which would look like "no ascendancy".
+      if (result.allocated.length === 0) {
+        throw new Error(
+          `The engine could not evaluate any ascendancy node (first failures: ${JSON.stringify(result.failedEvaluations.slice(0, 3))})`,
+        );
+      }
       this.options.logger.info("ascendancy search had failed evaluations", {
         ascendancy: ascendancyId,
         failedEvaluations: result.failedEvaluationCount,
