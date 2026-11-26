@@ -128,12 +128,16 @@ describe("GitHub readers", () => {
   });
   it("resolves the latest PoB release to a commit and fails loudly otherwise", async () => {
     const urls: string[] = [];
-    const found = await latestPobRelease(async (url) => {
-      urls.push(url);
-      return url.endsWith("/releases/latest")
-        ? json({ tag_name: "v0.24.0" })
-        : json({ sha: SHA_B });
-    }, "p/b");
+    const found = await latestPobRelease(
+      async (url) => {
+        urls.push(url);
+        return url.endsWith("/releases/latest")
+          ? json({ tag_name: "v0.24.0" })
+          : json({ sha: SHA_B });
+      },
+      "p/b",
+      5,
+    );
     expect(found).toEqual({ tag: "v0.24.0", sha: SHA_B });
     expect(urls[1]).toContain("/commits/v0.24.0");
     await expect(latestPobRelease(async () => json({}, 403), "p/b", 5)).rejects.toThrow(/403/);
