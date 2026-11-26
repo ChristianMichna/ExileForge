@@ -566,8 +566,9 @@ async function measuredGates(
   const derived = cfg.derived;
   const ehpSet = derived !== undefined || cfg.thresholds.some((t) => t.minEhp !== undefined);
   const dpsSet = derived !== undefined || cfg.thresholds.some((t) => t.minDps !== undefined);
-  /** Derived thresholds: the last measured value of each stat in progression order. */
-  const previous: { minEhp?: number; minDps?: number } = {};
+  /** Derived thresholds: the best measured value of each stat so far in progression order. */
+  const peak: { minEhp?: number; minDps?: number } = {};
+  let lastLevel: number | undefined;
   const table = stageTableOf(stageTable, ctx.catalog.release);
   if (typeof table === "string") g3.push(finding("G3", "points_unknown", table));
   // The target build carries the ascendancy nodes (S5); the stages only order the main tree.
@@ -640,6 +641,21 @@ async function measuredGates(
           );
         }
       }
+    }
+    if (derived !== undefined) {
+      // The derivation compares each stage with the ones before it, so they must be in level order.
+      if (lastLevel !== undefined && stage.state.level <= lastLevel) {
+        g3.push(
+          finding(
+            "G3",
+            "stage_level_not_ascending",
+            `Stage ${stage.key} does not have a higher character level than the stage before it.`,
+            `/progression/stages/${String(index)}/state/level`,
+            "S6",
+          ),
+        );
+      }
+      lastLevel = stage.state.level;
     }
     g3.push(
       ...connectivity(
@@ -776,27 +792,26 @@ async function measuredGates(
       if (field === "minEhp" ? !ehpSet : !dpsSet) continue;
       const value = stats[statName];
       if (derived !== undefined) {
-        // Measured, not configured: the stage keeps a share of the one before; the first has any.
+        // Measured, not configured: a stage has some, and keeps a share of the best one before it.
         if (value === undefined) {
           list.push(missing(gate, statName));
           continue;
         }
-        const before = previous[field];
-        const lowest = before === undefined ? 0 : before * derived.minRatioToPrevious;
-        if (before === undefined ? value <= 0 : value < lowest) {
+        const best = peak[field];
+        if (value <= 0 || (best !== undefined && value < best * derived.minRatioToPrevious)) {
           list.push(
             finding(
               gate,
               code,
-              before === undefined
+              value <= 0
                 ? `Stage ${stage.key} has none of the measured ${statName}.`
-                : `Stage ${stage.key} falls below the allowed share of the previous stage's ${statName}.`,
+                : `Stage ${stage.key} falls below the allowed share of the best ${statName} of the stages before it.`,
               path,
               returnTo,
             ),
           );
         }
-        previous[field] = value;
+        peak[field] = Math.max(best ?? value, value);
         continue;
       }
       const min = limit(stage.state.level, field);
@@ -823,6 +838,25 @@ async function measuredGates(
           ),
         );
       }
+    }
+  }
+  if (derived !== undefined) {
+    // Passing means "no stage collapses against the others", not "strong enough": say so.
+    for (const [on, list, what] of [
+      [ehpSet, g4, "EHP"],
+      [dpsSet, g5, "damage"],
+    ] as const) {
+      if (!on) continue;
+      list.push(
+        finding(
+          list === g4 ? "G4" : "G5",
+          "thresholds_relative",
+          `The ${what} minimums are derived from the stages of this guide (a share of the best stage before), a plausibility check and no absolute minimum.`,
+          undefined,
+          undefined,
+          "warning",
+        ),
+      );
     }
   }
   if (derived === undefined && !cfg.thresholdsCalibrated) {

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { StageConfig } from "../src/config.js";
 import type { PipelineContext } from "../src/pipeline.js";
@@ -684,61 +686,97 @@ describe("S10 measured gates", () => {
 
   describe("derived thresholds", () => {
     const derivedCfg = { ...cfg, thresholds: [], derived: { minRatioToPrevious: 0.8 } };
-    const two = (second: Record<string, number>, first: Record<string, number> = good) => {
-      const byId: Record<string, Record<string, number>> = { c1: first, c2: second };
+    /** One stage per stats entry, levels 10, 20, ...; `levels` overrides them. */
+    const chain = (list: (Record<string, number> | undefined)[], levels?: number[]) => {
+      const byId = new Map<string, Record<string, number> | undefined>();
+      const stages = list.map((stats, i) => {
+        byId.set(`c${String(i)}`, stats);
+        return stage({
+          key: `s${String(i)}`,
+          kind: "campaign",
+          state: { ...STATE, level: levels?.[i] ?? 10 * (i + 1) },
+          calcs: { mapping: { status: "ok", calcId: `c${String(i)}` } },
+        });
+      });
       const c = {
         ...(ctx() as object),
         run: { request: { calcOverrides: {} } },
         calc: {
           calculate: () => Promise.resolve({ mapping: { status: "ok", calcId: "c" } }),
-          getResult: (id: string) =>
-            Promise.resolve({ calcProfile: "mapping", stats: byId[id] ?? good }),
+          getResult: (id: string) => {
+            const stats = byId.get(id);
+            return Promise.resolve(
+              stats === undefined ? undefined : { calcProfile: "mapping", stats },
+            );
+          },
         },
       } as never as PipelineContext;
-      const d = draft({
-        progression: {
-          stages: [
-            stage({ key: "one", kind: "campaign", state: { ...STATE, level: 10 } }),
-            stage({
-              key: "two",
-              kind: "campaign",
-              state: { ...STATE, level: 20 },
-              calcs: { mapping: { status: "ok", calcId: "c2" } },
-            }),
-          ],
-        },
-      });
-      return runGates(c, d, derivedCfg as never);
+      return runGates(c, draft({ progression: { stages } }), derivedCfg as never);
     };
-    const codes = async (second: Record<string, number>, first?: Record<string, number>) =>
-      (await two(second, first)).flatMap((g) => g.findings.map((f) => `${g.gate}:${f.code}`));
+    const codes = async (list: (Record<string, number> | undefined)[], levels?: number[]) =>
+      (await chain(list, levels)).flatMap((g) => g.findings.map((f) => `${g.gate}:${f.code}`));
+    const at = (ehp: number, dps: number) => ({ ...good, Ehp: ehp, Dps: dps });
 
-    it("passes a stage that keeps its share of the previous one and warns of nothing uncalibrated", async () => {
-      const found = await codes({ ...good, Ehp: 450, Dps: 4100 });
+    it("passes stages that keep their share and says the check is relative, not uncalibrated", async () => {
+      const found = await codes([at(500, 5000), at(450, 4100), at(400, 4000)]);
       expect(found).not.toContain("G4:ehp_below_minimum");
       expect(found).not.toContain("G5:dps_below_minimum");
       expect(found).not.toContain("G4:thresholds_uncalibrated");
-      const gates = await two(good);
+      expect(found).toEqual(
+        expect.arrayContaining(["G4:thresholds_relative", "G5:thresholds_relative"]),
+      );
+      const gates = await chain([at(500, 5000), at(500, 5000)]);
       expect(gates.find((g) => g.gate === "G4")?.passed).toBe(true);
       expect(gates.find((g) => g.gate === "G5")?.passed).toBe(true);
     });
 
-    it("flags a stage that falls below the allowed share of the previous stage", async () => {
-      expect(await codes({ ...good, Ehp: 399 })).toContain("G4:ehp_below_minimum");
-      expect(await codes({ ...good, Dps: 3999 })).toContain("G5:dps_below_minimum");
+    it("flags a stage below the allowed share, and accepts exactly the share", async () => {
+      expect(await codes([at(500, 5000), at(399, 5000)])).toContain("G4:ehp_below_minimum");
+      expect(await codes([at(500, 5000), at(500, 3999)])).toContain("G5:dps_below_minimum");
+      const found = await codes([at(500, 5000), at(400, 4000)]);
+      expect(found).not.toContain("G4:ehp_below_minimum");
+      expect(found).not.toContain("G5:dps_below_minimum");
     });
 
-    it("requires the first stage to have any EHP and damage", async () => {
-      const found = await codes(good, { ...good, Ehp: 0, Dps: 0 });
-      expect(found).toEqual(
-        expect.arrayContaining(["G4:ehp_below_minimum", "G5:dps_below_minimum"]),
-      );
+    it("compares with the best stage before, so a slow decline over many stages is caught", async () => {
+      // each step keeps 85 percent of the one before, the last is far below the first
+      const found = await codes([at(1000, 5000), at(850, 4250), at(722, 3612), at(614, 3070)]);
+      expect(found).toContain("G4:ehp_below_minimum");
+      expect(found).toContain("G5:dps_below_minimum");
     });
 
-    it("rejects a config with both derived and fixed thresholds", () => {
-      expect(
-        StageConfig.shape.s10.safeParse({ ...cfg, derived: { minRatioToPrevious: 0.8 } }).success,
-      ).toBe(false);
+    it("requires every stage to have some EHP and damage", async () => {
+      const found = await codes([at(0, 0), at(0, 0)]);
+      expect(found.filter((c) => c === "G4:ehp_below_minimum")).toHaveLength(2);
+      expect(found.filter((c) => c === "G5:dps_below_minimum")).toHaveLength(2);
+    });
+
+    it("keeps comparing across a stage without a result", async () => {
+      const found = await codes([at(500, 5000), undefined, at(300, 5000)]);
+      expect(found).toContain("G4:stats_unavailable");
+      expect(found).toContain("G4:ehp_below_minimum");
+    });
+
+    it("sends stages that are not in ascending level order back to S6", async () => {
+      const gates = await chain([at(500, 5000), at(500, 5000)], [20, 20]);
+      const found = gates
+        .flatMap((g) => g.findings)
+        .find((f) => f.code === "stage_level_not_ascending");
+      expect(found).toMatchObject({ gate: "G3", returnTo: "S6" });
+    });
+
+    it("rejects fixed thresholds next to derived ones and a ratio outside zero to one", () => {
+      const committed = (
+        JSON.parse(readFileSync(join(__dirname, "../../../config/agents/stages.json"), "utf8")) as {
+          s10: Record<string, unknown>;
+        }
+      ).s10;
+      const parse = (over: object) =>
+        StageConfig.shape.s10.safeParse({ ...committed, ...over }).success;
+      expect(parse({})).toBe(true);
+      expect(parse({ thresholds: [{ fromLevel: 1, minEhp: 1 }] })).toBe(false);
+      expect(parse({ derived: { minRatioToPrevious: 0 } })).toBe(false);
+      expect(parse({ derived: { minRatioToPrevious: 1.1 } })).toBe(false);
     });
   });
 
