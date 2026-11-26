@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   buildClaudeCodeCommand,
@@ -68,8 +69,11 @@ describe("claude helpers", () => {
   });
 });
 
-function deps(overrides: Partial<HandlerDeps> = {}): HandlerDeps & { clipboard: string[] } {
+function deps(
+  overrides: Partial<HandlerDeps> = {},
+): HandlerDeps & { clipboard: string[]; revealed: string[] } {
   const clipboard: string[] = [];
+  const revealed: string[] = [];
   return {
     config,
     getStatus: () => ({
@@ -84,11 +88,14 @@ function deps(overrides: Partial<HandlerDeps> = {}): HandlerDeps & { clipboard: 
     clipboardWrite: (t) => clipboard.push(t),
     clipboardRead: () => clipboard.at(-1) ?? "",
     openExternal: async () => undefined,
-    openPath: async () => "",
+    revealPath: (path) => revealed.push(path),
+    copyFile: async () => undefined,
+    documentsDir: () => "docs",
     extensionPath: "x.mcpb",
     updates: () => undefined,
     ...overrides,
     clipboard,
+    revealed,
   };
 }
 
@@ -132,12 +139,24 @@ describe("ipc handlers", () => {
     expect(d.clipboard[0]).toContain("Bearer s3cr3t-value");
   });
 
-  it("explains when the extension file cannot be opened", async () => {
-    const result = await createHandlers(
-      deps({ openPath: async () => "not found" }),
-    ).installClaudeExtension();
+  it("copies the extension file to Documents, shows it and explains the installation", async () => {
+    const d = deps();
+    const result = await createHandlers(d).installClaudeExtension();
+    expect(result.ok).toBe(true);
+    expect(d.revealed).toEqual([join("docs", "Astrolabe", "astrolabe.mcpb")]);
+    expect(result.message).toContain("Settings > Extensions");
+  });
+
+  it("shows the bundled file when it cannot be copied", async () => {
+    const d = deps({
+      copyFile: async () => {
+        throw new Error("disk full");
+      },
+    });
+    const result = await createHandlers(d).installClaudeExtension();
     expect(result.ok).toBe(false);
-    expect(result.message).toContain("not found");
+    expect(d.revealed).toEqual(["x.mcpb"]);
+    expect(result.message).toContain("Settings > Extensions");
   });
 
   it("refuses updates outside the installed app and installs only after a download", async () => {
