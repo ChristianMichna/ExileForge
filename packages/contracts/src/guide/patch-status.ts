@@ -165,6 +165,44 @@ export const GuideRevalidateErrorCode = z.enum([
 export type GuideRevalidateErrorCode = z.infer<typeof GuideRevalidateErrorCode>;
 
 /**
+ * Result of the automatic check of one stored guide against the data release the app runs with:
+ * the verdict, or the error that stopped the check (never a silent "unaffected"). `internal`
+ * is an unexpected failure whose details are only in the app log.
+ */
+export const PatchCheckOutcome = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("status"), status: PatchStatus }),
+  z.object({
+    kind: z.literal("error"),
+    code: z.union([GuideRevalidateErrorCode, z.literal("internal")]),
+    message: z.string().min(1),
+  }),
+]);
+export type PatchCheckOutcome = z.infer<typeof PatchCheckOutcome>;
+
+export const GuidePatchCheck = z.object({
+  guideId: z.uuid(),
+  outcome: PatchCheckOutcome,
+  checkedAt: IsoDateTime,
+});
+export type GuidePatchCheck = z.infer<typeof GuidePatchCheck>;
+
+/**
+ * Answer of the local server's `GET /api/guides/patch-status`: the state of the automatic
+ * check after a new data release. `enabled: false` means the server cannot check at all (no
+ * releases directory), so an empty `guides` list then says "not checked", not "all fine".
+ */
+export const GuidePatchStatusView = z.object({
+  enabled: z.boolean(),
+  /** The release the guides are checked against (the one the server runs with). */
+  releaseId: DataReleaseId,
+  running: z.boolean(),
+  /** Set when the last sweep itself stopped early (not a single guide). */
+  error: z.string().min(1).optional(),
+  guides: z.array(GuidePatchCheck),
+});
+export type GuidePatchStatusView = z.infer<typeof GuidePatchStatusView>;
+
+/**
  * MCP tool of F-19. Only ids go in: the server looks the guide up in its own store and the
  * releases in its own data directory, so no path ever comes from a client.
  */
