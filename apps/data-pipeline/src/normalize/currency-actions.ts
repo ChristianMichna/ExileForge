@@ -25,6 +25,7 @@ const currencyRow = z.object({
 const tieredRow = z.object({
   BaseItemType: z.int().nonnegative(),
   Tier: z.int().nonnegative().nullish(),
+  LowerTierBaseItemType: z.int().nonnegative().nullish(),
 });
 
 function parseRows<T extends z.ZodType>(table: string, rows: readonly unknown[], schema: T) {
@@ -127,7 +128,8 @@ export async function currencyActions(opts: {
   const currency = parseRows("CurrencyItems", await table("CurrencyItems"), currencyRow);
   const higherTier = new Set(
     parseRows("TieredCurrency", await table("TieredCurrency"), tieredRow)
-      .filter((r) => (r.Tier ?? 0) > 1)
+      // a currency that points to a lower tier, or has a tier above the first, is a higher tier
+      .filter((r) => (r.Tier ?? 0) > 1 || r.LowerTierBaseItemType != null)
       .map((r) => r.BaseItemType),
   );
   const rowByBaseId = new Map<string, z.infer<typeof currencyRow>>();
@@ -145,12 +147,24 @@ export async function currencyActions(opts: {
   }
 
   const actions: Record<string, unknown>[] = [];
-  const skipped = { noDescriptionMatch: new Set<string>(), higherTier: new Set<string>() };
+  const skipped = {
+    noDescriptionMatch: new Set<string>(),
+    higherTier: new Set<string>(),
+    notInCatalog: new Set<string>(),
+  };
+  const withoutRule = new Set<string>();
+  const seenKeys = new Set<string>();
   for (const row of currency) {
     const base = bases.get(row.BaseItemType);
-    const id = base?.Id;
     const spec = row.Action ? usable.get(row.Action) : undefined;
-    if (!id || !spec || !opts.baseItemIds.has(id)) continue;
+    if (row.Action && !config.rules[row.Action]) withoutRule.add(row.Action);
+    else if (row.Action && !seenKeys.has(row.Action)) seenKeys.add(row.Action);
+    if (!base || !base.Id || !spec) continue;
+    const id = base.Id;
+    if (!opts.baseItemIds.has(id)) {
+      skipped.notInCatalog.add(id);
+      continue;
+    }
     if (higherTier.has(row.BaseItemType)) {
       skipped.higherTier.add(id);
       continue;
@@ -161,7 +175,7 @@ export async function currencyActions(opts: {
     }
     actions.push({
       id,
-      name: base?.Name ?? id,
+      name: base.Name,
       kind: config.kind,
       itemId: id,
       preconditions: build(spec.rule.preconditions),
@@ -169,16 +183,31 @@ export async function currencyActions(opts: {
     });
     summary.currencyActions++;
   }
-  for (const [what, ids] of [
-    ["is a higher tier (minimum mod level not modelled)", skipped.higherTier],
-    ["has a description that does not match the rule", skipped.noDescriptionMatch],
+  for (const [id, what, ids] of [
+    ["higher-tier", "is a higher tier (minimum mod level not modelled)", skipped.higherTier],
+    ["description", "has a description that does not match the rule", skipped.noDescriptionMatch],
+    ["not-in-catalog", "is not a base item of the catalog", skipped.notInCatalog],
   ] as const)
     if (ids.size > 0)
       findings.push({
         kind: "currencyAction",
-        id: what.split(" ")[2] ?? "skipped",
+        id,
         message: `${String(ids.size)} currency items left out, each ${what}: ${[...ids].slice(0, 5).join(", ")}`,
       });
+  for (const key of usable.keys())
+    if (!seenKeys.has(key))
+      findings.push({
+        kind: "currencyAction",
+        id: key,
+        message:
+          "no CurrencyItems row has this Action; the rule was not used (renamed in the game data?)",
+      });
+  if (withoutRule.size > 0)
+    findings.push({
+      kind: "currencyAction",
+      id: "no-rule",
+      message: `${String(withoutRule.size)} currency actions have no rule and give no crafting action: ${[...withoutRule].sort().join(", ")}`,
+    });
 
   const essenceProblem = checkRules("essence rule", [
     ...config.essence.preconditions,

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { EffectOp, PreconditionOp } from "@astrolabe/crafting-sim";
+import {
+  createSimCatalog,
+  EffectOp,
+  parseCraftSimConfig,
+  PreconditionOp,
+  simulate,
+} from "@astrolabe/crafting-sim";
+import { BaseItem, CraftingAction, CraftSimRequest, Mod } from "@astrolabe/contracts";
+import { normalizeConfigSchema } from "../src/normalize/catalog.ts";
 import { currencyActions, stripMarkup } from "../src/normalize/currency-actions.ts";
 import { raritiesFrom } from "../src/normalize/release-facts.ts";
 import { cfg } from "./fixtures/raw-catalog.ts";
@@ -149,6 +157,39 @@ describe("currencyActions", () => {
     expect(res.findings.map((f) => f.message).join("\n")).toMatch(/higher tier/);
   });
 
+  it("treats a currency with a lower tier as a higher tier, and reports unused rules and keys without a rule", async () => {
+    const t = rows("Makes a Plain thing Fine");
+    t.TieredCurrency = [{ BaseItemType: 0, Tier: 1, MinimumModLevel: 1, LowerTierBaseItemType: 3 }];
+    t.CurrencyItems = (t.CurrencyItems ?? []).map((r, i) =>
+      i === 1 ? { ...r, Action: "other_action" } : r,
+    );
+    const res = await run(t);
+    expect(res.actions).toEqual([]);
+    const text = res.findings.map((f) => f.message).join("\n");
+    expect(text).toMatch(/higher tier/);
+    expect(text).toMatch(/currency actions have no rule.*other_action/);
+    const none = await run(rows("Makes a Plain thing Fine"), {
+      config: { ...config, rules: { ...config.rules, never_used: config.rules.test_action } },
+    });
+    expect(none.findings.map((f) => f.message).join("\n")).toMatch(
+      /no CurrencyItems row has this Action/,
+    );
+  });
+
+  it("rejects a description pattern that is invalid or not anchored", () => {
+    const bad = (description: string) =>
+      normalizeConfigSchema.safeParse({
+        ...JSON.parse(JSON.stringify(cfg)),
+        currencyActions: {
+          ...cfg.currencyActions,
+          essence: { ...cfg.currencyActions.essence, description },
+        },
+      }).success;
+    expect(bad("^fine$")).toBe(true);
+    expect(bad("modifier")).toBe(false);
+    expect(bad("^(unclosed$")).toBe(false);
+  });
+
   it("drops a rule with an unknown rarity, generation type or domain", async () => {
     const bad = {
       ...config,
@@ -217,5 +258,106 @@ describe("the real config", () => {
       expect(PreconditionOp.safeParse(rule).success).toBe(true);
     for (const rule of cfg.currencyActions.essence.effects)
       expect(EffectOp.safeParse(rule).success).toBe(true);
+  });
+});
+
+describe("with the simulator", () => {
+  const mods = ["a", "b", "c", "d"].flatMap((n) =>
+    ["Prefix", "Suffix"].map((gen) =>
+      Mod.parse({
+        id: `fx-${gen}-${n}`,
+        groups: [`fx-group-${gen}-${n}`],
+        generationType: gen,
+        domains: ["Item"],
+        requiredLevel: 1,
+        stats: [],
+        spawnWeights: [{ tag: "default", weight: 10 }],
+      }),
+    ),
+  );
+  const base = BaseItem.parse({
+    id: "fx-base",
+    name: "Fixture base",
+    itemClass: "FxClass",
+    tags: ["default"],
+    requirements: {},
+    implicitModIds: [],
+    properties: {},
+  });
+  const simConfig = parseCraftSimConfig({
+    version: "test",
+    defaultRuns: 2000,
+    maxRuns: 5000,
+    defaultSeed: 3,
+    maxStepExecutionsPerAttempt: 50,
+    maxPriceBookAgeMinutes: 60,
+  });
+
+  async function realActions() {
+    const real = raritiesFrom(cfg.releaseFacts.rarities, new Set(["Prefix", "Suffix"])).value;
+    const keys = [
+      "transmute_to_magic",
+      "upgrade_magic_to_rare",
+      "add_mod_to_rare",
+      "remove_random_mod",
+      "convert_to_normal",
+    ];
+    const t = tables();
+    t.BaseItemTypes = keys.map((k) => ({ Id: `Test/${k}`, Name: k, ItemClass: 0, DropLevel: 1 }));
+    t.CurrencyItems = keys.map((k, i) => ({
+      BaseItemType: i,
+      StackSize: 1,
+      CurrencyUseType: 0,
+      Action: k,
+      Description: (cfg.currencyActions.rules[k]?.description ?? "").replace(/^\^|\$$/g, ""),
+    }));
+    t.TieredCurrency = [{ BaseItemType: 99, Tier: 1 }];
+    const res = await currencyActions({
+      gameDataDir: await write(t),
+      config: cfg.currencyActions,
+      rarities: real,
+      baseItemIds: new Set(keys.map((k) => `Test/${k}`)),
+      modGenerationTypes: new Set(["Prefix", "Suffix"]),
+      modDomains: new Set(["Item"]),
+      essenceActions: [],
+    });
+    return res.actions.map((a) => CraftingAction.parse(a));
+  }
+  const request = (rarity: string, ids: string[]) =>
+    CraftSimRequest.parse({
+      dataReleaseId: "poe2-0.0.1+r1",
+      start: { baseItemId: "fx-base", itemLevel: 50, rarity, modIds: [], flags: [] },
+      strategy: {
+        steps: ids.map((id, order) => ({
+          order,
+          actionIds: [`Test/${id}`],
+          onFail: { action: "accept" },
+        })),
+      },
+      goal: { clauses: [{ anyOfModIds: mods.map((m) => String(m.id)) }] },
+    });
+
+  it("runs transmute, regal and exalted in order and respects the rarity limits", async () => {
+    const catalog = createSimCatalog({ baseItems: [base], mods, actions: await realActions() });
+    const ok = simulate(
+      request("normal", [
+        "transmute_to_magic",
+        "upgrade_magic_to_rare",
+        "add_mod_to_rare",
+        "add_mod_to_rare",
+      ]),
+      { catalog, config: simConfig },
+    );
+    expect(ok.successChance.status).toBe("ok");
+    if (ok.successChance.status === "ok") expect(ok.successChance.value).toBe(1);
+    // an exalted orb on a magic item is blocked by its rarity precondition
+    const blocked = simulate(request("magic", ["add_mod_to_rare"]), { catalog, config: simConfig });
+    expect(blocked.outcomes?.blocked).toBe(blocked.runs);
+    // magic items carry one prefix and one suffix at most: a second transmute step cannot fit more
+    const full = simulate(request("normal", ["transmute_to_magic", "transmute_to_magic"]), {
+      catalog,
+      config: simConfig,
+    });
+    expect(full.outcomes?.blocked).toBe(full.runs);
   });
 });

@@ -21,9 +21,24 @@ import type { MatchResult, StatMatcher } from "./stat-matcher.ts";
 const ruleSchema = z
   .object({ op: z.string().min(1), params: z.record(z.string(), z.unknown()) })
   .strict();
+/** A pattern that compiles and is anchored at both ends, so it must match the whole description. */
+const descriptionPattern = z
+  .string()
+  .min(1)
+  .refine(
+    (p) => {
+      try {
+        new RegExp(p);
+      } catch {
+        return false;
+      }
+      return p.startsWith("^") && p.endsWith("$");
+    },
+    { message: "must be a valid pattern anchored with ^ and $" },
+  );
 const currencyRuleSchema = z
   .object({
-    description: z.string().min(1),
+    description: descriptionPattern,
     preconditions: z.array(ruleSchema),
     effects: z.array(ruleSchema).min(1),
   })
@@ -139,7 +154,7 @@ export const normalizeConfigSchema = z
         /** Rarity rule added to the essences whose own description matches. */
         essence: z
           .object({
-            description: z.string().min(1),
+            description: descriptionPattern,
             preconditions: z.array(ruleSchema),
             effects: z.array(ruleSchema).min(1),
           })
@@ -249,9 +264,9 @@ export interface NormalizeSummary {
   modsWithHiddenStatGroups: number;
   /** unique lines whose ambiguous text was decided by spawn evidence of the base */
   uniqueLinesDisambiguated: number;
-  /** game ids matched to passive nodes and slots; absent when no game data was given */
   /** crafting actions derived from currency descriptions; absent without game data */
   currencyActions?: { currencyActions: number; essencesWithRarityRule: number };
+  /** game ids matched to passive nodes and slots; absent when no game data was given */
   gameIds?: {
     passivesWithGameId: number;
     passivesWithoutGameId: number;
