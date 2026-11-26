@@ -763,8 +763,17 @@ export class ForgeEngine {
         apply(tx);
         tx.wake = true;
       });
-    void step
-      .run(ctx)
+    // The timer fails the run when the job hangs (a stuck calc worker); the job itself cannot be
+    // aborted, so its late answer is dropped by the stale check in `finish`.
+    const limitMinutes = this.options.config.jobTimeoutMinutes;
+    let timer: NodeJS.Timeout | undefined;
+    const limit = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`it did not finish within ${String(limitMinutes)} minutes`)),
+        limitMinutes * 60_000,
+      );
+    });
+    void Promise.race([step.run(ctx), limit])
       .then(
         (value) =>
           finish((tx) => {
@@ -791,6 +800,7 @@ export class ForgeEngine {
         this.options.logger?.error("could not store a background job result", { runId, error });
       })
       .finally(() => {
+        clearTimeout(timer);
         if (this.jobs.get(runId)?.token === token) this.jobs.delete(runId);
       });
   }

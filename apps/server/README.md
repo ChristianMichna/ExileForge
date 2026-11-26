@@ -194,7 +194,7 @@ zum Ende mit "wait" (Long-Poll wie beim Warten auf den Nutzer); das Ergebnis
 wird danach wie ein Server-Schritt gespeichert, ein Fehler beendet den Lauf mit
 `job_failed`. Ein Job ohne Gedächtnis im Record startet nach einem Neustart
 beim nächsten `forge_next` neu; ein `redoStage` während des Laufs verwirft die
-Antwort des alten Jobs. Noch ohne Zeitlimit und Abbruch. Beim Beenden des Servers (`stopJobs`, vor dem Schließen des
+Antwort des alten Jobs. Ein Job, der länger als `jobTimeoutMinutes` (`config/forge/forge.json`) läuft, beendet den Lauf mit `job_failed`; die späte Antwort wird verworfen, ein Abbruch der Rechnung selbst gibt es noch nicht. Beim Beenden des Servers (`stopJobs`, vor dem Schließen des
 Pools) werden laufende Jobs verworfen, ohne den Lauf als fehlgeschlagen zu speichern; der Job
 startet beim nächsten Planen neu. Ein Lauf, der an einem Job scheiterte (`job_failed`), setzt der
 Spieler mit `resume` fort (der Job läuft neu); nach `job_failed`, `returns_exhausted` oder

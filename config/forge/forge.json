@@ -5,6 +5,7 @@
   "maxAttemptsPerTask": 3,
   "waitLongPollSeconds": 20,
   "waitRetryAfterSeconds": 5,
+  "jobTimeoutMinutes": 90,
   "attachFailuresPerMinute": 10,
   "pipelines": {
     "poc": {

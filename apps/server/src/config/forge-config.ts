@@ -26,6 +26,8 @@ export const ForgeConfig = z.object({
   /** How long forge.next blocks while the run waits for the user. */
   waitLongPollSeconds: z.int().nonnegative().max(MAX_LONG_POLL_SECONDS),
   waitRetryAfterSeconds: z.int().positive(),
+  /** A background job (tree search, gear pricing) that runs longer than this fails the run; its late answer is dropped. */
+  jobTimeoutMinutes: z.int().positive(),
   /** Failed forge.attach calls allowed per minute before attach is refused (guessing guard). */
   attachFailuresPerMinute: z.int().positive(),
   pipelines: z.object({ poc: PocPipelineConfig }),
