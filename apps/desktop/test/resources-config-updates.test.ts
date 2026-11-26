@@ -1,16 +1,19 @@
-import { mkdir, mkdtemp, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { loadDesktopConfig } from "../src/main/config.js";
-import { findDataRelease, resolveAppDirs } from "../src/main/resources.js";
+import { findDataRelease, knownReleaseIds, resolveAppDirs } from "../src/main/resources.js";
 import { StatusStore } from "../src/main/status.js";
+import { startDataSync } from "../src/main/data-sync.js";
 import { startUpdates, type UpdaterPort } from "../src/main/updater.js";
 
-async function release(dir: string, mtime?: number) {
+async function release(dir: string, id?: string) {
   await mkdir(dir, { recursive: true });
-  await writeFile(join(dir, "manifest.json"), "{}");
-  if (mtime !== undefined) await utimes(dir, mtime, mtime);
+  await writeFile(
+    join(dir, "manifest.json"),
+    JSON.stringify(id === undefined ? {} : { release: { id } }),
+  );
 }
 
 describe("data release lookup", () => {
@@ -30,17 +33,37 @@ describe("data release lookup", () => {
 
   it("uses the bundled release, and a newer download over it", async () => {
     const d = await dirs();
-    await release(d.bundledReleaseDir);
+    await release(d.bundledReleaseDir, "poe2-0.5.5.10+r12");
     expect(await findDataRelease(d)).toBe(d.bundledReleaseDir);
-    await release(join(d.downloadedReleasesDir, "old"), 1_000);
-    await release(join(d.downloadedReleasesDir, "new"), 2_000);
-    expect(await findDataRelease(d)).toBe(join(d.downloadedReleasesDir, "new"));
+    await release(join(d.downloadedReleasesDir, "poe2-0.5.5.10+r2"), "poe2-0.5.5.10+r2");
+    await release(join(d.downloadedReleasesDir, "poe2-0.5.10.1+r1"), "poe2-0.5.10.1+r1");
+    expect(await findDataRelease(d)).toBe(join(d.downloadedReleasesDir, "poe2-0.5.10.1+r1"));
+    expect(await knownReleaseIds(d)).toEqual([
+      "poe2-0.5.5.10+r2",
+      "poe2-0.5.10.1+r1",
+      "poe2-0.5.5.10+r12",
+    ]);
   });
 
-  it("skips download folders without a manifest", async () => {
+  it("keeps the bundled release when it is newer than the downloads", async () => {
     const d = await dirs();
-    await mkdir(join(d.downloadedReleasesDir, "partial"), { recursive: true });
-    await release(d.bundledReleaseDir);
+    await release(d.bundledReleaseDir, "poe2-1.0.0+r1");
+    await release(join(d.downloadedReleasesDir, "poe2-0.5.5.10+r12"), "poe2-0.5.5.10+r12");
+    expect(await findDataRelease(d)).toBe(d.bundledReleaseDir);
+  });
+
+  it("reports a bundled release whose manifest names no valid id", async () => {
+    const d = await dirs();
+    await release(d.bundledReleaseDir, "not-an-id");
+    await expect(findDataRelease(d)).rejects.toThrow("no valid data release id");
+    await expect(knownReleaseIds(d)).rejects.toThrow("no valid data release id");
+  });
+
+  it("skips download folders without a manifest or with foreign names", async () => {
+    const d = await dirs();
+    await mkdir(join(d.downloadedReleasesDir, "poe2-0.5.5.10+r3"), { recursive: true });
+    await release(join(d.downloadedReleasesDir, "partial"), "x");
+    await release(d.bundledReleaseDir, "poe2-0.5.5.10+r1");
     expect(await findDataRelease(d)).toBe(d.bundledReleaseDir);
   });
 
@@ -87,7 +110,7 @@ describe("desktop config", () => {
 
 describe("status store", () => {
   it("notifies listeners about each change", () => {
-    const store = new StatusStore("1.0", { state: "idle" });
+    const store = new StatusStore("1.0", { state: "idle" }, { state: "idle" });
     const seen: string[] = [];
     const off = store.subscribe((s) => seen.push(s.server.state));
     store.setServer({ state: "failed", message: "x" });
@@ -148,6 +171,122 @@ describe("updates", () => {
     });
     await controller.check();
     expect(states.at(-1)).toMatchObject({ state: "failed", message: "offline" });
+    controller.stop();
+  });
+});
+
+describe("data sync", () => {
+  const remote = (id: string) =>
+    ({
+      id,
+      tag: `data-${id.replace("+", "-")}`,
+      prerelease: true,
+      publishedAt: "2026-01-01T00:00:00Z",
+      catalogUrl: "https://github.com/o/r/releases/download/t/c.tar.gz",
+      checksumUrl: "https://github.com/o/r/releases/download/t/c.tar.gz.sha256",
+      catalogSize: 1,
+    }) as const;
+  function sync(over: Partial<Parameters<typeof startDataSync>[0]> = {}) {
+    const states: string[] = [];
+    const installs: string[] = [];
+    const controller = startDataSync({
+      list: async () => [remote("poe2-1.0.0+r1")],
+      knownIds: async () => ["poe2-0.5.5.10+r12"],
+      install: async (r) => {
+        installs.push(r.id);
+        return { id: r.id };
+      },
+      setState: (s) =>
+        states.push(
+          s.state === "ready" || s.state === "downloading" ? `${s.state}:${s.releaseId}` : s.state,
+        ),
+      includePrereleases: true,
+      firstCheckDelayMs: 3_600_000,
+      intervalMs: 3_600_000,
+      ...over,
+    });
+    return { controller, states, installs };
+  }
+
+  it("installs a newer release once and then waits for the restart", async () => {
+    const { controller, states, installs } = sync();
+    expect((await controller.check()).result).toBe("installed");
+    expect((await controller.check()).result).toBe("up-to-date");
+    expect(installs).toEqual(["poe2-1.0.0+r1"]);
+    expect(states).toEqual([
+      "checking",
+      "downloading:poe2-1.0.0+r1",
+      "ready:poe2-1.0.0+r1",
+      "ready:poe2-1.0.0+r1",
+    ]);
+    controller.stop();
+  });
+
+  it("reports up to date, ignores pre-releases when told to and refuses overlapping checks", async () => {
+    const same = sync({ knownIds: async () => ["poe2-1.0.0+r1"] });
+    expect((await same.controller.check()).result).toBe("up-to-date");
+    const stable = sync({ includePrereleases: false });
+    expect((await stable.controller.check()).result).toBe("up-to-date");
+    expect(stable.installs).toEqual([]);
+    let release: () => void = () => undefined;
+    const slow = sync({
+      list: () => new Promise((r) => (release = () => r([remote("poe2-1.0.0+r1")]))),
+    });
+    const first = slow.controller.check();
+    expect((await slow.controller.check()).result).toBe("busy");
+    release();
+    expect((await first).result).toBe("installed");
+    for (const s of [same, stable, slow]) s.controller.stop();
+  });
+
+  it("keeps a waiting release on show when a later check fails or hangs", async () => {
+    let fail = false;
+    const { controller, states } = sync({
+      list: async () => {
+        if (fail) throw new Error("offline");
+        return [remote("poe2-1.0.0+r1")];
+      },
+    });
+    await controller.check();
+    fail = true;
+    expect((await controller.check()).result).toBe("failed");
+    expect(states.at(-1)).toBe("ready:poe2-1.0.0+r1");
+    expect(states.slice(1)).not.toContain("checking");
+    controller.stop();
+  });
+
+  it("ends a running request when stopped", async () => {
+    let seen: AbortSignal | undefined;
+    const { controller, states } = sync({
+      list: (signal) =>
+        new Promise((_resolve, reject) => {
+          seen = signal;
+          signal.addEventListener("abort", () => reject(new Error("aborted")));
+        }),
+    });
+    const pending = controller.check();
+    controller.stop();
+    expect((await pending).result).toBe("failed");
+    expect(seen?.aborted).toBe(true);
+    expect(states.at(-1)).toBe("failed");
+  });
+
+  it("shows failures and keeps trying at the next interval", async () => {
+    const errors: unknown[] = [];
+    let fail = true;
+    const { controller, states } = sync({
+      list: async () => {
+        if (fail) throw new Error("offline");
+        return [remote("poe2-1.0.0+r1")];
+      },
+      onError: (e) => errors.push(e),
+    });
+    const outcome = await controller.check();
+    expect(outcome).toEqual({ result: "failed", message: "offline" });
+    expect(states.at(-1)).toBe("failed");
+    expect(errors).toHaveLength(1);
+    fail = false;
+    expect((await controller.check()).result).toBe("installed");
     controller.stop();
   });
 });

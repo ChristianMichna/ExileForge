@@ -46,3 +46,24 @@ export function isAllowedExternalUrl(url: string, allowedSchemes: readonly strin
     return false;
   }
 }
+
+/** Host of the GitHub API the data release check talks to (see @astrolabe/release-sync). */
+export const GITHUB_API_HOST = "api.github.com";
+
+/**
+ * Requests the main process makes for game data updates: https only, to the GitHub API and the
+ * hosts the configuration allows for downloads. Everything else stays blocked by the session filter.
+ */
+export function isDataSyncUrl(url: string, allowedHosts: readonly string[]): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      parsed.port === "" &&
+      parsed.username === "" &&
+      (parsed.hostname === GITHUB_API_HOST || allowedHosts.includes(parsed.hostname))
+    );
+  } catch {
+    return false;
+  }
+}

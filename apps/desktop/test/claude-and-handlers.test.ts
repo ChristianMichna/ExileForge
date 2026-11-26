@@ -17,6 +17,22 @@ const config: DesktopConfig = {
     startSentence: "Start session {code} now.",
   },
   update: { enabled: true, firstCheckDelaySeconds: 1, checkIntervalHours: 1 },
+  dataSync: {
+    enabled: true,
+    repo: "o/r",
+    includePrereleases: true,
+    firstCheckDelaySeconds: 1,
+    checkIntervalHours: 1,
+    listTimeoutSeconds: 1,
+    installTimeoutMinutes: 1,
+    allowedRedirectHosts: ["github.com"],
+    maxDownloadMegabytes: 1,
+    maxUnpackedMegabytes: 1,
+    maxChecksumBytes: 1,
+    maxDecompressionRatio: 1,
+    maxEntries: 1,
+    leftoverMinAgeMinutes: 1,
+  },
 };
 
 describe("claude helpers", () => {
@@ -60,6 +76,7 @@ function deps(overrides: Partial<HandlerDeps> = {}): HandlerDeps & { clipboard: 
       appVersion: "1",
       server: { state: "starting" },
       update: { state: "idle" },
+      data: { state: "idle" },
     }),
     server: () => ({ url: "http://127.0.0.1:47615", token: "s3cr3t-value" }),
     fetch: async () =>
@@ -127,5 +144,42 @@ describe("ipc handlers", () => {
     const h = createHandlers(deps());
     expect((await h.checkForUpdates()).ok).toBe(false);
     expect(h.installUpdate().ok).toBe(false);
+  });
+});
+
+describe("game data handlers", () => {
+  it("answers plainly when sync is off, after a check and when no data waits", async () => {
+    expect((await createHandlers(deps()).checkForData()).ok).toBe(false);
+    const sync = (result: "installed" | "up-to-date" | "busy" | "failed") => ({
+      check: async () => ({ result, ...(result === "failed" ? { message: "offline" } : {}) }),
+      stop: () => undefined,
+    });
+    const run = async (r: "installed" | "up-to-date" | "busy" | "failed") =>
+      createHandlers(deps({ dataSync: () => sync(r) })).checkForData();
+    expect(await run("installed")).toMatchObject({
+      ok: true,
+      message: expect.stringContaining("Restart"),
+    });
+    expect(await run("up-to-date")).toMatchObject({ ok: true });
+    expect(await run("failed")).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("offline"),
+    });
+    expect(createHandlers(deps()).restartForData().ok).toBe(false);
+  });
+
+  it("relaunches only when a downloaded release is ready", () => {
+    let relaunched = 0;
+    const ready = deps({
+      relaunch: () => (relaunched += 1),
+      getStatus: () => ({
+        appVersion: "1",
+        server: { state: "starting" },
+        update: { state: "idle" },
+        data: { state: "ready", releaseId: "poe2-1.0.0+r1" },
+      }),
+    });
+    expect(createHandlers(ready).restartForData().ok).toBe(true);
+    expect(relaunched).toBe(1);
   });
 });

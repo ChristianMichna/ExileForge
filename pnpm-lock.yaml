@@ -85,6 +85,9 @@ importers:
       '@astrolabe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@astrolabe/release-sync':
+        specifier: workspace:*
+        version: link:../../packages/release-sync
       '@astrolabe/server':
         specifier: workspace:*
         version: link:../server

@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { ActionResult, AppStatus, OpenClaudeResult } from "../shared/bridge.js";
 import { buildClaudeCodeCommand, buildStartSentence, openClaudeDesktop } from "./claude.js";
 import type { DesktopConfig } from "./config.js";
+import type { DataSyncController } from "./data-sync.js";
 import type { UpdateController } from "./updater.js";
 
 /** How long the Claude Code command (with token) may stay on the clipboard. */
@@ -24,6 +25,10 @@ export interface HandlerDeps {
   openPath(path: string): Promise<string>;
   extensionPath: string;
   updates(): UpdateController | undefined;
+  /** Game data sync; undefined when switched off. */
+  dataSync?(): DataSyncController | undefined;
+  /** Restarts the whole app (the new data release is read at start). */
+  relaunch?(): void;
 }
 
 /** The actions the renderer may trigger. Arguments are validated here, not trusted. */
@@ -132,6 +137,34 @@ export function createHandlers(deps: HandlerDeps) {
       return started
         ? { ok: true, message: "Restarting to install the update." }
         : { ok: false, message: "No downloaded update is waiting." };
+    },
+
+    async checkForData(): Promise<ActionResult> {
+      const sync = deps.dataSync?.();
+      if (sync === undefined) {
+        return { ok: false, message: "Game data updates are switched off." };
+      }
+      const outcome = await sync.check();
+      if (outcome.result === "failed") {
+        return {
+          ok: false,
+          message: `Looking for new game data failed: ${outcome.message ?? "unknown error"}`,
+        };
+      }
+      const message = {
+        installed: "New game data was installed. Restart Astrolabe to use it.",
+        "up-to-date": "The game data is up to date.",
+        busy: "Already looking for new game data.",
+      }[outcome.result];
+      return { ok: true, message };
+    },
+
+    restartForData(): ActionResult {
+      if (deps.getStatus().data.state !== "ready" || deps.relaunch === undefined) {
+        return { ok: false, message: "No new game data is waiting." };
+      }
+      deps.relaunch();
+      return { ok: true, message: "Restarting to use the new game data." };
     },
   };
 }
