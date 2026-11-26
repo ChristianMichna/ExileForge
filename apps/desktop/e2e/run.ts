@@ -23,6 +23,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { McpStdioClient, resolveLaunch, type McpbManifest } from "./mcpb.ts";
+import { replay, type Recording, type ReplayStep, type SubmitOutcome } from "./recording.ts";
 
 const DEBUG_PORT = 9333;
 const SERVER_PORT = 47615;
@@ -386,6 +387,93 @@ async function main(): Promise<void> {
     );
     await page.waitForLoadState("load");
   });
+
+  const recordingFile = join(import.meta.dirname, "fixtures", "run-recording.json");
+  if (existsSync(recordingFile)) {
+    const recording = JSON.parse(readFileSync(recordingFile, "utf8")) as Recording;
+    if (recording.request.dataReleaseId !== guideRelease) {
+      throw new Error(
+        `run recording is for ${recording.request.dataReleaseId}, the guide fixture for ${guideRelease}`,
+      );
+    }
+    const replayedGuide = await step(
+      "Replay a whole recorded run S0 to S11 with the real PoB",
+      async () => {
+        mcp = McpStdioClient.start(resolveLaunch(manifest, extensionDir, process.execPath));
+        await mcp.initialize();
+        const created = (await api(token, "/api/runs", {
+          method: "POST",
+          body: JSON.stringify({ request: recording.request }),
+        })) as { runId: string };
+        const runId = created.runId;
+        const longWait = { timeoutMs: 30 * 60_000 };
+        const stepOf = async (name: string, args: Record<string, unknown>): Promise<unknown> => {
+          const answer = await needMcp().callTool(name, args, longWait);
+          if (answer.isError) throw new Error(`${name}: ${answer.text.slice(0, 1500)}`);
+          return JSON.parse(answer.text) as unknown;
+        };
+        const code = (await api(token, `/api/runs/${runId}/session-code`, {
+          method: "POST",
+          body: "{}",
+        })) as {
+          sessionCode: string;
+        };
+        await stepOf("forge_attach", { code: code.sessionCode });
+        const result = await replay(
+          {
+            next: async () => (await stepOf("forge_next", { runId })) as ReplayStep,
+            submit: async (task, payload) =>
+              (await stepOf("forge_submit", {
+                runId,
+                taskId: task.taskId,
+                attempt: task.attempt,
+                payload,
+              })) as SubmitOutcome,
+            intervene: async (intervention) => {
+              const view = (await api(token, `/api/runs/${runId}`)) as {
+                asks: { askId: string; answer?: string }[];
+              };
+              const open = view.asks.find((a) => a.answer === undefined);
+              const body =
+                intervention["kind"] === "answer" && open !== undefined
+                  ? { ...intervention, askId: open.askId }
+                  : intervention;
+              await api(token, `/api/runs/${runId}/interventions`, {
+                method: "POST",
+                body: JSON.stringify(body),
+              });
+            },
+          },
+          recording,
+          { log: (line) => console.log(line) },
+        );
+        console.log(
+          `replayed ${result.submitted} answers and ${result.interventions} player actions`,
+        );
+        return result.guideId;
+      },
+    );
+    await step("Open the guide of the replayed run and save its .build", async () => {
+      await needPage().evaluate(`window.location.hash = "#/guide/${replayedGuide}"`);
+      await needPage().waitForLoadState("networkidle");
+      await sleep(5000);
+      await needPage().screenshot({ path: join(outDir, "05-replayed-guide.png"), fullPage: true });
+      const build = await api(token, `/api/guides/${replayedGuide}/build-file`);
+      const text = JSON.stringify(build, null, 2);
+      if (text.length < 1000) throw new Error(`the .build file looks empty: ${text.slice(0, 300)}`);
+      await writeFile(join(outDir, "replayed.build"), text);
+    });
+  } else {
+    console.log(
+      "::warning::e2e/fixtures/run-recording.json does not exist: the whole-run replay is skipped (see e2e/record.ts)",
+    );
+    results.push({
+      step: "Replay a whole recorded run S0 to S11 (no recording yet)",
+      ok: true,
+      seconds: 0,
+      error: "skipped",
+    });
+  }
 
   await step("Import the recorded guide and open its page", async () => {
     const imported = (await api(token, "/api/guides/import", {
