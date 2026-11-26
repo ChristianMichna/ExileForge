@@ -47,6 +47,8 @@ export const StageConfig = z
         objective: z.object({
           weights: z.record(z.string().min(1), z.number()),
           floors: z.record(z.string().min(1), z.number()).default({}),
+          /** Metric held to another measured metric, e.g. Int against ReqInt (no numbers typed here). */
+          floorsFromMetrics: z.record(z.string().min(1), z.string().min(1)).default({}),
         }),
       })
       .optional(),
@@ -111,6 +113,8 @@ export const StageConfig = z
         objective: z.object({
           weights: z.record(z.string().min(1), z.number()),
           floors: z.record(z.string().min(1), z.number()).default({}),
+          /** Metric held to another measured metric, e.g. Int against ReqInt (no numbers typed here). */
+          floorsFromMetrics: z.record(z.string().min(1), z.string().min(1)).default({}),
         }),
       })
       .optional(),

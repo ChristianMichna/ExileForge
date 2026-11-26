@@ -40,13 +40,21 @@ export interface SkeletonSettings {
 /** Settings of the progression (config/agents/stages.json → s6, without the stage table). */
 export interface ProgressionSettings {
   calcProfiles: readonly CalcProfileId[];
-  objective: { weights: Record<string, number>; floors: Record<string, number> };
+  objective: {
+    weights: Record<string, number>;
+    floors: Record<string, number>;
+    floorsFromMetrics?: Record<string, string>;
+  };
 }
 
 /** Settings of the endgame target tree (config/agents/stages.json → s5, without level and points). */
 export interface TargetSettings {
   calcProfiles: readonly CalcProfileId[];
-  objective: { weights: Record<string, number>; floors: Record<string, number> };
+  objective: {
+    weights: Record<string, number>;
+    floors: Record<string, number>;
+    floorsFromMetrics?: Record<string, string>;
+  };
 }
 
 export interface PobSkeletonOptions {
@@ -271,7 +279,11 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       candidateKey: string;
       classId: string;
       budget: number;
-      objective: { weights: Record<string, number>; floors: Record<string, number> };
+      objective: {
+        weights: Record<string, number>;
+        floors: Record<string, number>;
+        floorsFromMetrics?: Record<string, string>;
+      };
       calcProfile: CalcProfileId;
     },
   ): Promise<TreeOptimizeResult> {
