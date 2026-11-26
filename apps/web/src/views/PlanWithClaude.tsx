@@ -8,6 +8,7 @@ import { useDesktopStatus } from "../desktop/useDesktopStatus";
 import { useRunEvents } from "../live/useRunEvents";
 import { PageHeader } from "../shell/PageHeader";
 import { GuidePatchCheckPanel } from "./GuidePatchCheck";
+import { ClaudeConnectionStatus } from "./ClaudeConnectionStatus";
 import { RunStatusPanel } from "./RunStatusPanel";
 
 const RUN_KEY = "astrolabe.activeRunId";
@@ -122,6 +123,7 @@ function Planner({
       ) : (
         <>
           <ConnectClaude runId={runId} created={created} />
+          <ClaudeConnectionStatus run={events.run} />
           <RunStatusPanel state={events} onNewRun={reset} />
         </>
       )}

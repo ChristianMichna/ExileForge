@@ -6,6 +6,10 @@ Desktop-App (`apps/desktop`, `astrolabe://app/`) und als Vorschau im Browser mit
 - Der Browser-Seite fehlt der Zugriffstoken; `/api/*` beantwortet das App-Protokoll der Desktop-Hülle
   und fügt ihn dort hinzu. Die Seite sieht den Token nie.
 - `src/desktop/bridge.ts` ist eine strukturelle Kopie von `apps/desktop/src/shared/bridge.ts`.
+- **Verbindungsstatus** (`src/views/ClaudeConnectionStatus.tsx`): Schritt-für-Schritt neben den
+  Verbindungsknöpfen. „Verbunden“ heißt nur, dass der Lauf `created` verlassen hat; nach 45 s ohne
+  Verbindung nennt die Seite, was zu prüfen ist, und erklärt die Antwort „expected object, received
+  string“ in einfachen Worten.
 - **Plan-Seite** (`src/views/PlanWithClaude.tsx`): Planungsformular, Live-Status des Laufs und die
   Prüfung gespeicherter Guides (`GuidePatchCheckPanel`, F-19). Sie zeigt je Guide das Urteil
   (unberührt / neu rechnen / kaputt) mit Zahl entfernter und geänderter Entitäten und geänderten
