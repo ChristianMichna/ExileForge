@@ -414,6 +414,50 @@ describe("S10 measured gates", () => {
     expect(noStart.map((f) => [f.code, f.returnTo])).toEqual([["tree_start_unknown", undefined]]);
   });
 
+  it("checks the target build's ascendancy nodes against the release's points (G3)", async () => {
+    const base = withStats(good) as never as { catalog: object };
+    const withLimit = (points: number | undefined) =>
+      ({
+        ...(base as object),
+        catalog: {
+          ...base.catalog,
+          release: points === undefined ? {} : { passivePoints: { ascendancy: { points } } },
+        },
+      }) as never as PipelineContext;
+    const target = (ascendancy: string[]) =>
+      ({
+        candidateKey: "k",
+        state: {
+          ...STATE,
+          tree: { allocated: [{ nodeId: "N1", weaponSet: 0 }], ascendancy },
+        },
+      }) as never;
+    const run = async (points: number | undefined, nodes: string[]) => {
+      const gates = await runGates(
+        withLimit(points),
+        stageAt(90),
+        cfg as never,
+        undefined,
+        undefined,
+        target(nodes),
+      );
+      const g3 = gates.find((g) => g.gate === "G3")?.findings ?? [];
+      return g3.filter((f) => /^ascendancy|points\)|check_not_built/.test(f.code + f.message));
+    };
+    const overspent = await run(1, ["N2", "N5"]);
+    expect(overspent.map((f) => [f.code, f.returnTo])).toContainEqual([
+      "ascendancy_points_overspent",
+      "S5",
+    ]);
+    // the start node of the ascendancy is free
+    expect((await run(1, ["S2", "N2"])).map((f) => f.code)).not.toContain(
+      "ascendancy_points_overspent",
+    );
+    // a release without the points leaves the check open and says why
+    const open = await run(undefined, ["N2"]);
+    expect(open.map((f) => f.message).join(" ")).toContain("passivePoints.ascendancy");
+  });
+
   it("measures a campaign stage's attributes with the first gear tier's items (G3)", async () => {
     const seen: unknown[] = [];
     const base = withStats({ ...good, A: 10 }) as never as { calc: object };

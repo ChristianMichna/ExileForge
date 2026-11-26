@@ -101,6 +101,8 @@ export interface TargetRequest {
   state: BuildState;
   /** Points the main tree may use. */
   passivePoints: number;
+  /** Points of the ascendancy; without them the target gets no ascendancy nodes. */
+  ascendancyPoints?: number;
 }
 
 /** Result of the target tree: the build with its tree and a measurement per calc profile. */

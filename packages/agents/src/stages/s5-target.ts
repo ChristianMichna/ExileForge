@@ -26,6 +26,8 @@ export const S5_TARGET_KEY = "S5.target";
 export interface TargetSize {
   level: number;
   passivePoints: number;
+  /** Ascendancy points of the release (PoB's total limit); absent when the release lacks them. */
+  ascendancyPoints?: number;
 }
 
 /** S5 settings (profiles, objective) with the size from the release. */
@@ -53,7 +55,11 @@ export function targetSize(release: DataRelease | undefined): TargetSize | strin
   }
   const levels = max.value - points.mainTree.fromLevel + 1;
   const weaponSet = points.weaponSetByAct.acts.reduce((sum, a) => sum + a.points, 0);
-  return { level: max.value, passivePoints: levels * points.mainTree.perLevel + weaponSet };
+  return {
+    level: max.value,
+    passivePoints: levels * points.mainTree.perLevel + weaponSet,
+    ...(points.ascendancy === undefined ? {} : { ascendancyPoints: points.ascendancy.points }),
+  };
 }
 
 export const GemSetupSubmission = z.object({
@@ -213,6 +219,7 @@ export function treeJob(
         candidate: chosen,
         state: targetStart(evaluation.skeleton, setup, s5),
         passivePoints: s5.passivePoints,
+        ...(s5.ascendancyPoints === undefined ? {} : { ascendancyPoints: s5.ascendancyPoints }),
       });
       return JSON.parse(JSON.stringify(result)) as JsonValue;
     },

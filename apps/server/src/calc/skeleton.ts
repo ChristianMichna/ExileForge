@@ -18,8 +18,8 @@ import {
   type TreeOptimizeResult,
 } from "@astrolabe/optimizer";
 import { ArchetypeEvaluation, BuildState } from "@astrolabe/contracts/build";
-import type { CharacterClass, PassiveNode } from "@astrolabe/contracts/catalog";
-import type { PassiveNodeId } from "@astrolabe/contracts/common";
+import type { Ascendancy, CharacterClass, PassiveNode } from "@astrolabe/contracts/catalog";
+import type { AscendancyId, PassiveNodeId } from "@astrolabe/contracts/common";
 import type { CalcProfileId } from "@astrolabe/contracts/common";
 import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
@@ -154,10 +154,22 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       objective: settings.objective,
       calcProfile: settings.calcProfiles[0] as CalcProfileId,
     });
-    const state = BuildState.parse({
-      ...start,
-      tree: { allocated: result.allocated.map((nodeId) => ({ nodeId })), ascendancy: [] },
-    });
+    const allocated = result.allocated.map((nodeId) => ({ nodeId }));
+    const ascendancy =
+      input.ascendancyPoints === undefined || input.candidate.ascendancyId === undefined
+        ? []
+        : await this.optimizeAscendancy(
+            BuildState.parse({ ...start, tree: { allocated, ascendancy: [] } }),
+            input.candidate.ascendancyId,
+            input.ascendancyPoints,
+            {
+              request: input.request,
+              profile: input.profile,
+              objective: settings.objective,
+              calcProfile: settings.calcProfiles[0] as CalcProfileId,
+            },
+          );
+    const state = BuildState.parse({ ...start, tree: { allocated, ascendancy } });
     const calcs = await this.options.calc.calculate({
       state,
       profiles: settings.calcProfiles,
@@ -321,6 +333,66 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       });
     }
     return result;
+  }
+
+  /**
+   * The ascendancy nodes to take on top of the finished main tree: a search in the ascendancy's
+   * own graph with the release's point limit. The loaded build already has the main tree, so the
+   * evaluator tracks the ascendancy nodes alone (its base is empty in that sense).
+   */
+  private async optimizeAscendancy(
+    withMainTree: BuildState,
+    ascendancyId: string,
+    points: number,
+    job: {
+      request: SkeletonRequest["request"];
+      profile: SkeletonRequest["profile"];
+      objective: {
+        weights: Record<string, number>;
+        floors: Record<string, number>;
+        floorsFromMetrics?: Record<string, string>;
+      };
+      calcProfile: CalcProfileId;
+    },
+  ): Promise<PassiveNodeId[]> {
+    const entry = this.options.catalog.get({ kind: "ascendancy", id: ascendancyId });
+    if (entry === undefined) throw new Error(`Ascendancy ${ascendancyId} is not in the catalog`);
+    const startNodeId = (entry.entity as Ascendancy).startNodeId;
+    if (startNodeId === undefined) {
+      throw new Error(`Ascendancy ${ascendancyId} has no start node in the catalog`);
+    }
+    const nodes = this.options.catalog.list("passiveNode").map((e) => e.entity as PassiveNode);
+    const graph = TreeGraph.buildAscendancy(nodes, ascendancyId as AscendancyId, startNodeId);
+    const excluded = job.request.exclusions
+      .filter((e) => e.kind === "passiveNode")
+      .map((e) => e.id as PassiveNodeId);
+    const optimize = this.options.optimize ?? optimizeTree;
+    const result: TreeOptimizeResult = await this.options.pob.withBuild(withMainTree, (handle) =>
+      optimize({
+        graph,
+        allocated: [],
+        budget: points,
+        objective: job.objective,
+        evaluator: createPobTreeEvaluator({
+          pool: this.options.pool,
+          handle,
+          profile: job.calcProfile,
+          baseAllocated: [],
+          overrides: job.request.calcOverrides,
+        }),
+        config: this.options.optimizerConfig,
+        priorityNodeIds: job.profile.relevantNodes.filter((id) => graph.has(id)),
+        forbiddenNodeIds: excluded.filter((id) => graph.has(id)),
+      }),
+    );
+    if (result.failedEvaluationCount > 0) {
+      this.options.logger.info("ascendancy search had failed evaluations", {
+        ascendancy: ascendancyId,
+        failedEvaluations: result.failedEvaluationCount,
+        firstFailures: result.failedEvaluations.slice(0, 3),
+      });
+    }
+    return result.allocated;
   }
 
   private graphFor(classId: string): TreeGraph {

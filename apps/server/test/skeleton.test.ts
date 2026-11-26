@@ -47,7 +47,7 @@ const profile = SkillProfile.parse({
 });
 const cand = ArchetypeCandidate.parse(candidate("a", "FixClassA", "FixAscA1"));
 
-function setup(optimizeResult: object, stagesResult?: object) {
+function setup(optimizeResult: object, stagesResult?: object, usedCatalog = catalog) {
   const optimize = vi.fn<(input: TreeOptimizeInput) => Promise<never>>(() =>
     Promise.resolve(optimizeResult as never),
   );
@@ -59,7 +59,7 @@ function setup(optimizeResult: object, stagesResult?: object) {
     pob: { withBuild } as never,
     pool: { request: () => Promise.reject(new Error("not used")) } as never,
     calc: { engine: "pob", calculate, getResult: () => Promise.resolve(undefined) },
-    catalog,
+    catalog: usedCatalog,
     optimizerConfig: {} as never,
     settings: {
       level: 10,
@@ -200,6 +200,53 @@ describe("PobSkeleton", () => {
       expect(out.state.level).toBe(20);
       expect(out.state.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1", "FixN2"]);
       expect(out.calcs["as-saved"]?.status).toBe("ok");
+    });
+
+    it("searches the ascendancy on top of the main tree with the release's points", async () => {
+      const ascShard = (shard: (typeof SHARDS)[number]): unknown =>
+        shard.kind === "ascendancy"
+          ? {
+              ...shard,
+              entities: shard.entities.map((e) =>
+                e.id === "FixAscA1"
+                  ? { ...e, startNodeId: "FixAscStart", nodeIds: ["FixAscStart", "FixAsc1"] }
+                  : e,
+              ),
+            }
+          : shard;
+      const withAscendancy = new MemoryCatalog(RELEASE, [
+        ...(SHARDS.map(ascShard) as never as typeof SHARDS),
+        CatalogShard.parse({
+          schemaVersion: 1,
+          dataReleaseId: RELEASE,
+          kind: "passiveNode",
+          entities: [
+            node("FixStartA", ["FixN1"], { classStartFor: ["FixClassA"] }),
+            node("FixN1", ["FixStartA", "FixN2"]),
+            node("FixN2", ["FixN1"]),
+            node("FixAscStart", ["FixAsc1"], { ascendancyId: "FixAscA1" }),
+            node("FixAsc1", ["FixAscStart"], { ascendancyId: "FixAscA1" }),
+          ],
+        }),
+      ]);
+      const { skeleton, optimize, withBuild } = setup(done, undefined, withAscendancy);
+      optimize.mockResolvedValueOnce(done as never);
+      optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      const out = await skeleton.optimizeTree({ ...input, ascendancyPoints: 3 });
+      expect(optimize).toHaveBeenCalledTimes(2);
+      expect(optimize.mock.calls[1]?.[0]).toMatchObject({ budget: 3 });
+      expect([...(optimize.mock.calls[1]?.[0].graph.ids() ?? [])].sort()).toEqual([
+        "FixAsc1",
+        "FixAscStart",
+      ]);
+      // the ascendancy search runs on a build that already has the main tree
+      const loaded = withBuild.mock.calls[1]?.[0] as { tree: { allocated: unknown[] } };
+      expect(loaded.tree.allocated).toHaveLength(2);
+      expect(out.state.tree.ascendancy).toEqual(["FixAsc1"]);
+      // without points there is no ascendancy search
+      const plain = setup(done);
+      await plain.skeleton.optimizeTree(input);
+      expect(plain.optimize).toHaveBeenCalledTimes(1);
     });
 
     it("fails when the objective floors cannot be met", async () => {
