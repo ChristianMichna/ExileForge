@@ -15,3 +15,10 @@ Holt neue Daten-Releases (F-01) von GitHub Releases in den Ordner `releasesDir` 
 
 Grenzen (`maxDownloadBytes`, `maxUnpackedBytes`), Repo und User-Agent kommen vom Aufrufer (Konfig), nicht aus dem Code.
 Der Netzzugriff wird als `fetch` übergeben, damit Tests ohne Netz laufen.
+
+Sicherheit: Downloads nur von `https://github.com/<repo>/releases/download/…`, Weiterleitungen nur auf https und
+Hosts aus der Konfiguration (`allowedRedirectHosts`). Die Prüfsumme kommt aus derselben Quelle wie das Archiv und
+schützt deshalb vor beschädigten, nicht vor manipulierten Downloads; eine Signatur wäre ein eigenes Ticket.
+Beim Entpacken zählen `maxUnpackedBytes`, `maxEntries` und `maxDecompressionRatio` schon vor dem Schreiben.
+`removeLeftovers(dir, minAgeMs)` löscht nur Reste, die älter sind als `minAgeMs`. Die Release-Liste liest nur die
+erste Seite (100 Einträge) der GitHub-API.

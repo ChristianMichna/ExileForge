@@ -51,6 +51,9 @@ export function isOwnReleaseUrl(url: string, repo: string): boolean {
     return (
       u.protocol === "https:" &&
       u.hostname === "github.com" &&
+      u.port === "" &&
+      u.username === "" &&
+      u.password === "" &&
       u.pathname.toLowerCase().startsWith(`/${repo.toLowerCase()}/releases/download/`)
     );
   } catch {
@@ -78,7 +81,13 @@ export async function listRemoteReleases(options: ListOptions): Promise<RemoteRe
   if (!response.ok) {
     throw new Error(`GitHub answered ${response.status} when listing data releases`);
   }
-  const parsed = ReleaseList.safeParse(await response.json());
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch (cause) {
+    throw new Error("GitHub's release list is not valid JSON", { cause });
+  }
+  const parsed = ReleaseList.safeParse(body);
   if (!parsed.success) {
     throw new Error(
       `GitHub's release list has an unexpected shape: ${z.prettifyError(parsed.error)}`,

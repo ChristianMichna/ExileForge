@@ -81,7 +81,15 @@ function serve(archive: Buffer, checksum = sha(archive)): FetchLike {
       : new Response(new Uint8Array(archive));
 }
 
-const limits = { maxDownloadBytes: 10_000_000, maxUnpackedBytes: 10_000_000 };
+const limits = {
+  repo: REPO,
+  allowedRedirectHosts: ["github.com", "release-assets.githubusercontent.com"],
+  maxDownloadBytes: 10_000_000,
+  maxUnpackedBytes: 10_000_000,
+  maxChecksumBytes: 1024,
+  maxDecompressionRatio: 1000,
+  maxEntries: 1000,
+};
 const install = (releasesDir: string, fetch: FetchLike, release = remote(ID), extra = {}) =>
   installRelease({ fetch, release, releasesDir, userAgent: UA, ...limits, ...extra });
 
@@ -213,7 +221,7 @@ describe("installRelease", () => {
     const noShard = await pack(ID, (d) => writeFileSync(join(d, "manifest.json"), "{}"));
     await expect(install(dir, serve(noShard))).rejects.toThrow(/contract/);
     expect(await installedReleaseIds(dir)).toEqual([]);
-    expect(await removeLeftovers(dir)).toBe(0);
+    expect(await removeLeftovers(dir, 0)).toBe(0);
   });
   it("refuses links in the archive, oversize downloads and failed requests", async () => {
     const dir = tmp();
@@ -236,10 +244,92 @@ describe("installRelease", () => {
     ).rejects.toThrow(/failed/);
     expect(await installedReleaseIds(dir)).toEqual([]);
   });
+  it("limits what gets written, not only what was downloaded", async () => {
+    const dir = tmp();
+    // 5 MB of one byte compresses far below the ratio limit of 1000 only if the limit is loose
+    const bomb = await pack(ID, (d) => writeFileSync(join(d, "big.bin"), Buffer.alloc(5_000_000)));
+    await expect(
+      install(dir, serve(bomb), remote(ID), { maxUnpackedBytes: 1000, maxDecompressionRatio: 1e9 }),
+    ).rejects.toThrow(/unpacked release is larger/);
+    await expect(
+      install(dir, serve(bomb), remote(ID), { maxDecompressionRatio: 10 }),
+    ).rejects.toThrow(/unpack/);
+    const many = await pack(ID, (d) => {
+      for (let i = 0; i < 20; i += 1) writeFileSync(join(d, `f${i}`), "x");
+    });
+    await expect(install(dir, serve(many), remote(ID), { maxEntries: 5 })).rejects.toThrow(
+      /more than 5 entries/,
+    );
+    expect(await installedReleaseIds(dir)).toEqual([]);
+  });
+  it("refuses path tricks in the archive", async () => {
+    const dir = tmp();
+    const outer = tmp();
+    mkdirSync(join(outer, "inner"));
+    writeFileSync(join(outer, "escape.txt"), "x");
+    const file = join(tmp(), "evil.tar.gz");
+    await tar.create({ gzip: true, file, cwd: join(outer, "inner"), preservePaths: true }, [
+      "../escape.txt",
+    ]);
+    await expect(install(dir, serve(readFileSync(file)))).rejects.toThrow();
+    expect(existsSync(join(dir, "escape.txt"))).toBe(false);
+    expect(await installedReleaseIds(dir)).toEqual([]);
+  });
+  it("only downloads release files of its own repository and only from allowed hosts", async () => {
+    const dir = tmp();
+    const good = await pack();
+    const foreign = remote(ID, {
+      catalogUrl: `https://github.com/other/x/releases/download/t/f.tar.gz`,
+    });
+    await expect(install(dir, serve(good), foreign)).rejects.toThrow(/not a release file/);
+    const redirected: FetchLike = async (url) => {
+      const r = serve(good)(url);
+      const res = await r;
+      Object.defineProperty(res, "url", { value: "https://evil.example/x" });
+      return res;
+    };
+    await expect(install(dir, redirected)).rejects.toThrow(/redirected to evil.example/);
+    const toCdn: FetchLike = async (url) => {
+      const res = await serve(good)(url);
+      Object.defineProperty(res, "url", {
+        value: "https://release-assets.githubusercontent.com/x",
+      });
+      return res;
+    };
+    expect((await install(dir, toCdn)).alreadyInstalled).toBe(false);
+  });
+  it("limits the checksum file, the announced size and sends the user agent", async () => {
+    const dir = tmp();
+    const good = await pack();
+    await expect(install(dir, async () => new Response("a".repeat(5000)))).rejects.toThrow(
+      /checksum file is larger/,
+    );
+    await expect(
+      install(dir, serve(good), remote(ID, { catalogSize: 99_999_999 })),
+    ).rejects.toThrow(/larger than the allowed/);
+    const agents: (string | undefined)[] = [];
+    await install(dir, async (url, init) => {
+      agents.push(init?.headers?.["User-Agent"]);
+      return serve(good)(url);
+    });
+    expect(agents).toEqual([UA, UA]);
+  });
+  it("treats a finished parallel install as success and a foreign folder as an error", async () => {
+    const dir = tmp();
+    const good = await pack();
+    const [a, b] = await Promise.all([install(dir, serve(good)), install(dir, serve(good))]);
+    expect([a.dir, b.dir]).toEqual([join(dir, ID), join(dir, ID)]);
+    expect(await installedReleaseIds(dir)).toEqual([ID]);
+    const dir2 = tmp();
+    mkdirSync(join(dir2, ID));
+    writeFileSync(join(dir2, ID, "stray.txt"), "x");
+    await expect(install(dir2, serve(good))).rejects.toThrow(/holds no release/);
+  });
   it("removes leftovers of interrupted installs", async () => {
     const dir = tmp();
     mkdirSync(join(dir, ".installing-abc"));
-    expect(await removeLeftovers(dir)).toBe(1);
+    expect(await removeLeftovers(dir, 60_000)).toBe(0); // may be running right now
+    expect(await removeLeftovers(dir, 0)).toBe(1);
     expect(await installedReleaseIds(dir)).toEqual([]);
   });
 });
