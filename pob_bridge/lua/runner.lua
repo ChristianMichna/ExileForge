@@ -63,6 +63,15 @@ local function collect()
 	for _, k in ipairs(STAT_KEYS) do
 		stats[k] = num(out[k])
 	end
+	-- PoB sets ReqStr/ReqDex/ReqInt only when something asks for more than zero, but always
+	-- sets the matching "<name>String" marker once the requirement block ran (CalcPerform.lua).
+	-- Marker present and requirement absent therefore means "no requirement", i.e. zero;
+	-- without the marker the stat stays missing.
+	for _, k in ipairs({ "ReqStr", "ReqDex", "ReqInt" }) do
+		if stats[k] == nil and num(out[k .. "String"]) == 0 then
+			stats[k] = 0
+		end
+	end
 
 	-- main skill name, so callers can see what the DPS refers to
 	-- Prefer the skill PoB actually calculated; fall back to the socket group label.

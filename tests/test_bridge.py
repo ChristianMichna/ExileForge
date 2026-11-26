@@ -41,6 +41,14 @@ class HeadlessPoBTest(unittest.TestCase):
         self.assertEqual((s["FireResist"], s["ColdResist"], s["LightningResist"], s["ChaosResist"]), (-20, -25, -15, 20))
         self.assertAlmostEqual(s["CombinedDPS"], 117.88, places=1)
 
+    def test_requirement_stats_are_present(self):
+        # PoB sets ReqStr/ReqDex/ReqInt only above zero; the bridge reads its "<name>String"
+        # marker so that "no requirement" arrives as 0 and a failed calculation as missing.
+        s = POB.evaluate(str(FIXTURE))["stats"]
+        for key in ("Str", "Dex", "Int", "ReqStr", "ReqDex", "ReqInt"):
+            self.assertIn(key, s)
+            self.assertGreaterEqual(s[key], 0)
+
     def test_same_result_via_build_code(self):
         code = encode_build_code(FIXTURE.read_text(encoding="utf-8"))
         self.assertEqual(POB.evaluate(code)["stats"], POB.evaluate(str(FIXTURE))["stats"])
