@@ -7,6 +7,7 @@ const base = {
   guideRevision: 2,
   fromReleaseId: "poe2-9.8.7+r3",
   toReleaseId: "poe2-9.8.8+r1",
+  chain: ["poe2-9.8.7+r3", "poe2-9.8.8+r1"],
   checkedAt: "2026-11-26T05:00:00Z",
   checkedReferences: 3,
 };
@@ -38,6 +39,34 @@ describe("PatchStatus", () => {
       PatchStatus.safeParse({ ...base, verdict: "needs-recalc", findings: [removed] }).success,
     ).toBe(false);
     expect(PatchStatus.safeParse({ ...base, verdict: "broken", findings: [] }).success).toBe(false);
+  });
+  it("treats a changed release fact as needs-recalc and checks the chain", () => {
+    const facts = { ...base, findings: [], factChanges: ["pobVersion"] };
+    expect(PatchStatus.safeParse({ ...facts, verdict: "needs-recalc" }).success).toBe(true);
+    expect(PatchStatus.safeParse({ ...facts, verdict: "unaffected" }).success).toBe(false);
+    const ok = { ...base, verdict: "unaffected", findings: [] };
+    const mid = "poe2-9.8.7+r4";
+    expect(
+      PatchStatus.safeParse({ ...ok, chain: [base.fromReleaseId, mid, base.toReleaseId] }).success,
+    ).toBe(true);
+    expect(
+      PatchStatus.safeParse({ ...ok, chain: [base.toReleaseId, base.fromReleaseId] }).success,
+    ).toBe(false);
+    expect(
+      PatchStatus.safeParse({ ...ok, chain: [base.fromReleaseId, mid, mid, base.toReleaseId] })
+        .success,
+    ).toBe(false);
+    expect(PatchStatus.safeParse({ ...ok, chain: [base.fromReleaseId] }).success).toBe(false);
+  });
+  it("offers candidates only for removed entities and keeps stage ids", () => {
+    const withCand = { ...removed, candidates: [{ kind: "gem", id: "gem-c" }], stageIds: ["s1"] };
+    expect(
+      PatchStatus.safeParse({ ...base, verdict: "broken", findings: [withCand] }).success,
+    ).toBe(true);
+    const bad = { ...changed, candidates: [{ kind: "mod", id: "mod-z" }] };
+    expect(
+      PatchStatus.safeParse({ ...base, verdict: "needs-recalc", findings: [bad] }).success,
+    ).toBe(false);
   });
   it("needs fields for changed and none for removed", () => {
     const noFields = { ...changed, fields: undefined };

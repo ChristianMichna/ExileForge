@@ -24,22 +24,54 @@ export const PatchFinding = z
     impact: PatchImpact,
     /** JSON pointers into the GuideDocument where the entity is used (at least one). */
     locations: z.array(z.string().startsWith("/")).min(1),
-    /** The changed fields of the entity, copied from the CatalogDiff; only for `changed`. */
+    /**
+     * Stages (`ProgressionStage.id`) that use the entity, so the guide can show which stages
+     * are affected. Empty where the entity is not tied to a stage.
+     */
+    stageIds: z.array(z.string().min(1)).default([]),
+    /**
+     * The changed fields of the entity; only for `changed`. Over a chain of releases `before`
+     * is the value in the guide's release and `after` the value in the checked release;
+     * fields that end up unchanged are left out.
+     */
     fields: z.array(FieldChange).min(1).optional(),
+    /**
+     * Entities of the new release that may replace a removed one, taken from the catalog and
+     * never guessed; only for `removed`, and only if the catalog offers any.
+     */
+    candidates: z.array(EntityRef).optional(),
   })
   .superRefine((f, ctx) => {
     if (f.impact === "changed" && f.fields === undefined)
       ctx.addIssue({ code: "custom", path: ["fields"], message: "needed for impact changed" });
     if (f.impact === "removed" && f.fields !== undefined)
       ctx.addIssue({ code: "custom", path: ["fields"], message: "not allowed for impact removed" });
+    if (f.impact === "changed" && f.candidates !== undefined)
+      ctx.addIssue({ code: "custom", path: ["candidates"], message: "only for impact removed" });
   });
 export type PatchFinding = z.infer<typeof PatchFinding>;
 
 /**
  * Verdict of the revalidation of one stored guide revision against a newer data
  * release (F-19). Derived from the findings, never set by hand:
- * `broken` if any reference was removed, `needs-recalc` if any changed, else `unaffected`.
+ * `broken` if any reference was removed, `needs-recalc` if any changed or any release fact
+ * changed, else `unaffected`. If a diff of the chain is missing, there is no PatchStatus: the
+ * check fails with an error instead (no silent `unaffected`).
  */
+/**
+ * Release facts a guide depends on that the CatalogDiff does not cover. A change in one of them
+ * means the guide must be recalculated even if no entity changed.
+ */
+export const ReleaseFactChange = z.enum([
+  "pobVersion",
+  "maxCharacterLevel",
+  "passivePoints",
+  "itemSlots",
+  "rarities",
+  "classifications",
+]);
+export type ReleaseFactChange = z.infer<typeof ReleaseFactChange>;
+
 export const PatchVerdict = z.enum(["unaffected", "needs-recalc", "broken"]);
 export type PatchVerdict = z.infer<typeof PatchVerdict>;
 
@@ -52,6 +84,14 @@ export const PatchStatus = z
     fromReleaseId: DataReleaseId,
     /** The newer release it was checked against. */
     toReleaseId: DataReleaseId,
+    /**
+     * The releases whose diffs were applied, in order, from `fromReleaseId` to `toReleaseId`
+     * (each diff leads from one entry to the next). A removed and re-added entity counts as
+     * changed or unchanged by comparing the first and the last release, not as removed.
+     */
+    chain: z.array(DataReleaseId).min(2),
+    /** Release facts that differ between the first and the last release of the chain. */
+    factChanges: z.array(ReleaseFactChange).default([]),
     checkedAt: IsoDateTime,
     /** How many distinct entities the guide refers to; shows the check looked at something. */
     checkedReferences: z.int().nonnegative(),
@@ -65,9 +105,19 @@ export const PatchStatus = z
         path: ["toReleaseId"],
         message: "must differ from fromReleaseId",
       });
+    if (s.chain[0] !== s.fromReleaseId || s.chain[s.chain.length - 1] !== s.toReleaseId)
+      ctx.addIssue({
+        code: "custom",
+        path: ["chain"],
+        message: "must start at fromReleaseId and end at toReleaseId",
+      });
+    if (new Set(s.chain).size !== s.chain.length)
+      ctx.addIssue({ code: "custom", path: ["chain"], message: "lists a release twice" });
+    if (new Set(s.factChanges).size !== s.factChanges.length)
+      ctx.addIssue({ code: "custom", path: ["factChanges"], message: "lists a fact twice" });
     const expected: PatchVerdict = s.findings.some((f) => f.impact === "removed")
       ? "broken"
-      : s.findings.length > 0
+      : s.findings.length > 0 || s.factChanges.length > 0
         ? "needs-recalc"
         : "unaffected";
     if (s.verdict !== expected)
