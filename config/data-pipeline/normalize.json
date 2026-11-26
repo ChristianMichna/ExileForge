@@ -12,21 +12,47 @@
   },
   "passiveNodeKinds": {
     "flags": [
-      ["isOnlyImage", "decoration"],
-      ["isKeystone", "keystone"],
-      ["isJewelSocket", "jewelSocket"],
-      ["isAscendancyStart", "ascendancyStart"],
-      ["isNotable", "notable"],
-      ["isAttribute", "attribute"]
+      [
+        "isOnlyImage",
+        "decoration"
+      ],
+      [
+        "isKeystone",
+        "keystone"
+      ],
+      [
+        "isJewelSocket",
+        "jewelSocket"
+      ],
+      [
+        "isAscendancyStart",
+        "ascendancyStart"
+      ],
+      [
+        "isNotable",
+        "notable"
+      ],
+      [
+        "isAttribute",
+        "attribute"
+      ]
     ],
     "default": "small"
   },
   "modTiers": {
     "$comment": "Tier 1 = highest required level within group + generation type + domains. Only these generation types are tiered.",
-    "generationTypes": ["Prefix", "Suffix"]
+    "generationTypes": [
+      "Prefix",
+      "Suffix"
+    ]
   },
   "modGenerationTypeFallback": "unspecified",
-  "baseItemPropertyGroups": ["weapon", "armour", "flask", "charm"],
+  "baseItemPropertyGroups": [
+    "weapon",
+    "armour",
+    "flask",
+    "charm"
+  ],
   "classAttributePrefix": "base_",
   "essence": {
     "$comment": "Essences become crafting actions from PoB's per-class mod table (Data/Essence.lua). op is the name agreed with the crafting thread (add-specific-mod, params modByItemClass); until packages/crafting-sim implements it the simulator reports the action as uncalibrated. PoB gives no rarity rule for essences, so none is set.",
@@ -35,7 +61,10 @@
   },
   "currency": {
     "$comment": "Currency-like base items from the game-data tables (docs/adr/0005). itemClasses decides which CurrencyItems rows count; with includeExchangeItems every item of CurrencyExchange (the game's exchange list) counts too, whatever its class; items of other classes are reported as left out. Ids are BaseItemTypes.Id (metadata path), not PoB's name-based equipment ids.",
-    "itemClasses": ["StackableCurrency", "Omen"],
+    "itemClasses": [
+      "StackableCurrency",
+      "Omen"
+    ],
     "includeExchangeItems": true,
     "tags": {
       "action": "currency_action:",
@@ -72,7 +101,7 @@
     }
   },
   "currencyActions": {
-    "$comment": "Crafting actions from CurrencyItems rows (game data read in CI). A currency becomes an action only when its Action key has a rule here AND the game's description (markup removed) matches the rule's pattern; otherwise it is left out with a finding. Rules compose ops of packages/crafting-sim; limitsForRarity is replaced by the release's affix limits (releaseFacts.rarities). The descriptions printed by the CI probe of 2026-11-26 are the evidence for each rule. Higher tiers (TieredCurrency tier above 1 or with a lower tier) become actions of their own whose added mods need at least the table's MinimumModLevel (`minModLevel`); one without that value is left out. Not modelled (left out, listed in the findings): currencies whose text does not state the count of new modifiers (Orb of Alteration), and everything that is not a modifier change. Known gaps (not in the descriptions, so not added from memory): Annulment and Scouring state no rarity and therefore also act on unique items; no rule forbids a flag such as corrupted; affix limits are per rarity only (PoB gives rare jewels 4 and some items own limits); PoB's relic rarity is not listed.",
+    "$comment": "Crafting actions from CurrencyItems rows (game data read in CI). A currency becomes an action only when its Action key has a rule here AND the game's description (markup removed) matches the rule's pattern; otherwise it is left out with a finding. Rules compose ops of packages/crafting-sim; limitsForRarity is replaced by the release's affix limits (releaseFacts.rarities). The descriptions printed by the CI probe of 2026-11-26 are the evidence for each rule. Higher tiers (TieredCurrency tier above 1 or with a lower tier) become actions of their own whose added mods need at least the table's MinimumModLevel (`minModLevel`); one without that value is left out. Not modelled (left out, listed in the findings): currencies whose text does not state the count of new modifiers (Orb of Alteration), and everything that is not a modifier change. Known gaps (not in the descriptions, so not added from memory): Annulment and Scouring state no rarity and therefore also act on unique items; no rule forbids a flag such as corrupted; affix limits are per rarity only (PoB gives rare jewels 4 and some items own limits); PoB's relic rarity is not listed. Interpretations beyond the description text: Orb of Alchemy clears the item's modifiers before adding 4 (the text says the result has 4 modifiers); MinimumModLevel of a higher tier is the minimum required level of every mod its add-random-mod adds (only the column name supports this).",
     "kind": "currency",
     "rules": {
       "transmute_to_magic": {
@@ -81,7 +110,9 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": ["normal"]
+              "rarities": [
+                "normal"
+              ]
             }
           }
         ],
@@ -95,7 +126,10 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"],
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "magic"
@@ -109,7 +143,9 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": ["magic"]
+              "rarities": [
+                "magic"
+              ]
             }
           }
         ],
@@ -117,7 +153,10 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"],
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "magic"
@@ -131,7 +170,9 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": ["magic"]
+              "rarities": [
+                "magic"
+              ]
             }
           }
         ],
@@ -145,7 +186,10 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"],
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "rare"
@@ -159,7 +203,9 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": ["rare"]
+              "rarities": [
+                "rare"
+              ]
             }
           }
         ],
@@ -167,7 +213,10 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"],
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "rare"
@@ -181,7 +230,9 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": ["rare"]
+              "rarities": [
+                "rare"
+              ]
             }
           }
         ],
@@ -189,13 +240,19 @@
           {
             "op": "remove-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"]
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ]
             }
           },
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"],
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ],
               "domain": "Item",
               "count": 1,
               "limitsForRarity": "rare"
@@ -210,7 +267,10 @@
           {
             "op": "remove-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"]
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ]
             }
           }
         ]
@@ -222,7 +282,10 @@
           {
             "op": "clear-mods",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"]
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ]
             }
           },
           {
@@ -239,7 +302,10 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": ["normal", "magic"]
+              "rarities": [
+                "normal",
+                "magic"
+              ]
             }
           }
         ],
@@ -247,7 +313,10 @@
           {
             "op": "clear-mods",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"]
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ]
             }
           },
           {
@@ -259,7 +328,10 @@
           {
             "op": "add-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"],
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ],
               "domain": "Item",
               "count": 4,
               "limitsForRarity": "rare"
@@ -275,7 +347,9 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": ["magic"]
+              "rarities": [
+                "magic"
+              ]
             }
           }
         ],
@@ -286,7 +360,8 @@
               "rarity": "rare"
             }
           }
-        ]
+        ],
+        "limitsForRarity": "rare"
       },
       {
         "description": "^Removes a random modifier and augments a Rare item with a new guaranteed modifier$",
@@ -294,7 +369,9 @@
           {
             "op": "require-rarity",
             "params": {
-              "rarities": ["rare"]
+              "rarities": [
+                "rare"
+              ]
             }
           }
         ],
@@ -302,10 +379,14 @@
           {
             "op": "remove-random-mod",
             "params": {
-              "generationTypes": ["Prefix", "Suffix"]
+              "generationTypes": [
+                "Prefix",
+                "Suffix"
+              ]
             }
           }
-        ]
+        ],
+        "limitsForRarity": "rare"
       }
     ]
   },
@@ -317,11 +398,24 @@
       "fromLevel": 2
     },
     "classifications": {
-      "damageTypes": ["Physical", "Lightning", "Cold", "Fire", "Chaos"],
-      "defenceLayers": ["Armour", "Evasion", "EnergyShield"]
+      "damageTypes": [
+        "Physical",
+        "Lightning",
+        "Cold",
+        "Fire",
+        "Chaos"
+      ],
+      "defenceLayers": [
+        "Armour",
+        "Evasion",
+        "EnergyShield"
+      ]
     },
     "rarities": {
-      "affixGenerationTypes": ["Prefix", "Suffix"],
+      "affixGenerationTypes": [
+        "Prefix",
+        "Suffix"
+      ],
       "list": [
         {
           "name": "Normal"

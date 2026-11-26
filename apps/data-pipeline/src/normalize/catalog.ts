@@ -161,6 +161,8 @@ export const normalizeConfigSchema = z
             z
               .object({
                 description: descriptionPattern,
+                /** Affix limits of this rarity are set on the essence's own `add-specific-mod`. */
+                limitsForRarity: z.string().min(1).optional(),
                 preconditions: z.array(ruleSchema),
                 effects: z.array(ruleSchema).min(1),
               })
@@ -276,7 +278,7 @@ export interface NormalizeSummary {
   currencyActions?: {
     currencyActions: number;
     higherTierActions: number;
-    essencesWithRarityRule: number;
+    essencesWithRule: number;
   };
   /** game ids matched to passive nodes and slots; absent when no game data was given */
   gameIds?: {

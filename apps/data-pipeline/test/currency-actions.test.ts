@@ -112,7 +112,7 @@ describe("currencyActions", () => {
     expect(res.summary).toEqual({
       currencyActions: 1,
       higherTierActions: 0,
-      essencesWithRarityRule: 1,
+      essencesWithRule: 1,
     });
     expect(res.actions).toEqual([
       {
@@ -241,7 +241,7 @@ describe("currencyActions", () => {
     const t = tables();
     t.CurrencyItems = (t.CurrencyItems ?? []).map((r) => ({ ...r, Description: "x" }));
     const res = await run(t);
-    expect(res.summary.essencesWithRarityRule).toBe(0);
+    expect(res.summary.essencesWithRule).toBe(0);
     expect((res.essenceActions[0] as { preconditions: unknown[] }).preconditions).toEqual([]);
     expect(res.findings.map((f) => f.message).join("\n")).toMatch(/1 essences keep no rule/);
   });
@@ -389,5 +389,152 @@ describe("with the simulator", () => {
       config: simConfig,
     });
     expect(full.outcomes?.blocked).toBe(full.runs);
+  });
+
+  const fxBase = "fx-base";
+  const startWith = (rarity: string, modIds: string[], goal: string[]) =>
+    CraftSimRequest.parse({
+      dataReleaseId: "poe2-0.0.1+r1",
+      start: { baseItemId: fxBase, itemLevel: 80, rarity, modIds, flags: [] },
+      strategy: { steps: [] },
+      goal: { clauses: [{ anyOfModIds: goal }] },
+    });
+  const withSteps = (req: CraftSimRequest, ids: string[]) =>
+    CraftSimRequest.parse({
+      ...req,
+      strategy: {
+        steps: ids.map((id, order) => ({ order, actionIds: [id], onFail: { action: "accept" } })),
+      },
+    });
+
+  async function actionsFor(
+    rowsByKey: Record<string, { key: string; description: string; tier?: number; min?: number }>,
+    essences: { id: string; description: string }[] = [],
+  ) {
+    const real = raritiesFrom(cfg.releaseFacts.rarities, new Set(["Prefix", "Suffix"])).value;
+    const entries = Object.entries(rowsByKey);
+    const t = tables();
+    const names = [...entries.map(([id]) => id), ...essences.map((e) => e.id)];
+    t.BaseItemTypes = names.map((id) => ({ Id: id, Name: id, ItemClass: 0, DropLevel: 1 }));
+    t.CurrencyItems = names.map((id, n) => {
+      const e = rowsByKey[id];
+      const ess = essences.find((x) => x.id === id);
+      return {
+        BaseItemType: n,
+        StackSize: 1,
+        CurrencyUseType: 0,
+        Action: e ? e.key : "use_essence",
+        Description: e ? e.description : (ess?.description ?? ""),
+      };
+    });
+    t.TieredCurrency = entries.some(([, e]) => e.tier)
+      ? entries.flatMap(([id, e], n) =>
+          e.tier
+            ? [
+                {
+                  BaseItemType: n,
+                  Tier: e.tier,
+                  MinimumModLevel: e.min ?? null,
+                  LowerTierBaseItemType: null,
+                },
+              ]
+            : [],
+        )
+      : [{ BaseItemType: 99, Tier: 1 }];
+    const res = await currencyActions({
+      gameDataDir: await write(t),
+      config: cfg.currencyActions,
+      rarities: real,
+      baseItemIds: new Set(names),
+      modGenerationTypes: new Set(["Prefix", "Suffix"]),
+      modDomains: new Set(["Item"]),
+      essenceActions: essences.map((e) => ({
+        id: e.id,
+        name: e.id,
+        kind: "essence",
+        itemId: e.id,
+        preconditions: [],
+        effects: [
+          { op: "add-specific-mod", params: { modByItemClass: { FxClass: "fx-Prefix-a" } } },
+        ],
+      })),
+    });
+    return [...res.essenceActions, ...res.actions].map((a) => CraftingAction.parse(a));
+  }
+  const rules = cfg.currencyActions.rules;
+  const text = (k: string) => (rules[k]?.description ?? "").replace(/^\^|\$$/g, "");
+
+  it("the perfect essence keeps its mod inside the rare limits", async () => {
+    const actions = await actionsFor({}, [
+      {
+        id: "ess-perfect",
+        description:
+          "Removes a random modifier and augments a [ItemRarity|Rare] item with a new guaranteed modifier",
+      },
+    ]);
+    const catalog = createSimCatalog({ baseItems: [base], mods, actions });
+    const req = withSteps(
+      startWith(
+        "rare",
+        ["fx-Prefix-b", "fx-Prefix-c", "fx-Prefix-d", "fx-Suffix-a", "fx-Suffix-b"],
+        ["fx-Prefix-a"],
+      ),
+      ["ess-perfect"],
+    );
+    const res = simulate(req, { catalog, config: simConfig });
+    // a prefix removed (3 of 5): fits; a suffix removed (2 of 5): a 4th prefix is blocked
+    const blocked = (res.outcomes?.blocked ?? 0) / res.runs;
+    expect(blocked).toBeGreaterThan(0.3);
+    expect(blocked).toBeLessThan(0.5);
+  });
+
+  it("alchemy replaces the mods of a magic item by four", async () => {
+    const actions = await actionsFor({
+      "cur-alch": { key: "transmute_to_rare", description: text("transmute_to_rare") },
+    });
+    const catalog = createSimCatalog({ baseItems: [base], mods, actions });
+    const res = simulate(
+      withSteps(startWith("magic", ["fx-Prefix-a", "fx-Suffix-a"], ["fx-Prefix-a"]), ["cur-alch"]),
+      { catalog, config: simConfig },
+    );
+    expect(res.successChance.status).toBe("ok");
+    // the old prefix is gone; it only comes back as one of four fresh draws from eight mods
+    if (res.successChance.status === "ok") {
+      expect(res.successChance.value).toBeGreaterThan(0.35);
+      expect(res.successChance.value).toBeLessThan(0.65);
+    }
+  });
+
+  it("a higher tier never draws mods below its minimum mod level", async () => {
+    const leveled = ["lo", "hi"].map((n, i) =>
+      Mod.parse({
+        id: `lv-${n}`,
+        groups: [`lv-group-${n}`],
+        generationType: "Prefix",
+        domains: ["Item"],
+        requiredLevel: i === 0 ? 5 : 60,
+        stats: [],
+        spawnWeights: [{ tag: "default", weight: 10 }],
+      }),
+    );
+    const actions = await actionsFor({
+      "cur-exalt": { key: "add_mod_to_rare", description: text("add_mod_to_rare") },
+      "cur-exalt-3": {
+        key: "add_mod_to_rare",
+        description: text("add_mod_to_rare"),
+        tier: 3,
+        min: 50,
+      },
+    });
+    const catalog = createSimCatalog({ baseItems: [base], mods: leveled, actions });
+    const run = (id: string) =>
+      simulate(withSteps(startWith("rare", [], ["lv-hi"]), [id]), { catalog, config: simConfig });
+    const plain = run("cur-exalt");
+    const high = run("cur-exalt-3");
+    if (plain.successChance.status !== "ok" || high.successChance.status !== "ok")
+      throw new Error("expected ok");
+    expect(plain.successChance.value).toBeGreaterThan(0.4);
+    expect(plain.successChance.value).toBeLessThan(0.6);
+    expect(high.successChance.value).toBe(1);
   });
 });
