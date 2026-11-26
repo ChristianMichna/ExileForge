@@ -240,6 +240,17 @@ export const PassiveNode = z.object({
   arcs: z.array(PassiveArc).default([]),
   classStartFor: z.array(CharacterClassId).default([]),
   ascendancyId: AscendancyId.optional(),
+  /**
+   * The node can only be allocated while all of `nodeIds` are allocated (PoB: the node's
+   * `unlockConstraint`). Such nodes sit in the normal tree and have no `ascendancyId`, but they
+   * belong to an ascendancy's choices: without the unlocking node(s) the source tool refuses them.
+   */
+  unlockedBy: z
+    .object({
+      ascendancyId: AscendancyId,
+      nodeIds: z.array(PassiveNodeId).min(1),
+    })
+    .optional(),
   icon: AssetPath.optional(),
 });
 export type PassiveNode = z.infer<typeof PassiveNode>;

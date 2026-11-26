@@ -850,6 +850,31 @@
                 "maxLength": 512,
                 "description": "Ascendancy id – internal game id from the data release"
               },
+              "unlockedBy": {
+                "type": "object",
+                "properties": {
+                  "ascendancyId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Ascendancy id – internal game id from the data release"
+                  },
+                  "nodeIds": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Passive skill id – internal game id from the data release"
+                    }
+                  }
+                },
+                "required": [
+                  "ascendancyId",
+                  "nodeIds"
+                ]
+              },
               "icon": {
                 "type": "string",
                 "minLength": 1,

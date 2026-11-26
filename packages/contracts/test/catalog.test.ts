@@ -361,6 +361,23 @@ describe("entities", () => {
     expect(PassiveNode.safeParse({ ...node, gameId: "" }).success).toBe(false);
   });
 
+  it("passive nodes may name the nodes that unlock them, at least one", () => {
+    const node = {
+      id: "passive.fixture",
+      name: "Fixture node",
+      kind: "small",
+      stats: [],
+      position: { groupId: "1", orbit: 0, orbitIndex: 0 },
+      connections: [],
+    };
+    const unlockedBy = { ascendancyId: "Asc1", nodeIds: ["5571"] };
+    expect(PassiveNode.parse({ ...node, unlockedBy }).unlockedBy).toEqual(unlockedBy);
+    expect(PassiveNode.parse(node).unlockedBy).toBeUndefined();
+    expect(
+      PassiveNode.safeParse({ ...node, unlockedBy: { ...unlockedBy, nodeIds: [] } }).success,
+    ).toBe(false);
+  });
+
   it("ascendancy point unlocks may be absent", () => {
     const asc = {
       id: "fixture_asc",
