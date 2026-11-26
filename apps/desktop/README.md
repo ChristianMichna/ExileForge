@@ -48,7 +48,10 @@ in `config/desktop/desktop.json`.
    legt den Startsatz in die Zwischenablage und öffnet Claude Desktop
    (`desktopUrl` in der Konfig). Klappt das Öffnen nicht, steht das im Fenster;
    der Satz liegt trotzdem in der Zwischenablage.
-3. **Install Claude extension** öffnet die mitgelieferte `astrolabe.mcpb`,
+3. **Install Claude extension** kopiert die mitgelieferte `astrolabe.mcpb` nach
+   `Dokumente\Astrolabe` und zeigt sie im Explorer (Windows hat keine Zuordnung für
+   `.mcpb`, ein Öffnen brächte nur den „Öffnen mit“-Dialog); installiert wird sie in
+   Claude Desktop unter Settings > Extensions (Datei ins Fenster ziehen).
    **Copy Claude Code command** kopiert `claude mcp add …`.
 4. Der Live-Status kommt aus dem Event-Stream des Laufs (SSE) und zeigt Phase,
    aktuelle Aufgabe, zurückgeschickte Antworten, Rechnungen, Fragen.

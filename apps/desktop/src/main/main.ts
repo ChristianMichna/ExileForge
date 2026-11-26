@@ -10,7 +10,8 @@ import {
   shell,
 } from "electron";
 import { autoUpdater } from "electron-updater";
-import { join } from "node:path";
+import { copyFile, mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { createStderrLogger } from "@astrolabe/server";
 import { installRelease, listRemoteReleases, removeLeftovers } from "@astrolabe/release-sync";
 import { IPC } from "../shared/bridge.js";
@@ -119,7 +120,12 @@ async function boot(): Promise<void> {
     clipboardWrite: (text) => clipboard.writeText(text),
     clipboardRead: () => clipboard.readText(),
     openExternal: (url) => shell.openExternal(url),
-    openPath: (path) => shell.openPath(path),
+    revealPath: (path) => shell.showItemInFolder(path),
+    copyFile: async (from, to) => {
+      await mkdir(dirname(to), { recursive: true });
+      await copyFile(from, to);
+    },
+    documentsDir: () => app.getPath("documents"),
     extensionPath: dirs.extensionPath,
     updates: () => updates,
     dataSync: () => dataSync,

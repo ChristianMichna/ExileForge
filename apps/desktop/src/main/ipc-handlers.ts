@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { z } from "zod";
 import type { ActionResult, AppStatus, OpenClaudeResult } from "../shared/bridge.js";
 import { buildClaudeCodeCommand, buildStartSentence, openClaudeDesktop } from "./claude.js";
@@ -21,8 +22,12 @@ export interface HandlerDeps {
   clipboardWrite(text: string): void;
   clipboardRead(): string | Promise<string>;
   openExternal(url: string): Promise<void>;
-  /** Opens a local file with its associated app; resolves to an error text or "". */
-  openPath(path: string): Promise<string>;
+  /** Shows a file selected in the file manager (Explorer on Windows). */
+  revealPath(path: string): void;
+  /** Copies a file, creating the target folder; rejects with the cause. */
+  copyFile(from: string, to: string): Promise<void>;
+  /** Folder the user finds easily (Documents), where the extension file is placed. */
+  documentsDir(): string;
   extensionPath: string;
   updates(): UpdateController | undefined;
   /** Game data sync; undefined when switched off. */
@@ -99,15 +104,33 @@ export function createHandlers(deps: HandlerDeps) {
     },
 
     async installClaudeExtension(): Promise<ActionResult> {
-      const failure = await deps.openPath(deps.extensionPath);
-      return failure === ""
-        ? {
-            ok: true,
-            message: "Claude Desktop opens the extension. Confirm the installation there.",
-          }
+      // Windows has no default app for .mcpb, so opening the file only shows an "open with"
+      // dialog. The file is shown in the file manager instead; the user installs it in Claude.
+      const steps =
+        'In Claude Desktop open Settings > Extensions and drag the file "astrolabe.mcpb" into the window (or use "Advanced settings" > "Install Extension..."), then confirm.';
+      const target = join(deps.documentsDir(), "Astrolabe", "astrolabe.mcpb");
+      let shown = target;
+      let copied = true;
+      try {
+        await deps.copyFile(deps.extensionPath, target);
+      } catch (error) {
+        console.error("extension copy failed", error);
+        copied = false;
+        shown = deps.extensionPath;
+      }
+      let revealed = true;
+      try {
+        deps.revealPath(shown);
+      } catch (error) {
+        console.error("extension reveal failed", error);
+        revealed = false;
+      }
+      const where = `The file is at ${shown}${revealed ? " (shown in your file manager)" : ""}.`;
+      return copied
+        ? { ok: true, message: `${where} A file of the same name there was replaced. ${steps}` }
         : {
             ok: false,
-            message: `The extension file could not be opened (${failure}). Is Claude Desktop installed?`,
+            message: `The file could not be copied to your Documents folder. ${where} ${steps}`,
           };
     },
 
