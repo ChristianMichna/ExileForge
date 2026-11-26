@@ -18,6 +18,17 @@ import type { MatchResult, StatMatcher } from "./stat-matcher.ts";
  * run afterwards (validate.ts).
  */
 
+const ruleSchema = z
+  .object({ op: z.string().min(1), params: z.record(z.string(), z.unknown()) })
+  .strict();
+const currencyRuleSchema = z
+  .object({
+    description: z.string().min(1),
+    preconditions: z.array(ruleSchema),
+    effects: z.array(ruleSchema).min(1),
+  })
+  .strict();
+
 export const normalizeConfigSchema = z
   .object({
     $comment: z.string().optional(),
@@ -114,6 +125,27 @@ export const normalizeConfigSchema = z
           .strict(),
       })
       .strict(),
+    currencyActions: z
+      .object({
+        $comment: z.string().optional(),
+        /** CraftingAction.kind of these currencies. */
+        kind: z.string().min(1),
+        /**
+         * Rules by `CurrencyItems.Action`. `description` must match the game's description
+         * (markup removed) or the currency is left out; rules are ops of crafting-sim, and
+         * `limitsForRarity` in add-random-mod params is replaced by the release's affix limits.
+         */
+        rules: z.record(z.string().min(1), currencyRuleSchema),
+        /** Rarity rule added to the essences whose own description matches. */
+        essence: z
+          .object({
+            description: z.string().min(1),
+            preconditions: z.array(ruleSchema),
+            effects: z.array(ruleSchema).min(1),
+          })
+          .strict(),
+      })
+      .strict(),
     releaseFacts: z
       .object({
         $comment: z.string().optional(),
@@ -127,6 +159,20 @@ export const normalizeConfigSchema = z
          * Lists PoB hard-codes in its code (origin pob-code), by PoB's names. The release id
          * is the name in snake case; it must exist in the release's mod tags.
          */
+        rarities: z
+          .object({
+            /** Generation types that share an item's affixes evenly (PoB: prefixes and suffixes). */
+            affixGenerationTypes: z.array(z.string().min(1)).min(1),
+            /** In PoB's order; `affixLimit` is the total number of affixes (absent: none through crafting). */
+            list: z
+              .array(
+                z
+                  .object({ name: z.string().min(1), affixLimit: z.int().positive().optional() })
+                  .strict(),
+              )
+              .min(1),
+          })
+          .strict(),
         classifications: z
           .object({
             damageTypes: z.array(z.string().min(1)).min(1),
@@ -204,6 +250,8 @@ export interface NormalizeSummary {
   /** unique lines whose ambiguous text was decided by spawn evidence of the base */
   uniqueLinesDisambiguated: number;
   /** game ids matched to passive nodes and slots; absent when no game data was given */
+  /** crafting actions derived from currency descriptions; absent without game data */
+  currencyActions?: { currencyActions: number; essencesWithRarityRule: number };
   gameIds?: {
     passivesWithGameId: number;
     passivesWithoutGameId: number;

@@ -19,6 +19,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@astrolabe/crafting-sim": "workspace:*",
     "@types/node": "22.20.5",
     "typescript": "5.9.3",
     "vitest": "5.1.1"

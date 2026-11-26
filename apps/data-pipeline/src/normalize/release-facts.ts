@@ -6,7 +6,7 @@ import type { Finding, NormalizeConfig } from "./catalog.ts";
 
 type ReleaseFacts = Pick<
   DataRelease,
-  "maxCharacterLevel" | "passivePoints" | "itemSlots" | "classifications" | "gameIds"
+  "maxCharacterLevel" | "passivePoints" | "itemSlots" | "classifications" | "gameIds" | "rarities"
 >;
 
 /** PoB's CamelCase name as a classification id ("EnergyShield" -> "energy_shield"). */
@@ -36,6 +36,50 @@ export function classificationsFrom(
       },
     };
   return { value: { damageTypes, defenceLayers, origin: "pob-code" } };
+}
+
+/**
+ * Item rarities of the release (PoB's names, snake case as ids) with the
+ * most affixes per generation type. PoB's code gives a total (Item.lua: magic
+ * 2, rare 6) that is shared evenly between the listed generation types; a total
+ * that does not divide evenly, or a generation type that no mod has, leaves
+ * the fact out with a finding.
+ */
+export function raritiesFrom(
+  config: NormalizeConfig["releaseFacts"]["rarities"],
+  generationTypes: ReadonlySet<string>,
+): { value?: NonNullable<DataRelease["rarities"]>; finding?: Finding } {
+  const unknown = config.affixGenerationTypes.filter((g) => !generationTypes.has(g));
+  if (unknown.length > 0)
+    return {
+      finding: {
+        kind: "release",
+        id: "rarities",
+        message: `no mod has generation type ${unknown.join(", ")}; rarities are left out`,
+      },
+    };
+  const rarities = [];
+  for (const r of config.list) {
+    if (r.affixLimit === undefined) {
+      rarities.push({ id: classificationId(r.name), name: r.name });
+      continue;
+    }
+    if (r.affixLimit % config.affixGenerationTypes.length !== 0)
+      return {
+        finding: {
+          kind: "release",
+          id: "rarities",
+          message: `${r.name}: ${String(r.affixLimit)} affixes do not split evenly over ${config.affixGenerationTypes.join(", ")}; rarities are left out`,
+        },
+      };
+    const each = r.affixLimit / config.affixGenerationTypes.length;
+    rarities.push({
+      id: classificationId(r.name),
+      name: r.name,
+      maxAffixes: Object.fromEntries(config.affixGenerationTypes.map((g) => [g, each])),
+    });
+  }
+  return { value: { rarities, origin: "pob-code" } };
 }
 
 const levelRow = z.object({ Level: z.int().positive() });
@@ -178,6 +222,8 @@ export async function buildReleaseFacts(opts: {
   known: { itemClasses: ReadonlySet<string>; baseClassOf: ReadonlyMap<string, string> };
   /** Classification ids of the release (mod tags). */
   vocabulary: ReadonlySet<string>;
+  /** Generation types of the release's mods. */
+  generationTypes: ReadonlySet<string>;
   gameDataDir?: string;
 }): Promise<{ facts: ReleaseFacts; findings: Finding[]; errors: Finding[] }> {
   const { config } = opts;
@@ -187,6 +233,10 @@ export async function buildReleaseFacts(opts: {
   const { slots, errors, warnings } = itemSlotsFrom(opts.itemSlots, opts.known);
   findings.push(...warnings);
   facts.itemSlots = { slots, origin: "pob-code" };
+
+  const rarities = raritiesFrom(config.rarities, opts.generationTypes);
+  if (rarities.value) facts.rarities = rarities.value;
+  if (rarities.finding) findings.push(rarities.finding);
 
   const classifications = classificationsFrom(config.classifications, opts.vocabulary);
   if (classifications.value) facts.classifications = classifications.value;

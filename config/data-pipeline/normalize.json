@@ -71,8 +71,191 @@
       }
     }
   },
+  "currencyActions": {
+    "$comment": "Crafting actions from CurrencyItems rows (game data read in CI). A currency becomes an action only when its Action key has a rule here AND the game's description (markup removed) matches the rule's pattern; otherwise it is left out with a finding. Rules compose ops of packages/crafting-sim; limitsForRarity is replaced by the release's affix limits (releaseFacts.rarities). The descriptions printed by the CI probe of 2026-11-26 are the evidence for each rule. Not modelled (left out, listed in the findings): higher tiers of a currency (minimum mod level), currencies whose text does not state the count of new modifiers (Orb of Alteration), Orb of Alchemy (works on two rarities with a fixed count; item state needs a rule the simulator lacks), and everything that is not a modifier change.",
+    "kind": "currency",
+    "rules": {
+      "transmute_to_magic": {
+        "description": "^Upgrades a Normal item to a Magic item with 1 modifier$",
+        "preconditions": [
+          {
+            "op": "require-rarity",
+            "params": {
+              "rarities": ["normal"]
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "set-rarity",
+            "params": {
+              "rarity": "magic"
+            }
+          },
+          {
+            "op": "add-random-mod",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"],
+              "domain": "Item",
+              "count": 1,
+              "limitsForRarity": "magic"
+            }
+          }
+        ]
+      },
+      "add_mod_to_magic": {
+        "description": "^Augments a Magic item with a new random modifier$",
+        "preconditions": [
+          {
+            "op": "require-rarity",
+            "params": {
+              "rarities": ["magic"]
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "add-random-mod",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"],
+              "domain": "Item",
+              "count": 1,
+              "limitsForRarity": "magic"
+            }
+          }
+        ]
+      },
+      "upgrade_magic_to_rare": {
+        "description": "^Upgrades a Magic item to a Rare item, adding 1 modifier$",
+        "preconditions": [
+          {
+            "op": "require-rarity",
+            "params": {
+              "rarities": ["magic"]
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "set-rarity",
+            "params": {
+              "rarity": "rare"
+            }
+          },
+          {
+            "op": "add-random-mod",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"],
+              "domain": "Item",
+              "count": 1,
+              "limitsForRarity": "rare"
+            }
+          }
+        ]
+      },
+      "add_mod_to_rare": {
+        "description": "^Augments a Rare item with a new random modifier$",
+        "preconditions": [
+          {
+            "op": "require-rarity",
+            "params": {
+              "rarities": ["rare"]
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "add-random-mod",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"],
+              "domain": "Item",
+              "count": 1,
+              "limitsForRarity": "rare"
+            }
+          }
+        ]
+      },
+      "reroll": {
+        "description": "^Removes a random modifier and augments a Rare item with a new random modifier$",
+        "preconditions": [
+          {
+            "op": "require-rarity",
+            "params": {
+              "rarities": ["rare"]
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "remove-random-mod",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"]
+            }
+          },
+          {
+            "op": "add-random-mod",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"],
+              "domain": "Item",
+              "count": 1,
+              "limitsForRarity": "rare"
+            }
+          }
+        ]
+      },
+      "remove_random_mod": {
+        "description": "^Removes a random modifier from an item$",
+        "preconditions": [],
+        "effects": [
+          {
+            "op": "remove-random-mod",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"]
+            }
+          }
+        ]
+      },
+      "convert_to_normal": {
+        "description": "^Removes all modifiers from an item$",
+        "preconditions": [],
+        "effects": [
+          {
+            "op": "clear-mods",
+            "params": {
+              "generationTypes": ["Prefix", "Suffix"]
+            }
+          },
+          {
+            "op": "set-rarity",
+            "params": {
+              "rarity": "normal"
+            }
+          }
+        ]
+      }
+    },
+    "essence": {
+      "description": "^Upgrades a Magic item to a Rare item, adding a guaranteed modifier$",
+      "preconditions": [
+        {
+          "op": "require-rarity",
+          "params": {
+            "rarities": ["magic"]
+          }
+        }
+      ],
+      "effects": [
+        {
+          "op": "set-rarity",
+          "params": {
+            "rarity": "rare"
+          }
+        }
+      ]
+    }
+  },
   "releaseFacts": {
-    "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on. classifications: PoB lists them in its code, damage types as dmgTypeList (Modules/CalcPerform.lua, CalcDefence.lua) and defence layers as the resourceList entries with defence = true (Modules/CalcDefence.lua), v0.23.1; the release id is the snake-case name and must be a mod tag of the release. Known limit: PoB hard-codes level 100 / 99 points, so a different maxCharacterLevel in the game data would not be reflected by PoB.",
+    "$comment": "Facts of the release for the guide pipeline. maxLevelTable is a game-data table (config/data-pipeline/game-data.json). mainTree is a rule in PoB's code, not in its data: Build.lua allows 99 points at level 100 (usedMax), i.e. one point per level from level 2 on. classifications: PoB lists them in its code, damage types as dmgTypeList (Modules/CalcPerform.lua, CalcDefence.lua) and defence layers as the resourceList entries with defence = true (Modules/CalcDefence.lua), v0.23.1; the release id is the snake-case name and must be a mod tag of the release. Known limit: PoB hard-codes level 100 / 99 points, so a different maxCharacterLevel in the game data would not be reflected by PoB. rarities: PoB lists the affix limits in its code (Classes/Item.lua, v0.23.1: affixLimit 2 for magic, 6 for rare, shared evenly between prefixes and suffixes when the item has no own limits); the rarity names are PoB's. Known limit: PoB gives jewels 4 affixes when rare, which this fact does not model. Normal and unique carry no affixes through crafting.",
     "maxLevelTable": "ExperienceLevels",
     "mainTree": {
       "perLevel": 1,
@@ -81,6 +264,25 @@
     "classifications": {
       "damageTypes": ["Physical", "Lightning", "Cold", "Fire", "Chaos"],
       "defenceLayers": ["Armour", "Evasion", "EnergyShield"]
+    },
+    "rarities": {
+      "affixGenerationTypes": ["Prefix", "Suffix"],
+      "list": [
+        {
+          "name": "Normal"
+        },
+        {
+          "name": "Magic",
+          "affixLimit": 2
+        },
+        {
+          "name": "Rare",
+          "affixLimit": 6
+        },
+        {
+          "name": "Unique"
+        }
+      ]
     }
   }
 }
