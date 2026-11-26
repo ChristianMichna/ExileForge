@@ -95,7 +95,7 @@ async function startServerOwningPool(
   const stages = await loadStageConfig(options.stagesConfigPath);
   const catalog = await loadCatalogRelease(options.catalogDir);
   const accessToken = await loadOrCreateAccessToken(options.tokenFile);
-  const store = new RunStore(options.databasePath);
+  const store = new RunStore(options.databasePath, options.logger);
   let calc: CalcPort;
   let pobCalc: PobCalc | undefined;
   let skeleton: PobSkeleton | undefined;
