@@ -5,6 +5,9 @@ import { z } from "zod";
 import { BuildRequest } from "@astrolabe/contracts/build";
 import type { RunEvent } from "@astrolabe/contracts/events";
 import { UserIntervention } from "@astrolabe/contracts/forge";
+import { PublishedGuide } from "@astrolabe/contracts/guide";
+import { guideToBuildFile } from "@astrolabe/exporters";
+import { buildFileResolvers } from "../export/build-file-resolvers.js";
 import type { GuideSweeper } from "../tools/guide-sweep.js";
 import { ForgeError } from "../engine/errors.js";
 import type { ForgeEngine } from "../engine/forge-engine.js";
@@ -37,6 +40,8 @@ export interface AppOptions extends ForgeMcpDeps {
   catalogOnlyReason?: string;
   /** Automatic revalidation of stored guides (F-19); absent without a releases directory. */
   guideSweep?: GuideSweeper;
+  /** The stored guide with this id (see `RunStore.findGuide`), unvalidated; enables the `.build` export. */
+  findGuide?: (guideId: string) => unknown;
   /**
    * Per-installation secret. Every request except /api/health must send
    * `Authorization: Bearer <token>`, so other local processes and web pages
@@ -51,6 +56,9 @@ const CreateRunBody = z.object({
   pipelineId: z.string().min(1).optional(),
 });
 const RunParams = z.object({ runId: z.string().min(1) });
+const GuideParams = z.object({ guideId: z.string().min(1).max(200) });
+/** Name inside the exported `.build` file. */
+const BUILD_FILE_NAME_MAX_CHARS = 80;
 
 /** Local API + MCP endpoint. Never listens on anything but 127.0.0.1. */
 export function createApp(options: AppOptions): FastifyInstance {
@@ -139,6 +147,35 @@ export function createApp(options: AppOptions): FastifyInstance {
       logger.error("guide sweep crashed", { error });
     });
     return reply.code(202).send(sweep.view());
+  });
+
+  app.get("/api/guides/:guideId/build-file", async (request) => {
+    const { guideId } = GuideParams.parse(request.params);
+    if (options.findGuide === undefined) {
+      throw new ForgeError("invalid_request", "The .build export needs the run store.");
+    }
+    const stored = options.findGuide(guideId);
+    if (stored === undefined) throw new ForgeError("unknown_run", `No stored guide ${guideId}.`);
+    const guide = PublishedGuide.safeParse(stored);
+    if (!guide.success) {
+      throw new ForgeError("invalid_request", `Stored guide ${guideId} is not a valid guide.`, {
+        cause: guide.error,
+      });
+    }
+    const { dataReleaseId } = guide.data.metadata;
+    if (dataReleaseId !== options.catalog.dataReleaseId) {
+      throw new ForgeError(
+        "invalid_request",
+        `The guide was built with ${dataReleaseId}, the loaded release is ${options.catalog.dataReleaseId}; revalidate it first.`,
+      );
+    }
+    const { ascendancyId, mainSkillId } = guide.data.summary;
+    const parts = [
+      options.catalog.get({ kind: "ascendancy", id: ascendancyId })?.name,
+      options.catalog.get({ kind: "gem", id: mainSkillId })?.name,
+    ].filter((part): part is string => part !== undefined);
+    const name = (parts.length > 0 ? parts.join(" ") : guideId).slice(0, BUILD_FILE_NAME_MAX_CHARS);
+    return guideToBuildFile(guide.data, buildFileResolvers(options.catalog), name);
   });
 
   app.post("/api/runs", async (request, reply) => {

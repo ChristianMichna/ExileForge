@@ -160,6 +160,9 @@ importers:
       '@astrolabe/economy':
         specifier: workspace:*
         version: link:../../packages/economy
+      '@astrolabe/exporters':
+        specifier: workspace:*
+        version: link:../../packages/exporters
       '@astrolabe/optimizer':
         specifier: workspace:*
         version: link:../../packages/optimizer

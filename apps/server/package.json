@@ -26,6 +26,7 @@
     "@astrolabe/calc": "workspace:*",
     "@astrolabe/calc-client": "workspace:*",
     "@astrolabe/contracts": "workspace:*",
+    "@astrolabe/exporters": "workspace:*",
     "@astrolabe/crafting-sim": "workspace:*",
     "@astrolabe/economy": "workspace:*",
     "@astrolabe/optimizer": "workspace:*",
