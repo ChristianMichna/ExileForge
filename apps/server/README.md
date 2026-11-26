@@ -48,6 +48,7 @@ weiterzuführen.
 | Methode | Pfad                             | Inhalt                                                                             |
 | ------- | -------------------------------- | ---------------------------------------------------------------------------------- |
 | `GET`   | `/api/health`                    | `calcEngine` (`fake`/`pob`), `dataReleaseId`                                       |
+| `GET`   | `/api/claude/status`             | `mcpLastCallAt`: Zeitpunkt des letzten Aufrufs von `/mcp` mit gültigem Token (`null`: noch keiner seit Start) |
 | `POST`  | `/api/runs`                      | `{ request: BuildRequest, pipelineId? }` → `runId`, `sessionCode`, `expiresAt`     |
 | `GET`   | `/api/runs/:runId`               | ganzer Laufzustand (Ergebnisse, offene Fragen, aktuelle Aufgabe)                   |
 | `POST`  | `/api/runs/:runId/session-code`  | neuer Code, z. B. für einen neuen Chat                                             |

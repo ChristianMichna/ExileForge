@@ -371,7 +371,13 @@ export function createApp(options: AppOptions): FastifyInstance {
     return reply;
   });
 
+  // Set by the first authorised call to /mcp: proof that a Claude client reached this server.
+  let mcpLastCallAt: string | undefined;
+
+  app.get("/api/claude/status", async () => ({ mcpLastCallAt: mcpLastCallAt ?? null }));
+
   app.post("/mcp", async (request, reply) => {
+    mcpLastCallAt = new Date().toISOString();
     const server = createForgeMcpServer(options);
     // No sessionIdGenerator: stateless mode; all run state lives in the engine.
     const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true });
