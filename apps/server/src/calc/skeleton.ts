@@ -49,7 +49,7 @@ export interface ProgressionSettings {
 
 /** Settings of the endgame target tree (config/agents/stages.json → s5, without level and points). */
 /** Upper bound of ascendancy search rounds that ban nodes PoB does not calculate. */
-const DEFAULT_ASCENDANCY_ROUNDS = 4;
+const DEFAULT_UNSUPPORTED_ROUNDS = 4;
 
 export interface TargetSettings {
   calcProfiles: readonly CalcProfileId[];
@@ -58,10 +58,10 @@ export interface TargetSettings {
     floors: Record<string, number>;
     floorsFromMetrics?: Record<string, string>;
   };
-  /** See `s5.ascendancyUnsupportedMods` in config/agents/stages.json; `avoid` when absent. */
-  ascendancyUnsupportedMods?: "avoid" | "accept";
-  /** See `s5.ascendancyMaxRounds`; searches that may repeat after banning nodes. */
-  ascendancyMaxRounds?: number;
+  /** See `s5.unsupportedMods` in config/agents/stages.json; `avoid` when absent. */
+  unsupportedMods?: "avoid" | "accept";
+  /** See `s5.unsupportedMaxRounds`; searches that may repeat after banning nodes. */
+  unsupportedMaxRounds?: number;
 }
 
 export interface PobSkeletonOptions {
@@ -152,7 +152,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       );
     }
     const start = BuildState.parse({ ...input.state, tree: { allocated: [], ascendancy: [] } });
-    const result = await this.optimizeFrom(start, {
+    const job = {
       request: input.request,
       profile: input.profile,
       candidateKey: input.candidate.key,
@@ -160,7 +160,8 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       budget: input.passivePoints,
       objective: settings.objective,
       calcProfile: settings.calcProfiles[0] as CalcProfileId,
-    });
+    };
+    const result = await this.optimizeMainTree(start, job, settings);
     // Checked before the ascendancy search, which would spend a whole search on a failed target.
     if (!result.feasible) {
       throw new Error(
@@ -290,6 +291,86 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     return out;
   }
 
+  /**
+   * The main tree of the target. With `unsupportedMods: avoid` each round measures the result and
+   * bans the nodes whose mod texts PoB reports as not calculated, then searches again (the nodes
+   * could not be told apart before, PoB reports the text only for a built tree).
+   */
+  private async optimizeMainTree(
+    start: BuildState,
+    job: Parameters<PobSkeleton["optimizeFrom"]>[1],
+    settings: TargetSettings,
+  ): Promise<TreeOptimizeResult> {
+    const avoid = (settings.unsupportedMods ?? "avoid") === "avoid";
+    const maxRounds = settings.unsupportedMaxRounds ?? DEFAULT_UNSUPPORTED_ROUNDS;
+    const nodes = new Map<PassiveNodeId, PassiveNode>(
+      this.options.catalog.list("passiveNode").map((e) => {
+        const node = e.entity as PassiveNode;
+        return [node.id, node];
+      }),
+    );
+    const banned = new Set<PassiveNodeId>();
+    for (let round = 0; ; round += 1) {
+      const result = await this.optimizeFrom(start, job, [...banned]);
+      if (!avoid) return result;
+      if (!result.feasible) {
+        if (banned.size === 0) return result;
+        throw new Error(
+          `The tree search found no feasible tree after banning the nodes ${JSON.stringify([...banned])} (their mods are not calculated by Path of Building)`,
+        );
+      }
+      const state = BuildState.parse({
+        ...start,
+        tree: { allocated: result.allocated.map((nodeId) => ({ nodeId })), ascendancy: [] },
+      });
+      const unsupported = await this.unsupportedTexts(state, [], job);
+      const triggers = new Map<PassiveNodeId, string[]>();
+      const textless: PassiveNodeId[] = [];
+      const matched = new Set<string>();
+      for (const id of result.allocated) {
+        const node = nodes.get(id);
+        if (node === undefined) {
+          throw new Error(`The tree search allocated the node ${id}, which is not in the catalog`);
+        }
+        const lines: string[] = [];
+        for (const st of node.stats) {
+          if (st.text === undefined) {
+            textless.push(id);
+          } else if (unsupported.has(st.text)) {
+            lines.push(st.text);
+            matched.add(st.text);
+          }
+        }
+        if (lines.length > 0) triggers.set(id, lines);
+      }
+      if (textless.length > 0) {
+        this.options.logger.warn("tree nodes without mod text cannot be checked against PoB", {
+          candidate: job.candidateKey,
+          nodes: textless,
+        });
+      }
+      const unattributed = [...unsupported].filter((line) => !matched.has(line));
+      if (unattributed.length > 0) {
+        this.options.logger.warn("PoB does not calculate mod lines that match no tree node", {
+          candidate: job.candidateKey,
+          lines: unattributed,
+        });
+      }
+      if (triggers.size === 0) return result;
+      if (round + 1 >= maxRounds) {
+        throw new Error(
+          `The tree search still picks nodes whose mods Path of Building does not calculate after ${String(maxRounds)} rounds: ${JSON.stringify(Object.fromEntries(triggers))}`,
+        );
+      }
+      this.options.logger.info("tree search avoids nodes PoB does not calculate", {
+        candidate: job.candidateKey,
+        nodes: [...triggers.keys()],
+        lines: Object.fromEntries(triggers),
+      });
+      for (const id of triggers.keys()) banned.add(id);
+    }
+  }
+
   /** Tree optimisation from an empty tree within a budget; logs when it ends incomplete. */
   private async optimizeFrom(
     start: BuildState,
@@ -306,11 +387,16 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       };
       calcProfile: CalcProfileId;
     },
+    /** Nodes the search must not take besides the player's exclusions. */
+    avoided: readonly PassiveNodeId[] = [],
   ): Promise<TreeOptimizeResult> {
     const graph = this.graphFor(job.classId);
-    const excluded = job.request.exclusions
-      .filter((e) => e.kind === "passiveNode")
-      .map((e) => e.id as PassiveNodeId);
+    const excluded = [
+      ...job.request.exclusions
+        .filter((e) => e.kind === "passiveNode")
+        .map((e) => e.id as PassiveNodeId),
+      ...avoided,
+    ];
     const optimize = this.options.optimize ?? optimizeTree;
     const result: TreeOptimizeResult = await this.options.pob.withBuild(start, (handle) =>
       optimize({
@@ -375,9 +461,9 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       .filter((e) => e.kind === "passiveNode")
       .map((e) => e.id as PassiveNodeId);
     const optimize = this.options.optimize ?? optimizeTree;
-    const avoid = (this.options.target?.ascendancyUnsupportedMods ?? "avoid") === "avoid";
+    const avoid = (this.options.target?.unsupportedMods ?? "avoid") === "avoid";
     const banned = new Set<PassiveNodeId>(excluded);
-    const maxRounds = this.options.target?.ascendancyMaxRounds ?? DEFAULT_ASCENDANCY_ROUNDS;
+    const maxRounds = this.options.target?.unsupportedMaxRounds ?? DEFAULT_UNSUPPORTED_ROUNDS;
     if (!avoid) {
       this.options.logger.info("ascendancy search accepts mods PoB does not calculate", {
         ascendancy: ascendancyId,
