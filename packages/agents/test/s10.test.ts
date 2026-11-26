@@ -224,7 +224,9 @@ describe("S10 measured gates", () => {
   const withStats = (stats: Record<string, number> | undefined, profile = "mapping") =>
     ({
       ...(ctx() as object),
+      run: { request: { calcOverrides: {} } },
       calc: {
+        calculate: () => Promise.resolve({ mapping: { status: "ok", calcId: "c" } }),
         getResult: () =>
           Promise.resolve(stats === undefined ? undefined : { calcProfile: profile, stats }),
       },
@@ -325,7 +327,34 @@ describe("S10 measured gates", () => {
         .flatMap((g) => g.findings)
         .find((x) => x.code === "attribute_requirement_unmet");
     expect(await at({ ...good, A: 80 }, "endgame")).toBeUndefined();
-    expect((await at({ ...good, A: 79 }, "campaign"))?.returnTo).toBeUndefined();
+    // a campaign stage is measured wearing the first gear tier, so the gear part fixes a miss
+    expect((await at({ ...good, A: 79 }, "campaign"))?.returnTo).toBe("S7.gear-end");
+  });
+
+  it("measures a campaign stage's attributes with the first gear tier's items (G3)", async () => {
+    const seen: unknown[] = [];
+    const base = withStats({ ...good, A: 10 }) as never as { calc: object };
+    const c = {
+      ...(base as object),
+      calc: {
+        ...base.calc,
+        calculate: (input: { state: { items: unknown[] } }) => {
+          seen.push(input.state.items);
+          return Promise.resolve({ mapping: { status: "ok", calcId: "geared" } });
+        },
+        getResult: (id: string) =>
+          Promise.resolve({
+            calcProfile: "mapping",
+            stats: id === "geared" ? { ...good, A: 200 } : { ...good, A: 10 },
+          }),
+      },
+    } as never as PipelineContext;
+    const codes = (await runGates(c, stageAt(5, "campaign"), cfg as never))
+      .flatMap((g) => g.findings)
+      .map((f) => f.code);
+    expect(codes).not.toContain("attribute_requirement_unmet");
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toHaveLength(1);
   });
 
   it("fails G2 for a missing required profile and for unsupported mods nobody accepted", async () => {
@@ -334,7 +363,9 @@ describe("S10 measured gates", () => {
         await runGates(
           {
             ...(withStats(good) as object),
+            run: { request: { calcOverrides: {} } },
             calc: {
+              calculate: () => Promise.resolve({ mapping: { status: "ok", calcId: "c" } }),
               getResult: () =>
                 Promise.resolve({
                   calcProfile: "mapping",
@@ -460,7 +491,9 @@ describe("S10 measured gates", () => {
     const ids: string[] = [];
     const ctxSeen = {
       ...(ctx() as object),
+      run: { request: { calcOverrides: {} } },
       calc: {
+        calculate: () => Promise.resolve({ mapping: { status: "ok", calcId: "c" } }),
         getResult: (id: string) => {
           ids.push(id);
           return Promise.resolve({
