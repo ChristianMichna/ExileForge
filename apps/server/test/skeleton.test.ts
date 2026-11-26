@@ -52,13 +52,14 @@ function setup(optimizeResult: object, stagesResult?: object, usedCatalog = cata
     Promise.resolve(optimizeResult as never),
   );
   const withBuild = vi.fn((_state: unknown, fn: (h: string) => Promise<unknown>) => fn("handle-1"));
+  const getResult = vi.fn(() => Promise.resolve({ unsupportedMods: [] as string[] } as never));
   const calculate = vi.fn(() =>
     Promise.resolve({ "as-saved": { status: "ok" as const, calcId: CalcId.parse("calc-1") } }),
   );
   const skeleton = new PobSkeleton({
     pob: { withBuild } as never,
     pool: { request: () => Promise.reject(new Error("not used")) } as never,
-    calc: { engine: "pob", calculate, getResult: () => Promise.resolve(undefined) },
+    calc: { engine: "pob", calculate, getResult },
     catalog: usedCatalog,
     optimizerConfig: {} as never,
     settings: {
@@ -75,7 +76,7 @@ function setup(optimizeResult: object, stagesResult?: object, usedCatalog = cata
     optimize,
     optimizeStages: (() => Promise.resolve(stagesResult as never)) as never,
   });
-  return { skeleton, optimize, withBuild, calculate };
+  return { skeleton, optimize, withBuild, calculate, getResult };
 }
 
 describe("PobSkeleton", () => {
@@ -243,6 +244,31 @@ describe("PobSkeleton", () => {
       const loaded = withBuild.mock.calls[1]?.[0] as { tree: { allocated: unknown[] } };
       expect(loaded.tree.allocated).toHaveLength(2);
       expect(out.state.tree.ascendancy).toEqual(["FixAsc1"]);
+      // nodes whose mods PoB does not calculate are banned and the search runs again
+      const text = "Fixture mod PoB ignores";
+      const skipped = new MemoryCatalog(RELEASE, [
+        ...(SHARDS.map(ascShard) as never as typeof SHARDS),
+        CatalogShard.parse({
+          schemaVersion: 1,
+          dataReleaseId: RELEASE,
+          kind: "passiveNode",
+          entities: [
+            node("FixStartA", ["FixN1"], { classStartFor: ["FixClassA"] }),
+            node("FixN1", ["FixStartA", "FixN2"]),
+            node("FixN2", ["FixN1"]),
+            node("FixAscStart", ["FixAsc1"], { ascendancyId: "FixAscA1" }),
+            node("FixAsc1", ["FixAscStart"], { ascendancyId: "FixAscA1", stats: [{ text }] }),
+          ],
+        }),
+      ]);
+      const again = setup(done, undefined, skipped);
+      again.optimize.mockResolvedValueOnce(done as never);
+      again.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAsc1"] } as never);
+      again.getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
+      again.optimize.mockResolvedValueOnce({ ...done, allocated: ["FixAscStart"] } as never);
+      const second = await again.skeleton.optimizeTree({ ...input, ascendancyPoints: 3 });
+      expect(again.optimize.mock.calls[2]?.[0].forbiddenNodeIds).toContain("FixAsc1");
+      expect(second.state.tree.ascendancy).toEqual(["FixAscStart"]);
       // an ascendancy search that fails is a failed job, not a target without ascendancy
       optimize.mockResolvedValueOnce(done as never);
       optimize.mockResolvedValueOnce({

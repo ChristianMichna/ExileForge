@@ -48,6 +48,9 @@ export interface ProgressionSettings {
 }
 
 /** Settings of the endgame target tree (config/agents/stages.json → s5, without level and points). */
+/** Upper bound of ascendancy search rounds that ban nodes PoB does not calculate. */
+const MAX_ASCENDANCY_ROUNDS = 4;
+
 export interface TargetSettings {
   calcProfiles: readonly CalcProfileId[];
   objective: {
@@ -55,6 +58,8 @@ export interface TargetSettings {
     floors: Record<string, number>;
     floorsFromMetrics?: Record<string, string>;
   };
+  /** See `s5.ascendancyUnsupportedMods` in config/agents/stages.json; `avoid` when absent. */
+  ascendancyUnsupportedMods?: "avoid" | "accept";
 }
 
 export interface PobSkeletonOptions {
@@ -368,24 +373,51 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       .filter((e) => e.kind === "passiveNode")
       .map((e) => e.id as PassiveNodeId);
     const optimize = this.options.optimize ?? optimizeTree;
-    const result: TreeOptimizeResult = await this.options.pob.withBuild(withMainTree, (handle) =>
-      optimize({
-        graph,
-        allocated: [],
-        budget: points,
-        objective: job.objective,
-        evaluator: createPobTreeEvaluator({
-          pool: this.options.pool,
-          handle,
-          profile: job.calcProfile,
-          baseAllocated: [],
-          overrides: job.request.calcOverrides,
+    const avoid = (this.options.target?.ascendancyUnsupportedMods ?? "avoid") === "avoid";
+    const banned = new Set<PassiveNodeId>(excluded);
+    // Each round searches without the nodes banned so far; a node is banned when PoB reports its
+    // text as a mod it does not calculate. The rounds end when the result has none (or at the cap).
+    for (let round = 0; ; round += 1) {
+      const result: TreeOptimizeResult = await this.options.pob.withBuild(withMainTree, (handle) =>
+        optimize({
+          graph,
+          allocated: [],
+          budget: points,
+          objective: job.objective,
+          evaluator: createPobTreeEvaluator({
+            pool: this.options.pool,
+            handle,
+            profile: job.calcProfile,
+            baseAllocated: [],
+            overrides: job.request.calcOverrides,
+          }),
+          config: this.options.optimizerConfig,
+          priorityNodeIds: job.profile.relevantNodes.filter((id) => graph.has(id)),
+          forbiddenNodeIds: [...banned].filter((id) => graph.has(id)),
         }),
-        config: this.options.optimizerConfig,
-        priorityNodeIds: job.profile.relevantNodes.filter((id) => graph.has(id)),
-        forbiddenNodeIds: excluded.filter((id) => graph.has(id)),
-      }),
-    );
+      );
+      this.checkAscendancyResult(result, ascendancyId);
+      if (!avoid) return result.allocated;
+      const unsupported = await this.unsupportedTexts(withMainTree, result.allocated, job);
+      const bad = result.allocated.filter((id) => {
+        const node = nodes.find((n) => n.id === id);
+        return node?.stats.some((st) => st.text !== undefined && unsupported.has(st.text)) === true;
+      });
+      if (bad.length === 0) return result.allocated;
+      if (round + 1 >= MAX_ASCENDANCY_ROUNDS) {
+        throw new Error(
+          `The ascendancy search still picks nodes whose mods Path of Building does not calculate after ${String(MAX_ASCENDANCY_ROUNDS)} rounds`,
+        );
+      }
+      this.options.logger.info("ascendancy search avoids nodes PoB does not calculate", {
+        ascendancy: ascendancyId,
+        nodes: bad,
+      });
+      for (const id of bad) banned.add(id);
+    }
+  }
+
+  private checkAscendancyResult(result: TreeOptimizeResult, ascendancyId: string): void {
     if (!result.feasible) {
       throw new Error(
         `The ascendancy search could not meet the objective floors: ${JSON.stringify(result.violations)}`,
@@ -404,7 +436,34 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         firstFailures: result.failedEvaluations.slice(0, 3),
       });
     }
-    return result.allocated;
+  }
+
+  /** The mod texts PoB reports as not calculated for the main tree plus these ascendancy nodes. */
+  private async unsupportedTexts(
+    withMainTree: BuildState,
+    ascendancy: readonly PassiveNodeId[],
+    job: { request: SkeletonRequest["request"]; calcProfile: CalcProfileId },
+  ): Promise<Set<string>> {
+    const state = BuildState.parse({
+      ...withMainTree,
+      tree: { ...withMainTree.tree, ascendancy: [...ascendancy] },
+    });
+    const outcomes = await this.options.calc.calculate({
+      state,
+      profiles: [job.calcProfile],
+      overrides: job.request.calcOverrides,
+    });
+    const outcome = outcomes[job.calcProfile];
+    if (outcome?.status !== "ok") {
+      throw new Error(
+        `The engine could not measure the ascendancy nodes (profile ${job.calcProfile})`,
+      );
+    }
+    const loaded = await this.options.calc.getResult(outcome.calcId);
+    if (loaded === undefined) {
+      throw new Error(`The result ${outcome.calcId} of the ascendancy measurement is gone`);
+    }
+    return new Set(loaded.unsupportedMods);
   }
 
   private graphFor(classId: string): TreeGraph {
