@@ -123,33 +123,60 @@ describe("GuideSweeper", () => {
 });
 
 describe("RunStore guide helpers", () => {
-  it("shows a damaged stored check as an internal error and keeps the others", () => {
-    const store = new RunStore(":memory:");
-    store.savePatchCheck(
-      GUIDE,
-      CURRENT,
-      { kind: "error", code: "diff_missing", message: "x" },
-      "2026-11-26T08:00:00.000Z",
-    );
-    store.savePatchCheck(
-      "22222222-2222-4222-8222-222222222222",
-      CURRENT,
-      { kind: "error", code: "diff_missing", message: "x" },
-      "2026-11-26T08:00:00.000Z",
-    );
-    // a row written by another version: unknown error code
-    store.savePatchCheck(
-      "33333333-3333-4333-8333-333333333333",
-      CURRENT,
-      { kind: "error", code: "from_the_future", message: "x" } as never,
-      "2026-11-26T08:00:00.000Z",
-    );
+  it("shows damaged stored checks as internal errors, logs them and keeps the valid ones", () => {
+    const logger = createMemoryLogger();
+    const store = new RunStore(":memory:", logger);
+    const at = "2026-11-26T08:00:00.000Z";
+    const err = { kind: "error", code: "diff_missing", message: "x" } as const;
+    store.savePatchCheck(ID.a, CURRENT, err, at);
+    // another version wrote an unknown error code
+    store.savePatchCheck(ID.b, CURRENT, { ...err, code: "from_the_future" } as never, at);
+    // a damaged time
+    store.savePatchCheck(ID.c, CURRENT, err, "t1");
+    // not a guide id at all
+    store.savePatchCheck("not-a-uuid", CURRENT, err, at);
     const rows = store.listPatchChecks(CURRENT);
-    expect(rows).toHaveLength(3);
-    expect(rows.find((r) => r.guideId.startsWith("3333"))?.outcome).toMatchObject({
-      kind: "error",
-      code: "internal",
+    expect(rows.map((r) => r.guideId)).toEqual([ID.a, ID.b, ID.c]);
+    expect(rows[0]?.outcome).toEqual(err);
+    expect(rows[1]?.outcome).toMatchObject({ kind: "error", code: "internal" });
+    expect(rows[2]?.outcome).toMatchObject({ kind: "error", code: "internal" });
+    expect(rows[2]?.checkedAt).toBe("1970-01-01T00:00:00.000Z");
+    expect(logger.entries.filter((e) => e.level === "error")).toHaveLength(3);
+  });
+
+  it("turns a ForgeError outside the documented codes into an internal error and logs it", async () => {
+    IDS = [ID.a];
+    const logger = createMemoryLogger();
+    const store = new RunStore(":memory:");
+    const s = new GuideSweeper({
+      listGuideIds: () => IDS,
+      revalidate: (() =>
+        Promise.reject(new ForgeError("invalid_request", "secret /path"))) as never,
+      builtWith: () => OLD,
+      save: (g, to, o, at) => store.savePatchCheck(g, to, o, at),
+      list: (to) => store.listPatchChecks(to),
+      currentReleaseId: CURRENT,
+      now: () => new Date("2026-11-26T08:00:00Z"),
+      logger,
     });
+    await s.run();
+    const outcome = s.view().guides[0]?.outcome;
+    expect(outcome).toMatchObject({ kind: "error", code: "internal" });
+    expect(JSON.stringify(outcome)).not.toContain("/path");
+    expect(logger.entries.some((e) => e.level === "error")).toBe(true);
+    IDS = ALL;
+  });
+
+  it("does not check a run record whose guide id is not valid", async () => {
+    IDS = ["not-a-uuid", ID.a];
+    const calls: string[] = [];
+    const s = sweeper(new RunStore(":memory:"), (id) => {
+      calls.push(id);
+      return Promise.reject(new ForgeError("diff_missing", "x"));
+    });
+    await s.run();
+    expect(calls).toEqual([ID.a]);
+    IDS = ALL;
   });
 
   it("overwrites a check of the same guide and release", () => {

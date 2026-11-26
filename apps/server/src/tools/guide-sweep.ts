@@ -5,6 +5,7 @@ import {
   type GuidePatchStatusView,
   type PatchCheckOutcome,
 } from "@astrolabe/contracts";
+import { z } from "zod";
 import { ForgeError } from "../engine/errors.js";
 import type { Logger } from "../logger.js";
 import type { GuideRevalidatePort } from "./guide-revalidate.js";
@@ -26,6 +27,8 @@ export interface GuideSweepDeps {
   now: () => Date;
   logger: Logger;
 }
+
+const GUIDE_ID = z.uuid();
 
 /**
  * F-19, automatic: after a new data release is installed, every stored guide
@@ -83,6 +86,11 @@ export class GuideSweeper {
       );
       for (const guideId of this.deps.listGuideIds()) {
         if (this.stopped) return;
+        if (!GUIDE_ID.safeParse(guideId).success) {
+          // A damaged run record: no guide this app could show or check.
+          this.deps.logger.error("a stored run carries a guide id that is not valid", { guideId });
+          continue;
+        }
         if (!force && have.has(guideId)) continue;
         await this.check(guideId);
       }
