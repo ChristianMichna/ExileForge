@@ -451,6 +451,14 @@ local function collectStats(warnings)
 			end
 		end
 	end
+	-- PoB sets ReqStr/ReqDex/ReqInt only when something asks for more than zero, but always
+	-- sets the matching "<name>String" marker once the requirement block ran (CalcPerform.lua).
+	-- Marker present and requirement absent means "no requirement", i.e. zero.
+	for _, key in ipairs({ "ReqStr", "ReqDex", "ReqInt" }) do
+		if stats[key] == nil and output[key .. "String"] == 0 then
+			stats[key] = 0
+		end
+	end
 	if #nonFinite > 0 then
 		table.sort(nonFinite)
 		warnings[#warnings + 1] = "Path of Building returned non-finite values (left out of stats): " .. table.concat(nonFinite, ", ")
