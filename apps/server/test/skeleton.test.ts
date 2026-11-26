@@ -9,7 +9,7 @@ import {
 import { CatalogShard } from "@astrolabe/contracts/catalog";
 import { CalcId } from "@astrolabe/contracts/common";
 import { MemoryCatalog } from "../src/catalog/memory-catalog.js";
-import { PobSkeleton, connectedPart } from "../src/calc/skeleton.js";
+import { PobSkeleton, connectedPart, statLines } from "../src/calc/skeleton.js";
 import { createMemoryLogger } from "../src/logger.js";
 import { RELEASE, REQUEST, SHARDS, candidate } from "./fixtures.js";
 
@@ -370,6 +370,29 @@ describe("PobSkeleton", () => {
       expect(kept.state.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1", "FixN2"]);
     });
 
+    it("matches the lines of a multi-line stat text one by one", async () => {
+      const line = "Second line PoB ignores";
+      const flawed = new MemoryCatalog(RELEASE, [
+        ...SHARDS,
+        CatalogShard.parse({
+          schemaVersion: 1,
+          dataReleaseId: RELEASE,
+          kind: "passiveNode",
+          entities: [
+            node("FixStartA", ["FixN1"], { classStartFor: ["FixClassA"] }),
+            node("FixN1", ["FixStartA", "FixN2"]),
+            node("FixN2", ["FixN1"], { stats: [{ text: `First line\n${line}` }] }),
+          ],
+        }),
+      ]);
+      const { skeleton, optimize, getResult } = setup(done, undefined, flawed);
+      optimize.mockResolvedValueOnce(done as never);
+      optimize.mockResolvedValueOnce({ ...done, allocated: ["FixN1"] } as never);
+      getResult.mockResolvedValueOnce({ unsupportedMods: [line] } as never);
+      await skeleton.optimizeTree(input);
+      expect(optimize.mock.calls[1]?.[0].forbiddenNodeIds).toContain("FixN2");
+    });
+
     it("fails when the objective floors cannot be met", async () => {
       const { skeleton } = setup({ ...done, feasible: false, violations: [{ stat: "x" }] });
       await expect(skeleton.optimizeTree(input)).rejects.toThrow(/floors/);
@@ -450,5 +473,15 @@ describe("connectedPart", () => {
     expect(connectedPart(graph, ids(["A", "B", "C", "E"]), new Set(["A"]))).toEqual([]);
     expect(connectedPart(graph, ids(["A", "B"]), new Set(["A", "D"]))).toEqual([]);
     expect(connectedPart(graph, [], new Set())).toEqual([]);
+  });
+});
+
+describe("statLines", () => {
+  it("splits a text into its lines and keeps the whole text as well", () => {
+    expect(statLines("A")).toEqual(["A"]);
+    expect(statLines("A\nB")).toEqual(["A\nB", "A", "B"]);
+    expect(statLines("")).toEqual([]);
+    expect(statLines("A\r\nB")).toEqual(["A\r\nB", "A", "B"]);
+    expect(statLines("A\n  \nB")).toEqual(["A\n  \nB", "A", "B"]);
   });
 });

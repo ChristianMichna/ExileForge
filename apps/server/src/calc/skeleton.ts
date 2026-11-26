@@ -338,9 +338,12 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         for (const st of node.stats) {
           if (st.text === undefined) {
             textless.push(id);
-          } else if (unsupported.has(st.text)) {
-            lines.push(st.text);
-            matched.add(st.text);
+            continue;
+          }
+          for (const line of statLines(st.text)) {
+            if (!unsupported.has(line)) continue;
+            if (!lines.includes(line)) lines.push(line);
+            matched.add(line);
           }
         }
         if (lines.length > 0) triggers.set(id, lines);
@@ -520,10 +523,14 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       const matched = new Set<string>();
       for (const node of chosen) {
         for (const st of node.stats) {
-          if (st.text === undefined || !unsupported.has(st.text)) continue;
-          matched.add(st.text);
-          if (baseline.has(st.text)) continue;
-          triggers.set(node.id, [...(triggers.get(node.id) ?? []), st.text]);
+          if (st.text === undefined) continue;
+          for (const line of statLines(st.text)) {
+            if (!unsupported.has(line)) continue;
+            matched.add(line);
+            if (baseline.has(line)) continue;
+            const known = triggers.get(node.id) ?? [];
+            if (!known.includes(line)) triggers.set(node.id, [...known, line]);
+          }
         }
       }
       // Every line PoB reports beyond the main tree must belong to a chosen node; otherwise the
@@ -635,4 +642,10 @@ export function connectedPart(
   }
   // Breadth-first from the start, so every node comes after a node it hangs on.
   return order;
+}
+
+/** A stat text can hold several lines (one stat, several mods); PoB reports each line alone. */
+export function statLines(text: string): string[] {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
+  return lines.length > 0 && !lines.includes(text) ? [text, ...lines] : lines;
 }
