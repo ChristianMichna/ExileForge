@@ -82,6 +82,7 @@ describe("data release lookup", () => {
     expect(d.databasePath).toBe(join("/u", "astrolabe.sqlite"));
     expect(d.pobHome).toBe(join("/repo", ".pob"));
     expect(d.calcWorkerLua).toBe(join("/repo", "apps", "calc", "lua", "worker.lua"));
+    expect(d.exampleGuidesDir).toBe(join("/repo", "examples", "guides"));
   });
 
   it("finds PoB and the calc worker file in the resources when packaged", () => {
@@ -94,6 +95,7 @@ describe("data release lookup", () => {
     expect(d.pobHome).toBe(join("/r", "pob"));
     expect(d.calcWorkerLua).toBe(join("/r", "calc-lua", "worker.lua"));
     expect(d.optimizerConfigPath).toBe(join("/r", "config", "optimizer", "tree.json"));
+    expect(d.exampleGuidesDir).toBe(join("/r", "example-guides"));
   });
 });
 

@@ -37,6 +37,7 @@ extraResources:
   - { from: ../../config/optimizer, to: config/optimizer }
   - { from: ../mcp-bridge/dist/astrolabe.mcpb, to: astrolabe.mcpb }
   - { from: data-release, to: data-release }
+  - { from: ../../examples/guides, to: example-guides }
 asar: true
 # Fuses: the exe cannot be used as a plain Node interpreter, only the signed-in asar loads.
 electronFuses:

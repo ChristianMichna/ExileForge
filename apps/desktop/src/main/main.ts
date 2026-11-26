@@ -154,6 +154,7 @@ async function boot(): Promise<void> {
       forgeConfigPath: dirs.forgeConfigPath,
       stagesConfigPath: dirs.stagesConfigPath,
       releasesDir: dirs.downloadedReleasesDir,
+      exampleGuidesDir: dirs.exampleGuidesDir,
       pob: {
         resourcesRoot: dirs.resourcesRoot,
         pobHome: dirs.pobHome,

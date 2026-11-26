@@ -143,6 +143,8 @@ geschlossen. Abfragen haben Zeitgrenzen (`listTimeoutSeconds`, `installTimeoutMi
 abgebrochen. Ein bereits installiertes, wartendes Release bleibt auch dann sichtbar, wenn eine spätere Prüfung
 fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträglich beschädigt wird (Folgeaufgabe).
 
+**Beispiel-Guides** (F-20): Der Installer bringt `examples/guides/` als `example-guides/` mit (`extraResources`); `AppDirs.exampleGuidesDir` reicht den Ordner an den Server, der die Guide-Dateien beim Start einspielt, soweit er sie noch nicht kennt.
+
 ## Updates, Release und Selbsttest (F-09)
 
 - **Auto-Update:** Jeder Push auf `main`, der die App berührt, baut in `desktop.yml` den
