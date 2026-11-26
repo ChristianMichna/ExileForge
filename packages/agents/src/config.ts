@@ -201,6 +201,8 @@ export const StageConfig = z
         /** Progression stage kinds ("campaign" or "endgame") whose resistances must be at cap. */
         resistanceCapStageKinds: z.array(z.enum(["campaign", "endgame"])).min(1),
         /** Minimum EHP and DPS from a character level on; for each of the two minimums the entry with the highest fromLevel at or below a stage's level that sets it applies. */
+        /** False while the thresholds are measured starting values, not set by the product owner; the report then carries a warning. */
+        thresholdsCalibrated: z.boolean().default(false),
         thresholds: z
           .array(
             z.object({
