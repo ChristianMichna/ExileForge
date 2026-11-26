@@ -198,6 +198,24 @@ describe("DataRelease item slots", () => {
     expect(DataRelease.safeParse({ ...validRelease, rarities: none }).success).toBe(false);
   });
 
+  it("accepts affix limits per item class", () => {
+    const withClass = {
+      origin: "pob-code",
+      rarities: [
+        {
+          id: "fine",
+          name: "Fine",
+          maxAffixes: { left: 3, right: 3 },
+          maxAffixesByItemClass: { Gem: { left: 2, right: 2 } },
+        },
+      ],
+    };
+    expect(DataRelease.safeParse({ ...validRelease, rarities: withClass }).success).toBe(true);
+    const bad = JSON.parse(JSON.stringify(withClass));
+    bad.rarities[0].maxAffixesByItemClass.Gem.left = -1;
+    expect(DataRelease.safeParse({ ...validRelease, rarities: bad }).success).toBe(false);
+  });
+
   it("accepts the origin of the game ids", () => {
     expect(
       DataRelease.safeParse({ ...validRelease, gameIds: { origin: "game-data" } }).success,

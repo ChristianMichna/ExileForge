@@ -191,6 +191,13 @@ export const ReleaseRarities = z
           name: z.string().min(1),
           /** Mods per generation type id (e.g. prefix and suffix) at most. */
           maxAffixes: z.record(ClassificationId, z.int().nonnegative()).optional(),
+          /**
+           * Limits that differ for base items of an item class (`BaseItem.itemClass`), in the
+           * same form as `maxAffixes`; a class listed here uses these limits instead.
+           */
+          maxAffixesByItemClass: z
+            .record(ClassificationId, z.record(ClassificationId, z.int().nonnegative()))
+            .optional(),
         }),
       )
       .min(1),

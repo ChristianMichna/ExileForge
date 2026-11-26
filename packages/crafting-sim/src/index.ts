@@ -1,5 +1,5 @@
 export { simulate, CRAFT_SIM_FORMULA_VERSION, type SimulateOptions } from "./simulate.js";
-export { createSimCatalog, type SimCatalog } from "./catalog.js";
+export { createSimCatalog, type SimCatalog, type SimRarity } from "./catalog.js";
 export { CraftSimConfig, parseCraftSimConfig } from "./config.js";
 export { CraftSimInputError } from "./errors.js";
 export { Rng } from "./rng.js";

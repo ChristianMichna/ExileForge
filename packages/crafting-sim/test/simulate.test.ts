@@ -680,4 +680,116 @@ describe("add-specific-mod", () => {
     expect(none.successChance.value).toBeLessThan(0.55);
     expect(filtered.successChance.value).toBe(1);
   });
+
+  describe("limits from the release's rarities", () => {
+    const byRarity = {
+      op: "add-random-mod",
+      params: { generationTypes: ["gen-p"], limitsByRarity: true, domain: "domain-item", count: 1 },
+    };
+    const twoAdds = (rarities?: Parameters<typeof createSimCatalog>[0]["rarities"]) =>
+      simulate(
+        request({
+          strategy: {
+            steps: [{ order: 0, actionIds: ["act-rar", "act-rar"], onFail: { action: "accept" } }],
+          },
+          goal: { clauses: [{ anyOfModIds: ["mod-a", "mod-b"] }] },
+        }),
+        {
+          catalog: createSimCatalog({
+            baseItems: [base],
+            mods: [mod("mod-a", 1), mod("mod-b", 3)],
+            actions: [action("act-rar", [byRarity])],
+            rarities,
+          }),
+          config,
+        },
+      );
+
+    it("blocks the second mod at the rarity's limit of one", () => {
+      const res = twoAdds([{ id: "rarity-x", name: "X", maxAffixes: { "gen-p": 1 } }]);
+      expect(res.outcomes?.blocked).toBe(res.runs);
+    });
+
+    it("lets the item class's own limit win over the rarity's", () => {
+      const res = twoAdds([
+        {
+          id: "rarity-x",
+          name: "X",
+          maxAffixes: { "gen-p": 1 },
+          maxAffixesByItemClass: { "class-x": { "gen-p": 2 } },
+        },
+      ]);
+      expect(res.outcomes?.blocked).toBe(0);
+      expect(res.successChance.status).toBe("ok");
+    });
+
+    it("blocks when the item's rarity has no limit for the type, and is uncalibrated without rarities", () => {
+      const none = twoAdds([{ id: "rarity-x", name: "X" }]);
+      expect(none.outcomes?.blocked).toBe(none.runs);
+      const missing = twoAdds(undefined);
+      expect(missing.successChance.status).toBe("uncalibrated");
+    });
+
+    it("is uncalibrated when the start rarity or a set-rarity target is not in the release", () => {
+      const known = [{ id: "rarity-x", name: "X", maxAffixes: { "gen-p": 2 } }];
+      expect(
+        twoAdds([{ id: "rarity-z", name: "Z", maxAffixes: { "gen-p": 2 } }]).successChance.status,
+      ).toBe("uncalibrated");
+      const res = simulate(
+        request({
+          strategy: { steps: [{ order: 0, actionIds: ["act-up"], onFail: { action: "accept" } }] },
+          goal: { clauses: [{ anyOfModIds: ["mod-a", "mod-b"] }] },
+        }),
+        {
+          catalog: createSimCatalog({
+            baseItems: [base],
+            mods: [mod("mod-a", 1), mod("mod-b", 3)],
+            actions: [
+              action("act-up", [{ op: "set-rarity", params: { rarity: "rarity-nope" } }, byRarity]),
+            ],
+            rarities: known,
+          }),
+          config,
+        },
+      );
+      expect(res.successChance.status).toBe("uncalibrated");
+    });
+
+    it("add-specific-mod takes the rarity's limit and adds none where the limit is missing", () => {
+      const fixedByRarity = action(
+        "act-fixed",
+        [
+          {
+            op: "add-specific-mod",
+            params: { modByItemClass: { "class-x": "mod-b" }, limitsByRarity: true },
+          },
+        ],
+        { preconditions: [{ op: "require-rarity", params: { rarities: ["rarity-x"] } }] },
+      );
+      const run = (rarities: Parameters<typeof createSimCatalog>[0]["rarities"]) =>
+        simulate(
+          request({
+            goal: { clauses: [{ anyOfModIds: ["mod-b"] }] },
+            strategy: {
+              steps: [{ order: 0, actionIds: ["act-fixed"], onFail: { action: "accept" } }],
+            },
+            runs: 200,
+          }),
+          {
+            catalog: createSimCatalog({
+              baseItems: [base],
+              mods: [mod("mod-a", 1), mod("mod-b", 1)],
+              actions: [fixedByRarity],
+              rarities,
+            }),
+            config,
+          },
+        );
+      const ok = run([{ id: "rarity-x", name: "X", maxAffixes: { "gen-p": 1 } }]);
+      expect(ok.outcomes?.blocked).toBe(0);
+      const none = run([{ id: "rarity-x", name: "X" }]);
+      expect(none.outcomes?.blocked).toBe(none.runs);
+      expect(run(undefined).successChance.status).toBe("uncalibrated");
+    });
+  });
 });

@@ -44,6 +44,13 @@ echte Release-Daten zu prüfen):** `TieredCurrency.MinimumModLevel` ist dieser M
 hinzugefügten Mods; belegt ist nur der Spaltenname, die Beschreibungen der Stufen sind gleich.
 Unbekannte Parameter eines `add-random-mod` lassen die Aktion scheitern statt zu verschwinden.
 
+**Affix-Grenzen:** `add-random-mod` und `add-specific-mod` nehmen entweder feste `limits`
+(je Generierungstyp) oder `limitsByRarity: true`. Dann gilt die Grenze der Release für die
+Seltenheit, die das Item beim Ausführen hat (nach einem `set-rarity` davor also die neue); ein
+Eintrag für die Item-Klasse der Basis (`maxAffixesByItemClass`) hat Vorrang vor dem allgemeinen.
+Fehlt der Seltenheit die Grenze eines Typs, nimmt das Item keinen Mod dieses Typs. Listet die Release
+keine Seltenheiten, ist die Aktion `uncalibrated`. `createSimCatalog` bekommt dafür `rarities`.
+
 `add-specific-mod` (z. B. für Essenzen) setzt den Mod, den die Release je
 Item-Klasse der Basis nennt: `params: { modByItemClass: { <Item-Klasse>: <Mod-ID> }, limits? }`.
 Steht die Klasse der Basis nicht in der Liste oder fehlt der Mod im Katalog, ist
