@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DataReleaseId } from "@astrolabe/contracts";
+import { DataReleaseId, GuidePatchStatusView } from "@astrolabe/contracts";
 import { CalcFake } from "../src/calc/calc-fake.js";
 import { ForgeEngine } from "../src/engine/forge-engine.js";
 import { createApp } from "../src/http/app.js";
@@ -61,7 +61,7 @@ describe("guide patch-status routes", () => {
   it("say when the check is switched off instead of returning an empty list", async () => {
     const a = app(false);
     const view = await a.inject({ method: "GET", url: "/api/guides/patch-status", headers });
-    expect(view.json()).toMatchObject({ enabled: false, guides: [] });
+    expect(GuidePatchStatusView.parse(view.json())).toMatchObject({ enabled: false, guides: [] });
     const refresh = await a.inject({
       method: "POST",
       url: "/api/guides/patch-status/refresh",
@@ -73,7 +73,11 @@ describe("guide patch-status routes", () => {
   it("return the view and accept a refresh", async () => {
     const a = app(true);
     const view = await a.inject({ method: "GET", url: "/api/guides/patch-status", headers });
-    expect(view.json()).toMatchObject({ enabled: true, running: false, guides: [] });
+    expect(GuidePatchStatusView.parse(view.json())).toMatchObject({
+      enabled: true,
+      running: false,
+      guides: [],
+    });
     const refresh = await a.inject({
       method: "POST",
       url: "/api/guides/patch-status/refresh",

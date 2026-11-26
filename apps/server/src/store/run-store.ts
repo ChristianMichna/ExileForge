@@ -3,7 +3,7 @@ import { z } from "zod";
 import { CalcResult } from "@astrolabe/contracts/calc";
 import { RunEvent } from "@astrolabe/contracts/events";
 import { RunRecord } from "../engine/run-record.js";
-import { PatchCheckOutcome, type StoredPatchCheck } from "./patch-check.js";
+import { GuidePatchCheck, PatchCheckOutcome } from "@astrolabe/contracts";
 
 /**
  * SQLite store for runs and their event log (node:sqlite, no native
@@ -102,22 +102,35 @@ export class RunStore {
       .run(guideId, toReleaseId, JSON.stringify(outcome), checkedAt);
   }
 
-  /** Stored revalidation outcomes against one release. */
-  listPatchChecks(toReleaseId: string): StoredPatchCheck[] {
+  /**
+   * Stored revalidation outcomes against one release. A row that does not match the contract
+   * (damaged or written by another version) is shown as an `internal` error for that guide, so
+   * one bad row neither hides the others nor passes as a verdict.
+   */
+  listPatchChecks(toReleaseId: string): GuidePatchCheck[] {
     return this.db
       .prepare(
         "SELECT guide_id, outcome, checked_at FROM patch_checks WHERE to_release_id = ? ORDER BY guide_id",
       )
       .all(toReleaseId)
-      .map((row) => ({
-        guideId: String(row["guide_id"]),
-        outcome: parseRow(
-          PatchCheckOutcome,
-          row["outcome"],
-          `patch check ${String(row["guide_id"])}`,
-        ),
-        checkedAt: String(row["checked_at"]),
-      }));
+      .map((row) => {
+        const guideId = String(row["guide_id"]);
+        const checkedAt = String(row["checked_at"]);
+        let raw: unknown;
+        try {
+          raw = JSON.parse(String(row["outcome"]));
+        } catch {
+          raw = undefined;
+        }
+        const outcome = PatchCheckOutcome.safeParse(raw);
+        return GuidePatchCheck.parse({
+          guideId,
+          checkedAt,
+          outcome: outcome.success
+            ? outcome.data
+            : { kind: "error", code: "internal", message: "The stored check result is damaged." },
+        });
+      });
   }
 
   /** Saves the run and its new events in one transaction. */
