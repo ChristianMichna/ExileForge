@@ -215,6 +215,11 @@ describe("stages", () => {
     expect(ProgressionStage.safeParse({ ...stage, tasks: [] }).success).toBe(false);
   });
 
+  it("a crafting plan may name the gear tier it belongs to", () => {
+    expect(CraftingPlan.safeParse({ ...crafting, tier: "mid" }).error).toBeUndefined();
+    expect(CraftingPlan.safeParse({ ...crafting, tier: "" }).success).toBe(false);
+  });
+
   it("crafting costs are measured: uncalibrated is explicit, a bare number is rejected", () => {
     expect(CraftingPlan.safeParse(crafting).error).toBeUndefined();
     const bare = { ...crafting, expectedTotal: 12 };

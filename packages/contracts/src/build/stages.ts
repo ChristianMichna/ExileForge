@@ -189,6 +189,8 @@ export type CraftStep = z.infer<typeof CraftStep>;
 /** S8: recipe for one rare slot. */
 export const CraftingPlan = z.object({
   key,
+  /** Gear tier the rare belongs to (GearPlan tier id); each tier plans its own rares. */
+  tier: z.string().min(1).optional(),
   slot: z.string().min(1),
   target: ItemSpec,
   start: z.object({
