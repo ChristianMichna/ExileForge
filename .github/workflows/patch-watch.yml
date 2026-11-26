@@ -1,0 +1,72 @@
+# Patch watcher (F-01, Day-0 readiness): once an hour, compare the game patch the update
+# server announces with the published data releases, and the latest PoB-PoE2 release with the
+# pinned one. When something is new, one issue labelled "patch-watch" tells what to do next
+# (bump the PoB pin, run the "Data release" workflow); when it is resolved the issue is closed.
+# The watcher only reports: bumping the pin and publishing a release stay human decisions
+# (data releases are immutable, and a PoB bump needs the golden builds compared).
+name: Patch watch
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: patch-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec turbo run build --filter=@astrolabe/data-pipeline
+
+      - name: Compare patch and PoB release
+        id: watch
+        run: |
+          set +e
+          node apps/data-pipeline/dist/cli.js patch-watch --repo "$GITHUB_REPOSITORY" --out report.md
+          code=$?
+          set -e
+          cat report.md >> "$GITHUB_STEP_SUMMARY" || true
+          # 0: nothing to do, 3: something to do; anything else is a failure of the watcher itself
+          if [ "$code" != "0" ] && [ "$code" != "3" ]; then
+            echo "patch-watch failed with exit code $code" >&2
+            exit "$code"
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Open, update or close the watch issue
+        env:
+          CODE: ${{ steps.watch.outputs.code }}
+        run: |
+          set -euo pipefail
+          gh label create patch-watch --force --color 5319e7 --description "Patch watcher: new game patch or PoB release" >/dev/null
+          number=$(gh issue list --label patch-watch --state open --json number --jq '.[0].number // empty')
+          if [ "$CODE" = "3" ]; then
+            if [ -z "$number" ]; then
+              gh issue create --label patch-watch --title "New game patch or PoB release to handle" --body-file report.md
+            else
+              current=$(gh issue view "$number" --json body --jq .body)
+              if [ "$current" != "$(cat report.md)" ]; then gh issue edit "$number" --body-file report.md; fi
+            fi
+          elif [ -n "$number" ]; then
+            gh issue close "$number" --comment "Resolved: $(head -n1 report.md)"
+          fi

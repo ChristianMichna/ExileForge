@@ -348,3 +348,18 @@ Game-Data gehören nicht ins Release (ADR-0005). Mit der Eingabe `previous-tag` 
 im Manifest ein. Der Befehl dafür ist `catalog-diff <von> <nach>` (Katalog-Ordner,
 Shard-Hashes werden geprüft; gleiche Arten auf beiden Seiten sind Pflicht). Der Befehl
 `diff` vergleicht dagegen zwei Roh-Snapshots.
+
+## Patch-Watcher (F-01, Day-0)
+
+`.github/workflows/patch-watch.yml` läuft stündlich und ruft `astrolabe-data patch-watch` auf. Der Befehl vergleicht
+den Spielpatch, den der Update-Server meldet, mit den veröffentlichten Daten-Releases dieses Repos und das neueste
+PoB-PoE2-Release mit dem Pin (`config/data-pipeline/watch.json`: Repo, Pin-Datei, Muster). Gibt es etwas zu tun
+(Exit-Code 3), legt der Workflow ein Issue mit dem Label `patch-watch` an oder aktualisiert es und schließt es, sobald
+alles erledigt ist.
+
+- Neues PoB-Release: Pin anheben, Golden Builds in CI vergleichen, danach „Data release“ starten.
+- Neuer Spielpatch ohne neues PoB-Release: **Katalog-only**. Ein Daten-Release würde PoB-Daten eines älteren Patches
+  tragen und darf nicht als vollständig veröffentlicht werden (Projektplan, „Grenzen und Umgang damit“).
+
+Der Watcher meldet nur. Pin-Anhebung und Veröffentlichung bleiben Entscheidungen von Menschen: Daten-Releases sind
+unveränderlich, und ein PoB-Wechsel braucht den Vergleich der Golden Builds.
