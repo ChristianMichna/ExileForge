@@ -29,15 +29,16 @@ const slotOf = (slot: string, acquisition: string, target: ItemSpec) => ({
   acquisition,
   rationale: [{ reason: text("Fits") }],
 });
-const plan = (slots: object[]) => ({ tiers: [{ tier: "end", slots }] }) as unknown as GearPlan;
+const plan = (slots: object[]) =>
+  ({ tiers: [{ budgetTier: "end", slots }] }) as unknown as GearPlan;
 
 describe("S8 slots", () => {
   it("names tasks by a normalised slot id", () => {
     expect(slotSlug("Body Armour")).toBe("body-armour");
-    expect(craftKey("Ring 1")).toBe("S8.craft-ring-1");
+    expect(craftKey("End", "Ring 1")).toBe("S8.craft-end-ring-1");
   });
 
-  it("takes only crafted rares acquired by crafting from the last tier", () => {
+  it("takes the crafted rares acquired by crafting from every tier", () => {
     const out = craftSlotsOf(
       plan([
         slotOf("Ring 1", "craft", crafted([{ id: "M1", required: true }])),
@@ -47,6 +48,20 @@ describe("S8 slots", () => {
     );
     expect(Array.isArray(out) && out.map((s) => s.slot)).toEqual(["Ring 1"]);
     expect(craftSlotsOf({ tiers: [] } as never)).toEqual([]);
+  });
+
+  it("plans the rares of earlier tiers as well, under their own task names", () => {
+    const c = crafted([{ id: "M1", required: true }]);
+    const out = craftSlotsOf({
+      tiers: [
+        { budgetTier: "start", slots: [slotOf("Ring 1", "craft", c)] },
+        { budgetTier: "end", slots: [slotOf("Ring 1", "craft", c)] },
+      ],
+    } as never);
+    expect(Array.isArray(out) && out.map((s) => s.key)).toEqual([
+      "S8.craft-start-ring-1",
+      "S8.craft-end-ring-1",
+    ]);
   });
 
   it("names ambiguous slot ids instead of merging them", () => {
@@ -83,8 +98,9 @@ const submission = {
   rationale: [{ reason: text("Cheap") }],
 };
 const slot = (): CraftSlot => ({
+  tier: "end",
   slot: "Ring 1",
-  key: "S8.craft-ring-1",
+  key: "S8.craft-end-ring-1",
   target: crafted([{ id: "M1", required: true }]) as never,
 });
 const ok = (value: number) => ({

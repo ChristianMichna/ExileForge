@@ -173,16 +173,15 @@ export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDra
   ).plans;
   const request = ctx.run.request;
   const planned = new Set(crafting.map((c) => c.key));
-  // The gear plan points to the crafting plan of each crafted rare of the last tier that has one.
+  // The gear plan points to the crafting plan of each crafted rare that has one.
   const linked: GearPlan = {
-    tiers: gear.tiers.map((t, i) => ({
+    tiers: gear.tiers.map((t) => ({
       ...t,
       slots: t.slots.map((sl) =>
-        i === gear.tiers.length - 1 &&
         sl.acquisition === "craft" &&
         sl.target.kind === "crafted" &&
-        planned.has(craftKey(sl.slot))
-          ? { ...sl, craftingPlanKey: craftKey(sl.slot) }
+        planned.has(craftKey(t.budgetTier, sl.slot))
+          ? { ...sl, craftingPlanKey: craftKey(t.budgetTier, sl.slot) }
           : sl,
       ),
     })),
@@ -610,9 +609,6 @@ function gapOf(
   if (gate === "G5") {
     return thresholds?.dps === true ? undefined : "the damage minimum (no threshold configured)";
   }
-  if (gate === "G7") {
-    return "crafting plans for the rares of earlier gear tiers (S8 plans the last tier only)";
-  }
   return undefined;
 }
 
@@ -726,21 +722,20 @@ export async function runGates(
       : []),
   ];
   const planned = new Set<string>(draft.crafting.map((c: CraftingPlan) => c.key));
-  // S8 plans the rares of the last tier only, so only those can be fixed by a return.
-  const g7 =
-    draft.gear.tiers
-      .at(-1)
-      ?.slots.filter((sl) => sl.acquisition === "craft" && sl.target.kind === "crafted")
-      .filter((sl) => !planned.has(craftKey(sl.slot)))
+  const g7 = draft.gear.tiers.flatMap((tier) =>
+    tier.slots
+      .filter((sl) => sl.acquisition === "craft" && sl.target.kind === "crafted")
+      .filter((sl) => !planned.has(craftKey(tier.budgetTier, sl.slot)))
       .map((sl) =>
         finding(
           "G7",
           "craft_plan_missing",
-          `Rare slot ${sl.slot} has no crafting plan.`,
+          `Rare slot ${sl.slot} of tier ${tier.budgetTier} has no crafting plan.`,
           "/crafting",
           "S8",
         ),
-      ) ?? [];
+      ),
+  );
   const found: Partial<Record<Finding["gate"], Finding[]>> = {
     G3: measured?.g3 ?? [],
     G4: measured?.g4 ?? [],
