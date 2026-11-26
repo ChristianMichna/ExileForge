@@ -72,7 +72,7 @@
     }
   },
   "currencyActions": {
-    "$comment": "Crafting actions from CurrencyItems rows (game data read in CI). A currency becomes an action only when its Action key has a rule here AND the game's description (markup removed) matches the rule's pattern; otherwise it is left out with a finding. Rules compose ops of packages/crafting-sim; limitsForRarity is replaced by the release's affix limits (releaseFacts.rarities). The descriptions printed by the CI probe of 2026-11-26 are the evidence for each rule. Higher tiers (TieredCurrency tier above 1 or with a lower tier) become actions of their own whose added mods need at least the table's MinimumModLevel (`minModLevel`); one without that value is left out. Not modelled (left out, listed in the findings): currencies whose text does not state the count of new modifiers (Orb of Alteration), and everything that is not a modifier change. Known gaps (not in the descriptions, so not added from memory): Annulment and Scouring state no rarity and therefore also act on unique items; no rule forbids a flag such as corrupted; affix limits are per rarity only (PoB gives rare jewels 4 and some items own limits); PoB's relic rarity is not listed. Interpretations beyond the description text: Orb of Alchemy clears the item's modifiers before adding 4 (the text says the result has 4 modifiers); MinimumModLevel of a higher tier is the minimum required level of every mod its add-random-mod adds (only the column name supports this).",
+    "$comment": "Crafting actions from CurrencyItems rows (game data read in CI). A currency becomes an action only when its Action key has a rule here AND the game's description (markup removed) matches the rule's pattern; otherwise it is left out with a finding. Rules compose ops of packages/crafting-sim; `limitsByRarity` makes the simulator take the affix limits from the release's rarities (releaseFacts.rarities) for the item's rarity and item class. The descriptions printed by the CI probe of 2026-11-26 are the evidence for each rule. Higher tiers (TieredCurrency tier above 1 or with a lower tier) become actions of their own whose added mods need at least the table's MinimumModLevel (`minModLevel`); one without that value is left out. Not modelled (left out, listed in the findings): currencies whose text does not state the count of new modifiers (Orb of Alteration), and everything that is not a modifier change. Known gaps (not in the descriptions, so not added from memory): Annulment and Scouring state no rarity and therefore also act on unique items; no rule forbids a flag such as corrupted; affix limits are per rarity and item class only (PoB also has item-own limits such as '+N prefix modifiers allowed'), and jewel mods live in another mod domain than this config's `Item`, so jewel bases stay uncalibrated; PoB's relic rarity is not listed. Interpretations beyond the description text: Orb of Alchemy clears the item's modifiers before adding 4 (the text says the result has 4 modifiers); MinimumModLevel of a higher tier is the minimum required level of every mod its add-random-mod adds (only the column name supports this).",
     "kind": "currency",
     "rules": {
       "transmute_to_magic": {
@@ -98,7 +98,7 @@
               "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
-              "limitsForRarity": "magic"
+              "limitsByRarity": true
             }
           }
         ]
@@ -120,7 +120,7 @@
               "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
-              "limitsForRarity": "magic"
+              "limitsByRarity": true
             }
           }
         ]
@@ -148,7 +148,7 @@
               "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
-              "limitsForRarity": "rare"
+              "limitsByRarity": true
             }
           }
         ]
@@ -170,7 +170,7 @@
               "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
-              "limitsForRarity": "rare"
+              "limitsByRarity": true
             }
           }
         ]
@@ -198,7 +198,7 @@
               "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 1,
-              "limitsForRarity": "rare"
+              "limitsByRarity": true
             }
           }
         ]
@@ -262,7 +262,7 @@
               "generationTypes": ["Prefix", "Suffix"],
               "domain": "Item",
               "count": 4,
-              "limitsForRarity": "rare"
+              "limitsByRarity": true
             }
           }
         ]
@@ -287,7 +287,7 @@
             }
           }
         ],
-        "limitsForRarity": "rare"
+        "limitsByRarity": true
       },
       {
         "description": "^Removes a random modifier and augments a Rare item with a new guaranteed modifier$",
@@ -307,7 +307,7 @@
             }
           }
         ],
-        "limitsForRarity": "rare"
+        "limitsByRarity": true
       }
     ]
   },
@@ -334,7 +334,10 @@
         },
         {
           "name": "Rare",
-          "affixLimit": 6
+          "affixLimit": 6,
+          "affixLimitByItemClass": {
+            "Jewel": 4
+          }
         },
         {
           "name": "Unique"

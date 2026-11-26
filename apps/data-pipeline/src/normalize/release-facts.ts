@@ -48,7 +48,21 @@ export function classificationsFrom(
 export function raritiesFrom(
   config: NormalizeConfig["releaseFacts"]["rarities"],
   generationTypes: ReadonlySet<string>,
+  itemClasses: ReadonlySet<string> = new Set(),
 ): { value?: NonNullable<DataRelease["rarities"]>; finding?: Finding } {
+  const split = (total: number): Record<string, number> | undefined =>
+    total % config.affixGenerationTypes.length === 0
+      ? Object.fromEntries(
+          config.affixGenerationTypes.map((g) => [g, total / config.affixGenerationTypes.length]),
+        )
+      : undefined;
+  const fail = (message: string) => ({
+    finding: {
+      kind: "release" as const,
+      id: "rarities",
+      message: `${message}; rarities are left out`,
+    },
+  });
   const unknown = config.affixGenerationTypes.filter((g) => !generationTypes.has(g));
   if (unknown.length > 0)
     return {
@@ -64,19 +78,27 @@ export function raritiesFrom(
       rarities.push({ id: classificationId(r.name), name: r.name });
       continue;
     }
-    if (r.affixLimit % config.affixGenerationTypes.length !== 0)
-      return {
-        finding: {
-          kind: "release",
-          id: "rarities",
-          message: `${r.name}: ${String(r.affixLimit)} affixes do not split evenly over ${config.affixGenerationTypes.join(", ")}; rarities are left out`,
-        },
-      };
-    const each = r.affixLimit / config.affixGenerationTypes.length;
+    const maxAffixes = split(r.affixLimit);
+    if (!maxAffixes)
+      return fail(
+        `${r.name}: ${String(r.affixLimit)} affixes do not split evenly over ${config.affixGenerationTypes.join(", ")}`,
+      );
+    const byClass: Record<string, Record<string, number>> = {};
+    for (const [cls, total] of Object.entries(r.affixLimitByItemClass ?? {})) {
+      if (!itemClasses.has(cls))
+        return fail(`${r.name}: item class ${cls} has no base item in the catalog`);
+      const limits = split(total);
+      if (!limits)
+        return fail(
+          `${r.name}, ${cls}: ${String(total)} affixes do not split evenly over ${config.affixGenerationTypes.join(", ")}`,
+        );
+      byClass[cls] = limits;
+    }
     rarities.push({
       id: classificationId(r.name),
       name: r.name,
-      maxAffixes: Object.fromEntries(config.affixGenerationTypes.map((g) => [g, each])),
+      maxAffixes,
+      ...(Object.keys(byClass).length > 0 ? { maxAffixesByItemClass: byClass } : {}),
     });
   }
   return { value: { rarities, origin: "pob-code" } };
@@ -234,7 +256,7 @@ export async function buildReleaseFacts(opts: {
   findings.push(...warnings);
   facts.itemSlots = { slots, origin: "pob-code" };
 
-  const rarities = raritiesFrom(config.rarities, opts.generationTypes);
+  const rarities = raritiesFrom(config.rarities, opts.generationTypes, opts.known.itemClasses);
   if (rarities.value) facts.rarities = rarities.value;
   if (rarities.finding) findings.push(rarities.finding);
 

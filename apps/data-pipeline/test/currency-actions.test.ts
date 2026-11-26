@@ -21,9 +21,14 @@ const rarities = raritiesFrom(
   },
   new Set(["Left", "Right"]),
 ).value;
-const addMod = (r: string) => ({
+const realRarities = raritiesFrom(
+  cfg.releaseFacts.rarities,
+  new Set(["Prefix", "Suffix"]),
+  new Set(["Jewel"]),
+).value?.rarities;
+const addMod = () => ({
   op: "add-random-mod",
-  params: { generationTypes: ["Left", "Right"], domain: "Thing", count: 1, limitsForRarity: r },
+  params: { generationTypes: ["Left", "Right"], domain: "Thing", count: 1, limitsByRarity: true },
 });
 const config = {
   ...cfg.currencyActions,
@@ -31,7 +36,7 @@ const config = {
     test_action: {
       description: "^Makes a Plain thing Fine$",
       preconditions: [{ op: "require-rarity", params: { rarities: ["plain"] } }],
-      effects: [{ op: "set-rarity", params: { rarity: "fine" } }, addMod("fine")],
+      effects: [{ op: "set-rarity", params: { rarity: "fine" } }, addMod()],
     },
   },
   essence: [
@@ -104,6 +109,25 @@ describe("raritiesFrom", () => {
     );
     expect(unknown.finding?.message).toMatch(/no mod has generation type Nope/);
   });
+  it("adds limits for an item class and refuses an unknown class or an uneven split", () => {
+    const cfgFor = (cls: string, total: number) => ({
+      affixGenerationTypes: ["Left", "Right"],
+      list: [{ name: "Grand", affixLimit: 6, affixLimitByItemClass: { [cls]: total } }],
+    });
+    const ok = raritiesFrom(cfgFor("Gem", 4), new Set(["Left", "Right"]), new Set(["Gem"]));
+    expect(ok.value?.rarities[0]).toEqual({
+      id: "grand",
+      name: "Grand",
+      maxAffixes: { Left: 3, Right: 3 },
+      maxAffixesByItemClass: { Gem: { Left: 2, Right: 2 } },
+    });
+    const unknown = raritiesFrom(cfgFor("Gem", 4), new Set(["Left", "Right"]), new Set(["Ring"]));
+    expect(unknown.value).toBeUndefined();
+    expect(unknown.finding?.message).toMatch(/item class Gem has no base item/);
+    const odd = raritiesFrom(cfgFor("Gem", 3), new Set(["Left", "Right"]), new Set(["Gem"]));
+    expect(odd.value).toBeUndefined();
+    expect(odd.finding?.message).toMatch(/Gem: 3 affixes do not split evenly/);
+  });
 });
 
 describe("currencyActions", () => {
@@ -129,7 +153,7 @@ describe("currencyActions", () => {
               generationTypes: ["Left", "Right"],
               domain: "Thing",
               count: 1,
-              limits: { Left: 1, Right: 1 },
+              limitsByRarity: true,
             },
           },
         ],
@@ -249,7 +273,11 @@ describe("currencyActions", () => {
 
 describe("the real config", () => {
   it("only produces rules that crafting-sim's op vocabulary accepts", async () => {
-    const real = raritiesFrom(cfg.releaseFacts.rarities, new Set(["Prefix", "Suffix"])).value;
+    const real = raritiesFrom(
+      cfg.releaseFacts.rarities,
+      new Set(["Prefix", "Suffix"]),
+      new Set(["Jewel"]),
+    ).value;
     const keys = Object.keys(cfg.currencyActions.rules);
     const t = tables();
     t.BaseItemTypes = keys.map((k) => ({ Id: `Test/${k}`, Name: k, ItemClass: 0, DropLevel: 1 }));
@@ -316,7 +344,11 @@ describe("with the simulator", () => {
   });
 
   async function realActions() {
-    const real = raritiesFrom(cfg.releaseFacts.rarities, new Set(["Prefix", "Suffix"])).value;
+    const real = raritiesFrom(
+      cfg.releaseFacts.rarities,
+      new Set(["Prefix", "Suffix"]),
+      new Set(["Jewel"]),
+    ).value;
     const keys = [
       "transmute_to_magic",
       "upgrade_magic_to_rare",
@@ -361,7 +393,12 @@ describe("with the simulator", () => {
     });
 
   it("runs transmute, regal and exalted in order and respects the rarity limits", async () => {
-    const catalog = createSimCatalog({ baseItems: [base], mods, actions: await realActions() });
+    const catalog = createSimCatalog({
+      baseItems: [base],
+      mods,
+      actions: await realActions(),
+      rarities: realRarities,
+    });
     const ok = simulate(
       request("normal", [
         "transmute_to_magic",
@@ -411,7 +448,11 @@ describe("with the simulator", () => {
     rowsByKey: Record<string, { key: string; description: string; tier?: number; min?: number }>,
     essences: { id: string; description: string }[] = [],
   ) {
-    const real = raritiesFrom(cfg.releaseFacts.rarities, new Set(["Prefix", "Suffix"])).value;
+    const real = raritiesFrom(
+      cfg.releaseFacts.rarities,
+      new Set(["Prefix", "Suffix"]),
+      new Set(["Jewel"]),
+    ).value;
     const entries = Object.entries(rowsByKey);
     const t = tables();
     const names = [...entries.map(([id]) => id), ...essences.map((e) => e.id)];
@@ -472,7 +513,7 @@ describe("with the simulator", () => {
           "Removes a random modifier and augments a [ItemRarity|Rare] item with a new guaranteed modifier",
       },
     ]);
-    const catalog = createSimCatalog({ baseItems: [base], mods, actions });
+    const catalog = createSimCatalog({ baseItems: [base], mods, actions, rarities: realRarities });
     const req = withSteps(
       startWith(
         "rare",
@@ -492,7 +533,7 @@ describe("with the simulator", () => {
     const actions = await actionsFor({
       "cur-alch": { key: "transmute_to_rare", description: text("transmute_to_rare") },
     });
-    const catalog = createSimCatalog({ baseItems: [base], mods, actions });
+    const catalog = createSimCatalog({ baseItems: [base], mods, actions, rarities: realRarities });
     const res = simulate(
       withSteps(startWith("magic", ["fx-Prefix-a", "fx-Suffix-a"], ["fx-Prefix-a"]), ["cur-alch"]),
       { catalog, config: simConfig },
@@ -526,7 +567,12 @@ describe("with the simulator", () => {
         min: 50,
       },
     });
-    const catalog = createSimCatalog({ baseItems: [base], mods: leveled, actions });
+    const catalog = createSimCatalog({
+      baseItems: [base],
+      mods: leveled,
+      actions,
+      rarities: realRarities,
+    });
     const run = (id: string) =>
       simulate(withSteps(startWith("rare", [], ["lv-hi"]), [id]), { catalog, config: simConfig });
     const plain = run("cur-exalt");
