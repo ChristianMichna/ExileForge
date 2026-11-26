@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -95,14 +95,40 @@ describe("createGuideRevalidate", () => {
     expect(await code(to("poe2-9.9.9+r2"))).toBe("diff_missing");
   });
   it("rejects a stored guide that is not valid", async () => {
-    const { tool } = setup({ metadata: { dataReleaseId: "nonsense" } });
-    expect(await code(tool({ guideId: GUIDE_ID, toReleaseId: NEXT as never }))).toBe(
-      "guide_invalid",
-    );
-    const broken = setup({ metadata: { dataReleaseId: OWN } });
-    expect(await code(broken.tool({ guideId: GUIDE_ID, toReleaseId: NEXT as never }))).toBe(
+    for (const bad of [
+      { metadata: { dataReleaseId: "nonsense" } },
+      { metadata: { dataReleaseId: OWN } },
+    ]) {
+      const { tool } = setup(bad);
+      expect(await code(tool({ guideId: GUIDE_ID, toReleaseId: NEXT as never }))).toBe(
+        "guide_invalid",
+      );
+    }
+  });
+  it("stops on a cyclic chain and a release folder holding another release", async () => {
+    const { tool, root } = setup();
+    addRelease(root, "poe2-8.0.0+r1", "poe2-8.0.0+r2", diffOf("poe2-8.0.0+r2", "poe2-8.0.0+r1"));
+    addRelease(root, "poe2-8.0.0+r2", "poe2-8.0.0+r1", diffOf("poe2-8.0.0+r1", "poe2-8.0.0+r2"));
+    expect(await code(tool({ guideId: GUIDE_ID, toReleaseId: "poe2-8.0.0+r1" as never }))).toBe(
       "diff_missing",
     );
+    addRelease(root, "poe2-8.1.0+r1", NEXT, diffOf(NEXT, "poe2-8.1.0+r1"));
+    writeFileSync(
+      join(root, "poe2-8.1.0+r1", "manifest.json"),
+      readFileSync(join(root, NEXT, "manifest.json")),
+    );
+    expect(await code(tool({ guideId: GUIDE_ID, toReleaseId: "poe2-8.1.0+r1" as never }))).toBe(
+      "diff_missing",
+    );
+  });
+  it("does not leak local paths in messages", async () => {
+    const { tool, root } = setup();
+    addRelease(root, "poe2-9.9.9+r1", LATER);
+    const message = await tool({ guideId: GUIDE_ID, toReleaseId: "poe2-9.9.9+r1" as never }).then(
+      () => "",
+      (e: Error) => e.message,
+    );
+    expect(message).not.toContain(root);
   });
 });
 
@@ -129,6 +155,23 @@ describe("RunStore.findGuide", () => {
     });
     store.save(record, []);
     expect(store.findGuide(GUIDE_ID)).toEqual(guide);
+    const newer = { ...guide, summary: { ...guide.summary, mainSkillId: "Fixture/Gems/Other" } };
+    store.save(
+      {
+        ...record,
+        runId: "00000000-0000-4000-8000-0000000000bb" as never,
+        results: {
+          "S11.guide": {
+            type: "S11",
+            by: "server",
+            value: newer as never,
+            at: "2026-01-02T00:00:00Z",
+          },
+        },
+      },
+      [],
+    );
+    expect(store.findGuide(GUIDE_ID)).toEqual(newer);
     expect(store.findGuide("00000000-0000-4000-8000-0000000000ff")).toBeUndefined();
   });
 });

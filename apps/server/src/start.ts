@@ -186,6 +186,7 @@ async function startServerOwningPool(
             findGuide: (id) => store.findGuide(id),
             releasesDir: options.releasesDir,
             now: () => new Date(),
+            logger: options.logger,
           }),
         }),
     engine,
