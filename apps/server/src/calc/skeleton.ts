@@ -310,8 +310,10 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       }),
     );
     const banned = new Set<PassiveNodeId>();
+    let previous: readonly PassiveNodeId[] = [];
     for (let round = 0; ; round += 1) {
-      const result = await this.optimizeFrom(start, job, [...banned]);
+      // Later rounds continue from the previous tree minus the banned nodes (and what hung on them).
+      const result = await this.optimizeFrom(start, job, [...banned], previous);
       if (!avoid) return result;
       if (!result.feasible) {
         if (banned.size === 0) return result;
@@ -368,10 +370,11 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         lines: Object.fromEntries(triggers),
       });
       for (const id of triggers.keys()) banned.add(id);
+      previous = result.allocated;
     }
   }
 
-  /** Tree optimisation from an empty tree within a budget; logs when it ends incomplete. */
+  /** Tree optimisation within a budget (from an empty tree, or from `warmStart`); logs when it ends incomplete. */
   private async optimizeFrom(
     start: BuildState,
     job: {
@@ -389,6 +392,11 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     },
     /** Nodes the search must not take besides the player's exclusions. */
     avoided: readonly PassiveNodeId[] = [],
+    /**
+     * Nodes to start from (the previous result without the avoided ones) instead of an empty tree.
+     * The optimizer measures this tree as its base, so score scales come from it in later rounds.
+     */
+    warmStart: readonly PassiveNodeId[] = [],
   ): Promise<TreeOptimizeResult> {
     const graph = this.graphFor(job.classId);
     const excluded = [
@@ -401,7 +409,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     const result: TreeOptimizeResult = await this.options.pob.withBuild(start, (handle) =>
       optimize({
         graph,
-        allocated: [],
+        allocated: connectedPart(graph, warmStart, new Set(excluded)),
         budget: job.budget,
         objective: job.objective,
         evaluator: createPobTreeEvaluator({
@@ -601,4 +609,30 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     this.graphs.set(classId, graph);
     return graph;
   }
+}
+
+/**
+ * The part of `nodes` that still hangs on the class start without the `blocked` nodes, so a search
+ * can continue from a tree whose nodes were banned (nodes cut off from the start are dropped).
+ */
+export function connectedPart(
+  graph: TreeGraph,
+  nodes: readonly PassiveNodeId[],
+  blocked: ReadonlySet<string>,
+): PassiveNodeId[] {
+  const wanted = new Set<string>(nodes.map(String));
+  const seen = new Set<string>([graph.start]);
+  const order: PassiveNodeId[] = [];
+  const queue = [graph.start];
+  for (let i = 0; i < queue.length; i += 1) {
+    for (const to of graph.neighbors(queue[i] as string)) {
+      if (wanted.has(to) && !blocked.has(to) && !seen.has(to)) {
+        seen.add(to);
+        queue.push(to);
+        order.push(to as PassiveNodeId);
+      }
+    }
+  }
+  // Breadth-first from the start, so every node comes after a node it hangs on.
+  return order;
 }

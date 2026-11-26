@@ -9,7 +9,7 @@ import {
 import { CatalogShard } from "@astrolabe/contracts/catalog";
 import { CalcId } from "@astrolabe/contracts/common";
 import { MemoryCatalog } from "../src/catalog/memory-catalog.js";
-import { PobSkeleton } from "../src/calc/skeleton.js";
+import { PobSkeleton, connectedPart } from "../src/calc/skeleton.js";
 import { createMemoryLogger } from "../src/logger.js";
 import { RELEASE, REQUEST, SHARDS, candidate } from "./fixtures.js";
 
@@ -356,6 +356,9 @@ describe("PobSkeleton", () => {
       getResult.mockResolvedValueOnce({ unsupportedMods: [text] } as never);
       const out = await skeleton.optimizeTree(input);
       expect(optimize.mock.calls[1]?.[0].forbiddenNodeIds).toContain("FixN2");
+      // the second round continues from the first tree without the banned node
+      expect(optimize.mock.calls[0]?.[0].allocated).toEqual([]);
+      expect(optimize.mock.calls[1]?.[0].allocated).toEqual(["FixN1"]);
       expect(out.state.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1"]);
       // the cap fails visibly
       const capped = setup(done, undefined, flawed, { unsupportedMaxRounds: 1 });
@@ -418,5 +421,34 @@ describe("PobSkeleton", () => {
         candidate: cand,
       }),
     ).rejects.toThrow(/targets/);
+  });
+});
+
+describe("connectedPart", () => {
+  // S - A - B - C, with a second way S - D - C and a dead end E behind C
+  const edges: Record<string, string[]> = {
+    S: ["A", "D"],
+    A: ["S", "B"],
+    B: ["A", "C"],
+    C: ["B", "D", "E"],
+    D: ["S", "C"],
+    E: ["C"],
+  };
+  const graph = { start: "S", neighbors: (id: string) => edges[id] ?? [] } as never;
+  const ids = (list: string[]) => list as never[];
+
+  it("keeps nodes that still hang on the start and orders them from the start outwards", () => {
+    expect(connectedPart(graph, ids(["E", "C", "B", "A", "D"]), new Set(["B"]))).toEqual([
+      "A",
+      "D",
+      "C",
+      "E",
+    ]);
+  });
+
+  it("drops what a blocked node cut off, and everything when the start's neighbours are blocked", () => {
+    expect(connectedPart(graph, ids(["A", "B", "C", "E"]), new Set(["A"]))).toEqual([]);
+    expect(connectedPart(graph, ids(["A", "B"]), new Set(["A", "D"]))).toEqual([]);
+    expect(connectedPart(graph, [], new Set())).toEqual([]);
   });
 });
