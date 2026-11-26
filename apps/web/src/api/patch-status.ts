@@ -1,41 +1,33 @@
 import { z } from "zod";
-import { PatchStatus } from "@astrolabe/contracts/guide";
+import { GuidePatchStatusView } from "@astrolabe/contracts/guide";
 import { ApiError } from "./client";
 
 /*
  * Check of the saved guides against the game data the app runs with
- * (server: GET /api/guides/patch-status). Not yet in the contracts package;
- * until it is there the page validates the answer itself.
+ * (server: GET /api/guides/patch-status, shape `GuidePatchStatusView` of the contracts).
  */
 
-const Outcome = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("status"), status: PatchStatus }),
-  z.object({ kind: z.literal("error"), code: z.string().min(1), message: z.string() }),
-]);
+const ErrorBody = z.object({ error: z.object({ message: z.string() }) });
 
-const GuideCheck = z.object({
-  guideId: z.string().min(1),
-  outcome: Outcome,
-  checkedAt: z.string(),
-});
-
-const PatchCheckView = z.object({
-  enabled: z.boolean(),
-  releaseId: z.string().min(1),
-  running: z.boolean(),
-  error: z.string().optional(),
-  guides: z.array(GuideCheck),
-});
-export type PatchCheckView = z.infer<typeof PatchCheckView>;
-export type GuideCheck = z.infer<typeof GuideCheck>;
-
-async function call(method: "GET" | "POST", url: string, signal?: AbortSignal) {
+async function call(
+  method: "GET" | "POST",
+  url: string,
+  signal?: AbortSignal,
+): Promise<GuidePatchStatusView> {
   const response = await fetch(url, { method, ...(signal ? { signal } : {}) });
   const body: unknown = await response.json().catch(() => undefined);
   if (!response.ok) {
-    throw new ApiError(`The server answered HTTP ${response.status}.`, response.status);
+    const parsed = ErrorBody.safeParse(body);
+    throw new ApiError(
+      parsed.success ? parsed.data.error.message : `The server answered HTTP ${response.status}.`,
+      response.status,
+    );
   }
-  return PatchCheckView.parse(body);
+  const view = GuidePatchStatusView.safeParse(body);
+  if (!view.success) {
+    throw new ApiError("The server sent an answer this app version does not understand.", 502);
+  }
+  return view.data;
 }
 
 export const loadPatchCheck = (signal?: AbortSignal) =>
