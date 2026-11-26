@@ -55,7 +55,7 @@ export const AddRandomMod = z.object({
 export const AddSpecificMod = z.object({
   op: z.literal("add-specific-mod"),
   params: z
-    .object({
+    .strictObject({
       /**
        * Mod to add per item class of the base item (ids of the data release). A base whose
        * class is not listed makes the action unusable for it (reported as a problem, not

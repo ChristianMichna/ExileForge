@@ -401,6 +401,11 @@ function compileAction(
   const fixedModIds: string[] = [];
   const where = `action ${action.id}`;
   const itemClassOf = catalog.baseItem(start.baseItemId)?.itemClass;
+  // every rarity the item can have while this action runs, to check them against the release
+  const rarityIds = [
+    start.rarity,
+    ...action.effects.flatMap((e) => (e.op === "set-rarity" ? [e.params.rarity] : [])),
+  ];
 
   for (const rule of action.preconditions) {
     const p = parsePrecondition(rule);
@@ -467,6 +472,7 @@ function compileAction(
           r.params.limitsByRarity,
           catalog,
           itemClassOf,
+          rarityIds,
           problems,
           where,
         );
@@ -498,7 +504,11 @@ function compileAction(
             if (other.groups.some((g) => mod.groups.includes(g))) return BLOCKED;
             if (other.generationType === mod.generationType) count++;
           }
-          if (limit !== undefined && count >= limit) return BLOCKED;
+          // a limit that is missing for a release-based rule means: this rarity takes none
+          if (
+            r.params.limitsByRarity ? count >= (limit ?? 0) : limit !== undefined && count >= limit
+          )
+            return BLOCKED;
           s.mods.push(mod.id);
           return undefined;
         });
@@ -517,6 +527,7 @@ function compileAction(
           r.params.limitsByRarity,
           catalog,
           itemClassOf,
+          rarityIds,
           problems,
           where,
         );
@@ -637,12 +648,19 @@ function limitResolver(
   byRarity: true | undefined,
   catalog: SimCatalog,
   itemClass: string | undefined,
+  rarityIds: readonly string[],
   problems: string[],
   where: string,
 ): (state: State, generationType: string) => number | undefined {
   if (!byRarity) return (_s, g) => fixed?.[g];
   if (!catalog.hasRarities())
     problems.push(`${where}: the release lists no rarities, so the affix limits are unknown`);
+  else
+    for (const id of new Set(rarityIds))
+      if (!catalog.rarity(id))
+        problems.push(
+          `${where}: rarity ${id} is not in the data release, so its limits are unknown`,
+        );
   return (s, g) => {
     const rarity = catalog.rarity(s.rarity);
     const byClass =
