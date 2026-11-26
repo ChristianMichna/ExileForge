@@ -552,7 +552,7 @@ function countMods(s: State, catalog: SimCatalog, gens: readonly string[] | unde
 
 function poolFor(
   mods: readonly Mod[],
-  params: { generationTypes: string[]; domain: string },
+  params: { generationTypes: string[]; domain: string; minModLevel?: number | undefined },
   itemLevel: number,
   baseTags: readonly string[],
 ): { mod: Mod; weight: number }[] {
@@ -561,6 +561,7 @@ function poolFor(
     if (!params.generationTypes.includes(mod.generationType)) continue;
     if (!mod.domains.includes(params.domain)) continue;
     if (mod.requiredLevel > itemLevel) continue;
+    if (params.minModLevel !== undefined && mod.requiredLevel < params.minModLevel) continue;
     const match = mod.spawnWeights.find((w) => baseTags.includes(w.tag));
     if (match && match.weight > 0) out.push({ mod, weight: match.weight });
   }

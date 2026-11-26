@@ -31,6 +31,8 @@ export const AddRandomMod = z.object({
     limits: z.record(id, z.int().nonnegative()),
     domain: id,
     count: z.int().positive().default(1),
+    /** Only mods whose required level is at least this (higher currency tiers); absent: no lower bound. */
+    minModLevel: z.int().nonnegative().optional(),
   }),
 });
 
