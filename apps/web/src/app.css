@@ -539,3 +539,26 @@ code {
 .update-link:focus-visible {
   outline: 2px solid var(--ef-color-focus);
 }
+
+/* Guide page */
+.guide-list {
+  display: grid;
+  gap: var(--ef-space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.guide-list__link {
+  color: var(--ef-color-text);
+  display: block;
+  padding: var(--ef-space-3) var(--ef-space-4);
+  border: 1px solid var(--ef-color-line);
+}
+.guide-columns {
+  display: grid;
+  gap: var(--ef-space-5);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+.guide-unresolved {
+  border-bottom: 1px dashed var(--ef-color-warning);
+}

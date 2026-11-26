@@ -5,8 +5,9 @@ import { z } from "zod";
 import { BuildRequest } from "@astrolabe/contracts/build";
 import type { RunEvent } from "@astrolabe/contracts/events";
 import { UserIntervention } from "@astrolabe/contracts/forge";
-import { GuideListView, PublishedGuide } from "@astrolabe/contracts/guide";
+import { GuideListView, GuideView, PublishedGuide } from "@astrolabe/contracts/guide";
 import { guideToBuildFile } from "@astrolabe/exporters";
+import { buildGuideView } from "../guides/guide-view.js";
 import { buildFileResolvers } from "../export/build-file-resolvers.js";
 import type { GuideSweeper } from "../tools/guide-sweep.js";
 import { ForgeError } from "../engine/errors.js";
@@ -198,6 +199,22 @@ export function createApp(options: AppOptions): FastifyInstance {
       });
     }
     return guide.data;
+  });
+
+  app.get("/api/guides/:guideId/view", async (request) => {
+    const { guideId } = GuideParams.parse(request.params);
+    if (options.findGuide === undefined) {
+      throw new ForgeError("invalid_request", "Reading guides needs the run store.");
+    }
+    const stored = options.findGuide(guideId);
+    if (stored === undefined) throw new ForgeError("unknown_run", `No stored guide ${guideId}.`);
+    const guide = PublishedGuide.safeParse(stored);
+    if (!guide.success) {
+      throw new ForgeError("invalid_request", `Stored guide ${guideId} is not a valid guide.`, {
+        cause: guide.error,
+      });
+    }
+    return GuideView.parse(await buildGuideView(guide.data, options.catalog, options.calc));
   });
 
   app.get("/api/guides/:guideId/build-file", async (request) => {

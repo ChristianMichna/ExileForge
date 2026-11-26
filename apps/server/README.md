@@ -283,6 +283,14 @@ automatisch nach einem Patch.
   Verträge; ein Name fehlt, wenn der Katalog die ID nicht kennt (nie durch die ID ersetzt), und ein
   nicht lesbarer Guide steht mit `error` in der Liste (auch ein beschädigter Datensatz). `GET /api/guides/:guideId` liefert den Guide (`PublishedGuide`, 404
   unbekannt, 400 beschädigt).
+- `GET /api/guides/:guideId/view` liefert `GuideView` der Verträge: den Guide, die Anzeigenamen
+  aller Katalog-Referenzen (`names`, Schlüssel `<kind>:<id>`, gesammelt mit `collectGuideRefs`), die
+  gespeicherten Rechenergebnisse aller `calcId` im Guide (`results`) und was nicht aufgelöst
+  werden konnte (`unresolved`). Nichts wird ersetzt oder geschätzt. Gehört der Guide zu einem
+  anderen Daten-Release als dem geladenen (`current: false`), werden keine Namen aufgelöst; die
+  Ergebnisse bleiben, ungültige gespeicherte Ergebnisse stehen als `calc:<id>` in `unresolved`.
+  Die Antwort enthält je eindeutiger `calcId` ein vollständiges `CalcResult` (einige hundert KB
+  bei großen Guides, lokal unkritisch).
 - `GET /api/guides/:guideId/build-file` liefert den Guide als `.build`-Datei des Build Planners
   (F-12): `{ file, omitted }`. Die Spiel-IDs und Namen kommen aus dem geladenen Release
   (`src/export/build-file-resolvers.ts`: Knoten-`gameId`, Slot-`gameId`, Unique-, Ascendancy-
