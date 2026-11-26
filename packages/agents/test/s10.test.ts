@@ -192,7 +192,7 @@ describe("S10 measured gates", () => {
     minProgressionStages: 1,
     minGearTiers: 1,
     requiredCalcProfiles: ["mapping"],
-    acceptedUnsupportedMods: ["Harmless"],
+    acceptedUnsupportedModPatterns: ["^Harmless"],
     stats: {
       spiritFree: "Sp",
       resistMissing: ["MissFire", "MissCold"],
@@ -328,7 +328,10 @@ describe("S10 measured gates", () => {
           { ...cfg, ...over } as never,
         )
       ).find((g) => g.gate === "G2")?.findings ?? [];
-    expect(await gate2(["Harmless"])).toEqual([]);
+    const accepted = await gate2(["Harmless one"]);
+    expect(accepted.map((f) => [f.code, f.severity])).toEqual([
+      ["unsupported_mod_accepted", "warning"],
+    ]);
     const bad = (await gate2(["Harmless", "Odd mod"])).find((f) => f.code === "unsupported_mod");
     expect(bad?.returnTo).toBeUndefined();
     expect(bad?.message).toContain("Odd mod");

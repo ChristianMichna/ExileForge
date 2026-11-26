@@ -322,10 +322,11 @@ const finding = (
   message: string,
   path?: string,
   returnTo?: string,
+  severity: Finding["severity"] = "error",
 ): Finding =>
   Finding.parse({
     gate,
-    severity: "error",
+    severity,
     code,
     message,
     ...(path === undefined ? {} : { path }),
@@ -463,7 +464,20 @@ async function measuredGates(
       );
     }
     for (const mod of unsupportedMods ?? []) {
-      if (cfg.acceptedUnsupportedMods.includes(mod)) continue;
+      if (cfg.acceptedUnsupportedModPatterns.some((p) => new RegExp(p).test(mod))) {
+        // Accepted, but the guide must not pass it off as calculated: it stays in the report.
+        g2.push(
+          finding(
+            "G2",
+            "unsupported_mod_accepted",
+            `Stage ${stage.key}: Path of Building does not calculate the accepted mod "${mod}"; no number may rely on it.`,
+            path,
+            undefined,
+            "warning",
+          ),
+        );
+        continue;
+      }
       g2.push(
         finding(
           "G2",
@@ -716,7 +730,11 @@ export async function runGates(
         ),
       );
     }
-    return GateResult.parse({ gate, passed: findings.length === 0, findings });
+    return GateResult.parse({
+      gate,
+      passed: findings.every((f) => f.severity !== "error"),
+      findings,
+    });
   });
 }
 

@@ -166,8 +166,20 @@ export const StageConfig = z
         minGearTiers: z.int().positive(),
         /** Profiles every progression stage must have a calculation for (G2). */
         requiredCalcProfiles: z.array(CalcProfileId),
-        /** Unsupported-mod texts (as PoB reports them) the product owner has accepted as harmless; every other one fails G2. */
-        acceptedUnsupportedMods: z.array(z.string().min(1)),
+        /** Patterns (regular expressions) of unsupported-mod texts as PoB reports them that the product owner accepts; they stay visible as warnings in the report, every other one fails G2. */
+        acceptedUnsupportedModPatterns: z.array(
+          z.string().refine(
+            (p) => {
+              try {
+                new RegExp(p);
+                return true;
+              } catch {
+                return false;
+              }
+            },
+            { message: "not a valid regular expression" },
+          ),
+        ),
         /** How often gate findings may send the same stage back before the run fails. */
         maxReturnsPerStage: z.int().min(1).max(10),
         stats: z.object({
