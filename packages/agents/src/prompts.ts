@@ -46,6 +46,7 @@ export const S7_GEAR = [
   "Choose the target item for each gear slot of this budget tier, as an item spec: a unique, or a crafted rare with a base and wanted mods, plus how it is acquired.",
   "Use only the slots given in the context, each at most once, and fill every required slot. Respect solo self-found mode: no trade then. The context lists the earlier tiers' choices; keep them and upgrade from there. Cheaper tiers use items the player can realistically get with that budget; higher tiers upgrade the slots that gain the most.",
   "Use calc_evaluate (always with the runId) to compare options; explain each choice in rationale without typing numbers. Prices are not known to you and are measured afterwards.",
+  "The build's gems and equipment have attribute requirements that the passive tree alone does not meet. Check the requirement stats with calc_evaluate and choose mods that grant the missing attributes (search the catalog for them), also in the earliest tiers: a gap that is left makes a gate fail and sends this step back to you.",
   NO_MEMORY_RULES,
 ].join(" ");
 
