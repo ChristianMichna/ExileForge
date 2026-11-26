@@ -154,6 +154,9 @@ async function boot(): Promise<void> {
       state: "ready",
       port: services.port,
       calcEngine: services.calcEngine,
+      ...(services.catalogOnlyReason === undefined
+        ? {}
+        : { catalogOnlyReason: services.catalogOnlyReason }),
       dataReleaseId: services.dataReleaseId,
     });
   } catch (error) {

@@ -81,9 +81,15 @@ function StatusBadges() {
       {server.state === "failed" ? <Badge tone="danger">Server error</Badge> : null}
       {server.state === "starting" ? <Badge tone="neutral">Server starting</Badge> : null}
       {server.state === "ready" ? (
-        <Badge tone={server.calcEngine === "pob" ? "success" : "warning"}>
-          {server.calcEngine === "pob" ? "PoB ready" : "PoB offline"}
-        </Badge>
+        <span title={server.catalogOnlyReason}>
+          <Badge tone={server.calcEngine === "pob" ? "success" : "warning"}>
+            {server.calcEngine === "pob"
+              ? "PoB ready"
+              : server.calcEngine === "none"
+                ? "Catalog only"
+                : "PoB offline"}
+          </Badge>
+        </span>
       ) : null}
       {update.state === "ready" ? <UpdateButton version={update.version} /> : null}
       {data.state === "downloading" ? (
