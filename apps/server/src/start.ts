@@ -147,8 +147,8 @@ async function startServerOwningPool(
             target: {
               calcProfiles: stages.s5.calcProfiles,
               objective: stages.s5.objective,
-              ascendancyUnsupportedMods: stages.s5.ascendancyUnsupportedMods,
-              ascendancyMaxRounds: stages.s5.ascendancyMaxRounds,
+              unsupportedMods: stages.s5.unsupportedMods,
+              unsupportedMaxRounds: stages.s5.unsupportedMaxRounds,
             },
           }),
       ...(stages.s6 === undefined
