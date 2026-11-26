@@ -798,7 +798,7 @@ async function measuredGates(
           continue;
         }
         const best = peak[field];
-        if (value <= 0 || (best !== undefined && value < best * derived.minRatioToPrevious)) {
+        if (value <= 0 || (best !== undefined && value < best * derived.minRatioToBest)) {
           list.push(
             finding(
               gate,

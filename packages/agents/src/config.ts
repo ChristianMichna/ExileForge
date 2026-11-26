@@ -227,7 +227,7 @@ export const StageConfig = z
          * previous stage's EHP and damage, and the first stage must have any. Patch-agnostic: no
          * value depends on the game version. Replaces `thresholds`, which must then be empty.
          */
-        derived: z.object({ minRatioToPrevious: z.number().positive().max(1) }).optional(),
+        derived: z.object({ minRatioToBest: z.number().positive().max(1) }).optional(),
       })
       .refine((c) => c.derived === undefined || c.thresholds.length === 0, {
         message: "derived thresholds replace the fixed ones: `thresholds` must be empty",

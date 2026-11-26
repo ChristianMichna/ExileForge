@@ -685,7 +685,7 @@ describe("S10 measured gates", () => {
   });
 
   describe("derived thresholds", () => {
-    const derivedCfg = { ...cfg, thresholds: [], derived: { minRatioToPrevious: 0.8 } };
+    const derivedCfg = { ...cfg, thresholds: [], derived: { minRatioToBest: 0.8 } };
     /** One stage per stats entry, levels 10, 20, ...; `levels` overrides them. */
     const chain = (list: (Record<string, number> | undefined)[], levels?: number[]) => {
       const byId = new Map<string, Record<string, number> | undefined>();
@@ -775,8 +775,8 @@ describe("S10 measured gates", () => {
         StageConfig.shape.s10.safeParse({ ...committed, ...over }).success;
       expect(parse({})).toBe(true);
       expect(parse({ thresholds: [{ fromLevel: 1, minEhp: 1 }] })).toBe(false);
-      expect(parse({ derived: { minRatioToPrevious: 0 } })).toBe(false);
-      expect(parse({ derived: { minRatioToPrevious: 1.1 } })).toBe(false);
+      expect(parse({ derived: { minRatioToBest: 0 } })).toBe(false);
+      expect(parse({ derived: { minRatioToBest: 1.1 } })).toBe(false);
     });
   });
 
