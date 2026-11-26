@@ -145,3 +145,39 @@ export const PatchStatus = z
     });
   });
 export type PatchStatus = z.infer<typeof PatchStatus>;
+
+/**
+ * Error codes of `guide.revalidate`. The tool answers with exactly one of these as a tool error
+ * (never with a PatchStatus) when the check cannot be made.
+ */
+export const GuideRevalidateErrorCode = z.enum([
+  /** No stored guide with this id. */
+  "guide_not_found",
+  /** The release is not in the server's data directory. */
+  "release_unknown",
+  /** The release is the guide's own or older than it. */
+  "release_not_newer",
+  /** A release of the chain has no diff against its predecessor, or the chain has a gap. */
+  "diff_missing",
+  /** The stored guide does not match the contract of this version. */
+  "guide_invalid",
+]);
+export type GuideRevalidateErrorCode = z.infer<typeof GuideRevalidateErrorCode>;
+
+/**
+ * MCP tool of F-19. Only ids go in: the server looks the guide up in its own store and the
+ * releases in its own data directory, so no path ever comes from a client.
+ */
+export const GuideTools = {
+  "guide.revalidate": {
+    description:
+      "Checks a stored guide against a newer data release: which catalog references were removed or changed, which stages they affect, and whether the guide needs a recalculation. The newest stored revision of the guide is checked (`PatchStatus.guideRevision` says which). Never answers 'unaffected' when the check cannot be made; it fails with one of GuideRevalidateErrorCode instead.",
+    input: z.object({
+      guideId: z.uuid(),
+      /** A release newer than the one the guide was built with; the server rejects any other with `release_not_newer`. */
+      toReleaseId: DataReleaseId,
+    }),
+    output: PatchStatus,
+  },
+} as const;
+export type GuideToolName = keyof typeof GuideTools;

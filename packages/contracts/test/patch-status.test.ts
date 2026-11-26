@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PatchStatus } from "../src/index.js";
+import { GuideRevalidateErrorCode, PatchStatus } from "../src/index.js";
 
 const base = {
   schemaVersion: 1,
@@ -83,5 +83,25 @@ describe("PatchStatus", () => {
     expect(PatchStatus.safeParse({ ...ok, toReleaseId: base.fromReleaseId }).success).toBe(false);
     expect(PatchStatus.safeParse({ ...ok, findings: [changed, changed] }).success).toBe(false);
     expect(PatchStatus.safeParse({ ...ok, checkedReferences: 0 }).success).toBe(false);
+  });
+});
+
+describe("guide.revalidate", () => {
+  it("takes ids only and answers with a PatchStatus", async () => {
+    const { GuideTools } = await import("../src/index.js");
+    const tool = GuideTools["guide.revalidate"];
+    expect(tool.output).toBe(PatchStatus);
+    expect(GuideRevalidateErrorCode.options).toContain("release_not_newer");
+    const input = {
+      guideId: "0b0f6d6e-3a3a-4c1e-9a53-6c1f2f6f9a11",
+      toReleaseId: "poe2-9.8.8+r1",
+    };
+    expect(tool.input.safeParse(input).success).toBe(true);
+    expect(tool.input.safeParse({ ...input, path: "/etc" }).success).toBe(true);
+    expect(tool.input.parse({ ...input, path: "/etc" })).toEqual(input);
+    expect(tool.input.safeParse({ ...input, toReleaseId: "../x" }).success).toBe(false);
+    expect(tool.input.safeParse({ guideId: "x", toReleaseId: input.toReleaseId }).success).toBe(
+      false,
+    );
   });
 });
