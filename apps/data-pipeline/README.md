@@ -234,6 +234,14 @@ Zusammenfassung von `findings.json` jede so getroffene Entscheidung. Die Zahlen 
 Tabelle oben sind der Stand von Release r6 (Disambiguierung seit r4: 401 von 492 mehrdeutigen Zeilen
 aufgelöst; vorher 492).
 
+## Knoten mit Freischaltbedingung
+
+PoB markiert manche Knoten des normalen Baums mit `unlockConstraint = { ascendancy, nodes }`: Sie
+sind nur wählbar, solange die genannten Knoten belegt sind (heute 197 Knoten mit Präfix `oracle_`,
+freigeschaltet durch den Oracle-Knoten 5571). Der Katalog führt das als `PassiveNode.unlockedBy`.
+Eine Bedingung, die nicht lesbar ist (unbekannte Ascendancy, leere oder fehlende Knoten), ist ein
+Fehler: Der Knoten würde sonst ohne Bedingung angeboten, und PoB lehnt ihn beim Allozieren ab.
+
 ## Spiel-IDs für den `.build`-Export
 
 Mit `--game-data` setzt `catalog` `PassiveNode.gameId` (`PassiveSkills.Id`) und

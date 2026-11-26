@@ -920,6 +920,31 @@ function normalizeTree(
     const asc = str(data.ascendancyName);
     const ascendancy = asc ? ascByName.get(asc) : undefined;
     if (asc && !ascendancy) ctx.warn("passiveNode", id, `unknown ascendancy "${asc}"`);
+    // PoB's `unlockConstraint`: the node can only be allocated while these nodes are allocated
+    let unlockedBy: { ascendancyId: string; nodeIds: string[] } | undefined;
+    if (data.unlockConstraint !== undefined) {
+      const lock = obj(data.unlockConstraint);
+      const lockAscName = str(lock.ascendancy);
+      const lockAsc = lockAscName ? ascByName.get(lockAscName) : undefined;
+      const lockNodes = list(lock.nodes).flatMap((n) => {
+        const nodeId = num(n);
+        return nodeId === undefined ? [] : [nodeId];
+      });
+      const missing = lockNodes.filter((n) => !nodeIds.has(n));
+      if (!lockAsc || lockNodes.length === 0 || lockNodes.length !== list(lock.nodes).length)
+        ctx.error(
+          "passiveNode",
+          id,
+          `unlockConstraint is not understood (ascendancy ${String(lockAscName)}, ${String(lockNodes.length)} nodes); the node would be offered without its condition`,
+        );
+      else if (missing.length > 0)
+        ctx.error(
+          "passiveNode",
+          id,
+          `unlockConstraint names nodes missing from the tree: ${missing.join(", ")}`,
+        );
+      else unlockedBy = { ascendancyId: lockAsc.id, nodeIds: lockNodes.map(String) };
+    }
     const group = num(data.group);
     return {
       id,
@@ -941,6 +966,7 @@ function normalizeTree(
       arcs,
       classStartFor,
       ...(ascendancy ? { ascendancyId: ascendancy.id } : {}),
+      ...(unlockedBy ? { unlockedBy } : {}),
     };
   });
 
