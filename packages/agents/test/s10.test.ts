@@ -49,6 +49,7 @@ const draft = (over: object = {}) =>
     gear: {
       tiers: [
         {
+          budgetTier: "end",
           calcs: { mapping: { status: "ok", calcId: "c1" } },
           slots: [
             {
@@ -63,7 +64,7 @@ const draft = (over: object = {}) =>
     },
     crafting: [
       {
-        key: "S8.craft-ring-1",
+        key: "S8.craft-end-ring-1",
         target: { kind: "unique", uniqueId: "T0" },
         start: { baseItemId: "S0", cost: { status: "uncalibrated", reason: "x" } },
         steps: [],
@@ -109,7 +110,7 @@ describe("S10 gates", () => {
     const withPrice = draft({
       crafting: [
         {
-          key: "S8.craft-ring-1",
+          key: "S8.craft-end-ring-1",
           target: { kind: "unique", uniqueId: "Tgt" },
           start: {
             baseItemId: "StartBase",
@@ -396,11 +397,21 @@ describe("S10 measured gates", () => {
     ]);
   });
 
-  it("keeps G7 open while earlier-tier rares have no plan of their own", async () => {
-    const gates = await runGates(withStats(good), draft(), cfg as never);
-    expect(gates.find((g) => g.gate === "G7")?.findings.map((f) => f.code)).toContain(
-      "check_not_built",
-    );
+  it("asks for a crafting plan of every tier's rare, each tier on its own (G7)", async () => {
+    const d = draft();
+    const first = d.gear.tiers[0];
+    if (first === undefined) throw new Error("the fixture has a gear tier");
+    d.gear.tiers.unshift({ ...first, budgetTier: "start" } as never);
+    const gates = await runGates(withStats(good), d, cfg as never);
+    const g7 = gates.find((g) => g.gate === "G7")?.findings ?? [];
+    expect(g7.map((f) => f.code)).not.toContain("check_not_built");
+    expect(g7).toEqual([
+      expect.objectContaining({
+        code: "craft_plan_missing",
+        returnTo: "S8",
+        message: expect.stringContaining("start"),
+      }),
+    ]);
   });
 
   it("flags a gem whose level the character cannot use yet, or that the catalog lacks (G3)", async () => {
@@ -467,7 +478,7 @@ describe("S10 measured gates", () => {
     expect(ids).toEqual(["geared"]);
     const g4 = gates.find((g) => g.gate === "G4")?.findings ?? [];
     expect(g4.find((f) => f.code === "resistance_below_cap")).toMatchObject({
-      returnTo: "S7",
+      returnTo: "S7.gear-end",
       path: "/gear/tiers/0/calcs",
     });
   });

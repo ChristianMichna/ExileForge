@@ -28,8 +28,10 @@ export const S8_CRAFT_PREFIX = "S8.craft-";
 type CraftedSpec = Extract<ItemSpec, { kind: "crafted" }>;
 type PlanStepTier = GearPlan["tiers"][number];
 
-/** A rare of the endgame gear that is meant to be crafted. */
+/** A rare of one gear tier that is meant to be crafted. */
 export interface CraftSlot {
+  /** Budget tier of the gear plan the rare belongs to. */
+  tier: string;
   slot: string;
   key: string;
   target: CraftedSpec;
@@ -43,19 +45,27 @@ export function slotSlug(slot: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export const craftKey = (slot: string): string => `${S8_CRAFT_PREFIX}${slotSlug(slot)}`;
+export const craftKey = (tier: string, slot: string): string =>
+  `${S8_CRAFT_PREFIX}${slotSlug(tier)}-${slotSlug(slot)}`;
 
-/** The slots to craft: crafted rares of the last (endgame) tier that are acquired by crafting. */
+/** The slots to craft: the crafted rares of every gear tier that are acquired by crafting. */
 export function craftSlotsOf(plan: GearPlan): CraftSlot[] | string {
-  const tier: PlanStepTier | undefined = plan.tiers.at(-1);
-  if (tier === undefined) return [];
-  const slots = tier.slots.flatMap((s) =>
-    s.acquisition === "craft" && s.target.kind === "crafted"
-      ? [{ slot: s.slot, key: craftKey(s.slot), target: s.target }]
-      : [],
+  const slots = plan.tiers.flatMap((tier: PlanStepTier) =>
+    tier.slots.flatMap((s) =>
+      s.acquisition === "craft" && s.target.kind === "crafted"
+        ? [
+            {
+              tier: tier.budgetTier as string,
+              slot: s.slot,
+              key: craftKey(tier.budgetTier, s.slot),
+              target: s.target,
+            },
+          ]
+        : [],
+    ),
   );
-  if (slots.some((s) => slotSlug(s.slot) === "")) {
-    return "A craft slot id has no letters or digits, so it cannot name a task.";
+  if (slots.some((s) => slotSlug(s.slot) === "" || slotSlug(s.tier) === "")) {
+    return "A craft slot or tier id has no letters or digits, so it cannot name a task.";
   }
   const keys = new Set(slots.map((s) => s.key));
   return keys.size === slots.length
@@ -128,12 +138,13 @@ export function craftTask(
 ): AnyTaskSpec {
   return defineTask<CraftSubmission>({
     key: slot.key,
-    type: `S8.craft-${slotSlug(slot.slot)}`,
+    type: `S8.craft-${slotSlug(slot.tier)}-${slotSlug(slot.slot)}`,
     promptVersion: config.promptVersion,
     instructions: S8_CRAFT,
     context: {
       request: requestContext(ctx),
       chosen,
+      tier: slot.tier,
       slot: slot.slot,
       target: JSON.parse(JSON.stringify(slot.target)) as JsonValue,
     },
@@ -320,6 +331,7 @@ export function craftPlanJob(
         });
         plans.push({
           key: slot.key,
+          tier: slot.tier,
           slot: slot.slot,
           target: slot.target,
           start: {
