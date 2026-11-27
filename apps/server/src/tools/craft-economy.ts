@@ -159,8 +159,16 @@ export async function createCraft(
     if (economy !== undefined) {
       try {
         const result = await economy.book(request.league);
-        prices = result.book;
-        if (result.stale) {
+        if (result.stale && request.league === undefined) {
+          // The current league could not be looked up, so the older book may be of a past league.
+          logger.error("craft costs are uncalibrated: the current league could not be confirmed", {
+            league: result.book.league,
+            fetchedAt: result.book.fetchedAt,
+          });
+        } else {
+          prices = result.book;
+        }
+        if (result.stale && prices !== undefined) {
           logger.error("craft cost uses an older price book because the refresh failed", {
             league: result.book.league,
             fetchedAt: result.book.fetchedAt,

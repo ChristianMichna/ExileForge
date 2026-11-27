@@ -131,4 +131,27 @@ describe("createCraft", () => {
     ).rejects.toMatchObject({ code: "invalid_request" });
     expect(book).toHaveBeenCalledWith(undefined);
   });
+
+  it("leaves costs uncalibrated when an older book is all there is and no league was named", async () => {
+    const logger = createMemoryLogger();
+    const craft = await createCraft(
+      join(import.meta.dirname, "../../../config/crafting/sim.json"),
+      fixtureCatalog(),
+      {
+        price: () => Promise.reject(new Error("unused")),
+        book: () =>
+          Promise.resolve({
+            book: { league: "Old League", fetchedAt: "2026-01-01T00:00:00Z" } as never,
+            stale: true,
+          }),
+      },
+      logger,
+    );
+    await expect(
+      craft({ dataReleaseId: RELEASE, baseItemId: "NoSuchBase" } as never),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+    expect(
+      logger.entries.some((e) => e.message.includes("current league could not be confirmed")),
+    ).toBe(true);
+  });
 });
