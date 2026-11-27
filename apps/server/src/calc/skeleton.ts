@@ -152,6 +152,10 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     if (slot === undefined) {
       throw new Error(`The release has no item slot ${wanted.slot} for the placeholder weapon`);
     }
+    const rarities = catalog.release?.rarities?.rarities ?? [];
+    if (!rarities.some((r) => r.id === wanted.rarity)) {
+      throw new Error(`The release has no rarity ${wanted.rarity} for the placeholder weapon`);
+    }
     const weights = this.objectiveFor(
       this.options.settings.objective,
       job.profile.mainSkillId,
@@ -172,10 +176,13 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       const loaded = await this.options.calc.getResult(outcome.calcId);
       if (loaded === undefined)
         throw new Error(`The result ${outcome.calcId} of the placeholder weapon is gone`);
-      return Object.entries(weights).reduce(
-        (sum, [stat, w]) => sum + w * (loaded.stats[stat] ?? 0),
-        0,
-      );
+      return Object.entries(weights).reduce((sum, [stat, w]) => {
+        const value = loaded.stats[stat];
+        if (value === undefined) {
+          throw new Error(`The engine reported no ${stat}, so no placeholder weapon can be chosen`);
+        }
+        return sum + w * value;
+      }, 0);
     };
     const bases = catalog.list("baseItem").map((e) => e.entity as BaseItem);
     let best: { score: number; items: EquippedItem[] } = { score: await score([]), items: [] };
@@ -197,7 +204,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
             mods: [],
             socketables: [],
           },
-        } as EquippedItem,
+        },
       ];
       const value = await score(items);
       if (value > best.score) best = { score: value, items };

@@ -55,3 +55,9 @@ für den Hauptskill am besten misst, und nur wenn sie besser ist als der Build o
 brauchen keine). Die Waffe hat keine Modifikatoren und wandert über S4 bis S6 in Zielbaum und Stufen; die
 Gear-Stufen (S7) ersetzen alle Items. Fehlt der Slot im Release oder die Rechnung scheitert, ist das ein
 sichtbarer Fehler, kein stiller Verzicht.
+
+Grenzen: Die Platzhalter-Waffe steht im Zustand der Stufen und damit auch in der exportierten `.build`-Datei als
+Waffenempfehlung (die Klasse, mit der PoB den Skill überhaupt rechnen kann); die Gear-Stufen ersetzen sie in
+den Messungen von S7 und S10, nicht in den veröffentlichten Stufen. Gewählt wird nach der Zielfunktion von S3
+(roh gewichtete Summe); die Wahl wird je Server und Skill gecacht. Attribut-Anforderungen der Basis fließen nicht
+in die Wahl ein (nur die Anforderungsstufe).

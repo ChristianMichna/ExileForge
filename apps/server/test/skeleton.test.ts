@@ -146,7 +146,10 @@ describe("PobSkeleton", () => {
       properties: {},
     });
     const withWeapons = Object.assign(Object.create(catalog) as typeof catalog, {
-      release: { itemSlots: { slots: [{ id: "Weapon 1", itemClasses: ["Bow", "Mace"] }] } },
+      release: {
+        itemSlots: { slots: [{ id: "Weapon 1", itemClasses: ["Bow", "Mace"] }] },
+        rarities: { rarities: [{ id: "normal", name: "Normal" }] },
+      },
       list: (kind: string) =>
         kind === "baseItem"
           ? [
