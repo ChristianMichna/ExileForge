@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { QualityRubric } from "./quality/rubric.js";
 import { BudgetTierId } from "@astrolabe/contracts/build";
 import { CalcProfileId } from "@astrolabe/contracts/common";
 
@@ -275,6 +276,9 @@ export const StageConfig = z
      */
     s9: z
       .object({
+        /** File with the quality rubric, next to this config; the loader reads it into `rubric`. */
+        rubricFile: z.string().min(1).optional(),
+        rubric: QualityRubric.optional(),
         depth: z.object({
           introductionParagraphs: z.int().nonnegative(),
           interactions: z.int().nonnegative(),
@@ -290,6 +294,10 @@ export const StageConfig = z
           minTreeNotesPerStage: z.int().nonnegative(),
           minStatPrioritiesPerSlot: z.int().nonnegative(),
         }),
+      })
+      .refine((s9) => s9.rubric !== undefined || s9.rubricFile !== undefined, {
+        message: "s9 needs the quality rubric (rubricFile): the quality gate must not be off",
+        path: ["rubricFile"],
       })
       .optional(),
     s2: z.object({

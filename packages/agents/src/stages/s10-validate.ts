@@ -19,6 +19,8 @@ import type { StageConfig } from "../config.js";
 import { type AnyTaskSpec, defineTask, type PipelineContext, type PlanStep } from "../pipeline.js";
 import { S10_CRITIC } from "../prompts.js";
 import { requestContext } from "./context.js";
+import { type QualityRubric, RUBRIC_SECTIONS } from "../quality/rubric.js";
+import { judgedFindings, QualityVerdict, qualityKey, rubricFindings } from "./s10-quality.js";
 import { craftKey, S8_PLAN_KEY } from "./s8-craft.js";
 import { S6_PLAN_KEY } from "./s6-progression.js";
 import { type S6Row, stageTableOf } from "./s6-table.js";
@@ -131,6 +133,28 @@ function detailCause(
   return candidates.find((key) => ctx.result(key) !== undefined);
 }
 
+/** G7 quality: the rubric's measured rules and the judge's verdicts (none without a rubric). */
+function qualityFindings(
+  ctx: PipelineContext,
+  draft: GuideDraft,
+  rubric: QualityRubric | undefined,
+): Finding[] {
+  if (rubric === undefined) return [];
+  const verdictOf = (section: (typeof RUBRIC_SECTIONS)[number]): QualityVerdict | undefined => {
+    const v = ctx.result(qualityKey(section));
+    return v === undefined ? undefined : stored(QualityVerdict, v, `quality verdict (${section})`);
+  };
+  return [
+    ...rubricFindings(draft, rubric),
+    ...judgedFindings(
+      rubric,
+      verdictOf,
+      (section, part) => detailCause(ctx, { section, part }),
+      causeOf,
+    ),
+  ].map((f) => Finding.parse(f));
+}
+
 /** The stage that wrote a section of the guide, for returning findings to it. */
 function causeOf(section: CriticSection): string {
   switch (section) {
@@ -150,13 +174,27 @@ function readCritic(value: unknown): CriticVerdict {
   return stored(CriticVerdict, value, "critic verdict (S10.critic)");
 }
 
-/** Whether the stored report was made with the critic verdict that is stored now. */
+/** The stored quality verdicts, by section, as the report keeps them. */
+function qualitiesOf(ctx: Pick<PipelineContext, "result">): Record<string, JsonValue> {
+  return Object.fromEntries(
+    RUBRIC_SECTIONS.flatMap((s) => {
+      const v = ctx.result(qualityKey(s));
+      return v === undefined ? [] : [[s, v] as const];
+    }),
+  );
+}
+
+/** Whether the stored report was made with the critic verdict and quality verdicts stored now. */
 export function reportIsCurrent(ctx: PipelineContext): boolean {
   const report = ctx.result(S10_REPORT_KEY);
   if (report === undefined) return false;
-  const used = (report as { critic?: unknown } | null)?.critic ?? null;
-  const now = ctx.result(S10_CRITIC_KEY) ?? null;
-  return JSON.stringify(used) === JSON.stringify(now);
+  const stored = report as { critic?: unknown; quality?: unknown } | null;
+  const usedCritic = stored?.critic ?? null;
+  const nowCritic = ctx.result(S10_CRITIC_KEY) ?? null;
+  return (
+    JSON.stringify(usedCritic) === JSON.stringify(nowCritic) &&
+    JSON.stringify(stored?.quality ?? {}) === JSON.stringify(qualitiesOf(ctx))
+  );
 }
 
 /** G8 from the critic's verdict: passes only if every part was read and nothing was found. */
@@ -192,6 +230,8 @@ export interface S10Inputs {
   mainSkillId: string;
   /** Whether S9 ran its detail pass; its results are merged into the plans. */
   detailPass?: boolean;
+  /** The quality rubric (measured rules and judged questions); absent means no quality gate. */
+  rubric?: QualityRubric;
 }
 
 /** Parses a stored result; the error names the part and keeps the schema error as cause. */
@@ -996,6 +1036,7 @@ export async function runGates(
   critic?: CriticVerdict,
   stageTable?: readonly S6Row[],
   targetBuild?: TargetBuild,
+  rubric?: QualityRubric,
 ): Promise<GateResult[]> {
   const measured =
     cfg === undefined ? undefined : await measuredGates(ctx, draft, cfg, stageTable, targetBuild);
@@ -1122,7 +1163,7 @@ export async function runGates(
     G1: g1,
     G2: [...g2, ...(measured?.g2 ?? [])],
     G6: g6,
-    G7: [...g7Counts, ...g7],
+    G7: [...g7Counts, ...g7, ...qualityFindings(ctx, draft, rubric)],
   };
   return (["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"] as const).map((gate) => {
     const findings = [...(found[gate] ?? [])];
@@ -1154,13 +1195,22 @@ export function validateStep(inputs: S10Inputs, cfg?: S10Config): PlanStep {
       const draft = assembleDraft(runCtx, inputs);
       const stored = runCtx.result(S10_CRITIC_KEY);
       const critic = stored === undefined ? undefined : readCritic(stored);
-      const gates = await runGates(runCtx, draft, cfg, critic, inputs.stageTable, inputs.target);
+      const gates = await runGates(
+        runCtx,
+        draft,
+        cfg,
+        critic,
+        inputs.stageTable,
+        inputs.target,
+        inputs.rubric,
+      );
       return JSON.parse(
         JSON.stringify({
           passed: gates.every((g) => g.passed),
           gates,
           draft,
           critic: critic ?? null,
+          quality: qualitiesOf(runCtx),
         }),
       ) as JsonValue;
     },

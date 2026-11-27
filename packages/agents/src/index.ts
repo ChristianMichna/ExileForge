@@ -52,3 +52,5 @@ export {
   S6_PLAN_KEY,
   S6_STAGES_KEY,
 } from "./stages/s6-progression.js";
+export { QualityRubric } from "./quality/rubric.js";
+export { rubricFindings } from "./stages/s10-quality.js";

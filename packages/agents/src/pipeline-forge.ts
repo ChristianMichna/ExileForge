@@ -42,12 +42,15 @@ import { CraftingPlan, GearPlan, ProgressionPlan } from "@astrolabe/contracts/bu
 import { publishStep, S11_GUIDE_KEY } from "./stages/s11-publish.js";
 import {
   afterReport,
+  assembleDraft,
   criticTask,
+  type GuideDraft,
   reportIsCurrent,
   S10_CRITIC_KEY,
   validateStep,
 } from "./stages/s10-validate.js";
 import { detailItems, detailTask } from "./stages/s9-detail.js";
+import { judgedSections, qualityKey, qualityTask } from "./stages/s10-quality.js";
 import { S9_SECTIONS, sectionKey, sectionTask } from "./stages/s9-guide.js";
 import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
 
@@ -80,6 +83,7 @@ export function createForgePipeline(config: StageConfig): Pipeline {
       craftTaskCount(ctx) +
       S9_SECTIONS.length +
       detailTaskCount(ctx, config) +
+      judgedSections(config.s9?.rubric).length +
       1,
     validateIntervention: (intervention: UserIntervention, ctx) => {
       if (intervention.kind !== "chooseVariant") return undefined;
@@ -431,6 +435,24 @@ function planGuide(
     }
     return { kind: "task", spec: critic };
   }
+  // The quality judge: one task per section the rubric asks questions about (G7).
+  const rubric = config.s9?.rubric;
+  const unjudged = judgedSections(rubric).find((sec) => ctx.result(qualityKey(sec)) === undefined);
+  if (rubric !== undefined && unjudged !== undefined) {
+    let draft: GuideDraft;
+    try {
+      draft = assembleDraft(ctx, {
+        chosen,
+        target,
+        mainSkillId: mainSkillOfRun(ctx),
+        detailPass: true,
+      });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      return { kind: "blocked", error: { code: "draft_unreadable", message } };
+    }
+    return { kind: "task", spec: qualityTask(ctx, config, rubric, unjudged, draft) };
+  }
   if (!reportIsCurrent(ctx))
     return validateStep(
       {
@@ -438,6 +460,7 @@ function planGuide(
         target,
         mainSkillId: mainSkillOfRun(ctx),
         detailPass: config.s9 !== undefined,
+        ...(rubric === undefined ? {} : { rubric }),
         ...(config.s6?.stages === undefined ? {} : { stageTable: config.s6.stages }),
       },
       config.s10,
