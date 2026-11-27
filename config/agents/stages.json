@@ -25,7 +25,7 @@
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
-        "FullDPS": 1,
+        "CombinedDPS": 1,
         "TotalEHP": 0.4
       },
       "floors": {}
@@ -38,7 +38,7 @@
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
-        "FullDPS": 1,
+        "CombinedDPS": 1,
         "TotalEHP": 0.4
       },
       "floors": {},
@@ -52,7 +52,7 @@
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
-        "FullDPS": 1,
+        "CombinedDPS": 1,
         "TotalEHP": 0.4
       },
       "floors": {},
@@ -94,7 +94,7 @@
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
-        "FullDPS": 1,
+        "CombinedDPS": 1,
         "TotalEHP": 0.4
       },
       "calcProfile": "mapping"
