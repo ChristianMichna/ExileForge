@@ -142,3 +142,36 @@ Netz: Die Datenprüfung läuft in einer eigenen Sitzung (`astrolabe-data-sync`) 
 geschlossen. Abfragen haben Zeitgrenzen (`listTimeoutSeconds`, `installTimeoutMinutes`) und werden beim Beenden
 abgebrochen. Ein bereits installiertes, wartendes Release bleibt auch dann sichtbar, wenn eine spätere Prüfung
 fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträglich beschädigt wird (Folgeaufgabe).
+
+**Beispiel-Guides** (F-20): Der Installer bringt `examples/guides/` als `example-guides/` mit (`extraResources`); `AppDirs.exampleGuidesDir` reicht den Ordner an den Server, der die Guide-Dateien beim Start einspielt, soweit er sie noch nicht kennt.
+
+## Updates, Release und Selbsttest (F-09)
+
+- **Auto-Update:** Jeder Push auf `main`, der die App berührt, baut in `desktop.yml` den
+  Installer, prüft ihn (siehe unten) und veröffentlicht ihn als GitHub-Release `v<major>.<minor>.<Lauf-Nr.>`
+  (kein Pre-Release; Daten-Releases sind Pre-Releases und stören nicht). Die installierte App
+  fragt über `electron-updater` das neueste Release ab (15 s nach dem Start, danach alle 6 Stunden),
+  lädt es im Hintergrund und bietet „Restart to update“ an. Das Repository ist öffentlich, es
+  braucht keinen Token. Neue Spieldaten kommen getrennt über Daten-Releases (`data-sync.ts`).
+- **Selbsttest (`e2e/run.ts`, Job „Windows end-to-end“):** installiert den echten Installer still
+  auf einem sauberen Windows-Runner, startet die App, liest den Status über das Fenster
+  (Playwright per DevTools-Port; die Fuses erlauben kein Playwright-Electron), packt die mitgelieferte
+  `astrolabe.mcpb` aus und startet sie wie Claude Desktop (Manifest, `${__dirname}`, Objekt-Argumente
+  als JSON-Strings, Windows-Pfade). Geprüft werden: Dateien der Installation, gebündeltes Daten-Release,
+  Start mit echtem PoB, „Install Claude extension“, Tool-Liste, Katalogsuche, `forge_attach`, eine
+  echte PoB-Berechnung und eine zurückgewiesene `forge_submit`-Antwort als String. Screenshots und
+  Logs liegen im Artefakt `e2e-windows`. Lokal (Windows):
+  `pnpm --filter @astrolabe/desktop e2e:windows <Astrolabe-Setup.exe> <Ausgabeordner>` mit
+  `EXPECT_DATA_RELEASE_ID=poe2-<Version>+r<n>`.
+- **Update-Test (`e2e/update.ts`):** installiert das vorige App-Release, lässt die App die neue Version
+  finden, laden, prüfen (SHA-512 aus `latest.yml`) und per „Restart to update“ installieren, und startet
+  sie als neue Version. Job „Windows update check (local feed)“ läuft in jedem PR gegen einen lokalen
+  Webserver mit dem neuen Build (der Server liefert keine Blockmap, der Updater lädt die ganze Datei);
+  Job „(GitHub release)“ läuft nach dem Veröffentlichen gegen die echte Quelle.
+  Ohne früheres Release wird der Test mit Warnung übersprungen.
+- **Aufgezeichneter Guide:** `e2e/fixtures/guide-file.json` ist das Ergebnis eines echten Laufs (Boneshatter, r14). Der Windows-Test startet die App auf diesem Daten-Release, spielt die Datei ein, öffnet die Guide-Seite (Screenshot `04-guide.png`) und speichert die `.build`-Datei (`guide.build` im Artefakt). Ein vollständiger Lauf S0 bis S11: `e2e/recording.ts` spielt die Aufzeichnung eines echten Laufs
+  (`e2e/fixtures/run-recording.json`) gegen die App ab, mit echtem PoB und allen Gates; nur die Entscheidungen
+  (Antworten von Claude, Aktionen des Spielers) sind fest. Aufnehmen auf dem PC, auf dem der Lauf fertig wurde:
+  `node --experimental-strip-types e2e/record.ts <runId>` (liest das Token aus `%APPDATA%\\Astrolabe`), die Datei
+  nach `e2e/fixtures/run-recording.json` legen und committen. Ohne die Datei wird der Schritt mit Warnung
+  übersprungen und als „skipped“ im Ergebnis geführt.

@@ -40,6 +40,8 @@ export interface StartServicesOptions {
   stagesConfigPath: string;
   /** Folder with installed data releases (one folder per release id); enables guide_revalidate. */
   releasesDir?: string;
+  /** Folder of example guide files the server imports on start (see `StartOptions.exampleGuidesDir`). */
+  exampleGuidesDir?: string;
   logger?: Logger;
   /**
    * Where Path of Building and the calc service files are. The real engine starts when PoB is
@@ -148,6 +150,9 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
       stagesConfigPath: options.stagesConfigPath,
       calc,
       ...(options.releasesDir === undefined ? {} : { releasesDir: options.releasesDir }),
+      ...(options.exampleGuidesDir === undefined
+        ? {}
+        : { exampleGuidesDir: options.exampleGuidesDir }),
       allowedOrigins: [],
       tokenFile,
       logger,

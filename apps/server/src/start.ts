@@ -11,6 +11,7 @@ import { PersistedCalc } from "./calc/persisted-calc.js";
 import { PobCalc, type CalcRequester } from "./calc/pob-calc.js";
 import { createItemRenderer } from "./calc/item-text.js";
 import { PobSkeleton } from "./calc/skeleton.js";
+import { importExampleGuides } from "./guides/example-guides.js";
 import { createCraft, createEconomy, type EconomySettings } from "./tools/craft-economy.js";
 import type { CalcPort } from "./ports/calc.js";
 import { loadCatalogRelease } from "./catalog/memory-catalog.js";
@@ -58,6 +59,8 @@ export interface StartOptions {
   economy?: EconomySettings;
   /** Directory with unpacked data releases (one folder per release id); enables guide_revalidate. */
   releasesDir?: string;
+  /** Folder of guide files (`GuideFile`) imported on start when the store lacks them (example guides). */
+  exampleGuidesDir?: string;
   allowedOrigins: readonly string[];
   /** File with the per-installation access token (created if missing). */
   tokenFile: string;
@@ -96,6 +99,9 @@ async function startServerOwningPool(
   const catalog = await loadCatalogRelease(options.catalogDir);
   const accessToken = await loadOrCreateAccessToken(options.tokenFile);
   const store = new RunStore(options.databasePath, options.logger);
+  if (options.exampleGuidesDir !== undefined) {
+    await importExampleGuides(options.exampleGuidesDir, store, options.logger, () => new Date());
+  }
   let calc: CalcPort;
   let pobCalc: PobCalc | undefined;
   let skeleton: PobSkeleton | undefined;
@@ -247,6 +253,7 @@ async function startServerOwningPool(
     ...(sweeper === undefined ? {} : { guideSweep: sweeper }),
     findGuide: (id) => store.findGuide(id),
     listGuideIds: () => store.listGuideIds(),
+    importGuide: (file, at) => store.importGuide(file, at),
     engine,
     catalog,
     calc,
