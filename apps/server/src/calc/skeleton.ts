@@ -455,7 +455,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         forbiddenNodeIds: excluded.filter((id) => graph.has(id)),
       }),
     );
-    this.logSearch("main tree", job.candidateKey, result, startedAt);
+    this.logSearch("main tree", job.candidateKey, result, startedAt, avoided.length);
     if (!result.feasible || result.failedEvaluationCount > 0) {
       this.options.logger.info("tree optimisation is incomplete", {
         candidate: job.candidateKey,
@@ -594,18 +594,21 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     key: string,
     result: TreeOptimizeResult,
     startedAt: number,
-    round?: number,
+    /** Ascendancy: the ban round; main tree: how many nodes were banned before this search. */
+    roundOrBanned?: number,
   ): void {
     this.options.logger.info("tree search finished", {
       search,
       key,
-      ...(round === undefined ? {} : { round }),
+      ...(roundOrBanned === undefined
+        ? {}
+        : { [search === "main tree" ? "bannedNodes" : "round"]: roundOrBanned }),
       evaluations: result.evaluations,
       stoppedBy: result.stoppedBy,
       refineStoppedBy: result.refineStoppedBy,
       truncated: result.truncated,
       failedEvaluations: result.failedEvaluationCount,
-      seconds: Math.round((Date.now() - startedAt) / 1000),
+      durationMs: Date.now() - startedAt,
     });
   }
 
