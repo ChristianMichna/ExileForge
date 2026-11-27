@@ -24,7 +24,13 @@ import { S6_PLAN_KEY } from "./s6-progression.js";
 import { type S6Row, stageTableOf } from "./s6-table.js";
 import { S7_PLAN_KEY } from "./s7-plan.js";
 import { itemEntities } from "./s7-gear.js";
-import { withDetails } from "./s9-detail.js";
+import {
+  craftDetailKey,
+  slotDetailKey,
+  stageDetailKey,
+  tierDetailKey,
+  withDetails,
+} from "./s9-detail.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
 
 export const S10_REPORT_KEY = "S10.report";
@@ -56,6 +62,12 @@ export const CriticVerdict = z.object({
     .array(
       z.object({
         section: z.enum(CRITIC_SECTIONS),
+        /**
+         * Where in the section the problem is, when the context names it: a progression stage key,
+         * "<tier>/<slot>" or a tier id of the gear plan, or a crafting plan key. It lets a prose
+         * problem go back to the one detail task that wrote the text.
+         */
+        part: z.string().min(1).max(200).optional(),
         message: z
           .string()
           .min(1)
@@ -93,6 +105,32 @@ export function criticTask(
   });
 }
 
+/**
+ * The S9 detail task that wrote the text an issue is about, when the issue names its part and that
+ * task has a stored result (so the detail pass ran); otherwise the issue goes to the plan's stage.
+ */
+function detailCause(
+  ctx: PipelineContext,
+  issue: { section: CriticSection; part?: string | undefined },
+): string | undefined {
+  const { part } = issue;
+  if (part === undefined) return undefined;
+  const candidates =
+    issue.section === "progression"
+      ? [stageDetailKey(part)]
+      : issue.section === "crafting"
+        ? [craftDetailKey(part)]
+        : issue.section === "gear"
+          ? [
+              ...(part.includes("/")
+                ? [slotDetailKey(part.split("/")[0] ?? "", part.split("/").slice(1).join("/"))]
+                : []),
+              tierDetailKey(part),
+            ]
+          : [];
+  return candidates.find((key) => ctx.result(key) !== undefined);
+}
+
 /** The stage that wrote a section of the guide, for returning findings to it. */
 function causeOf(section: CriticSection): string {
   switch (section) {
@@ -122,7 +160,7 @@ export function reportIsCurrent(ctx: PipelineContext): boolean {
 }
 
 /** G8 from the critic's verdict: passes only if every part was read and nothing was found. */
-function criticGate(verdict: CriticVerdict | undefined): Finding[] {
+function criticGate(verdict: CriticVerdict | undefined, ctx: PipelineContext): Finding[] {
   if (verdict === undefined) {
     return [finding("G8", "check_not_built", "The critic has not reviewed the guide.")];
   }
@@ -130,7 +168,13 @@ function criticGate(verdict: CriticVerdict | undefined): Finding[] {
   return [
     ...missed.map((s) => finding("G8", "section_not_reviewed", `The critic did not read ${s}.`)),
     ...verdict.issues.map((i) =>
-      finding("G8", "inconsistency", `${i.section}: ${i.message}`, undefined, causeOf(i.section)),
+      finding(
+        "G8",
+        "inconsistency",
+        `${i.section}: ${i.message}`,
+        undefined,
+        detailCause(ctx, i) ?? causeOf(i.section),
+      ),
     ),
   ];
 }
@@ -1074,7 +1118,7 @@ export async function runGates(
     G3: measured?.g3 ?? [],
     G4: measured?.g4 ?? [],
     G5: measured?.g5 ?? [],
-    G8: criticGate(critic),
+    G8: criticGate(critic, ctx),
     G1: g1,
     G2: [...g2, ...(measured?.g2 ?? [])],
     G6: g6,
