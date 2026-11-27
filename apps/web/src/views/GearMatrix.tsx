@@ -32,7 +32,9 @@ export function GearMatrix({ view }: { view: GuideView }) {
               return (
                 <span role="cell" key={t.budgetTier}>
                   {s === undefined ? (
-                    <span className="gear-matrix__none">–</span>
+                    <span className="gear-matrix__none" aria-label="Not used in this tier">
+                      –
+                    </span>
                   ) : (
                     <>
                       <Badge tone={PRIORITY_TONE[s.priority]}>{s.priority}</Badge>{" "}

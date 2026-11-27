@@ -15,24 +15,38 @@ interface Point {
   readonly value: number | undefined;
 }
 
-function pointsOf(stat: string, stages: readonly ProgressionStage[], view: GuideView): Point[] {
-  return stages.map((stage) => {
-    let value: number | undefined;
-    for (const profile of GUIDE_STATS.calcProfiles) {
+interface Series {
+  readonly profile: string;
+  readonly pobVersion: string;
+  readonly points: Point[];
+}
+
+/** One calc profile per chart, so every point of a curve has the source the badge names. */
+function seriesOf(
+  stat: string,
+  stages: readonly ProgressionStage[],
+  view: GuideView,
+): Series | undefined {
+  for (const profile of GUIDE_STATS.calcProfiles) {
+    let pobVersion: string | undefined;
+    const points = stages.map((stage): Point => {
       const outcome = stage.calcs[profile];
-      if (outcome?.status !== "ok") continue;
-      value = view.results[outcome.calcId]?.stats[stat];
-      if (value !== undefined) break;
-    }
-    return { level: stage.levelRange[1], label: stage.label, value };
-  });
+      const result = outcome?.status === "ok" ? view.results[outcome.calcId] : undefined;
+      const value = result?.stats[stat];
+      if (value !== undefined && pobVersion === undefined) pobVersion = result?.pobVersion;
+      return { level: stage.levelRange[1], label: stage.label, value };
+    });
+    if (pobVersion !== undefined) return { profile, pobVersion, points };
+  }
+  return undefined;
 }
 
 const W = 320;
 const H = 120;
 const PAD = { l: 8, r: 8, t: 10, b: 18 };
 
-function Chart({ title, points }: { title: string; points: readonly Point[] }) {
+function Chart({ title, series }: { title: string; series: Series }) {
+  const { points } = series;
   const known = points.filter((p): p is Point & { value: number } => p.value !== undefined);
   if (known.length === 0) return null;
   const maxV = Math.max(...known.map((p) => p.value));
@@ -47,18 +61,26 @@ function Chart({ title, points }: { title: string; points: readonly Point[] }) {
     if (p.value === undefined) runs.push([]);
     else (runs[runs.length - 1] ?? runs[runs.push([]) - 1])?.push({ ...p, value: p.value });
   }
-  const last = known[known.length - 1];
+  // The headline is the value of the last stage; without one there is no headline, never an older value.
+  const lastPoint = points[points.length - 1];
+  const last = lastPoint?.value === undefined ? undefined : lastPoint;
+  const fmt = new Intl.NumberFormat("en-US");
+  const summary = points
+    .map(
+      (p) => `${p.label}: ${p.value === undefined ? "no result" : fmt.format(Math.round(p.value))}`,
+    )
+    .join("; ");
   return (
     <figure className="power-curve__chart">
       <figcaption>
         <span>{title}</span>
-        {last === undefined ? null : (
-          <strong>
+        {last?.value === undefined ? null : (
+          <strong title={last.label}>
             {new Intl.NumberFormat("en-US", { notation: "compact" }).format(last.value)}
           </strong>
         )}
       </figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title} by stage`}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title} by stage. ${summary}`}>
         <line
           className="power-curve__axis"
           x1={PAD.l}
@@ -89,6 +111,9 @@ function Chart({ title, points }: { title: string; points: readonly Point[] }) {
           {`Lv ${String(hi)}`}
         </text>
       </svg>
+      <ProvenanceBadge
+        provenance={{ kind: "pob", pobVersion: series.pobVersion, calcProfile: series.profile }}
+      />
     </figure>
   );
 }
@@ -97,27 +122,18 @@ export function PowerCurve({ view }: { view: GuideView }) {
   const stages = [...view.guide.progression.stages].sort((a, b) => a.order - b.order);
   const charts = GUIDE_STATS.stats
     .filter((s) => s.emphasis === true)
-    .map((s) => ({ s, points: pointsOf(s.stat, stages, view) }))
-    .filter(({ points }) => points.some((p) => p.value !== undefined));
+    .flatMap((s) => {
+      const series = seriesOf(s.stat, stages, view);
+      return series === undefined ? [] : [{ s, series }];
+    });
   if (charts.length === 0) return null;
-  const first = stages.flatMap((s) => Object.values(s.calcs)).find((o) => o.status === "ok");
-  const result = first?.status === "ok" ? view.results[first.calcId] : undefined;
   return (
     <Panel title="Power curve" kicker="How the build grows">
       <div className="power-curve">
-        {charts.map(({ s, points }) => (
-          <Chart key={s.stat} title={s.label} points={points} />
+        {charts.map(({ s, series }) => (
+          <Chart key={s.stat} title={s.label} series={series} />
         ))}
       </div>
-      {result === undefined ? null : (
-        <ProvenanceBadge
-          provenance={{
-            kind: "pob",
-            pobVersion: result.pobVersion,
-            calcProfile: result.calcProfile,
-          }}
-        />
-      )}
     </Panel>
   );
 }

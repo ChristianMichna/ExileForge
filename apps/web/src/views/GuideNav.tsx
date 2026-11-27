@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /*
  * The index of the guide page: a rail that stays in view, lists the sections and marks the one the
@@ -10,7 +10,11 @@ export interface NavSection {
   readonly label: string;
 }
 
-export function GuideNav({ sections }: { sections: readonly NavSection[] }) {
+export function GuideNav({ sections: given }: { sections: readonly NavSection[] }) {
+  // Callers build the list on every render; the observer only needs to change when the ids do.
+  const key = given.map((s) => `${s.id}:${s.label}`).join("|");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the content of `given`
+  const sections = useMemo(() => given, [key]);
   const [active, setActive] = useState(sections[0]?.id ?? "");
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
@@ -47,9 +51,10 @@ export function GuideNav({ sections }: { sections: readonly NavSection[] }) {
               onClick={(e) => {
                 // The page itself routes by hash, so a section link scrolls instead of navigating.
                 e.preventDefault();
-                document
-                  .getElementById(s.id)
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                const el = document.getElementById(s.id);
+                const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                el?.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+                el?.focus({ preventScroll: true });
                 setActive(s.id);
               }}
             >

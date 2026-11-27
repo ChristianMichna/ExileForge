@@ -784,7 +784,7 @@ code {
 .power-curve__tick {
   fill: var(--ef-color-text-faint);
   font-family: var(--ef-font-mono);
-  font-size: 9px;
+  font-size: var(--ef-text-xs);
 }
 
 .gear-matrix {
@@ -815,4 +815,13 @@ code {
 
 .gear-matrix__none {
   color: var(--ef-color-text-faint);
+}
+
+.guide-nav__link:focus-visible {
+  outline: 1px solid var(--ef-color-verdigris);
+  outline-offset: 2px;
+}
+
+.guide-section:focus {
+  outline: none;
 }

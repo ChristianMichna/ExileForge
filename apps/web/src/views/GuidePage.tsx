@@ -152,7 +152,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
           {view.unresolved.join(", ")}
         </Callout>
       ) : null}
-      <section id="guide-summary" className="guide-section">
+      <section id="guide-summary" className="guide-section" tabIndex={-1}>
         <Panel title="Summary" kicker="At a glance">
           {summary.introduction.length > 0 ? (
             <GuideNotes>
@@ -202,7 +202,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
         </Panel>
         <PowerCurve view={view} />
       </section>
-      <section id="guide-mechanics" className="guide-section">
+      <section id="guide-mechanics" className="guide-section" tabIndex={-1}>
         <Panel title="How it works" kicker="Mechanics" variant="recessed">
           <GuideNotes>
             <p>
@@ -243,7 +243,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
           )}
         </Panel>
       </section>
-      <section id="guide-stages" className="guide-section">
+      <section id="guide-stages" className="guide-section" tabIndex={-1}>
         <Tabs
           label="Guide stages"
           variant="dial"
@@ -257,26 +257,26 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
           }))}
         />
       </section>
-      <section id="guide-gear" className="guide-section">
+      <section id="guide-gear" className="guide-section" tabIndex={-1}>
         <GearMatrix view={view} />
         <GearSection view={view} />
       </section>
-      <section id="guide-crafting" className="guide-section">
+      <section id="guide-crafting" className="guide-section" tabIndex={-1}>
         <CraftingSection view={view} />
       </section>
-      <section id="guide-tree" className="guide-section">
+      <section id="guide-tree" className="guide-section" tabIndex={-1}>
         <TreeSection view={view} />
       </section>
-      <section id="guide-playstyle" className="guide-section">
+      <section id="guide-playstyle" className="guide-section" tabIndex={-1}>
         <PlaystyleSection view={view} />
       </section>
-      <section id="guide-atlas" className="guide-section">
+      <section id="guide-atlas" className="guide-section" tabIndex={-1}>
         <AtlasSection view={view} />
       </section>
-      <section id="guide-variants" className="guide-section">
+      <section id="guide-variants" className="guide-section" tabIndex={-1}>
         <VariantsSection view={view} />
       </section>
-      <section id="guide-faq" className="guide-section">
+      <section id="guide-faq" className="guide-section" tabIndex={-1}>
         <FaqSection view={view} />
       </section>
     </div>
