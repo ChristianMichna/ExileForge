@@ -145,6 +145,8 @@ fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträ
 
 **Beispiel-Guides** (F-20): Der Installer bringt `examples/guides/` als `example-guides/` mit (`extraResources`); `AppDirs.exampleGuidesDir` reicht den Ordner an den Server, der die Guide-Dateien beim Start einspielt, soweit er sie noch nicht kennt.
 
+**Marktpreise und Crafting-Simulator** (F-14): Der Installer bringt `config/crafting` und `config/economy` mit; `AppDirs` nennt die Pfade, `startServices` reicht sie an den Server (`craftConfigPath`, `economy`). Damit gibt es in der App `craft_simulate` und `economy_price`; Preise kommen nur von poe.ninja (identifizierbarer User-Agent aus `config/economy`), Cache und Preisbücher liegen in `<userData>/economy/`. `economy.enabled` in `config/desktop/desktop.json` schaltet die Preise ab; dann bleiben Crafting-Kosten „unkalibriert“. Beim Start wird nichts abgerufen, die Abfrage passiert erst, wenn ein Lauf eine Liga nennt.
+
 ## Updates, Release und Selbsttest (F-09)
 
 - **Auto-Update:** Jeder Push auf `main`, der die App berührt, baut in `desktop.yml` den
