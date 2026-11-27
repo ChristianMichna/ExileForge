@@ -155,7 +155,9 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
       ...(options.exampleGuidesDir === undefined
         ? {}
         : { exampleGuidesDir: options.exampleGuidesDir }),
-      ...(options.craftConfigPath === undefined ? {} : { craftConfigPath: options.craftConfigPath }),
+      ...(options.craftConfigPath === undefined
+        ? {}
+        : { craftConfigPath: options.craftConfigPath }),
       allowedOrigins: [],
       tokenFile,
       logger,
