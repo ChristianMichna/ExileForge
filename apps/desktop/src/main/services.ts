@@ -42,6 +42,8 @@ export interface StartServicesOptions {
   releasesDir?: string;
   /** Folder of example guide files the server imports on start (see `StartOptions.exampleGuidesDir`). */
   exampleGuidesDir?: string;
+  /** config/crafting/sim.json; enables S8 and craft_simulate. */
+  craftConfigPath?: string;
   logger?: Logger;
   /**
    * Where Path of Building and the calc service files are. The real engine starts when PoB is
@@ -153,6 +155,7 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
       ...(options.exampleGuidesDir === undefined
         ? {}
         : { exampleGuidesDir: options.exampleGuidesDir }),
+      ...(options.craftConfigPath === undefined ? {} : { craftConfigPath: options.craftConfigPath }),
       allowedOrigins: [],
       tokenFile,
       logger,

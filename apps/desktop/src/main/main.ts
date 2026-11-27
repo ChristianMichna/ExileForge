@@ -155,6 +155,7 @@ async function boot(): Promise<void> {
       stagesConfigPath: dirs.stagesConfigPath,
       releasesDir: dirs.downloadedReleasesDir,
       exampleGuidesDir: dirs.exampleGuidesDir,
+      craftConfigPath: dirs.craftConfigPath,
       pob: {
         resourcesRoot: dirs.resourcesRoot,
         pobHome: dirs.pobHome,

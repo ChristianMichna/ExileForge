@@ -95,6 +95,7 @@ describe("data release lookup", () => {
     expect(d.pobHome).toBe(join("/r", "pob"));
     expect(d.calcWorkerLua).toBe(join("/r", "calc-lua", "worker.lua"));
     expect(d.optimizerConfigPath).toBe(join("/r", "config", "optimizer", "tree.json"));
+    expect(d.craftConfigPath).toBe(join("/r", "config", "crafting", "sim.json"));
     expect(d.exampleGuidesDir).toBe(join("/r", "example-guides"));
   });
 });

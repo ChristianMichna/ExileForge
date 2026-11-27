@@ -35,6 +35,7 @@ extraResources:
   - { from: ../../config/calc, to: config/calc }
   - { from: ../../config/calc-profiles, to: config/calc-profiles }
   - { from: ../../config/optimizer, to: config/optimizer }
+  - { from: ../../config/crafting, to: config/crafting }
   - { from: ../mcp-bridge/dist/astrolabe.mcpb, to: astrolabe.mcpb }
   - { from: data-release, to: data-release }
   - { from: ../../examples/guides, to: example-guides }

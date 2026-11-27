@@ -170,6 +170,7 @@ async function main(): Promise<void> {
       join("pob", "PathOfBuilding-PoE2", "runtime", "luajit.exe"),
       join("pob", "PathOfBuilding-PoE2", "src", "HeadlessWrapper.lua"),
       join("calc-lua", "worker.lua"),
+      join("config", "crafting", "sim.json"),
       join("data-release", "manifest.json"),
       join("web", "index.html"),
     ];
