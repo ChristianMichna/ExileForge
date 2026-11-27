@@ -85,3 +85,7 @@
   font-size: var(--ef-text-sm);
   color: var(--ef-color-verdigris-dim);
 }
+
+.ef-notes + .ef-notes {
+  margin-top: var(--ef-space-3);
+}

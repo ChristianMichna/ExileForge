@@ -54,3 +54,4 @@ export {
 } from "./stages/s6-progression.js";
 export { QualityRubric } from "./quality/rubric.js";
 export { rubricFindings } from "./stages/s10-quality.js";
+export type { GuideDraft } from "./stages/s10-validate.js";
