@@ -16,6 +16,12 @@ export const GuideListItem = z.object({
   mainSkillName: z.string().min(1).optional(),
   /** Built with the data release the server runs with. */
   current: z.boolean(),
+  /**
+   * Where the guide comes from: `run` was made by a run on this installation, `imported` came
+   * from a guide file (also the examples shipped with the app); its numbers are another
+   * installation's measurements.
+   */
+  origin: z.enum(["run", "imported"]),
 });
 export type GuideListItem = z.infer<typeof GuideListItem>;
 

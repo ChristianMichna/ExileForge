@@ -152,6 +152,11 @@ export class RunStore {
     return ids;
   }
 
+  /** `run` for a guide a run produced here, otherwise `imported` (same precedence as `listGuideIds`). */
+  guideOrigin(guideId: string): "run" | "imported" {
+    return this.runGuideIds().includes(guideId) ? "run" : "imported";
+  }
+
   private runGuideIds(): string[] {
     const rows = this.db
       .prepare(

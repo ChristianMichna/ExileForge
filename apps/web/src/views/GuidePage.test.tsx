@@ -79,6 +79,7 @@ describe("guide list", () => {
             ascendancyName: "Fixture Ascendancy",
             mainSkillId: "Fixture/Gems/Main",
             current: false,
+            origin: "imported",
           },
           { guideId: "broken-guide-id", error: "The stored guide cannot be read." },
         ],
@@ -90,6 +91,7 @@ describe("guide list", () => {
     // no name for the skill: the id stays visible instead of a made-up name
     expect(screen.getByText(/Fixture\/Gems\/Main/)).toBeTruthy();
     expect(screen.getByText("Older game data")).toBeTruthy();
+    expect(screen.getByText("Imported file")).toBeTruthy();
     expect(screen.getByText("The stored guide cannot be read.")).toBeTruthy();
   });
 

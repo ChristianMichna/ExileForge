@@ -63,6 +63,7 @@ function appOver(store: RunStore, findGuide?: (id: string) => unknown) {
     accessToken: TOKEN,
     findGuide: findGuide ?? ((id) => store.findGuide(id)),
     listGuideIds: () => store.listGuideIds(),
+    guideOrigin: (id) => store.guideOrigin(id),
     importGuide: (f, at) => store.importGuide(f, at),
   });
 }
@@ -174,7 +175,9 @@ describe("guide file routes", () => {
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual({ guideId: GUIDE_ID });
     const list = await a.inject({ method: "GET", url: "/api/guides", headers });
-    expect(list.json<{ guides: { guideId: string }[] }>().guides[0]?.guideId).toBe(GUIDE_ID);
+    const first = list.json<{ guides: { guideId: string; origin: string }[] }>().guides[0];
+    expect(first?.guideId).toBe(GUIDE_ID);
+    expect(first?.origin).toBe("imported");
     const view = await a.inject({ method: "GET", url: `/api/guides/${GUIDE_ID}/view`, headers });
     expect(view.statusCode).toBe(200);
     const body = view.json<{ results: Record<string, unknown> }>();
