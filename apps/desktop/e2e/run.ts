@@ -566,6 +566,11 @@ async function main(): Promise<void> {
     if (first.exitCode === null) throw new Error("the first instance did not quit");
     await sleep(3000);
     for (const start of starts) killTree(start);
+    const guideLogFile = join(outDir, "app-guide.log");
+    if (existsSync(guideLogFile)) {
+      const lines = readFileSync(guideLogFile, "utf8").split("\n");
+      console.log(lines.slice(-25).join("\n"));
+    }
     const crashed = ["app.log", "app-guide.log"].filter((name) => {
       const file = join(outDir, name);
       return (

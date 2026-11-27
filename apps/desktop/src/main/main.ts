@@ -57,6 +57,9 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on("second-instance", () => {
     // The first instance may be shutting down with its window already closed.
+    logger.info("second start while the app runs", {
+      windowOpen: mainWindow !== undefined && !mainWindow.isDestroyed(),
+    });
     if (mainWindow === undefined) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
