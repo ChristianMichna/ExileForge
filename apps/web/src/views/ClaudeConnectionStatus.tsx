@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Badge, Callout } from "@astrolabe/ui";
 import type { RunLive } from "../live/run-state";
+import type { McpReach } from "../api/claude-status";
 import type { Connection } from "../live/useRunEvents";
 
 /** How long a run may wait for Claude before the page explains what to check. */
@@ -51,15 +52,19 @@ function Step({
 export function ClaudeConnectionStatus({
   run,
   connection,
+  mcp,
   patienceMs = CONNECT_PATIENCE_MS,
 }: {
   run: RunLive;
+  /** Whether a Claude client has reached the local MCP endpoint (see `useMcpReach`). */
+  mcp: McpReach;
   /** State of the live stream: without it the run phase says nothing about Claude. */
   connection: Connection;
   patienceMs?: number;
 }) {
   const live = connection === "live";
   const connected = run.phase !== "created";
+  const reached = mcp.kind === "reached";
   const [impatient, setImpatient] = useState(false);
   useEffect(() => {
     if (connected || !live) return;
@@ -97,12 +102,28 @@ export function ClaudeConnectionStatus({
           Astrolabe is ready and waits for Claude.
         </Step>
         <Step
-          state={live && connected ? "done" : "current"}
-          title={live && connected ? "Claude is connected" : "Waiting for Claude to connect"}
+          state={reached || (live && connected) ? "done" : "current"}
+          title={
+            reached || (live && connected)
+              ? "Claude has reached Astrolabe"
+              : "Waiting for the Claude extension"
+          }
+        >
+          {reached || (live && connected)
+            ? "Claude Desktop or Claude Code called Astrolabe\u2019s local tools."
+            : mcp.kind === "error"
+              ? "The page could not check this. See the note below."
+              : "Install the Claude extension once, then open Claude Desktop and start a new chat."}
+        </Step>
+        <Step
+          state={live && connected ? "done" : reached ? "current" : "todo"}
+          title={
+            live && connected ? "Claude is connected" : "Waiting for Claude to pick up the run"
+          }
         >
           {live && connected
             ? "Claude picked up the run and Astrolabe checks every answer."
-            : "Install the Claude extension once, open Claude Desktop, and paste the start sentence into a new chat."}
+            : "Paste the start sentence into a new chat. It is on your clipboard after \u201cPlan with Claude\u201d."}
         </Step>
         <Step state={planning} title="Planning">
           Claude plans step by step; Path of Building measures each answer.
@@ -111,9 +132,11 @@ export function ClaudeConnectionStatus({
       {live && !connected && impatient ? (
         <Callout tone="warning" title="Claude has not connected yet" live>
           <ul>
-            <li>
-              Install the Claude extension with the button above, then restart Claude Desktop.
-            </li>
+            {reached ? null : (
+              <li>
+                Install the Claude extension with the button above, then restart Claude Desktop.
+              </li>
+            )}
             <li>
               Open a new chat in Claude Desktop and paste the start sentence from your clipboard.
             </li>
@@ -123,6 +146,11 @@ export function ClaudeConnectionStatus({
               a new one.
             </li>
           </ul>
+        </Callout>
+      ) : null}
+      {mcp.kind === "error" && !connected ? (
+        <Callout tone="danger" title="Could not check whether Claude reached Astrolabe" live>
+          {mcp.message}
         </Callout>
       ) : null}
       {hint ? (
