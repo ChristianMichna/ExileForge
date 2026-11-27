@@ -759,7 +759,7 @@ code {
   color: var(--ef-color-text-strong);
 }
 
-.power-curve__chart svg {
+.power-curve__chart > svg {
   width: 100%;
   height: auto;
 }
@@ -784,7 +784,7 @@ code {
 .power-curve__tick {
   fill: var(--ef-color-text-faint);
   font-family: var(--ef-font-mono);
-  font-size: var(--ef-text-xs);
+  font-size: 9px; /* units of the chart viewBox, not screen pixels */
 }
 
 .gear-matrix {
