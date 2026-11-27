@@ -51,7 +51,10 @@ export function buildRecording(run: RunLike): Recording {
 }
 
 export type ReplayStep =
-  | { kind: "task"; task: { taskId: string; type: string; attempt: number } }
+  | {
+      kind: "task";
+      task: { taskId: string; type: string; attempt: number; context?: Record<string, unknown> };
+    }
   | { kind: "wait_user"; reason?: unknown; retryAfterSeconds?: number }
   | { kind: "done"; guideId: string }
   | { kind: "failed"; error: { code: string; message: string } };
@@ -68,6 +71,58 @@ export interface ReplayPort {
   submit(task: { taskId: string; attempt: number }, payload: unknown): Promise<SubmitOutcome>;
   /** Posts a recorded player action; `answer` actions get the id of the open question. */
   intervene(intervention: Record<string, unknown>): Promise<void>;
+}
+
+/** Calc ids named in a value, in order of first appearance. */
+function calcIdsIn(value: unknown, found: string[] = []): string[] {
+  if (Array.isArray(value)) {
+    for (const item of value) calcIdsIn(item, found);
+  } else if (typeof value === "object" && value !== null) {
+    for (const [key, item] of Object.entries(value)) {
+      if (key === "calcId" && typeof item === "string") {
+        if (!found.includes(item)) found.push(item);
+      } else calcIdsIn(item, found);
+    }
+  }
+  return found;
+}
+
+function replaceCalcIds(value: unknown, map: ReadonlyMap<string, string>): unknown {
+  if (Array.isArray(value)) return value.map((item) => replaceCalcIds(item, map));
+  if (typeof value !== "object" || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      key === "calcId" && typeof item === "string"
+        ? (map.get(item) ?? item)
+        : replaceCalcIds(item, map),
+    ]),
+  );
+}
+
+/**
+ * A calc id names one measurement of one build, so it differs in every run (the tree search and
+ * the item choice give another build). A recorded answer that cites measurements is therefore
+ * rebound to the ids the task of this run offers in `context.calcs`: the n-th distinct recorded
+ * id becomes the n-th offered id. Numbers stay engine numbers; only the reference moves.
+ */
+export function rebindCalcRefs(
+  value: unknown,
+  context: Record<string, unknown> | undefined,
+): unknown {
+  const recorded = calcIdsIn(value);
+  if (recorded.length === 0) return value;
+  const offered = Array.isArray(context?.["calcs"])
+    ? (context["calcs"] as { calcId?: unknown }[]).flatMap((c) =>
+        typeof c.calcId === "string" ? [c.calcId] : [],
+      )
+    : [];
+  if (offered.length !== recorded.length) {
+    throw new ReplayError(
+      `the answer cites ${recorded.length} measurements but the task offers ${offered.length}`,
+    );
+  }
+  return replaceCalcIds(value, new Map(recorded.map((id, i) => [id, offered[i] as string])));
 }
 
 export class ReplayError extends Error {
@@ -139,7 +194,10 @@ export async function replay(
           );
         }
         log(`${step.task.type} (answer ${answerIndex + 1} of ${recording.answers.length})`);
-        const outcome = await port.submit(step.task, recorded.value);
+        const outcome = await port.submit(
+          step.task,
+          rebindCalcRefs(recorded.value, step.task.context),
+        );
         if (outcome.result === "rejected") {
           throw new ReplayError(
             `${step.task.type} was rejected: ${JSON.stringify(outcome.findings ?? []).slice(0, 1500)}`,

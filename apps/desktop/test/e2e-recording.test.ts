@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildRecording,
+  rebindCalcRefs,
   replay,
   ReplayError,
   ReplayRetry,
@@ -126,5 +127,27 @@ describe("replay", () => {
     const { port } = fakeApp(["S0.skill", "S1.profile"]);
     port.intervene = () => Promise.reject(new ReplayRetry("never"));
     await expect(replay(port, recording, { timeoutMs: 30 })).rejects.toThrow(/never/);
+  });
+});
+
+describe("rebindCalcRefs", () => {
+  const answer = {
+    strengths: [[{ type: "calc", ref: { calcId: "calc-old", stat: "CombinedDPS" } }]],
+    weaknesses: [[{ type: "calc", ref: { calcId: "calc-old", stat: "TotalEHP" } }]],
+  };
+
+  it("moves the references to the measurement this run offers", () => {
+    const out = rebindCalcRefs(answer, { calcs: [{ profile: "mapping", calcId: "calc-new" }] });
+    expect(JSON.stringify(out)).not.toContain("calc-old");
+    expect(JSON.stringify(out).match(/calc-new/g)).toHaveLength(2);
+  });
+
+  it("leaves answers without references alone", () => {
+    const plain = { text: "x" };
+    expect(rebindCalcRefs(plain, undefined)).toBe(plain);
+  });
+
+  it("refuses when the counts differ", () => {
+    expect(() => rebindCalcRefs(answer, { calcs: [] })).toThrow(ReplayError);
   });
 });
