@@ -90,6 +90,8 @@ ist die PoB-Obergrenze. Nach einem PoB-Update ist der Wert in der Config zu prü
 
 `GuideListItem.origin` (seit 0.23.0, `run` oder `imported`) sagt, woher ein Guide in der Liste kommt: `imported` heißt, die Zahlen sind Messungen einer anderen Installation (Guide-Datei, auch die Beispiel-Guides der App).
 
+`CandidateComparisonView` (seit 0.24.0) bündelt für den Varianten-Vergleich vor der Auswahl (S2/S3/S4) die Kandidaten, ihre Bewertungen, Anzeigenamen (`<kind>:<id>`), die Messergebnisse je `calcRef` und nicht auflösbare Referenzen; `chosenKey` ist gesetzt, sobald eine Variante gewählt wurde.
+
 `GuideFile` (seit 0.22.0, `guide/file`) ist ein Guide als Datei zum Weitergeben: Format-Marker `astrolabe-guide`, Version 1, der `PublishedGuide` und die gespeicherten PoB-Ergebnisse, auf die seine Zahlen verweisen (`results`, Schlüssel `calcId`, jeder Eintrag muss seine `calcId` tragen, und jede `calcId`, auf die der Guide verweist, braucht ihren Eintrag: eine unvollständige Datei ist ungültig). Ergebnisse und Prüfbericht sind die Messungen der Installation, die die Datei gemacht hat; der Import prüft Form und Zusammenhang, rechnet aber nicht neu. Der Server erzeugt sie (`GET /api/guides/:id/file`) und liest sie ein (`POST /api/guides/import`); Zahlen werden dabei nur geprüft, nie neu berechnet.
 
 `PassiveTreeData` (seit 0.21.0, `guide/tree`) ist die Antwort von `GET /api/tree`: alle Passive-Knoten und -Gruppen des geladenen Releases mit Geometrie, damit das Fenster die Verteilung eines Guides zeichnen kann. Einträge, die ihr Schema verletzen, stehen in `skipped`, nie stillschweigend fehlend.
