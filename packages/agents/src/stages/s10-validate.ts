@@ -284,12 +284,12 @@ export function draftEntities(draft: GuideDraft): Found[] {
     );
   });
   draft.gear.tiers.forEach((t, i) =>
+    out.push(...prefixed(walkSection({ description: t.description }).entities, `/gear/tiers/${i}`)),
+  );
+  draft.gear.tiers.forEach((t, i) =>
     t.slots.forEach((sl, j) => {
       out.push(
-        ...prefixed(
-          walkSection({ description: t.description, guide: sl.guide }).entities,
-          `/gear/tiers/${i}/slots/${j}`,
-        ),
+        ...prefixed(walkSection({ guide: sl.guide }).entities, `/gear/tiers/${i}/slots/${j}`),
       );
       for (const item of [sl.target, sl.minimum, ...sl.alternatives]) {
         if (item === undefined) continue;

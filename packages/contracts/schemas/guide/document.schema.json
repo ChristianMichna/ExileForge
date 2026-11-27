@@ -7869,7 +7869,8 @@
               "title": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 120
+                "maxLength": 120,
+                "pattern": "^\\D*$"
               },
               "detail": {
                 "minItems": 1,
@@ -8866,7 +8867,8 @@
               "title": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 120
+                "maxLength": 120,
+                "pattern": "^\\D*$"
               },
               "detail": {
                 "minItems": 1,

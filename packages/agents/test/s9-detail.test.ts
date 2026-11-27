@@ -7,6 +7,7 @@ import type {
 } from "@astrolabe/contracts/build";
 import type { PipelineContext } from "../src/pipeline.js";
 import type { StageConfig } from "../src/config.js";
+import { GuideBlock } from "@astrolabe/contracts/guide";
 import { depthCheck } from "../src/stages/s9-guide.js";
 import {
   craftDetailKey,
@@ -137,5 +138,11 @@ describe("S9 detail pass", () => {
       "/tips",
     ]);
     expect(check({ rotationSteps: [1, 2], tips: [1] })).toEqual([]);
+  });
+
+  it("keeps digits out of block titles and tells a missing detail from a broken one", () => {
+    expect(GuideBlock.safeParse({ title: "Phase 2", detail: text("x") }).success).toBe(false);
+    expect(GuideBlock.safeParse({ title: "Warm up", detail: text("x") }).success).toBe(true);
+    expect(() => withDetails(ctx(), true, plans)).toThrow(/not been written yet/);
   });
 });

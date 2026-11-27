@@ -179,6 +179,26 @@ async function summaryCheck(payload: unknown, ctx: PipelineContext): Promise<Fin
   ];
 }
 
+/** Defence layers named by the mechanics must exist in the release, like those of the summary. */
+function layerCheck(payload: unknown, ctx: PipelineContext): Finding[] {
+  const layers = ctx.catalog.release?.classifications?.defenceLayers;
+  if (layers === undefined) return [];
+  const defences = (payload as { defences?: { layer: string }[] }).defences ?? [];
+  return defences.flatMap((d, i) =>
+    layers.includes(d.layer)
+      ? []
+      : [
+          {
+            gate: "G1" as const,
+            severity: "error" as const,
+            code: "unknown_classification",
+            message: `${d.layer} is not a defence layer of data release ${ctx.catalog.dataReleaseId}.`,
+            path: `/defences/${String(i)}/layer`,
+          },
+        ],
+  );
+}
+
 type Depth = NonNullable<StageConfig["s9"]>["depth"];
 
 /** Least amount of prose per section, from config; a shortfall goes back to the same task. */
@@ -235,7 +255,7 @@ export function sectionTask(
     key: sectionKey(section),
     type: sectionKey(section),
     promptVersion: config.promptVersion,
-    instructions: `${S9_SECTION} Section to write: ${section}. ${S9_SECTION_FOCUS[section] ?? ""}`,
+    instructions: `${S9_SECTION} Section to write: ${section}. ${S9_SECTION_FOCUS[section]}`,
     context: {
       request: requestContext(ctx),
       chosen: JSON.parse(JSON.stringify(inputs.chosen)) as JsonValue,
@@ -246,6 +266,7 @@ export function sectionTask(
     schema: sectionSchemas[section],
     check: async (payload: unknown, pctx: PipelineContext): Promise<Finding[]> => [
       ...(section === "summary" ? await summaryCheck(payload, pctx) : []),
+      ...(section === "mechanics" ? layerCheck(payload, pctx) : []),
       ...(config.s9 === undefined ? [] : depthCheck(section, config.s9.depth)(payload)),
     ],
     allowedTools: ["catalog_search", "catalog_get", "calc_evaluate"],

@@ -65,7 +65,10 @@ export const S9_SECTION = [
 ].join(" ");
 
 /** What each document-level section of the guide must contain; the depth is checked against config. */
-export const S9_SECTION_FOCUS: Record<string, string> = {
+export const S9_SECTION_FOCUS: Record<
+  "summary" | "mechanics" | "playstyle" | "atlas" | "variants" | "faq",
+  string
+> = {
   summary:
     "Write an introduction in several paragraphs (what the build does and why it is fun, how it defends, how it changes from the campaign to the endgame, which items matter), the strengths and weaknesses, a plain description of the playstyle and a closing summary.",
   mechanics:

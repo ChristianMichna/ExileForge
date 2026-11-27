@@ -234,6 +234,9 @@ export function detailTask(
 
 /** Reads a stored detail result; an unreadable one names itself and keeps the cause. */
 function readDetail<T>(schema: z.ZodType<T>, value: unknown, key: string): T {
+  if (value === undefined) {
+    throw new Error(`The guide detail ${key} (S9) has not been written yet.`);
+  }
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
     throw new Error(`The stored guide detail ${key} (S9) is unreadable. Redo that task.`, {

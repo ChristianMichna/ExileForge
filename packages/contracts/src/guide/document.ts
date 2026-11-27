@@ -54,7 +54,12 @@ export const GuideMechanics = z.object({
 /** 7. How to play the build. */
 /** A titled block of advice (a rotation step, an endgame phase …). */
 export const GuideBlock = z.object({
-  title: z.string().min(1).max(120),
+  /** Plain text without digits: numbers come from the engine, and a title is not linted as rich text. */
+  title: z
+    .string()
+    .min(1)
+    .max(120)
+    .regex(/^\D*$/, { message: "no digits: numbers come from the engine" }),
   detail: RichText,
 });
 export type GuideBlock = z.infer<typeof GuideBlock>;
