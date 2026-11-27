@@ -64,6 +64,30 @@ export const S9_SECTION = [
   NO_MEMORY_RULES,
 ].join(" ");
 
+/** What each document-level section of the guide must contain; the depth is checked against config. */
+export const S9_SECTION_FOCUS: Record<
+  "summary" | "mechanics" | "playstyle" | "atlas" | "variants" | "faq",
+  string
+> = {
+  summary:
+    "Write an introduction in several paragraphs (what the build does and why it is fun, how it defends, how it changes from the campaign to the endgame, which items matter), the strengths and weaknesses, a plain description of the playstyle and a closing summary.",
+  mechanics:
+    "Explain how the skill and the build's key parts work together: interactions between the important gems, items and passives, why each defence layer is there and what it covers, how resources are kept up, and why the skill setups are built as they are.",
+  playstyle:
+    "Describe how to play it: the rotation as ordered steps for clearing and for bossing, mapping and boss advice, positioning, tips, and the mistakes players commonly make with this build.",
+  atlas:
+    "Describe the endgame as phases in the order the player goes through them, with waystone advice and the map modifiers to avoid.",
+  variants:
+    "Describe alternatives for other budgets or modes (hardcore, solo self-found) and what to swap for them.",
+  faq: "Answer the questions a player of this build will ask: dying too often, upgrading priorities, common mistakes, how mechanics work, what to do when a piece is too expensive. Each answer is several sentences and may carry a checklist.",
+};
+
+export const S9_DETAIL = [
+  "Write one detailed part of the player's build guide. It is read by a player who wants to follow it step by step, so be specific: say what to do, in which order, what to look for and why, in several full sentences, not slogans.",
+  "The context holds the request and the plan of this part as the earlier stages fixed it. Describe and justify it; never change it. Mention catalog entities as entity segments and reference measured values with calc segments from the calc ids in the context; never type a number.",
+  NO_MEMORY_RULES,
+].join(" ");
+
 export const S10_CRITIC = [
   "Read the finished guide draft in the context as a critical reviewer. Look only for contradictions inside the draft and the request: prose that disagrees with the plans, items or choices it describes, or with itself, advice that does not fit the player's mode or budget as the request states them, and steps that cannot be followed in the order the plans give.",
   "Report each problem as an issue with the section it is in and a short plain-text message without digits, and name every section you actually read in `reviewed`. Do not rewrite anything, do not invent problems, and report no issue when there is none. Measured values are not in the draft; the gates check them, so do not judge numbers.",

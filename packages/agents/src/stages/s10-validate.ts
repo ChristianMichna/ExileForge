@@ -24,6 +24,7 @@ import { S6_PLAN_KEY } from "./s6-progression.js";
 import { type S6Row, stageTableOf } from "./s6-table.js";
 import { S7_PLAN_KEY } from "./s7-plan.js";
 import { itemEntities } from "./s7-gear.js";
+import { withDetails } from "./s9-detail.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
 
 export const S10_REPORT_KEY = "S10.report";
@@ -145,6 +146,8 @@ export interface S10Inputs {
   target: TargetBuild;
   /** The skill the run settled on: the player's pick or the S0 choice. */
   mainSkillId: string;
+  /** Whether S9 ran its detail pass; its results are merged into the plans. */
+  detailPass?: boolean;
 }
 
 /** Parses a stored result; the error names the part and keeps the schema error as cause. */
@@ -173,9 +176,10 @@ export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDra
   ).plans;
   const request = ctx.run.request;
   const planned = new Set(crafting.map((c) => c.key));
+  const detailed = withDetails(ctx, inputs.detailPass === true, { progression, gear, crafting });
   // The gear plan points to the crafting plan of each crafted rare that has one.
   const linked: GearPlan = {
-    tiers: gear.tiers.map((t) => ({
+    tiers: detailed.gear.tiers.map((t) => ({
       ...t,
       slots: t.slots.map((sl) =>
         sl.acquisition === "craft" &&
@@ -198,9 +202,9 @@ export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDra
         budgetRange: { from: request.budget.leveling, to: request.budget.endgame },
       },
       mechanics: part("mechanics", sectionSchemas.mechanics),
-      progression,
+      progression: detailed.progression,
       gear: linked,
-      crafting,
+      crafting: detailed.crafting,
       playstyle: part("playstyle", sectionSchemas.playstyle),
       atlas: part("atlas", sectionSchemas.atlas),
       variants: part("variants", sectionSchemas.variants).variants,
@@ -269,13 +273,24 @@ export function draftEntities(draft: GuideDraft): Found[] {
       ...st.allocationOrder.map((n, j) => ref("passiveNode", n, `${base}/allocationOrder/${j}`)),
       ...st.respecs.map((n, j) => ref("passiveNode", n, `${base}/respecs/${j}`)),
       ...prefixed(
-        walkSection({ tasks: st.tasks, dangers: st.dangers, rationale: st.rationale }).entities,
+        walkSection({
+          tasks: st.tasks,
+          dangers: st.dangers,
+          rationale: st.rationale,
+          guide: st.guide,
+        }).entities,
         base,
       ),
     );
   });
   draft.gear.tiers.forEach((t, i) =>
+    out.push(...prefixed(walkSection({ description: t.description }).entities, `/gear/tiers/${i}`)),
+  );
+  draft.gear.tiers.forEach((t, i) =>
     t.slots.forEach((sl, j) => {
+      out.push(
+        ...prefixed(walkSection({ guide: sl.guide }).entities, `/gear/tiers/${i}/slots/${j}`),
+      );
       for (const item of [sl.target, sl.minimum, ...sl.alternatives]) {
         if (item === undefined) continue;
         for (const e of itemEntities(item)) {
@@ -292,7 +307,10 @@ export function draftEntities(draft: GuideDraft): Found[] {
       ...c.steps.flatMap((st, j) =>
         st.actionIds.map((id, k) => ref("craftingAction", id, `${base}/steps/${j}/actionIds/${k}`)),
       ),
-      ...prefixed(walkSection({ steps: c.steps, fallback: c.fallback }).entities, base),
+      ...prefixed(
+        walkSection({ steps: c.steps, fallback: c.fallback, guide: c.guide }).entities,
+        base,
+      ),
     );
   });
   out.push(
@@ -306,6 +324,8 @@ export function draftEntities(draft: GuideDraft): Found[] {
       variants: draft.variants,
       faq: draft.faq,
       summary: {
+        introduction: draft.summary.introduction,
+        closing: draft.summary.closing,
         scalingAxes: draft.summary.scalingAxes,
         playstyle: draft.summary.playstyle,
         strengths: draft.summary.strengths,

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ItemTooltip, Panel, Tabs } from "@astrolabe/ui";
 import type { ItemModView, ItemView } from "@astrolabe/ui";
+import { Bullets, EntityName } from "./GuideText";
+import { RichTextView } from "../guide/RichTextView";
 import type {
   GuideGearEntry,
   GuideItemCard,
@@ -83,6 +85,37 @@ function Slot({ entry, view }: { entry: GuideGearEntry; view: GuideView }) {
           <RarityNote card={entry.target} />
         </>
       )}
+      {plan?.guide === undefined ? null : (
+        <div className="gear-slot__notes">
+          <p>
+            <RichTextView text={plan.guide.why} view={view} />
+          </p>
+          {plan.guide.statPriorities.length > 0 ? (
+            <>
+              <h4>What to look for, in order</h4>
+              <ol>
+                {plan.guide.statPriorities.map((s, i) => (
+                  <li key={i}>
+                    <EntityName view={view} entity={{ kind: "mod", id: s.modId }} />:{" "}
+                    <RichTextView text={s.reason} view={view} />
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : null}
+          <p>
+            <strong>Where to get it: </strong>
+            <RichTextView text={plan.guide.whereToGet} view={view} />
+          </p>
+          <Bullets title="Alternatives" items={plan.guide.alternativesNotes} view={view} />
+          {plan.guide.upgradeAdvice === undefined ? null : (
+            <p>
+              <strong>Upgrading: </strong>
+              <RichTextView text={plan.guide.upgradeAdvice} view={view} />
+            </p>
+          )}
+        </div>
+      )}
       {entry.minimum === undefined || entry.minimum === null ? null : (
         <details>
           <summary>Minimum to get started</summary>
@@ -135,13 +168,24 @@ export function GearSection({ view }: { view: GuideView }) {
           id,
           label: id,
           content: (
-            <div className="gear-grid">
-              {view.gear
-                .filter((g) => g.budgetTier === id)
-                .map((entry) => (
-                  <Slot key={entry.slot} entry={entry} view={view} />
-                ))}
-            </div>
+            <>
+              {view.guide.gear.tiers.find((t) => t.budgetTier === id)?.description ===
+              undefined ? null : (
+                <p>
+                  <RichTextView
+                    text={view.guide.gear.tiers.find((t) => t.budgetTier === id)?.description ?? []}
+                    view={view}
+                  />
+                </p>
+              )}
+              <div className="gear-grid">
+                {view.gear
+                  .filter((g) => g.budgetTier === id)
+                  .map((entry) => (
+                    <Slot key={entry.slot} entry={entry} view={view} />
+                  ))}
+              </div>
+            </>
           ),
         }))}
       />

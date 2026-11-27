@@ -264,6 +264,112 @@
     "summary": {
       "type": "object",
       "properties": {
+        "introduction": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "text"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4000
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "text"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "calc"
+                    },
+                    "ref": {
+                      "type": "object",
+                      "properties": {
+                        "calcId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "Id of a single PoB calculation"
+                        },
+                        "stat": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "calcId",
+                        "stat"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "ref"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "entity"
+                    },
+                    "ref": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "baseItem",
+                            "mod",
+                            "uniqueItem",
+                            "gem",
+                            "passiveNode",
+                            "passiveGroup",
+                            "characterClass",
+                            "ascendancy",
+                            "craftingAction",
+                            "statTranslation"
+                          ],
+                          "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                        },
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 512
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "ref"
+                  ]
+                }
+              ]
+            }
+          }
+        },
         "classId": {
           "type": "string",
           "minLength": 1,
@@ -761,6 +867,108 @@
             "hardcore",
             "ssf"
           ]
+        },
+        "closing": {
+          "minItems": 1,
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                },
+                "required": [
+                  "type",
+                  "text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calc"
+                  },
+                  "ref": {
+                    "type": "object",
+                    "properties": {
+                      "calcId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "description": "Id of a single PoB calculation"
+                      },
+                      "stat": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "calcId",
+                      "stat"
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "ref"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "entity"
+                  },
+                  "ref": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "baseItem",
+                          "mod",
+                          "uniqueItem",
+                          "gem",
+                          "passiveNode",
+                          "passiveGroup",
+                          "characterClass",
+                          "ascendancy",
+                          "craftingAction",
+                          "statTranslation"
+                        ],
+                        "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "id"
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "ref"
+                ]
+              }
+            ]
+          }
         }
       },
       "required": [
@@ -885,6 +1093,517 @@
         },
         "decisions": {
           "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "subject": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "baseItem",
+                      "mod",
+                      "uniqueItem",
+                      "gem",
+                      "passiveNode",
+                      "passiveGroup",
+                      "characterClass",
+                      "ascendancy",
+                      "craftingAction",
+                      "statTranslation"
+                    ],
+                    "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id"
+                ]
+              },
+              "reason": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4000
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "text"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "calc"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "calcId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "description": "Id of a single PoB calculation"
+                            },
+                            "stat": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "calcId",
+                            "stat"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "entity"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          }
+        },
+        "interactions": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "subject": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "baseItem",
+                      "mod",
+                      "uniqueItem",
+                      "gem",
+                      "passiveNode",
+                      "passiveGroup",
+                      "characterClass",
+                      "ascendancy",
+                      "craftingAction",
+                      "statTranslation"
+                    ],
+                    "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id"
+                ]
+              },
+              "reason": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4000
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "text"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "calc"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "calcId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "description": "Id of a single PoB calculation"
+                            },
+                            "stat": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "calcId",
+                            "stat"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "entity"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          }
+        },
+        "defences": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "layer": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Classification id defined by the data release (not a fixed enum)"
+              },
+              "explanation": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4000
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "text"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "calc"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "calcId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "description": "Id of a single PoB calculation"
+                            },
+                            "stat": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "calcId",
+                            "stat"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "entity"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "layer",
+              "explanation"
+            ]
+          }
+        },
+        "resources": {
+          "minItems": 1,
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "text"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                },
+                "required": [
+                  "type",
+                  "text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calc"
+                  },
+                  "ref": {
+                    "type": "object",
+                    "properties": {
+                      "calcId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "description": "Id of a single PoB calculation"
+                      },
+                      "stat": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "calcId",
+                      "stat"
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "ref"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "entity"
+                  },
+                  "ref": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "baseItem",
+                          "mod",
+                          "uniqueItem",
+                          "gem",
+                          "passiveNode",
+                          "passiveGroup",
+                          "characterClass",
+                          "ascendancy",
+                          "craftingAction",
+                          "statTranslation"
+                        ],
+                        "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "id"
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "ref"
+                ]
+              }
+            ]
+          }
+        },
+        "gemSetups": {
+          "default": [],
           "type": "array",
           "items": {
             "type": "object",
@@ -2084,6 +2803,759 @@
                   ]
                 }
               },
+              "guide": {
+                "type": "object",
+                "properties": {
+                  "intro": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "text"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 4000
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "text"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "calc"
+                            },
+                            "ref": {
+                              "type": "object",
+                              "properties": {
+                                "calcId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128,
+                                  "description": "Id of a single PoB calculation"
+                                },
+                                "stat": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "required": [
+                                "calcId",
+                                "stat"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "ref"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "entity"
+                            },
+                            "ref": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "baseItem",
+                                    "mod",
+                                    "uniqueItem",
+                                    "gem",
+                                    "passiveNode",
+                                    "passiveGroup",
+                                    "characterClass",
+                                    "ascendancy",
+                                    "craftingAction",
+                                    "statTranslation"
+                                  ],
+                                  "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 512
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "id"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "ref"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "treeNotes": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "subject": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        },
+                        "reason": {
+                          "minItems": 1,
+                          "maxItems": 200,
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text"
+                                  },
+                                  "text": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 4000
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "calc"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "calcId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128,
+                                        "description": "Id of a single PoB calculation"
+                                      },
+                                      "stat": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "calcId",
+                                      "stat"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "entity"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "baseItem",
+                                          "mod",
+                                          "uniqueItem",
+                                          "gem",
+                                          "passiveNode",
+                                          "passiveGroup",
+                                          "characterClass",
+                                          "ascendancy",
+                                          "craftingAction",
+                                          "statTranslation"
+                                        ],
+                                        "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                      },
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 512
+                                      }
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "id"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "reason"
+                      ]
+                    }
+                  },
+                  "gemChanges": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "add",
+                            "swap",
+                            "remove",
+                            "keep"
+                          ]
+                        },
+                        "gem": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        },
+                        "replaces": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        },
+                        "reason": {
+                          "minItems": 1,
+                          "maxItems": 200,
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text"
+                                  },
+                                  "text": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 4000
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "calc"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "calcId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128,
+                                        "description": "Id of a single PoB calculation"
+                                      },
+                                      "stat": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "calcId",
+                                      "stat"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "entity"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "baseItem",
+                                          "mod",
+                                          "uniqueItem",
+                                          "gem",
+                                          "passiveNode",
+                                          "passiveGroup",
+                                          "characterClass",
+                                          "ascendancy",
+                                          "craftingAction",
+                                          "statTranslation"
+                                        ],
+                                        "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                      },
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 512
+                                      }
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "id"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "action",
+                        "gem",
+                        "reason"
+                      ]
+                    }
+                  },
+                  "gearNotes": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "minItems": 1,
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "text"
+                              },
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4000
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "text"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "calc"
+                              },
+                              "ref": {
+                                "type": "object",
+                                "properties": {
+                                  "calcId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128,
+                                    "description": "Id of a single PoB calculation"
+                                  },
+                                  "stat": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "calcId",
+                                  "stat"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "ref"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "entity"
+                              },
+                              "ref": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "baseItem",
+                                      "mod",
+                                      "uniqueItem",
+                                      "gem",
+                                      "passiveNode",
+                                      "passiveGroup",
+                                      "characterClass",
+                                      "ascendancy",
+                                      "craftingAction",
+                                      "statTranslation"
+                                    ],
+                                    "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                  },
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 512
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "id"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "ref"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "checklist": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "minItems": 1,
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "text"
+                              },
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4000
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "text"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "calc"
+                              },
+                              "ref": {
+                                "type": "object",
+                                "properties": {
+                                  "calcId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128,
+                                    "description": "Id of a single PoB calculation"
+                                  },
+                                  "stat": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "calcId",
+                                  "stat"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "ref"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "entity"
+                              },
+                              "ref": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "baseItem",
+                                      "mod",
+                                      "uniqueItem",
+                                      "gem",
+                                      "passiveNode",
+                                      "passiveGroup",
+                                      "characterClass",
+                                      "ascendancy",
+                                      "craftingAction",
+                                      "statTranslation"
+                                    ],
+                                    "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                  },
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 512
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "id"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "ref"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "nextStep": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "text"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 4000
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "text"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "calc"
+                            },
+                            "ref": {
+                              "type": "object",
+                              "properties": {
+                                "calcId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 128,
+                                  "description": "Id of a single PoB calculation"
+                                },
+                                "stat": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "required": [
+                                "calcId",
+                                "stat"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "ref"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "entity"
+                            },
+                            "ref": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "baseItem",
+                                    "mod",
+                                    "uniqueItem",
+                                    "gem",
+                                    "passiveNode",
+                                    "passiveGroup",
+                                    "characterClass",
+                                    "ascendancy",
+                                    "craftingAction",
+                                    "statTranslation"
+                                  ],
+                                  "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 512
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "id"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "ref"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "intro"
+                ]
+              },
               "calcs": {
                 "type": "object",
                 "propertyNames": {
@@ -2176,6 +3648,108 @@
               "budgetTier": {
                 "type": "string",
                 "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+              },
+              "description": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4000
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "text"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "calc"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "calcId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "description": "Id of a single PoB calculation"
+                            },
+                            "stat": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "calcId",
+                            "stat"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "entity"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    }
+                  ]
+                }
               },
               "slots": {
                 "minItems": 1,
@@ -2902,6 +4476,548 @@
                             "error"
                           ]
                         }
+                      ]
+                    },
+                    "guide": {
+                      "type": "object",
+                      "properties": {
+                        "why": {
+                          "minItems": 1,
+                          "maxItems": 200,
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text"
+                                  },
+                                  "text": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 4000
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "calc"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "calcId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128,
+                                        "description": "Id of a single PoB calculation"
+                                      },
+                                      "stat": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "calcId",
+                                      "stat"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "entity"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "baseItem",
+                                          "mod",
+                                          "uniqueItem",
+                                          "gem",
+                                          "passiveNode",
+                                          "passiveGroup",
+                                          "characterClass",
+                                          "ascendancy",
+                                          "craftingAction",
+                                          "statTranslation"
+                                        ],
+                                        "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                      },
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 512
+                                      }
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "id"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "statPriorities": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "modId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 512,
+                                "description": "Mod id – internal game id from the data release"
+                              },
+                              "reason": {
+                                "minItems": 1,
+                                "maxItems": 200,
+                                "type": "array",
+                                "items": {
+                                  "oneOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "text"
+                                        },
+                                        "text": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 4000
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "text"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "calc"
+                                        },
+                                        "ref": {
+                                          "type": "object",
+                                          "properties": {
+                                            "calcId": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 128,
+                                              "description": "Id of a single PoB calculation"
+                                            },
+                                            "stat": {
+                                              "type": "string",
+                                              "minLength": 1
+                                            }
+                                          },
+                                          "required": [
+                                            "calcId",
+                                            "stat"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "ref"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "entity"
+                                        },
+                                        "ref": {
+                                          "type": "object",
+                                          "properties": {
+                                            "kind": {
+                                              "type": "string",
+                                              "enum": [
+                                                "baseItem",
+                                                "mod",
+                                                "uniqueItem",
+                                                "gem",
+                                                "passiveNode",
+                                                "passiveGroup",
+                                                "characterClass",
+                                                "ascendancy",
+                                                "craftingAction",
+                                                "statTranslation"
+                                              ],
+                                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                            },
+                                            "id": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 512
+                                            }
+                                          },
+                                          "required": [
+                                            "kind",
+                                            "id"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "ref"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "modId",
+                              "reason"
+                            ]
+                          }
+                        },
+                        "whereToGet": {
+                          "minItems": 1,
+                          "maxItems": 200,
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text"
+                                  },
+                                  "text": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 4000
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "calc"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "calcId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128,
+                                        "description": "Id of a single PoB calculation"
+                                      },
+                                      "stat": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "calcId",
+                                      "stat"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "entity"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "baseItem",
+                                          "mod",
+                                          "uniqueItem",
+                                          "gem",
+                                          "passiveNode",
+                                          "passiveGroup",
+                                          "characterClass",
+                                          "ascendancy",
+                                          "craftingAction",
+                                          "statTranslation"
+                                        ],
+                                        "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                      },
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 512
+                                      }
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "id"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "alternativesNotes": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "minItems": 1,
+                            "maxItems": 200,
+                            "type": "array",
+                            "items": {
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "text"
+                                    },
+                                    "text": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 4000
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "text"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "calc"
+                                    },
+                                    "ref": {
+                                      "type": "object",
+                                      "properties": {
+                                        "calcId": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128,
+                                          "description": "Id of a single PoB calculation"
+                                        },
+                                        "stat": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      },
+                                      "required": [
+                                        "calcId",
+                                        "stat"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "ref"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "entity"
+                                    },
+                                    "ref": {
+                                      "type": "object",
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "baseItem",
+                                            "mod",
+                                            "uniqueItem",
+                                            "gem",
+                                            "passiveNode",
+                                            "passiveGroup",
+                                            "characterClass",
+                                            "ascendancy",
+                                            "craftingAction",
+                                            "statTranslation"
+                                          ],
+                                          "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                        },
+                                        "id": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 512
+                                        }
+                                      },
+                                      "required": [
+                                        "kind",
+                                        "id"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "ref"
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "upgradeAdvice": {
+                          "minItems": 1,
+                          "maxItems": 200,
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text"
+                                  },
+                                  "text": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 4000
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "calc"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "calcId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128,
+                                        "description": "Id of a single PoB calculation"
+                                      },
+                                      "stat": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "required": [
+                                      "calcId",
+                                      "stat"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "entity"
+                                  },
+                                  "ref": {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "baseItem",
+                                          "mod",
+                                          "uniqueItem",
+                                          "gem",
+                                          "passiveNode",
+                                          "passiveGroup",
+                                          "characterClass",
+                                          "ascendancy",
+                                          "craftingAction",
+                                          "statTranslation"
+                                        ],
+                                        "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                                      },
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 512
+                                      }
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "id"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "ref"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "why",
+                        "whereToGet"
                       ]
                     }
                   },
@@ -5305,6 +7421,328 @@
                 }
               ]
             }
+          },
+          "guide": {
+            "type": "object",
+            "properties": {
+              "overview": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4000
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "text"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "calc"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "calcId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "description": "Id of a single PoB calculation"
+                            },
+                            "stat": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "calcId",
+                            "stat"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "entity"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "tips": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "minItems": 1,
+                  "maxItems": 200,
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "text"
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 4000
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "text"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "calc"
+                          },
+                          "ref": {
+                            "type": "object",
+                            "properties": {
+                              "calcId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128,
+                                "description": "Id of a single PoB calculation"
+                              },
+                              "stat": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "required": [
+                              "calcId",
+                              "stat"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "ref"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "entity"
+                          },
+                          "ref": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "baseItem",
+                                  "mod",
+                                  "uniqueItem",
+                                  "gem",
+                                  "passiveNode",
+                                  "passiveGroup",
+                                  "characterClass",
+                                  "ascendancy",
+                                  "craftingAction",
+                                  "statTranslation"
+                                ],
+                                "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                              },
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 512
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "id"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "ref"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "pitfalls": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "minItems": 1,
+                  "maxItems": 200,
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "text"
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 4000
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "text"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "calc"
+                          },
+                          "ref": {
+                            "type": "object",
+                            "properties": {
+                              "calcId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128,
+                                "description": "Id of a single PoB calculation"
+                              },
+                              "stat": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "required": [
+                              "calcId",
+                              "stat"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "ref"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "entity"
+                          },
+                          "ref": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "baseItem",
+                                  "mod",
+                                  "uniqueItem",
+                                  "gem",
+                                  "passiveNode",
+                                  "passiveGroup",
+                                  "characterClass",
+                                  "ascendancy",
+                                  "craftingAction",
+                                  "statTranslation"
+                                ],
+                                "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                              },
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 512
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "id"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "ref"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "required": [
+              "overview"
+            ]
           }
         },
         "required": [
@@ -5420,6 +7858,339 @@
                 ]
               }
             ]
+          }
+        },
+        "rotationSteps": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^\\D*$"
+              },
+              "detail": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4000
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "text"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "calc"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "calcId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "description": "Id of a single PoB calculation"
+                            },
+                            "stat": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "calcId",
+                            "stat"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "entity"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "title",
+              "detail"
+            ]
+          }
+        },
+        "tips": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "text"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4000
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "text"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "calc"
+                    },
+                    "ref": {
+                      "type": "object",
+                      "properties": {
+                        "calcId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "Id of a single PoB calculation"
+                        },
+                        "stat": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "calcId",
+                        "stat"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "ref"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "entity"
+                    },
+                    "ref": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "baseItem",
+                            "mod",
+                            "uniqueItem",
+                            "gem",
+                            "passiveNode",
+                            "passiveGroup",
+                            "characterClass",
+                            "ascendancy",
+                            "craftingAction",
+                            "statTranslation"
+                          ],
+                          "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                        },
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 512
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "ref"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "commonMistakes": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "text"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4000
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "text"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "calc"
+                    },
+                    "ref": {
+                      "type": "object",
+                      "properties": {
+                        "calcId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "Id of a single PoB calculation"
+                        },
+                        "stat": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "calcId",
+                        "stat"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "ref"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "entity"
+                    },
+                    "ref": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "baseItem",
+                            "mod",
+                            "uniqueItem",
+                            "gem",
+                            "passiveNode",
+                            "passiveGroup",
+                            "characterClass",
+                            "ascendancy",
+                            "craftingAction",
+                            "statTranslation"
+                          ],
+                          "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                        },
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 512
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "ref"
+                  ]
+                }
+              ]
+            }
           }
         },
         "keybinds": {
@@ -6085,6 +8856,233 @@
                 ]
               }
             ]
+          }
+        },
+        "phases": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^\\D*$"
+              },
+              "detail": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4000
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "text"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "calc"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "calcId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "description": "Id of a single PoB calculation"
+                            },
+                            "stat": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "calcId",
+                            "stat"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "entity"
+                        },
+                        "ref": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "baseItem",
+                                "mod",
+                                "uniqueItem",
+                                "gem",
+                                "passiveNode",
+                                "passiveGroup",
+                                "characterClass",
+                                "ascendancy",
+                                "craftingAction",
+                                "statTranslation"
+                              ],
+                              "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                            },
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 512
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "id"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "ref"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "title",
+              "detail"
+            ]
+          }
+        },
+        "waystoneTips": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "text"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4000
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "text"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "calc"
+                    },
+                    "ref": {
+                      "type": "object",
+                      "properties": {
+                        "calcId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "Id of a single PoB calculation"
+                        },
+                        "stat": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "calcId",
+                        "stat"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "ref"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "entity"
+                    },
+                    "ref": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "baseItem",
+                            "mod",
+                            "uniqueItem",
+                            "gem",
+                            "passiveNode",
+                            "passiveGroup",
+                            "characterClass",
+                            "ascendancy",
+                            "craftingAction",
+                            "statTranslation"
+                          ],
+                          "description": "Kind of catalog entity (Astrolabe's own grouping, not a game concept)"
+                        },
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 512
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "ref"
+                  ]
+                }
+              ]
+            }
           }
         },
         "avoidMods": {

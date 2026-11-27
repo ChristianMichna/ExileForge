@@ -47,6 +47,7 @@ import {
   S10_CRITIC_KEY,
   validateStep,
 } from "./stages/s10-validate.js";
+import { detailItems, detailTask } from "./stages/s9-detail.js";
 import { S9_SECTIONS, sectionKey, sectionTask } from "./stages/s9-guide.js";
 import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
 
@@ -78,6 +79,7 @@ export function createForgePipeline(config: StageConfig): Pipeline {
       (config.s7 === undefined ? 0 : (tiersOf(config.s7, ctx.run.request.budget)?.length ?? 0)) +
       craftTaskCount(ctx) +
       S9_SECTIONS.length +
+      detailTaskCount(ctx, config) +
       1,
     validateIntervention: (intervention: UserIntervention, ctx) => {
       if (intervention.kind !== "chooseVariant") return undefined;
@@ -385,19 +387,19 @@ function planGuide(
   target: TargetBuild,
 ): PlanStep {
   const open = S9_SECTIONS.find((s) => ctx.result(sectionKey(s)) === undefined);
+  const progression = ProgressionPlan.safeParse(ctx.result(S6_PLAN_KEY));
+  const gear = GearPlan.safeParse(ctx.result(S7_PLAN_KEY));
+  const crafting = z.object({ plans: z.array(CraftingPlan) }).safeParse(ctx.result(S8_PLAN_KEY));
+  if (!progression.success || !gear.success || !crafting.success) {
+    return {
+      kind: "blocked",
+      error: {
+        code: "invalid_plans",
+        message: "The stored plans of S6 to S8 are unreadable. Redo the stage that wrote them.",
+      },
+    };
+  }
   if (open !== undefined) {
-    const progression = ProgressionPlan.safeParse(ctx.result(S6_PLAN_KEY));
-    const gear = GearPlan.safeParse(ctx.result(S7_PLAN_KEY));
-    const crafting = z.object({ plans: z.array(CraftingPlan) }).safeParse(ctx.result(S8_PLAN_KEY));
-    if (!progression.success || !gear.success || !crafting.success) {
-      return {
-        kind: "blocked",
-        error: {
-          code: "invalid_plans",
-          message: "The stored plans of S6 to S8 are unreadable. Redo the stage that wrote them.",
-        },
-      };
-    }
     const plans = {
       progression: JSON.parse(JSON.stringify(progression.data)) as JsonValue,
       gear: JSON.parse(JSON.stringify(gear.data)) as JsonValue,
@@ -405,11 +407,24 @@ function planGuide(
     };
     return { kind: "task", spec: sectionTask(ctx, config, open, { chosen, target, plans }) };
   }
+  // The detail pass: one small task per stage, gear tier, gear slot and crafting plan.
+  if (config.s9 !== undefined) {
+    const detailPlans = {
+      progression: progression.data,
+      gear: gear.data,
+      crafting: crafting.data.plans,
+    };
+    const next = detailItems(detailPlans).find((i) => ctx.result(i.key) === undefined);
+    if (next !== undefined) {
+      return { kind: "task", spec: detailTask(ctx, config, next, { plans: detailPlans, target }) };
+    }
+  }
   if (ctx.result(S10_CRITIC_KEY) === undefined) {
     const critic = criticTask(ctx, config, {
       chosen,
       target,
       mainSkillId: mainSkillOfRun(ctx),
+      detailPass: config.s9 !== undefined,
     });
     if (typeof critic === "string") {
       return { kind: "blocked", error: { code: "draft_unreadable", message: critic } };
@@ -422,6 +437,7 @@ function planGuide(
         chosen,
         target,
         mainSkillId: mainSkillOfRun(ctx),
+        detailPass: config.s9 !== undefined,
         ...(config.s6?.stages === undefined ? {} : { stageTable: config.s6.stages }),
       },
       config.s10,
@@ -464,6 +480,20 @@ function craftTaskCount(ctx: PipelineContext): number {
   if (!gear.success) return 0;
   const slots = craftSlotsOf(gear.data);
   return typeof slots === "string" ? 0 : slots.length;
+}
+
+/** Detail tasks of S9, known once the plans of S6 to S8 are stored. */
+function detailTaskCount(ctx: PipelineContext, config: StageConfig): number {
+  if (config.s9 === undefined) return 0;
+  const progression = ProgressionPlan.safeParse(ctx.result(S6_PLAN_KEY));
+  const gear = GearPlan.safeParse(ctx.result(S7_PLAN_KEY));
+  const crafting = z.object({ plans: z.array(CraftingPlan) }).safeParse(ctx.result(S8_PLAN_KEY));
+  if (!progression.success || !gear.success || !crafting.success) return 0;
+  return detailItems({
+    progression: progression.data,
+    gear: gear.data,
+    crafting: crafting.data.plans,
+  }).length;
 }
 
 /** The player's own pick skips S0, so it gets the same checks here. */

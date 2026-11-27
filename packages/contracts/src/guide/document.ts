@@ -18,6 +18,8 @@ export const GUIDE_SCHEMA_VERSION = 1;
 
 /** 1. Build summary ("Steckbrief"). */
 export const GuideSummary = z.object({
+  /** Introduction in several paragraphs: what the build does, how it defends, how it grows. */
+  introduction: z.array(RichText).default([]),
   classId: CharacterClassId,
   ascendancyId: AscendancyId,
   mainSkillId: GemId,
@@ -30,6 +32,8 @@ export const GuideSummary = z.object({
   weaknesses: z.array(RichText).min(1),
   budgetRange: z.object({ from: BudgetTierId, to: BudgetTierId }),
   suitability: z.object({ softcore: z.boolean(), hardcore: z.boolean(), ssf: z.boolean() }),
+  /** Closing summary of the build in a few sentences. */
+  closing: RichText.optional(),
 });
 export type GuideSummary = z.infer<typeof GuideSummary>;
 
@@ -37,11 +41,35 @@ export type GuideSummary = z.infer<typeof GuideSummary>;
 export const GuideMechanics = z.object({
   explanation: RichText,
   decisions: z.array(Rationale).min(1),
+  /** How the key items, gems and passives work together. */
+  interactions: z.array(Rationale).default([]),
+  /** Why each defence layer is there and what it covers. */
+  defences: z.array(z.object({ layer: ClassificationId, explanation: RichText })).default([]),
+  /** How mana, life, spirit or other resources are kept up. */
+  resources: RichText.optional(),
+  /** Why the skill setups are built as they are. */
+  gemSetups: z.array(Rationale).default([]),
 });
 
 /** 7. How to play the build. */
+/** A titled block of advice (a rotation step, an endgame phase …). */
+export const GuideBlock = z.object({
+  /** Plain text without digits: numbers come from the engine, and a title is not linted as rich text. */
+  title: z
+    .string()
+    .min(1)
+    .max(120)
+    .regex(/^\D*$/, { message: "no digits: numbers come from the engine" }),
+  detail: RichText,
+});
+export type GuideBlock = z.infer<typeof GuideBlock>;
+
 export const GuidePlaystyle = z.object({
   rotation: RichText,
+  /** The rotation as ordered steps for clearing and for bossing. */
+  rotationSteps: z.array(GuideBlock).default([]),
+  tips: z.array(RichText).default([]),
+  commonMistakes: z.array(RichText).default([]),
   keybinds: RichText.optional(),
   mapping: RichText,
   bossing: RichText,
@@ -52,6 +80,9 @@ export const GuidePlaystyle = z.object({
 /** 8. Atlas and endgame strategy. */
 export const GuideAtlas = z.object({
   strategy: RichText,
+  /** Endgame phases in the order the player goes through them. */
+  phases: z.array(GuideBlock).default([]),
+  waystoneTips: z.array(RichText).default([]),
   /** Map/waystone mods this build must avoid (catalog ids). */
   avoidMods: z.array(z.object({ modId: ModId, reason: RichText })),
 });

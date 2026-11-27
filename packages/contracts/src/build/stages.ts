@@ -7,6 +7,7 @@ import {
   CraftingActionId,
   EntityRef,
   GemId,
+  ModId,
   PassiveNodeId,
   StatId,
   UniqueItemId,
@@ -99,6 +100,31 @@ export const TargetBuild = z.object({
 });
 export type TargetBuild = z.infer<typeof TargetBuild>;
 
+/** What the player does with a skill gem when entering a stage. */
+export const StageGemChange = z.object({
+  action: z.enum(["add", "swap", "remove", "keep"]),
+  gem: EntityRef,
+  /** The gem this one replaces (swap only). */
+  replaces: EntityRef.optional(),
+  reason: RichText,
+});
+export type StageGemChange = z.infer<typeof StageGemChange>;
+
+/**
+ * Prose for one progression stage (S9, written per stage): what the stage is about, why the tree
+ * looks as it does, what changes in skills and gear and what to check before moving on. The
+ * passive nodes and all numbers stay in the stage itself; this only explains them.
+ */
+export const StageGuide = z.object({
+  intro: RichText,
+  treeNotes: z.array(Rationale).default([]),
+  gemChanges: z.array(StageGemChange).default([]),
+  gearNotes: z.array(RichText).default([]),
+  checklist: z.array(RichText).default([]),
+  nextStep: RichText.optional(),
+});
+export type StageGuide = z.infer<typeof StageGuide>;
+
 export const ProgressionStage = z
   .object({
     key,
@@ -118,6 +144,8 @@ export const ProgressionStage = z
     tasks: z.array(RichText).min(1),
     dangers: z.array(RichText).default([]),
     rationale: z.array(Rationale).default([]),
+    /** Detailed prose of the stage (S9); absent in guides written before it existed. */
+    guide: StageGuide.optional(),
     calcs: z.record(CalcProfileId, CalcOutcome),
   })
   .refine((s) => s.levelRange[0] <= s.levelRange[1], {
@@ -132,6 +160,23 @@ export const ProgressionPlan = z.object({
 });
 export type ProgressionPlan = z.infer<typeof ProgressionPlan>;
 
+/** One stat the player looks for on a slot, most important first. */
+export const StatPriority = z.object({
+  modId: ModId,
+  reason: RichText,
+});
+export type StatPriority = z.infer<typeof StatPriority>;
+
+/** Prose for one gear slot (S9): why this item, what to look for, where to get it. */
+export const SlotGuide = z.object({
+  why: RichText,
+  statPriorities: z.array(StatPriority).default([]),
+  whereToGet: RichText,
+  alternativesNotes: z.array(RichText).default([]),
+  upgradeAdvice: RichText.optional(),
+});
+export type SlotGuide = z.infer<typeof SlotGuide>;
+
 export const GearSlotPlan = z.object({
   slot: z.string().min(1),
   priority: z.enum(["core", "important", "nice"]),
@@ -141,6 +186,8 @@ export const GearSlotPlan = z.object({
   acquisition: z.enum(["drop", "vendor", "trade", "craft"]),
   craftingPlanKey: key.optional(),
   cost: MeasuredPrice,
+  /** Detailed prose of the slot (S9); absent in guides written before it existed. */
+  guide: SlotGuide.optional(),
 });
 export type GearSlotPlan = z.infer<typeof GearSlotPlan>;
 
@@ -150,6 +197,8 @@ export const GearPlan = z.object({
     .array(
       z.object({
         budgetTier: BudgetTierId,
+        /** What this budget tier means and how its gear is obtained (S9). */
+        description: RichText.optional(),
         slots: z.array(GearSlotPlan).min(1),
         upgradeOrder: z.array(z.object({ slot: z.string().min(1), gainPerCost: MeasuredRatio })),
         /**
@@ -186,6 +235,14 @@ export const CraftStep = z.object({
 });
 export type CraftStep = z.infer<typeof CraftStep>;
 
+/** Prose for one crafting plan (S9). */
+export const CraftingGuide = z.object({
+  overview: RichText,
+  tips: z.array(RichText).default([]),
+  pitfalls: z.array(RichText).default([]),
+});
+export type CraftingGuide = z.infer<typeof CraftingGuide>;
+
 /** S8: recipe for one rare slot. */
 export const CraftingPlan = z.object({
   key,
@@ -201,5 +258,7 @@ export const CraftingPlan = z.object({
   steps: z.array(CraftStep).min(1),
   expectedTotal: MeasuredPrice,
   fallback: RichText.optional(),
+  /** Detailed prose of the craft (S9); absent in guides written before it existed. */
+  guide: CraftingGuide.optional(),
 });
 export type CraftingPlan = z.infer<typeof CraftingPlan>;

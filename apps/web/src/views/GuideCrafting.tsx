@@ -4,6 +4,7 @@ import { Panel, StatGrid, StatValue } from "@astrolabe/ui";
 import { measuredState } from "../guide/measured";
 import { priceLabel, priceState } from "../guide/price";
 import { RichTextView, nameOf } from "../guide/RichTextView";
+import { Bullets } from "./GuideText";
 
 /*
  * The crafting plans of a guide as a flow: the base item, then every step with its goal, chance,
@@ -70,6 +71,15 @@ function Plan({ plan, view }: { plan: CraftingPlan; view: GuideView }) {
       title={plan.slot}
       kicker={plan.tier === undefined ? "Crafting plan" : `Crafting plan · ${plan.tier}`}
     >
+      {plan.guide === undefined ? null : (
+        <>
+          <p>
+            <RichTextView text={plan.guide.overview} view={view} />
+          </p>
+          <Bullets title="Tips" items={plan.guide.tips} view={view} />
+          <Bullets title="Pitfalls" items={plan.guide.pitfalls} view={view} />
+        </>
+      )}
       <ol className="craft-flow">
         <li className="craft-step craft-step--start">
           <div className="craft-step__card">

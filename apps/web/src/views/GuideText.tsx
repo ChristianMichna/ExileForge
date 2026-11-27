@@ -45,17 +45,105 @@ function Prose({
   );
 }
 
+type Text = Parameters<typeof RichTextView>[0]["text"];
+
+/** A bulleted list of rich texts under an optional heading; nothing when the list is empty. */
+export function Bullets({
+  title,
+  items,
+  view,
+}: {
+  title?: string;
+  items: readonly Text[];
+  view: GuideView;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      {title === undefined ? null : <h3>{title}</h3>}
+      <ul>
+        {items.map((t, i) => (
+          <li key={i}>
+            <RichTextView text={t} view={view} />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** Titled blocks of advice (rotation steps, endgame phases), numbered in reading order. */
+export function Blocks({
+  title,
+  blocks,
+  view,
+}: {
+  title: string;
+  blocks: readonly { title: string; detail: Text }[];
+  view: GuideView;
+}) {
+  if (blocks.length === 0) return null;
+  return (
+    <>
+      <h3>{title}</h3>
+      <ol className="guide-blocks">
+        {blocks.map((b, i) => (
+          <li key={i}>
+            <strong>{b.title}</strong>
+            <p>
+              <RichTextView text={b.detail} view={view} />
+            </p>
+          </li>
+        ))}
+      </ol>
+    </>
+  );
+}
+
+/** Decisions with their reasons, each led by the entity it is about. */
+export function Reasons({
+  title,
+  items,
+  view,
+}: {
+  title: string;
+  items: readonly { subject?: EntityRef | undefined; reason: Text }[];
+  view: GuideView;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <h3>{title}</h3>
+      <ul>
+        {items.map((d, i) => (
+          <li key={i}>
+            {d.subject === undefined ? null : (
+              <>
+                <EntityName view={view} entity={d.subject} />:{" "}
+              </>
+            )}
+            <RichTextView text={d.reason} view={view} />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 export function PlaystyleSection({ view }: { view: GuideView }) {
   const { playstyle } = view.guide;
   return (
     <Panel title="Playstyle" kicker="How to play it">
       <Prose title="Rotation" view={view} text={playstyle.rotation} />
+      <Blocks title="Step by step" blocks={playstyle.rotationSteps} view={view} />
       {playstyle.keybinds === undefined ? null : (
         <Prose title="Keybinds" view={view} text={playstyle.keybinds} />
       )}
       <Prose title="Mapping" view={view} text={playstyle.mapping} />
       <Prose title="Bossing" view={view} text={playstyle.bossing} />
       <Prose title="Positioning" view={view} text={playstyle.positioning} />
+      <Bullets title="Tips" items={playstyle.tips} view={view} />
+      <Bullets title="Common mistakes" items={playstyle.commonMistakes} view={view} />
       {playstyle.bossMechanics.length > 0 ? (
         <>
           <h3>Boss mechanics</h3>
@@ -84,6 +172,8 @@ export function AtlasSection({ view }: { view: GuideView }) {
       <p>
         <RichTextView text={atlas.strategy} view={view} />
       </p>
+      <Blocks title="Endgame phases" blocks={atlas.phases} view={view} />
+      <Bullets title="Waystone tips" items={atlas.waystoneTips} view={view} />
       {atlas.avoidMods.length > 0 ? (
         <>
           <h3>Map modifiers to avoid</h3>
