@@ -76,22 +76,35 @@ jobs:
           tag="$DATA_RELEASE_TAG"
           if [ -z "$tag" ]; then
             # every app release adds a release too: page through all of them, not the newest 100
-            tag=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name' | grep '^data-poe2-' | sort -V | tail -n1)
+            tag=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name' | { grep '^data-poe2-' || true; } | sort -V | tail -n1)
           fi
           test -n "$tag" || { echo "no data release found" >&2; exit 1; }
-          # the tag is an input: only a data release tag is accepted, nothing else reaches the commands below
-          printf '%s' "$tag" | grep -Eq '^data-poe2-[0-9A-Za-z._+-]+$' || { echo "not a data release tag: $tag" >&2; exit 1; }
+          # the tag is an input: only a data release tag (one line, no other characters) goes on
+          [[ "$tag" =~ ^data-poe2-[0-9A-Za-z._+-]+$ ]] || { echo "not a data release tag" >&2; exit 1; }
           echo "Bundled data release: $tag"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           mkdir -p dl data-snapshots/current/catalog
-          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'catalog-*.tar.gz*' --dir dl
-          # exactly one archive and one checksum, so the check cannot pass for another file than the one unpacked
-          test "$(ls dl/catalog-*.tar.gz | wc -l)" = 1 && test "$(ls dl/catalog-*.tar.gz.sha256 | wc -l)" = 1 || { echo "the release must hold exactly one catalog archive and one checksum" >&2; exit 1; }
-          (cd dl && sha256sum -c ./*.sha256)
-          # no absolute paths, no .. and no links in the archive
-          if tar tzf dl/catalog-*.tar.gz | grep -Eq '(^/|(^|/)\.\.(/|$))'; then echo "the archive has unsafe paths" >&2; exit 1; fi
-          if tar tvzf dl/catalog-*.tar.gz | grep -Eq '^[lh]'; then echo "the archive has links" >&2; exit 1; fi
-          tar xzf dl/catalog-*.tar.gz -C data-snapshots/current/catalog
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'catalog-*.tar.gz' --pattern 'catalog-*.tar.gz.sha256' --dir dl
+          shopt -s nullglob
+          archives=(dl/catalog-*.tar.gz)
+          sums=(dl/catalog-*.tar.gz.sha256)
+          # exactly one archive and one checksum
+          if [ "${#archives[@]}" != 1 ] || [ "${#sums[@]}" != 1 ]; then
+            echo "the release must hold exactly one catalog archive and one checksum" >&2
+            exit 1
+          fi
+          archive="${archives[0]}"
+          # the checksum belongs to this archive: compare its hash with the archive's own
+          expected=$(cut -d' ' -f1 "${sums[0]}")
+          [[ "$expected" =~ ^[0-9a-f]{64}$ ]] || { echo "the checksum file has no SHA-256" >&2; exit 1; }
+          echo "$expected  $archive" | sha256sum -c -
+          # list the archive into files first (grep -q on a pipe could end tar early and hide a match)
+          tar tvzf "$archive" > dl/list.txt
+          # only regular files and directories (no links, devices or pipes), no absolute paths, no ..
+          if grep -Ev '^[-d]' dl/list.txt > /dev/null; then echo "the archive holds more than files and directories" >&2; exit 1; fi
+          tar tzf "$archive" > dl/names.txt
+          if grep -E '(^/|(^|/)\.\.(/|$))' dl/names.txt > /dev/null; then echo "the archive has unsafe paths" >&2; exit 1; fi
+          tar xzf "$archive" -C data-snapshots/current/catalog
           test -f data-snapshots/current/catalog/manifest.json
       - uses: actions/upload-artifact@v5
         with:
