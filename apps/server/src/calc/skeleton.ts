@@ -436,6 +436,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       ...avoided,
     ];
     const optimize = this.options.optimize ?? optimizeTree;
+    const startedAt = Date.now();
     const result: TreeOptimizeResult = await this.options.pob.withBuild(start, (handle) =>
       optimize({
         graph,
@@ -454,6 +455,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         forbiddenNodeIds: excluded.filter((id) => graph.has(id)),
       }),
     );
+    this.logSearch("main tree", job.candidateKey, result, startedAt);
     if (!result.feasible || result.failedEvaluationCount > 0) {
       this.options.logger.info("tree optimisation is incomplete", {
         candidate: job.candidateKey,
@@ -512,6 +514,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     // Each round searches without the nodes banned so far; a node is banned when PoB reports its
     // text as a mod it does not calculate. The rounds end when the result has none (or at the cap).
     for (let round = 0; ; round += 1) {
+      const startedAt = Date.now();
       const result: TreeOptimizeResult = await this.options.pob.withBuild(withMainTree, (handle) =>
         optimize({
           graph,
@@ -530,6 +533,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
           forbiddenNodeIds: [...banned].filter((id) => graph.has(id)),
         }),
       );
+      this.logSearch("ascendancy", ascendancyId, result, startedAt, round);
       this.checkAscendancyResult(result, ascendancyId);
       if (!avoid) return result.allocated;
       const unsupported = await this.unsupportedTexts(withMainTree, result.allocated, job);
@@ -582,6 +586,27 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       });
       for (const id of bad) banned.add(id);
     }
+  }
+
+  /** One line per search: how many engine evaluations it took, why it stopped and how long it ran. */
+  private logSearch(
+    search: "main tree" | "ascendancy",
+    key: string,
+    result: TreeOptimizeResult,
+    startedAt: number,
+    round?: number,
+  ): void {
+    this.options.logger.info("tree search finished", {
+      search,
+      key,
+      ...(round === undefined ? {} : { round }),
+      evaluations: result.evaluations,
+      stoppedBy: result.stoppedBy,
+      refineStoppedBy: result.refineStoppedBy,
+      truncated: result.truncated,
+      failedEvaluations: result.failedEvaluationCount,
+      seconds: Math.round((Date.now() - startedAt) / 1000),
+    });
   }
 
   private checkAscendancyResult(result: TreeOptimizeResult, ascendancyId: string): void {
