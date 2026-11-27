@@ -10,6 +10,7 @@ import { UserIntervention } from "@astrolabe/contracts/forge";
 import {
   GUIDE_FILE_FORMAT,
   GuideFile,
+  type GuideListItem,
   GuideListView,
   collectCalcIds,
   GuideView,
@@ -62,6 +63,8 @@ export interface AppOptions extends ForgeMcpDeps {
   findGuide?: (guideId: string) => unknown;
   /** Ids of all stored guides, newest first (see `RunStore.listGuideIds`). */
   listGuideIds?: () => string[];
+  /** Where a stored guide comes from (see `RunStore.guideOrigin`); needed to list guides. */
+  guideOrigin?: (guideId: string) => GuideListItem["origin"];
   /** Stores an imported guide file (see `RunStore.importGuide`); enables the import route. */
   importGuide?: (file: GuideFile, importedAt: string) => void;
   /**
@@ -172,10 +175,15 @@ export function createApp(options: AppOptions): FastifyInstance {
   });
 
   app.get("/api/guides", async () => {
-    if (options.listGuideIds === undefined || options.findGuide === undefined) {
+    if (
+      options.listGuideIds === undefined ||
+      options.findGuide === undefined ||
+      options.guideOrigin === undefined
+    ) {
       throw new ForgeError("invalid_request", "Listing guides needs the run store.");
     }
     const find = options.findGuide;
+    const originOf = options.guideOrigin;
     const guides = options.listGuideIds().map((guideId): GuideListView["guides"][number] => {
       try {
         const guide = PublishedGuide.safeParse(find(guideId));
@@ -195,6 +203,7 @@ export function createApp(options: AppOptions): FastifyInstance {
           mainSkillId: summary.mainSkillId,
           ...(mainSkillName === undefined ? {} : { mainSkillName }),
           current: metadata.dataReleaseId === options.catalog.dataReleaseId,
+          origin: originOf(guideId),
         };
       } catch (error) {
         logger.error("stored guide cannot be read", { guideId, error });

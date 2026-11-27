@@ -280,7 +280,7 @@ automatisch nach einem Patch.
   oder der Fehlercode (`diff_missing`, `guide_invalid`, ...), nie ein stilles
   „unverändert".
 - `GET /api/guides` listet die gespeicherten Guides (neueste zuerst) mit Release, Ascendancy- und
-  Hauptskill-Name und `current` (mit dem geladenen Release gebaut), Form `GuideListView` der
+  Hauptskill-Name `current` (mit dem geladenen Release gebaut) und `origin` (`run`: Guide eines eigenen Laufs, `imported`: aus einer Guide-Datei, auch die Beispiel-Guides), Form `GuideListView` der
   Verträge; ein Name fehlt, wenn der Katalog die ID nicht kennt (nie durch die ID ersetzt), und ein
   nicht lesbarer Guide steht mit `error` in der Liste (auch ein beschädigter Datensatz). `GET /api/guides/:guideId` liefert den Guide (`PublishedGuide`, 404
   unbekannt, 400 beschädigt).
