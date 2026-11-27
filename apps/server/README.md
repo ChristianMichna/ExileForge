@@ -45,15 +45,16 @@ weiterzuführen.
 
 ## REST-API (Frontend)
 
-| Methode | Pfad                             | Inhalt                                                                             |
-| ------- | -------------------------------- | ---------------------------------------------------------------------------------- |
-| `GET`   | `/api/health`                    | `calcEngine` (`fake`/`pob`), `dataReleaseId`                                       |
-| `GET`   | `/api/claude/status`             | `mcpLastCallAt`: Zeitpunkt des letzten Aufrufs von `/mcp` mit gültigem Token (`null`: noch keiner seit Start) |
-| `POST`  | `/api/runs`                      | `{ request: BuildRequest, pipelineId? }` → `runId`, `sessionCode`, `expiresAt`     |
-| `GET`   | `/api/runs/:runId`               | ganzer Laufzustand (Ergebnisse, offene Fragen, aktuelle Aufgabe)                   |
-| `POST`  | `/api/runs/:runId/session-code`  | neuer Code, z. B. für einen neuen Chat                                             |
-| `POST`  | `/api/runs/:runId/interventions` | `UserIntervention` (Variante wählen, sperren, ablehnen, Pause, Antwort, Stufe neu) |
-| `GET`   | `/api/runs/:runId/events`        | SSE, `id` = `seq` des Laufs; `Last-Event-ID` spielt Verpasstes nach                |
+| Methode | Pfad                             | Inhalt                                                                                                                                               |
+| ------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`   | `/api/health`                    | `calcEngine` (`fake`/`pob`), `dataReleaseId`                                                                                                         |
+| `GET`   | `/api/claude/status`             | `mcpLastCallAt`: Zeitpunkt des letzten Aufrufs von `/mcp` mit gültigem Token (`null`: noch keiner seit Start)                                        |
+| `POST`  | `/api/runs`                      | `{ request: BuildRequest, pipelineId? }` → `runId`, `sessionCode`, `expiresAt`                                                                       |
+| `GET`   | `/api/runs/:runId`               | ganzer Laufzustand (Ergebnisse, offene Fragen, aktuelle Aufgabe)                                                                                     |
+| `POST`  | `/api/runs/:runId/session-code`  | neuer Code, z. B. für einen neuen Chat                                                                                                               |
+| `POST`  | `/api/runs/:runId/interventions` | `UserIntervention` (Variante wählen, sperren, ablehnen, Pause, Antwort, Stufe neu)                                                                   |
+| `GET`   | `/api/runs/:runId/candidates`    | `CandidateComparisonView`: Kandidaten (S2), Messungen (S3), Namen, Ergebnisse, gewählte Variante (S4); 404 unbekannt, 400 bei beschädigtem Datensatz |
+| `GET`   | `/api/runs/:runId/events`        | SSE, `id` = `seq` des Laufs; `Last-Event-ID` spielt Verpasstes nach                                                                                  |
 
 Schutz:
 

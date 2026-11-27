@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
-import { BuildRequest } from "@astrolabe/contracts/build";
+import { BuildRequest, CandidateComparisonView } from "@astrolabe/contracts/build";
 import { CalcResult } from "@astrolabe/contracts/calc";
 import { CalcId } from "@astrolabe/contracts/common";
 import type { RunEvent } from "@astrolabe/contracts/events";
@@ -19,6 +19,7 @@ import {
 } from "@astrolabe/contracts/guide";
 import { guideToBuildFile } from "@astrolabe/exporters";
 import { buildGuideView } from "../guides/guide-view.js";
+import { buildCandidateView } from "../runs/candidate-view.js";
 import { buildPassiveTreeData } from "../guides/tree-data.js";
 import { buildFileResolvers } from "../export/build-file-resolvers.js";
 import type { GuideSweeper } from "../tools/guide-sweep.js";
@@ -348,6 +349,13 @@ export function createApp(options: AppOptions): FastifyInstance {
   app.get("/api/runs/:runId", async (request) => {
     const { runId } = RunParams.parse(request.params);
     return engine.view(runId);
+  });
+
+  app.get("/api/runs/:runId/candidates", async (request) => {
+    const { runId } = RunParams.parse(request.params);
+    return CandidateComparisonView.parse(
+      await buildCandidateView(await engine.view(runId), options.catalog, options.calc),
+    );
   });
 
   app.post("/api/runs/:runId/session-code", async (request) => {
