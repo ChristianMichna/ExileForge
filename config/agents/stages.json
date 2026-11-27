@@ -1,7 +1,7 @@
 {
   "$comment": "Settings of the planning stages (packages/agents). Versioned config, no constants in code. Gem kinds are ids from the data release.",
   "version": "stages-1",
-  "promptVersion": "forge-prompts-1",
+  "promptVersion": "forge-prompts-3",
   "supportGemKinds": ["Support"],
   "minion": {
     "$comment": "Builds whose main skill is a gem of one of these kinds (gem kind of the data release) measure their damage with PoB's minion outputs (the player's own DPS is 0 for them). The names on the left are the stats named in the objectives and in s10.stats.dps; each is replaced by the one on the right. Replaced for the tree searches (S3, S5, S6), the gear objective (S7) and the damage gate (G5).",
@@ -147,6 +147,25 @@
       "atlas": 1,
       "variants": 1,
       "faq": 1
+    }
+  },
+  "s9": {
+    "$comment": "Depth of the guide (product owner, 27.11.2026: at least the detail of Maxroll guides). S9 writes one task per progression stage, gear tier, gear slot and crafting plan on top of the sections; these are the least counts a task's answer must reach before it is accepted. Quality bar of the developers, not game facts.",
+    "rubricFile": "guide-rubric.json",
+    "depth": {
+      "introductionParagraphs": 3,
+      "interactions": 3,
+      "defences": 2,
+      "gemSetups": 2,
+      "rotationSteps": 4,
+      "tips": 3,
+      "commonMistakes": 2,
+      "atlasPhases": 3,
+      "waystoneTips": 2,
+      "variants": 2,
+      "faq": 5,
+      "minTreeNotesPerStage": 2,
+      "minStatPrioritiesPerSlot": 2
     }
   }
 }

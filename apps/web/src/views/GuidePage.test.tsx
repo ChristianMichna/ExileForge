@@ -288,8 +288,8 @@ describe("guide page", () => {
     window.location.hash = `#/guide/${GUIDE_ID}`;
     render(<App />);
     expect(await screen.findByText("1,234")).toBeTruthy();
-    expect(screen.getByText("Minion damage per second")).toBeTruthy();
-    expect(screen.queryByText("Damage per second")).toBeNull();
+    expect(screen.getByText("Minion damage per second", { selector: "dt" })).toBeTruthy();
+    expect(screen.queryByText("Damage per second", { selector: "dt" })).toBeNull();
   });
 
   it("keeps the player's damage row and hides the minion row without minion stats", async () => {
@@ -304,8 +304,8 @@ describe("guide page", () => {
     vi.stubGlobal("fetch", () => json({ ...view, guide, results: { "calc-1": result } }));
     window.location.hash = `#/guide/${GUIDE_ID}`;
     render(<App />);
-    expect(await screen.findByText("Damage per second")).toBeTruthy();
-    expect(screen.queryByText("Minion damage per second")).toBeNull();
+    expect(await screen.findByText("Damage per second", { selector: "dt" })).toBeTruthy();
+    expect(screen.queryByText("Minion damage per second", { selector: "dt" })).toBeNull();
   });
 
   it("shows a failed or missing calculation of a stage as an error", async () => {

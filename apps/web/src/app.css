@@ -647,3 +647,181 @@ code {
   display: grid;
   gap: var(--ef-space-3);
 }
+
+.guide-blocks {
+  display: grid;
+  gap: var(--ef-space-3, 0.75rem);
+  padding-left: 1.25rem;
+}
+
+.guide-blocks p {
+  margin: 0.25rem 0 0;
+}
+
+.gear-slot__notes {
+  margin: var(--ef-space-3, 0.75rem) 0;
+}
+
+.gear-slot__notes h4 {
+  margin: var(--ef-space-3, 0.75rem) 0 0.25rem;
+}
+
+/* Guide page: index rail, sections, power curve, gear matrix */
+.guide-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--ef-space-6);
+}
+
+.guide-page > * {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.guide-section {
+  display: grid;
+  gap: var(--ef-space-4);
+  scroll-margin-top: var(--ef-space-4);
+}
+
+.guide-nav {
+  display: none;
+}
+
+@media (width >= 1100px) {
+  .guide-page {
+    grid-template-columns: 11rem minmax(0, 1fr);
+  }
+
+  .guide-page > * {
+    grid-column: 2;
+  }
+
+  .guide-page > .guide-nav {
+    display: block;
+    grid-column: 1;
+    grid-row: 1 / span 30;
+    align-self: start;
+    position: sticky;
+    top: var(--ef-space-4);
+  }
+}
+
+.guide-nav ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--ef-color-line);
+}
+
+.guide-nav__link {
+  display: flex;
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-2) var(--ef-space-3);
+  color: var(--ef-color-text-muted);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  margin-left: -1px;
+}
+
+.guide-nav__link:hover {
+  color: var(--ef-color-text-strong);
+}
+
+.guide-nav__link--active {
+  color: var(--ef-color-verdigris-bright);
+  border-left-color: var(--ef-color-verdigris);
+}
+
+.guide-nav__index {
+  font-family: var(--ef-font-mono);
+  color: var(--ef-color-text-faint);
+}
+
+.power-curve {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--ef-space-4);
+}
+
+.power-curve__chart {
+  margin: 0;
+}
+
+.power-curve__chart figcaption {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ef-color-text-muted);
+}
+
+.power-curve__chart strong {
+  font-family: var(--ef-font-mono);
+  color: var(--ef-color-text-strong);
+}
+
+.power-curve__chart svg {
+  width: 100%;
+  height: auto;
+}
+
+.power-curve__axis {
+  stroke: var(--ef-color-line-strong);
+  stroke-width: 1;
+}
+
+.power-curve__line {
+  fill: none;
+  stroke: var(--ef-color-verdigris);
+  stroke-width: 1.5;
+}
+
+.power-curve__dot {
+  fill: var(--ef-color-ground);
+  stroke: var(--ef-color-verdigris-bright);
+  stroke-width: 1.5;
+}
+
+.power-curve__tick {
+  fill: var(--ef-color-text-faint);
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+}
+
+.gear-matrix {
+  display: grid;
+  border: 1px solid var(--ef-color-line);
+}
+
+.gear-matrix__row {
+  display: grid;
+  grid-template-columns: 9rem repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--ef-space-2);
+  padding: var(--ef-space-2) var(--ef-space-3);
+  border-top: 1px solid var(--ef-color-engraving);
+}
+
+.gear-matrix__row:first-child {
+  border-top: 0;
+}
+
+.gear-matrix__row--head {
+  color: var(--ef-color-text-faint);
+  background: var(--ef-color-surface-2);
+}
+
+.gear-matrix__how {
+  color: var(--ef-color-text-muted);
+}
+
+.gear-matrix__none {
+  color: var(--ef-color-text-faint);
+}
+
+.guide-nav__link:focus-visible {
+  outline: 1px solid var(--ef-color-verdigris);
+  outline-offset: 2px;
+}
+
+.guide-section:focus {
+  outline: none;
+}

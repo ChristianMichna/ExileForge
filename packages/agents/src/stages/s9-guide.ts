@@ -16,7 +16,8 @@ import {
 import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext } from "../pipeline.js";
-import { S9_SECTION } from "../prompts.js";
+import { S9_SECTION, S9_SECTION_FOCUS } from "../prompts.js";
+import { partFindings } from "../quality/rubric.js";
 import { requestContext } from "./context.js";
 
 /** The sections Claude writes, in the order of the guide; the rest of the document is assembled by the app. */
@@ -95,7 +96,7 @@ export function walkSection(payload: unknown): {
     }
     if (typeof v !== "object" || v === null) return;
     for (const [k, x] of Object.entries(v)) {
-      if ((k === "subject" || k === "replaces") && isRef(x)) {
+      if ((k === "subject" || k === "replaces" || k === "gem") && isRef(x)) {
         entities.push({ path: `${path}/${k}`, ref: x });
       } else if (k === "with" && Array.isArray(x)) {
         x.forEach((r, i) => {
@@ -179,6 +180,72 @@ async function summaryCheck(payload: unknown, ctx: PipelineContext): Promise<Fin
   ];
 }
 
+/** Defence layers named by the mechanics must exist in the release, like those of the summary. */
+function layerCheck(payload: unknown, ctx: PipelineContext): Finding[] {
+  const layers = ctx.catalog.release?.classifications?.defenceLayers;
+  if (layers === undefined) return [];
+  const defences = (payload as { defences?: { layer: string }[] }).defences ?? [];
+  return defences.flatMap((d, i) =>
+    layers.includes(d.layer)
+      ? []
+      : [
+          {
+            gate: "G1" as const,
+            severity: "error" as const,
+            code: "unknown_classification",
+            message: `${d.layer} is not a defence layer of data release ${ctx.catalog.dataReleaseId}.`,
+            path: `/defences/${String(i)}/layer`,
+          },
+        ],
+  );
+}
+
+/** A section's answer in the shape the guide draft holds it (the lists of variants and faq are bare). */
+function sectionDraftOf(section: S9Section, payload: unknown): unknown {
+  const p = payload as Record<string, unknown>;
+  return section === "variants" ? p.variants : section === "faq" ? p.faq : payload;
+}
+
+type Depth = NonNullable<StageConfig["s9"]>["depth"];
+
+/** Least amount of prose per section, from config; a shortfall goes back to the same task. */
+export function depthCheck(section: S9Section, depth: Depth) {
+  return (payload: unknown): Finding[] => {
+    const p = payload as Record<string, unknown>;
+    const counts: [string, number, number][] = [];
+    const count = (field: string, min: number, from: Record<string, unknown> = p): void => {
+      const v = from[field];
+      counts.push([field, Array.isArray(v) ? v.length : 0, min]);
+    };
+    if (section === "summary") count("introduction", depth.introductionParagraphs);
+    if (section === "mechanics") {
+      count("interactions", depth.interactions);
+      count("defences", depth.defences);
+      count("gemSetups", depth.gemSetups);
+    }
+    if (section === "playstyle") {
+      count("rotationSteps", depth.rotationSteps);
+      count("tips", depth.tips);
+      count("commonMistakes", depth.commonMistakes);
+    }
+    if (section === "atlas") {
+      count("phases", depth.atlasPhases);
+      count("waystoneTips", depth.waystoneTips);
+    }
+    if (section === "variants") count("variants", depth.variants);
+    if (section === "faq") count("faq", depth.faq);
+    return counts
+      .filter(([, n, min]) => n < min)
+      .map(([field, n, min]) => ({
+        gate: "G7" as const,
+        severity: "error" as const,
+        code: "section_too_thin",
+        message: `${field} has ${String(n)} entries; write at least ${String(min)}.`,
+        path: `/${field}`,
+      }));
+  };
+}
+
 /** One section of the guide (Claude); earlier sections are context for the later ones. */
 export function sectionTask(
   ctx: PipelineContext,
@@ -195,7 +262,7 @@ export function sectionTask(
     key: sectionKey(section),
     type: sectionKey(section),
     promptVersion: config.promptVersion,
-    instructions: `${S9_SECTION} Section to write: ${section}.`,
+    instructions: `${S9_SECTION} Section to write: ${section}. ${S9_SECTION_FOCUS[section]}`,
     context: {
       request: requestContext(ctx),
       chosen: JSON.parse(JSON.stringify(inputs.chosen)) as JsonValue,
@@ -204,7 +271,16 @@ export function sectionTask(
       written,
     },
     schema: sectionSchemas[section],
-    ...(section === "summary" ? { check: summaryCheck } : {}),
+    check: async (payload: unknown, pctx: PipelineContext): Promise<Finding[]> => [
+      ...(section === "summary" ? await summaryCheck(payload, pctx) : []),
+      ...(section === "mechanics" ? layerCheck(payload, pctx) : []),
+      ...(config.s9 === undefined ? [] : depthCheck(section, config.s9.depth)(payload)),
+      ...partFindings(
+        config.s9?.rubric,
+        { [section]: sectionDraftOf(section, payload) },
+        `/${section}`,
+      ),
+    ],
     allowedTools: ["catalog_search", "catalog_get", "calc_evaluate"],
     entities: (p) => walkSection(p).entities,
     richText: (p) => walkSection(p).texts,

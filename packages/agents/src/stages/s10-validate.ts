@@ -19,11 +19,20 @@ import type { StageConfig } from "../config.js";
 import { type AnyTaskSpec, defineTask, type PipelineContext, type PlanStep } from "../pipeline.js";
 import { S10_CRITIC } from "../prompts.js";
 import { requestContext } from "./context.js";
+import { type QualityRubric, RUBRIC_SECTIONS } from "../quality/rubric.js";
+import { judgedFindings, QualityVerdict, qualityKey, rubricFindings } from "./s10-quality.js";
 import { craftKey, S8_PLAN_KEY } from "./s8-craft.js";
 import { S6_PLAN_KEY } from "./s6-progression.js";
 import { type S6Row, stageTableOf } from "./s6-table.js";
 import { S7_PLAN_KEY } from "./s7-plan.js";
 import { itemEntities } from "./s7-gear.js";
+import {
+  craftDetailKey,
+  slotDetailKey,
+  stageDetailKey,
+  tierDetailKey,
+  withDetails,
+} from "./s9-detail.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
 
 export const S10_REPORT_KEY = "S10.report";
@@ -55,6 +64,12 @@ export const CriticVerdict = z.object({
     .array(
       z.object({
         section: z.enum(CRITIC_SECTIONS),
+        /**
+         * Where in the section the problem is, when the context names it: a progression stage key,
+         * "<tier>/<slot>" or a tier id of the gear plan, or a crafting plan key. It lets a prose
+         * problem go back to the one detail task that wrote the text.
+         */
+        part: z.string().min(1).max(200).optional(),
         message: z
           .string()
           .min(1)
@@ -92,6 +107,54 @@ export function criticTask(
   });
 }
 
+/**
+ * The S9 detail task that wrote the text an issue is about, when the issue names its part and that
+ * task has a stored result (so the detail pass ran); otherwise the issue goes to the plan's stage.
+ */
+function detailCause(
+  ctx: PipelineContext,
+  issue: { section: CriticSection; part?: string | undefined },
+): string | undefined {
+  const { part } = issue;
+  if (part === undefined) return undefined;
+  const candidates =
+    issue.section === "progression"
+      ? [stageDetailKey(part)]
+      : issue.section === "crafting"
+        ? [craftDetailKey(part)]
+        : issue.section === "gear"
+          ? [
+              ...(part.includes("/")
+                ? [slotDetailKey(part.split("/")[0] ?? "", part.split("/").slice(1).join("/"))]
+                : []),
+              tierDetailKey(part),
+            ]
+          : [];
+  return candidates.find((key) => ctx.result(key) !== undefined);
+}
+
+/** G7 quality: the rubric's measured rules and the judge's verdicts (none without a rubric). */
+function qualityFindings(
+  ctx: PipelineContext,
+  draft: GuideDraft,
+  rubric: QualityRubric | undefined,
+): Finding[] {
+  if (rubric === undefined) return [];
+  const verdictOf = (section: (typeof RUBRIC_SECTIONS)[number]): QualityVerdict | undefined => {
+    const v = ctx.result(qualityKey(section));
+    return v === undefined ? undefined : stored(QualityVerdict, v, `quality verdict (${section})`);
+  };
+  return [
+    ...rubricFindings(draft, rubric),
+    ...judgedFindings(
+      rubric,
+      verdictOf,
+      (section, part) => detailCause(ctx, { section, part }),
+      causeOf,
+    ),
+  ].map((f) => Finding.parse(f));
+}
+
 /** The stage that wrote a section of the guide, for returning findings to it. */
 function causeOf(section: CriticSection): string {
   switch (section) {
@@ -111,17 +174,31 @@ function readCritic(value: unknown): CriticVerdict {
   return stored(CriticVerdict, value, "critic verdict (S10.critic)");
 }
 
-/** Whether the stored report was made with the critic verdict that is stored now. */
+/** The stored quality verdicts, by section, as the report keeps them. */
+function qualitiesOf(ctx: Pick<PipelineContext, "result">): Record<string, JsonValue> {
+  return Object.fromEntries(
+    RUBRIC_SECTIONS.flatMap((s) => {
+      const v = ctx.result(qualityKey(s));
+      return v === undefined ? [] : [[s, v] as const];
+    }),
+  );
+}
+
+/** Whether the stored report was made with the critic verdict and quality verdicts stored now. */
 export function reportIsCurrent(ctx: PipelineContext): boolean {
   const report = ctx.result(S10_REPORT_KEY);
   if (report === undefined) return false;
-  const used = (report as { critic?: unknown } | null)?.critic ?? null;
-  const now = ctx.result(S10_CRITIC_KEY) ?? null;
-  return JSON.stringify(used) === JSON.stringify(now);
+  const stored = report as { critic?: unknown; quality?: unknown } | null;
+  const usedCritic = stored?.critic ?? null;
+  const nowCritic = ctx.result(S10_CRITIC_KEY) ?? null;
+  return (
+    JSON.stringify(usedCritic) === JSON.stringify(nowCritic) &&
+    JSON.stringify(stored?.quality ?? {}) === JSON.stringify(qualitiesOf(ctx))
+  );
 }
 
 /** G8 from the critic's verdict: passes only if every part was read and nothing was found. */
-function criticGate(verdict: CriticVerdict | undefined): Finding[] {
+function criticGate(verdict: CriticVerdict | undefined, ctx: PipelineContext): Finding[] {
   if (verdict === undefined) {
     return [finding("G8", "check_not_built", "The critic has not reviewed the guide.")];
   }
@@ -129,7 +206,13 @@ function criticGate(verdict: CriticVerdict | undefined): Finding[] {
   return [
     ...missed.map((s) => finding("G8", "section_not_reviewed", `The critic did not read ${s}.`)),
     ...verdict.issues.map((i) =>
-      finding("G8", "inconsistency", `${i.section}: ${i.message}`, undefined, causeOf(i.section)),
+      finding(
+        "G8",
+        "inconsistency",
+        `${i.section}: ${i.message}`,
+        undefined,
+        detailCause(ctx, i) ?? causeOf(i.section),
+      ),
     ),
   ];
 }
@@ -145,6 +228,10 @@ export interface S10Inputs {
   target: TargetBuild;
   /** The skill the run settled on: the player's pick or the S0 choice. */
   mainSkillId: string;
+  /** Whether S9 ran its detail pass; its results are merged into the plans. */
+  detailPass?: boolean;
+  /** The quality rubric (measured rules and judged questions); absent means no quality gate. */
+  rubric?: QualityRubric;
 }
 
 /** Parses a stored result; the error names the part and keeps the schema error as cause. */
@@ -173,9 +260,10 @@ export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDra
   ).plans;
   const request = ctx.run.request;
   const planned = new Set(crafting.map((c) => c.key));
+  const detailed = withDetails(ctx, inputs.detailPass === true, { progression, gear, crafting });
   // The gear plan points to the crafting plan of each crafted rare that has one.
   const linked: GearPlan = {
-    tiers: gear.tiers.map((t) => ({
+    tiers: detailed.gear.tiers.map((t) => ({
       ...t,
       slots: t.slots.map((sl) =>
         sl.acquisition === "craft" &&
@@ -198,9 +286,9 @@ export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDra
         budgetRange: { from: request.budget.leveling, to: request.budget.endgame },
       },
       mechanics: part("mechanics", sectionSchemas.mechanics),
-      progression,
+      progression: detailed.progression,
       gear: linked,
-      crafting,
+      crafting: detailed.crafting,
       playstyle: part("playstyle", sectionSchemas.playstyle),
       atlas: part("atlas", sectionSchemas.atlas),
       variants: part("variants", sectionSchemas.variants).variants,
@@ -269,13 +357,24 @@ export function draftEntities(draft: GuideDraft): Found[] {
       ...st.allocationOrder.map((n, j) => ref("passiveNode", n, `${base}/allocationOrder/${j}`)),
       ...st.respecs.map((n, j) => ref("passiveNode", n, `${base}/respecs/${j}`)),
       ...prefixed(
-        walkSection({ tasks: st.tasks, dangers: st.dangers, rationale: st.rationale }).entities,
+        walkSection({
+          tasks: st.tasks,
+          dangers: st.dangers,
+          rationale: st.rationale,
+          guide: st.guide,
+        }).entities,
         base,
       ),
     );
   });
   draft.gear.tiers.forEach((t, i) =>
+    out.push(...prefixed(walkSection({ description: t.description }).entities, `/gear/tiers/${i}`)),
+  );
+  draft.gear.tiers.forEach((t, i) =>
     t.slots.forEach((sl, j) => {
+      out.push(
+        ...prefixed(walkSection({ guide: sl.guide }).entities, `/gear/tiers/${i}/slots/${j}`),
+      );
       for (const item of [sl.target, sl.minimum, ...sl.alternatives]) {
         if (item === undefined) continue;
         for (const e of itemEntities(item)) {
@@ -292,7 +391,10 @@ export function draftEntities(draft: GuideDraft): Found[] {
       ...c.steps.flatMap((st, j) =>
         st.actionIds.map((id, k) => ref("craftingAction", id, `${base}/steps/${j}/actionIds/${k}`)),
       ),
-      ...prefixed(walkSection({ steps: c.steps, fallback: c.fallback }).entities, base),
+      ...prefixed(
+        walkSection({ steps: c.steps, fallback: c.fallback, guide: c.guide }).entities,
+        base,
+      ),
     );
   });
   out.push(
@@ -306,6 +408,8 @@ export function draftEntities(draft: GuideDraft): Found[] {
       variants: draft.variants,
       faq: draft.faq,
       summary: {
+        introduction: draft.summary.introduction,
+        closing: draft.summary.closing,
         scalingAxes: draft.summary.scalingAxes,
         playstyle: draft.summary.playstyle,
         strengths: draft.summary.strengths,
@@ -932,6 +1036,7 @@ export async function runGates(
   critic?: CriticVerdict,
   stageTable?: readonly S6Row[],
   targetBuild?: TargetBuild,
+  rubric?: QualityRubric,
 ): Promise<GateResult[]> {
   const measured =
     cfg === undefined ? undefined : await measuredGates(ctx, draft, cfg, stageTable, targetBuild);
@@ -1054,11 +1159,11 @@ export async function runGates(
     G3: measured?.g3 ?? [],
     G4: measured?.g4 ?? [],
     G5: measured?.g5 ?? [],
-    G8: criticGate(critic),
+    G8: criticGate(critic, ctx),
     G1: g1,
     G2: [...g2, ...(measured?.g2 ?? [])],
     G6: g6,
-    G7: [...g7Counts, ...g7],
+    G7: [...g7Counts, ...g7, ...qualityFindings(ctx, draft, rubric)],
   };
   return (["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"] as const).map((gate) => {
     const findings = [...(found[gate] ?? [])];
@@ -1090,13 +1195,22 @@ export function validateStep(inputs: S10Inputs, cfg?: S10Config): PlanStep {
       const draft = assembleDraft(runCtx, inputs);
       const stored = runCtx.result(S10_CRITIC_KEY);
       const critic = stored === undefined ? undefined : readCritic(stored);
-      const gates = await runGates(runCtx, draft, cfg, critic, inputs.stageTable, inputs.target);
+      const gates = await runGates(
+        runCtx,
+        draft,
+        cfg,
+        critic,
+        inputs.stageTable,
+        inputs.target,
+        inputs.rubric,
+      );
       return JSON.parse(
         JSON.stringify({
           passed: gates.every((g) => g.passed),
           gates,
           draft,
           critic: critic ?? null,
+          quality: qualitiesOf(runCtx),
         }),
       ) as JsonValue;
     },

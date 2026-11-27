@@ -20,6 +20,8 @@ export interface Recording {
   readonly request: { readonly dataReleaseId: string } & Record<string, unknown>;
   /** Accepted answers of the planning side in the order they were accepted. */
   readonly answers: readonly RecordedAnswer[];
+  /** Calc profile each calc id cited by an answer was measured with (see `rebindCalcRefs`). */
+  readonly calcProfiles?: Readonly<Record<string, string>>;
   /** What the player did in the app (variant choice, answers to questions, ...), in order. */
   readonly interventions: readonly Record<string, unknown>[];
 }
@@ -47,11 +49,46 @@ export function buildRecording(run: RunLike): Recording {
     .map((entry) => entry.intervention)
     // pausing is not part of a decision transcript
     .filter((i) => i["kind"] !== "pause" && i["kind"] !== "resume");
-  return { format: RECORDING_FORMAT, version: 1, request: run.request, answers, interventions };
+  const calcProfiles = citedCalcProfiles(run, answers);
+  return {
+    format: RECORDING_FORMAT,
+    version: 1,
+    request: run.request,
+    answers,
+    calcProfiles,
+    interventions,
+  };
+}
+
+/** Profile of every calc id the answers cite, read from the run's target build (S5.target). */
+function citedCalcProfiles(
+  run: RunLike,
+  answers: readonly RecordedAnswer[],
+): Record<string, string> {
+  const target = run.results["S5.target"]?.value;
+  const byId = new Map<string, string>();
+  if (typeof target === "object" && target !== null) {
+    for (const [profile, outcome] of Object.entries(target)) {
+      const id = (outcome as { calcId?: unknown } | null)?.calcId;
+      if (typeof id === "string") byId.set(id, profile);
+    }
+  }
+  const out: Record<string, string> = {};
+  for (const id of calcIdsIn(answers.map((a) => a.value))) {
+    const profile = byId.get(id);
+    if (profile === undefined) {
+      throw new Error(`an answer cites ${id}, which is not a measurement of the target build`);
+    }
+    out[id] = profile;
+  }
+  return out;
 }
 
 export type ReplayStep =
-  | { kind: "task"; task: { taskId: string; type: string; attempt: number } }
+  | {
+      kind: "task";
+      task: { taskId: string; type: string; attempt: number; context?: Record<string, unknown> };
+    }
   | { kind: "wait_user"; reason?: unknown; retryAfterSeconds?: number }
   | { kind: "done"; guideId: string }
   | { kind: "failed"; error: { code: string; message: string } };
@@ -70,8 +107,79 @@ export interface ReplayPort {
   intervene(intervention: Record<string, unknown>): Promise<void>;
 }
 
+/** Calc ids named in a value, in order of first appearance. */
+function calcIdsIn(value: unknown, found: string[] = []): string[] {
+  if (Array.isArray(value)) {
+    for (const item of value) calcIdsIn(item, found);
+  } else if (typeof value === "object" && value !== null) {
+    for (const [key, item] of Object.entries(value)) {
+      if (key === "calcId" && typeof item === "string") {
+        if (!found.includes(item)) found.push(item);
+      } else calcIdsIn(item, found);
+    }
+  }
+  return found;
+}
+
+function replaceCalcIds(value: unknown, map: ReadonlyMap<string, string>): unknown {
+  if (Array.isArray(value)) return value.map((item) => replaceCalcIds(item, map));
+  if (typeof value !== "object" || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      key === "calcId" && typeof item === "string"
+        ? (map.get(item) ?? item)
+        : replaceCalcIds(item, map),
+    ]),
+  );
+}
+
+/**
+ * A calc id names one measurement of one build, so it differs in every run (the tree search and
+ * the item choice give another build). A recorded answer that cites measurements is therefore
+ * rebound: the recording says which calc profile each recorded id was measured with
+ * (`calcProfiles`), and the id becomes the one this run's task offers for that profile in
+ * `context.calcs`. Numbers stay engine numbers; only the reference moves.
+ */
+export function rebindCalcRefs(
+  value: unknown,
+  context: Record<string, unknown> | undefined,
+  calcProfiles: Readonly<Record<string, string>> = {},
+): unknown {
+  const recorded = calcIdsIn(value);
+  if (recorded.length === 0) return value;
+  const offered = new Map<string, string>();
+  if (Array.isArray(context?.["calcs"])) {
+    for (const entry of context["calcs"] as { profile?: unknown; calcId?: unknown }[]) {
+      if (typeof entry.profile === "string" && typeof entry.calcId === "string") {
+        offered.set(entry.profile, entry.calcId);
+      }
+    }
+  }
+  const map = new Map<string, string>();
+  for (const id of recorded) {
+    const profile = calcProfiles[id];
+    if (profile === undefined) {
+      throw new ReplayError(
+        `the recording does not say which calc profile ${id} was measured with`,
+      );
+    }
+    const now = offered.get(profile);
+    if (now === undefined) {
+      throw new ReplayError(`the task offers no measurement for the calc profile ${profile}`);
+    }
+    map.set(id, now);
+  }
+  return replaceCalcIds(value, map);
+}
+
 export class ReplayError extends Error {
   override readonly name = "ReplayError";
+}
+
+/** The app is not ready for this player action yet (e.g. variants still being measured): try again later. */
+export class ReplayRetry extends Error {
+  override readonly name = "ReplayRetry";
 }
 
 export interface ReplayResult {
@@ -83,13 +191,14 @@ export interface ReplayResult {
 export async function replay(
   port: ReplayPort,
   recording: Recording,
-  options: { log?: (line: string) => void; maxWaits?: number } = {},
+  options: { log?: (line: string) => void; timeoutMs?: number } = {},
 ): Promise<ReplayResult> {
   const log = options.log ?? (() => undefined);
-  const maxWaits = options.maxWaits ?? 200;
+  // The engine reports its own long calculations (tree search) as waiting too, so the limit is a time budget.
+  const timeoutMs = options.timeoutMs ?? 4 * 3_600_000;
+  const deadline = Date.now() + timeoutMs;
   let answerIndex = 0;
   let interventionIndex = 0;
-  let waits = 0;
   let step = await port.next();
   for (;;) {
     switch (step.kind) {
@@ -105,12 +214,16 @@ export async function replay(
       case "wait_user": {
         const intervention = recording.interventions[interventionIndex];
         if (intervention !== undefined) {
-          interventionIndex += 1;
-          log(`player action ${interventionIndex}: ${String(intervention["kind"])}`);
-          await port.intervene(intervention);
-        } else if (++waits > maxWaits) {
+          try {
+            await port.intervene(intervention);
+            interventionIndex += 1;
+            log(`player action ${interventionIndex}: ${String(intervention["kind"])}`);
+          } catch (error) {
+            if (!(error instanceof ReplayRetry) || Date.now() > deadline) throw error;
+          }
+        } else if (Date.now() > deadline) {
           throw new ReplayError(
-            "the run keeps waiting for the player and nothing more is recorded",
+            `the run is still waiting after ${String(timeoutMs / 60_000)} minutes (after ${String(answerIndex)} of ${String(recording.answers.length)} answers) and nothing more is recorded for the player`,
           );
         }
         step = await port.next();
@@ -129,7 +242,10 @@ export async function replay(
           );
         }
         log(`${step.task.type} (answer ${answerIndex + 1} of ${recording.answers.length})`);
-        const outcome = await port.submit(step.task, recorded.value);
+        const outcome = await port.submit(
+          step.task,
+          rebindCalcRefs(recorded.value, step.task.context, recording.calcProfiles),
+        );
         if (outcome.result === "rejected") {
           throw new ReplayError(
             `${step.task.type} was rejected: ${JSON.stringify(outcome.findings ?? []).slice(0, 1500)}`,

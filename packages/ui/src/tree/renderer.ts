@@ -2,6 +2,9 @@
 // owns the controls and overlays, this class owns the canvas, the camera and
 // hit testing. Colours come from the --ef-tree-* design tokens; shapes are
 // Astrolabe's own (no game art).
+// The desktop app forbids 'unsafe-eval' in its CSP; this module replaces the
+// shader code generation that needs it, so the policy stays strict.
+import "pixi.js/unsafe-eval";
 import { Application, Container, Graphics } from "pixi.js";
 import type { PassiveTreeView, TreeEdgeView, TreeNodeShape, TreeNodeView } from "./tree-model";
 

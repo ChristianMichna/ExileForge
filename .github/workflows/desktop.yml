@@ -35,8 +35,15 @@ on:
       - "config/desktop/**"
       - "config/forge/**"
       - ".github/workflows/desktop.yml"
+  schedule:
+    # Nightly: the whole recorded run S0 to S11 with the real tree search (takes hours).
+    - cron: "17 2 * * *"
   workflow_dispatch:
     inputs:
+      full-run:
+        description: "Also replay the whole recorded run S0 to S11 (takes hours)"
+        type: boolean
+        default: false
       data-release-tag:
         description: "Tag of the data release to bundle, e.g. data-poe2-0.5.5.10-r15 (empty: the newest published one)"
         required: false
@@ -183,7 +190,7 @@ jobs:
     name: Windows end-to-end
     needs: [catalog, installer]
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: ${{ (github.event_name == 'schedule' || inputs.full-run) && 330 || 40 }}
     permissions:
       contents: read
     env:
@@ -219,6 +226,7 @@ jobs:
         shell: bash
         env:
           DATA_TAG: ${{ needs.catalog.outputs.tag }}
+          E2E_FULL_RUN: ${{ (github.event_name == 'schedule' || inputs.full-run) && '1' || '0' }}
         run: |
           # data-poe2-0.5.5.10-r15 -> poe2-0.5.5.10+r15
           id="${DATA_TAG#data-}"

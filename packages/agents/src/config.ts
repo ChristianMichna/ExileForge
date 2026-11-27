@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { QualityRubric } from "./quality/rubric.js";
 import { BudgetTierId } from "@astrolabe/contracts/build";
 import { CalcProfileId } from "@astrolabe/contracts/common";
 
@@ -266,6 +267,37 @@ export const StageConfig = z
             faq: z.number().nonnegative(),
           })
           .refine((w) => Object.values(w).some((x) => x > 0), { message: "all weights are zero" }),
+      })
+      .optional(),
+    /**
+     * S9 depth of the guide: the detail pass (one task per stage, tier, slot and crafting plan) and
+     * the least amount of prose the sections must hold. Without this block the guide has only the
+     * short sections. Counts are the product owner's quality bar, not game facts.
+     */
+    s9: z
+      .object({
+        /** File with the quality rubric, next to this config; the loader reads it into `rubric`. */
+        rubricFile: z.string().min(1).optional(),
+        rubric: QualityRubric.optional(),
+        depth: z.object({
+          introductionParagraphs: z.int().nonnegative(),
+          interactions: z.int().nonnegative(),
+          defences: z.int().nonnegative(),
+          gemSetups: z.int().nonnegative(),
+          rotationSteps: z.int().nonnegative(),
+          tips: z.int().nonnegative(),
+          commonMistakes: z.int().nonnegative(),
+          atlasPhases: z.int().nonnegative(),
+          waystoneTips: z.int().nonnegative(),
+          variants: z.int().nonnegative(),
+          faq: z.int().nonnegative(),
+          minTreeNotesPerStage: z.int().nonnegative(),
+          minStatPrioritiesPerSlot: z.int().nonnegative(),
+        }),
+      })
+      .refine((s9) => s9.rubric !== undefined || s9.rubricFile !== undefined, {
+        message: "s9 needs the quality rubric (rubricFile): the quality gate must not be off",
+        path: ["rubricFile"],
       })
       .optional(),
     s2: z.object({

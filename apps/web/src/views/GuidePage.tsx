@@ -5,13 +5,18 @@ import type { GuideListView, GuideView } from "@astrolabe/contracts/guide";
 import { CraftingSection } from "./GuideCrafting";
 import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
+import { GearMatrix } from "./GearMatrix";
+import { GuideNav, type NavSection } from "./GuideNav";
+import { PowerCurve } from "./PowerCurve";
 import { TreeSection } from "./GuideTree";
 import { StageNumbers } from "./StageNumbers";
 import {
   AtlasSection,
+  Bullets,
   EntityName,
   FaqSection,
   PlaystyleSection,
+  Reasons,
   VariantsSection,
 } from "./GuideText";
 import { gemChanges } from "../guide/gem-changes";
@@ -109,8 +114,21 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
   const skill = nameOf(view, { kind: "gem", id: summary.mainSkillId });
   const sortedStages = [...guide.progression.stages].sort((a, b) => a.order - b.order);
   const [stageKey, setStageKey] = useState(guide.progression.stages[0]?.key ?? "");
+  const nav: NavSection[] = [
+    { id: "guide-summary", label: "Overview" },
+    { id: "guide-mechanics", label: "How it works" },
+    { id: "guide-stages", label: "Leveling to endgame" },
+    { id: "guide-gear", label: "Gear" },
+    ...(guide.crafting.length > 0 ? [{ id: "guide-crafting", label: "Crafting" }] : []),
+    { id: "guide-tree", label: "Passive tree" },
+    { id: "guide-playstyle", label: "Playstyle" },
+    { id: "guide-atlas", label: "Endgame" },
+    ...(guide.variants.length > 0 ? [{ id: "guide-variants", label: "Variants" }] : []),
+    ...(guide.faq.length > 0 ? [{ id: "guide-faq", label: "Troubleshooting" }] : []),
+  ];
   return (
-    <div className="page">
+    <div className="page guide-page">
+      <GuideNav sections={nav} />
       <PageHeader
         kicker={`Guide · ${guide.metadata.dataReleaseId} · PoB ${guide.metadata.pobVersion}`}
         title={`${ascendancy ?? summary.ascendancyId}: ${skill ?? summary.mainSkillId}`}
@@ -134,74 +152,133 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
           {view.unresolved.join(", ")}
         </Callout>
       ) : null}
-      <Panel title="Summary" kicker="At a glance">
-        <GuideNotes>
-          <p>
-            <RichTextView text={summary.playstyle} view={view} />
-          </p>
-          <p>
-            <RichTextView text={summary.scalingAxes} view={view} />
-          </p>
-        </GuideNotes>
-        <div className="guide-columns">
-          <div>
-            <h3>Strengths</h3>
-            <ul>
-              {summary.strengths.map((t, i) => (
-                <li key={i}>
-                  <RichTextView text={t} view={view} />
-                </li>
+      <section id="guide-summary" className="guide-section" tabIndex={-1}>
+        <Panel title="Summary" kicker="At a glance">
+          {summary.introduction.length > 0 ? (
+            <GuideNotes>
+              {summary.introduction.map((p, i) => (
+                <p key={i}>
+                  <RichTextView text={p} view={view} />
+                </p>
               ))}
-            </ul>
+            </GuideNotes>
+          ) : null}
+          <GuideNotes>
+            <p>
+              <RichTextView text={summary.playstyle} view={view} />
+            </p>
+            <p>
+              <RichTextView text={summary.scalingAxes} view={view} />
+            </p>
+          </GuideNotes>
+          <div className="guide-columns">
+            <div>
+              <h3>Strengths</h3>
+              <ul>
+                {summary.strengths.map((t, i) => (
+                  <li key={i}>
+                    <RichTextView text={t} view={view} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3>Weaknesses</h3>
+              <ul>
+                {summary.weaknesses.map((t, i) => (
+                  <li key={i}>
+                    <RichTextView text={t} view={view} />
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <div>
-            <h3>Weaknesses</h3>
-            <ul>
-              {summary.weaknesses.map((t, i) => (
-                <li key={i}>
-                  <RichTextView text={t} view={view} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </Panel>
-      <Panel title="How it works" kicker="Mechanics" variant="recessed">
-        <GuideNotes>
-          <p>
-            <RichTextView text={mechanics.explanation} view={view} />
-          </p>
-        </GuideNotes>
-        <ul>
-          {mechanics.decisions.map((d, i) => (
-            <li key={i}>
-              {d.subject === undefined ? null : (
-                <strong>{nameOf(view, d.subject) ?? d.subject.id}: </strong>
-              )}
-              <RichTextView text={d.reason} view={view} />
-            </li>
-          ))}
-        </ul>
-      </Panel>
-      <Tabs
-        label="Guide stages"
-        variant="dial"
-        value={stageKey}
-        onChange={setStageKey}
-        items={sortedStages.map((stage, i) => ({
-          id: stage.key,
-          label: stage.label,
-          hint: `Level ${stage.levelRange[0]}–${stage.levelRange[1]}`,
-          content: <StageView stage={stage} previous={sortedStages[i - 1]} view={view} />,
-        }))}
-      />
-      <GearSection view={view} />
-      <CraftingSection view={view} />
-      <TreeSection view={view} />
-      <PlaystyleSection view={view} />
-      <AtlasSection view={view} />
-      <VariantsSection view={view} />
-      <FaqSection view={view} />
+          {summary.closing === undefined ? null : (
+            <p>
+              <strong>In short: </strong>
+              <RichTextView text={summary.closing} view={view} />
+            </p>
+          )}
+        </Panel>
+        <PowerCurve view={view} />
+      </section>
+      <section id="guide-mechanics" className="guide-section" tabIndex={-1}>
+        <Panel title="How it works" kicker="Mechanics" variant="recessed">
+          <GuideNotes>
+            <p>
+              <RichTextView text={mechanics.explanation} view={view} />
+            </p>
+          </GuideNotes>
+          <ul>
+            {mechanics.decisions.map((d, i) => (
+              <li key={i}>
+                {d.subject === undefined ? null : (
+                  <strong>{nameOf(view, d.subject) ?? d.subject.id}: </strong>
+                )}
+                <RichTextView text={d.reason} view={view} />
+              </li>
+            ))}
+          </ul>
+          <Reasons title="How the parts work together" items={mechanics.interactions} view={view} />
+          <Reasons title="Skill setups" items={mechanics.gemSetups} view={view} />
+          {mechanics.defences.length > 0 ? (
+            <>
+              <h3>Defences</h3>
+              <ul>
+                {mechanics.defences.map((d, i) => (
+                  <li key={i}>
+                    <RichTextView text={d.explanation} view={view} />
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {mechanics.resources === undefined ? null : (
+            <>
+              <h3>Resources</h3>
+              <p>
+                <RichTextView text={mechanics.resources} view={view} />
+              </p>
+            </>
+          )}
+        </Panel>
+      </section>
+      <section id="guide-stages" className="guide-section" tabIndex={-1}>
+        <Tabs
+          label="Guide stages"
+          variant="dial"
+          value={stageKey}
+          onChange={setStageKey}
+          items={sortedStages.map((stage, i) => ({
+            id: stage.key,
+            label: stage.label,
+            hint: `Level ${stage.levelRange[0]}–${stage.levelRange[1]}`,
+            content: <StageView stage={stage} previous={sortedStages[i - 1]} view={view} />,
+          }))}
+        />
+      </section>
+      <section id="guide-gear" className="guide-section" tabIndex={-1}>
+        <GearMatrix view={view} />
+        <GearSection view={view} />
+      </section>
+      <section id="guide-crafting" className="guide-section" tabIndex={-1}>
+        <CraftingSection view={view} />
+      </section>
+      <section id="guide-tree" className="guide-section" tabIndex={-1}>
+        <TreeSection view={view} />
+      </section>
+      <section id="guide-playstyle" className="guide-section" tabIndex={-1}>
+        <PlaystyleSection view={view} />
+      </section>
+      <section id="guide-atlas" className="guide-section" tabIndex={-1}>
+        <AtlasSection view={view} />
+      </section>
+      <section id="guide-variants" className="guide-section" tabIndex={-1}>
+        <VariantsSection view={view} />
+      </section>
+      <section id="guide-faq" className="guide-section" tabIndex={-1}>
+        <FaqSection view={view} />
+      </section>
     </div>
   );
 }
@@ -285,6 +362,13 @@ function StageView({
         title={stage.label}
         kicker={`${stage.act === undefined ? "" : `Act ${stage.act} · `}Level ${stage.levelRange[0]}–${stage.levelRange[1]}`}
       >
+        {stage.guide === undefined ? null : (
+          <GuideNotes>
+            <p>
+              <RichTextView text={stage.guide.intro} view={view} />
+            </p>
+          </GuideNotes>
+        )}
         <h3>What to do</h3>
         <ul>
           {stage.tasks.map((t, i) => (
@@ -324,6 +408,25 @@ function StageView({
           ))}
         </ul>
         <GemChangeList previous={previous} stage={stage} view={view} />
+        {stage.guide === undefined || stage.guide.gemChanges.length === 0 ? null : (
+          <>
+            <h3>Why these skill changes</h3>
+            <ul>
+              {stage.guide.gemChanges.map((c, i) => (
+                <li key={i}>
+                  <EntityName view={view} entity={c.gem} />
+                  {c.replaces === undefined ? null : (
+                    <>
+                      {" "}
+                      (replaces <EntityName view={view} entity={c.replaces} />)
+                    </>
+                  )}
+                  : <RichTextView text={c.reason} view={view} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <p>
           {state.tree.allocated.length} passive points allocated
           {state.tree.ascendancy.length > 0
@@ -332,6 +435,19 @@ function StageView({
           .
         </p>
       </Panel>
+      {stage.guide === undefined ? null : (
+        <Panel title="Passive tree" kicker="Why these nodes">
+          <Reasons title="Choices" items={stage.guide.treeNotes} view={view} />
+          <Bullets title="Gear at this point" items={stage.guide.gearNotes} view={view} />
+          <Bullets title="Before you move on" items={stage.guide.checklist} view={view} />
+          {stage.guide.nextStep === undefined ? null : (
+            <p>
+              <strong>Next: </strong>
+              <RichTextView text={stage.guide.nextStep} view={view} />
+            </p>
+          )}
+        </Panel>
+      )}
       {stage.rationale.length > 0 ? (
         <Panel title="Why" kicker="Decisions" variant="recessed">
           <ul>

@@ -23,7 +23,13 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { McpStdioClient, resolveLaunch, type McpbManifest } from "./mcpb.ts";
-import { replay, type Recording, type ReplayStep, type SubmitOutcome } from "./recording.ts";
+import {
+  replay,
+  ReplayRetry,
+  type Recording,
+  type ReplayStep,
+  type SubmitOutcome,
+} from "./recording.ts";
 
 const DEBUG_PORT = 9333;
 const SERVER_PORT = 47615;
@@ -164,6 +170,7 @@ async function main(): Promise<void> {
       join("pob", "PathOfBuilding-PoE2", "runtime", "luajit.exe"),
       join("pob", "PathOfBuilding-PoE2", "src", "HeadlessWrapper.lua"),
       join("calc-lua", "worker.lua"),
+      join("config", "crafting", "sim.json"),
       join("data-release", "manifest.json"),
       join("web", "index.html"),
     ];
@@ -350,7 +357,18 @@ async function main(): Promise<void> {
   });
 
   const recordingFile = join(import.meta.dirname, "fixtures", "run-recording.json");
-  if (existsSync(recordingFile)) {
+  // The replay runs the real tree search and takes hours (nightly or by hand: E2E_FULL_RUN=1).
+  if (existsSync(recordingFile) && process.env["E2E_FULL_RUN"] !== "1") {
+    console.log(
+      "::notice::the whole-run replay runs nightly and on request (E2E_FULL_RUN=1), not in this check",
+    );
+    results.push({
+      step: "Replay a whole recorded run S0 to S11 (nightly)",
+      ok: true,
+      seconds: 0,
+      error: "skipped",
+    });
+  } else if (existsSync(recordingFile)) {
     const recording = JSON.parse(readFileSync(recordingFile, "utf8")) as Recording;
     if (recording.request.dataReleaseId !== expectedRelease) {
       throw new Error(
@@ -397,10 +415,22 @@ async function main(): Promise<void> {
                 intervention["kind"] === "answer" && open !== undefined
                   ? { ...intervention, askId: open.askId }
                   : intervention;
-              await api(token, `/api/runs/${runId}/interventions`, {
-                method: "POST",
-                body: JSON.stringify(body),
-              });
+              try {
+                await api(token, `/api/runs/${runId}/interventions`, {
+                  method: "POST",
+                  body: JSON.stringify(body),
+                });
+              } catch (error) {
+                // 409 invalid_intervention: the app is not ready for this action yet (the
+                // candidates are still being measured); the replay asks again later.
+                const message = error instanceof Error ? error.message : String(error);
+                if (!message.includes("→ 409") || !message.includes("invalid_intervention")) {
+                  throw error;
+                }
+                console.log(`player action not accepted yet: ${message.slice(0, 200)}`);
+                await sleep(5000);
+                throw new ReplayRetry(message, { cause: error });
+              }
             },
           },
           recording,
@@ -488,6 +518,20 @@ async function main(): Promise<void> {
       await shot("04-guide-error");
       throw new Error(`the guide page shows a problem: ${text.slice(0, 500)}`);
     }
+    // A tree that cannot be drawn shows a message instead of throwing, so look
+    // at the canvas state itself: at least one tree drawn, none failed.
+    const treeState = await until("the passive tree to be drawn", 60_000, async () => {
+      const states = await needPage().$$eval(".ef-tree-canvas", (nodes) =>
+        nodes.map((n) => ({
+          status: n.getAttribute("data-status"),
+          text: n.querySelector(".ef-tree-canvas__status")?.textContent ?? "",
+        })),
+      );
+      const failedTree = states.find((s) => s.status === "error");
+      if (failedTree !== undefined) throw new Error(`the passive tree failed: ${failedTree.text}`);
+      return states.some((s) => s.status === "ready") ? states : undefined;
+    });
+    console.log(`passive tree canvases: ${treeState.length}`);
     await needPage().screenshot({ path: join(outDir, "04-guide.png"), fullPage: true });
   });
 
