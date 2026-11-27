@@ -121,7 +121,7 @@ export function PassiveTree({
 
   // The page owns the stage choice: the tree moves to the end of the chosen stage (state set while
   // rendering, the pattern React gives for state that follows a prop).
-  const [followed, setFollowed] = useState(stageIndex);
+  const [followed, setFollowed] = useState<number | undefined>(undefined);
   if (stageIndex !== undefined && stageIndex !== followed) {
     setFollowed(stageIndex);
     const target = timeline.stages[stageIndex];
@@ -142,7 +142,7 @@ export function PassiveTree({
   useEffect(() => {
     if (!expanded) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setExpanded(false);
+      if (e.key === "Escape" && !e.defaultPrevented) setExpanded(false);
     };
     const before = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -339,7 +339,7 @@ export function PassiveTree({
                 type="button"
                 onClick={() => setExpanded((e) => !e)}
                 aria-pressed={expanded}
-                aria-label={expanded ? "Leave full screen" : "Full screen"}
+                aria-label="Full screen"
                 title={expanded ? "Leave full screen (Esc)" : "Full screen"}
               >
                 <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">

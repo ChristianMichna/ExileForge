@@ -63,7 +63,7 @@ function TreeBody({
           view: prepared.ascendancy,
         }}
         timeline={prepared.timeline}
-        {...(stageIndex === undefined ? {} : { stageIndex })}
+        {...(stageIndex === undefined ? {} : { stageIndex, initialStage: stageIndex })}
         {...(onStageChange === undefined ? {} : { onStageChange })}
         provenance={{ kind: "gamedata", dataRelease: data.dataReleaseId }}
         allocationSource={`Allocation: guide ${guide.metadata.guideId}`}
