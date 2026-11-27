@@ -47,6 +47,19 @@ export const StageConfig = z
         weights: z.record(z.string().min(1), z.number()),
         floors: z.record(z.string().min(1), z.number()).default({}),
       }),
+      /**
+       * Attack skills deal no damage without a weapon, so the tree searches would be blind for
+       * damage. When set, the skeleton wears the weapon (of a class the slot accepts, the lowest
+       * requirement) that PoB measures best for the main skill; the gear stages replace it.
+       */
+      placeholderWeapon: z
+        .object({
+          /** Slot id of the release (`DataRelease.itemSlots`) that takes the weapon. */
+          slot: z.string().min(1),
+          /** Rarity id of the release the placeholder has (no modifiers). */
+          rarity: z.string().min(1),
+        })
+        .optional(),
     }),
     /**
      * S5 target build. Optional on purpose: calc profiles and the tree objective

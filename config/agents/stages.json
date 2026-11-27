@@ -30,6 +30,7 @@
       },
       "floors": {}
     },
+    "placeholderWeapon": { "slot": "Weapon 1", "rarity": "normal" },
     "gemLevel": 1
   },
   "s5": {
