@@ -81,7 +81,8 @@ describe("S9 detail pass", () => {
   });
 
   it("only lets a stage guide describe gems the stage really has", async () => {
-    const item = detailItems(plans)[1]!;
+    const item = detailItems(plans).find((i) => i.key === stageDetailKey("s-two"));
+    if (item === undefined) throw new Error("stage item missing");
     const spec = detailTask(ctx(), config, item, { plans, target }) as never as {
       check: (p: unknown) => Promise<{ code: string }[]>;
     };
