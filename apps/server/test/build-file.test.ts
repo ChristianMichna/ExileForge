@@ -58,7 +58,7 @@ function app(
     defaultPipelineId: "poc",
     accessToken: TOKEN,
     ...(findGuide === undefined ? {} : { findGuide }),
-    ...(listGuideIds === undefined ? {} : { listGuideIds }),
+    ...(listGuideIds === undefined ? {} : { listGuideIds, guideOrigin: () => "imported" as const }),
   });
 }
 
@@ -238,6 +238,7 @@ describe("guide routes", () => {
       dataReleaseId: RELEASE,
       ascendancyId: "fixture_asc",
       current: true,
+      origin: "imported",
     });
     expect(body.guides[1]).toEqual({ guideId: "bad", error: "The stored guide cannot be read." });
   });

@@ -63,6 +63,7 @@ function appOver(store: RunStore, findGuide?: (id: string) => unknown) {
     accessToken: TOKEN,
     findGuide: findGuide ?? ((id) => store.findGuide(id)),
     listGuideIds: () => store.listGuideIds(),
+    guideOrigin: (id) => store.guideOrigin(id),
     importGuide: (f, at) => store.importGuide(f, at),
   });
 }
@@ -89,6 +90,45 @@ describe("RunStore.importGuide", () => {
     });
     expect(() => store.importGuide(changed, "2026-11-26T12:10:00Z")).toThrow(/differs/);
     expect(store.loadCalcResult(id)).toEqual(resultOf(id));
+  });
+});
+
+describe("RunStore.guideOrigin", () => {
+  it("tells a run's guide from an imported one and refuses an unknown id", () => {
+    const store = new RunStore(":memory:");
+    store.importGuide(GuideFile.parse(file), "2026-11-26T12:00:00Z");
+    expect(store.guideOrigin(GUIDE_ID)).toBe("imported");
+    expect(() => store.guideOrigin("00000000-0000-4000-8000-0000000000bb")).toThrow(
+      /No stored guide/,
+    );
+
+    const runGuideId = "00000000-0000-4000-8000-0000000000cc";
+    store.save(
+      RunRecord.parse({
+        runId: "00000000-0000-4000-8000-0000000000dd",
+        pipelineId: "forge",
+        createdAt: "2026-01-01T00:00:00Z",
+        request: guide.request,
+        phase: "done",
+        sessionCode: null,
+        results: {
+          "S11.guide": {
+            type: "S11",
+            by: "server",
+            value: { ...stored, metadata: { ...stored.metadata, guideId: runGuideId } },
+            at: "2026-01-01T00:00:00Z",
+          },
+        },
+        current: null,
+        interventions: [],
+        asks: [],
+        taskCounter: 1,
+        nextSeq: 1,
+        guideId: runGuideId,
+      }),
+      [],
+    );
+    expect(store.guideOrigin(runGuideId)).toBe("run");
   });
 });
 
@@ -174,7 +214,9 @@ describe("guide file routes", () => {
     expect(res.statusCode).toBe(201);
     expect(res.json()).toEqual({ guideId: GUIDE_ID });
     const list = await a.inject({ method: "GET", url: "/api/guides", headers });
-    expect(list.json<{ guides: { guideId: string }[] }>().guides[0]?.guideId).toBe(GUIDE_ID);
+    const first = list.json<{ guides: { guideId: string; origin: string }[] }>().guides[0];
+    expect(first?.guideId).toBe(GUIDE_ID);
+    expect(first?.origin).toBe("imported");
     const view = await a.inject({ method: "GET", url: `/api/guides/${GUIDE_ID}/view`, headers });
     expect(view.statusCode).toBe(200);
     const body = view.json<{ results: Record<string, unknown> }>();

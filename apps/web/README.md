@@ -13,6 +13,7 @@ Desktop-App (`apps/desktop`, `astrolabe://app/`) und als Vorschau im Browser mit
   Verbindungsknöpfen. „Verbunden“ heißt nur, dass der Lauf `created` verlassen hat; nach 45 s ohne
   Verbindung nennt die Seite, was zu prüfen ist, und erklärt die Antwort „expected object, received
   string“ in einfachen Worten.
+- **Guide-Liste**: Guides aus einer Guide-Datei (auch die Beispiel-Guides) tragen die Marke „Imported file“ (`GuideListItem.origin`); ihre Zahlen sind Messungen einer anderen Installation.
 - **Erweiterung erreicht?** (`src/api/claude-status.ts`): fragt alle 3 s `GET /api/claude/status`, solange
   der Lauf `created` ist, und hört auf, sobald Claude den MCP-Endpunkt erreicht hat. Der Wert gilt seit Serverstart, nicht je Lauf.
   Jede Abfrage hat 5 s Zeit; Ablauf und Netzfehler stehen sichtbar auf der Seite, nie als „noch nicht verbunden“.

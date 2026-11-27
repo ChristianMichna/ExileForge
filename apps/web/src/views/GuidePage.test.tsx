@@ -79,6 +79,7 @@ describe("guide list", () => {
             ascendancyName: "Fixture Ascendancy",
             mainSkillId: "Fixture/Gems/Main",
             current: false,
+            origin: "imported",
           },
           { guideId: "broken-guide-id", error: "The stored guide cannot be read." },
         ],
@@ -90,7 +91,31 @@ describe("guide list", () => {
     // no name for the skill: the id stays visible instead of a made-up name
     expect(screen.getByText(/Fixture\/Gems\/Main/)).toBeTruthy();
     expect(screen.getByText("Older game data")).toBeTruthy();
+    expect(screen.getByText("Imported file")).toBeTruthy();
     expect(screen.getByText("The stored guide cannot be read.")).toBeTruthy();
+  });
+
+  it("marks no file origin on a guide made by a run", async () => {
+    vi.stubGlobal("fetch", () =>
+      json({
+        guides: [
+          {
+            guideId: GUIDE_ID,
+            dataReleaseId: publishedGuide.metadata.dataReleaseId,
+            generatedAt: "2026-01-01T00:00:00Z",
+            ascendancyId: "fixture_asc",
+            ascendancyName: "Fixture Ascendancy",
+            mainSkillId: "Fixture/Gems/Main",
+            current: true,
+            origin: "run",
+          },
+        ],
+      }),
+    );
+    window.location.hash = "#/guide";
+    render(<App />);
+    expect(await screen.findByText("Fixture Ascendancy")).toBeTruthy();
+    expect(screen.queryByText("Imported file")).toBeNull();
   });
 
   it("shows the server's error", async () => {
