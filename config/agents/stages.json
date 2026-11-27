@@ -4,8 +4,8 @@
   "promptVersion": "forge-prompts-1",
   "supportGemKinds": ["Support"],
   "minion": {
-    "$comment": "Builds whose main skill has this tag measure their damage with PoB's minion outputs (the player's own DPS is 0 for them). The names on the left are the stats named in the objectives and in s10.stats.dps; each is replaced by the one on the right. Replaced for the tree searches (S3, S5, S6), the gear objective (S7) and the damage gate (G5).",
-    "skillTag": "minion",
+    "$comment": "Builds whose main skill is a gem of one of these kinds (gem kind of the data release) measure their damage with PoB's minion outputs (the player's own DPS is 0 for them). The names on the left are the stats named in the objectives and in s10.stats.dps; each is replaced by the one on the right. Replaced for the tree searches (S3, S5, S6), the gear objective (S7) and the damage gate (G5).",
+    "skillKinds": ["Minion"],
     "statMap": {
       "FullDPS": "MinionCombinedDPS",
       "CombinedDPS": "MinionCombinedDPS"

@@ -6,7 +6,7 @@ import type { StageConfig } from "./config.js";
 export type MinionStatsConfig = NonNullable<StageConfig["minion"]>;
 
 /**
- * Whether the main skill is a minion skill: its catalog gem carries the configured tag. A skill
+ * Whether the main skill is a minion skill: its catalog gem is of the configured kind. A skill
  * that is not in the catalog is not judged here (G1 reports it).
  */
 export function isMinionSkill(
@@ -16,8 +16,8 @@ export function isMinionSkill(
 ): boolean {
   if (minion === undefined) return false;
   const entry = catalog.get({ kind: "gem", id: mainSkillId });
-  const tags = (entry?.entity as Pick<Gem, "tags"> | undefined)?.tags;
-  return tags?.includes(minion.skillTag) === true;
+  const kind = (entry?.entity as Pick<Gem, "kind"> | undefined)?.kind;
+  return kind !== undefined && minion.skillKinds.includes(kind);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { isMinionSkill, minionWeights } from "@astrolabe/agents";
+import { isMinionSkill, minionStatName, minionWeights } from "@astrolabe/agents";
 import type {
   MinionStatsConfig,
   ProgressionPort,
@@ -111,6 +111,15 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       ...objective,
       weights: minionWeights(minion, objective.weights),
       floors: minionWeights(minion, objective.floors),
+      ...("floorsFromMetrics" in objective && objective.floorsFromMetrics !== undefined
+        ? {
+            floorsFromMetrics: Object.fromEntries(
+              Object.entries(objective.floorsFromMetrics as Record<string, string>).map(
+                ([stat, other]) => [minionStatName(minion, stat), minionStatName(minion, other)],
+              ),
+            ),
+          }
+        : {}),
     };
   }
 

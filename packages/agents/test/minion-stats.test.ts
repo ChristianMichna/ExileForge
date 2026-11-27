@@ -9,21 +9,21 @@ import {
 } from "../src/minion-stats.js";
 
 const minion = {
-  skillTag: "minion",
+  skillKinds: ["Minion"],
   statMap: { FullDPS: "MinionCombinedDPS", CombinedDPS: "MinionCombinedDPS" },
 };
-const catalogWith = (tags: string[]) =>
+const catalogWith = (kind: string) =>
   ({
     get: (ref: { kind: string; id: string }) =>
-      ref.id === "gem-a" ? { ref, entity: { tags } } : undefined,
+      ref.id === "gem-a" ? { ref, entity: { kind, tags: ["minion"] } } : undefined,
   }) as never;
 
 describe("minion stats", () => {
-  it("recognises a minion skill by its tag, and never without the setting or the gem", () => {
-    expect(isMinionSkill(catalogWith(["minion", "spell"]), "gem-a", minion)).toBe(true);
-    expect(isMinionSkill(catalogWith(["spell"]), "gem-a", minion)).toBe(false);
-    expect(isMinionSkill(catalogWith(["minion"]), "gem-a", undefined)).toBe(false);
-    expect(isMinionSkill(catalogWith(["minion"]), "unknown", minion)).toBe(false);
+  it("recognises a minion skill by its gem kind (not by the tag some damage skills carry too), and never without the setting or the gem", () => {
+    expect(isMinionSkill(catalogWith("Minion"), "gem-a", minion)).toBe(true);
+    expect(isMinionSkill(catalogWith("Spell"), "gem-a", minion)).toBe(false);
+    expect(isMinionSkill(catalogWith("Minion"), "gem-a", undefined)).toBe(false);
+    expect(isMinionSkill(catalogWith("Minion"), "unknown", minion)).toBe(false);
   });
 
   it("replaces mapped stat names and leaves the others", () => {

@@ -15,14 +15,14 @@ export const StageConfig = z
      */
     supportGemKinds: z.array(z.string().min(1)).min(1),
     /**
-     * Builds whose main skill carries `skillTag` (a classification id of the data release) take
+     * Builds whose main skill is a gem of one of `skillKinds` (the gem `kind` of the data release; the tag `minion` is on skills that deal their own damage too) take
      * their damage from PoB's minion outputs: the stat names in `statMap` are replaced for the
      * tree and gear objectives and the damage gate. PoB's own DPS stays 0 for such a skill, and a
      * stat PoB does not calculate is never replaced by an estimate. Absent: no replacement.
      */
     minion: z
       .object({
-        skillTag: z.string().min(1),
+        skillKinds: z.array(z.string().min(1)).min(1),
         statMap: z.record(z.string().min(1), z.string().min(1)),
       })
       .optional(),
