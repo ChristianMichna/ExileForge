@@ -3,6 +3,7 @@ import { CatalogDiff, CatalogManifest, CatalogShard } from "./catalog/release.js
 import { CalcResult } from "./calc/result.js";
 import { CalcMethods } from "./calc/rpc.js";
 import { BuildRequest } from "./build/request.js";
+import { CandidateComparisonView } from "./build/candidate-view.js";
 import { GuideDocument } from "./guide/document.js";
 import { GuideView } from "./guide/view.js";
 import { PassiveTreeData } from "./guide/tree.js";
@@ -31,6 +32,7 @@ export const jsonSchemas: Readonly<Record<string, z.ZodType>> = {
     ]),
   ),
   "build/request": BuildRequest,
+  "build/candidate-view": CandidateComparisonView,
   "guide/document": GuideDocument,
   "guide/patch-status": PatchStatus,
   "guide/patch-status-view": GuidePatchStatusView,
