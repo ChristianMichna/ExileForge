@@ -6,6 +6,7 @@ import { CraftingSection } from "./GuideCrafting";
 import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
 import { GearMatrix } from "./GearMatrix";
+import { StageBar } from "./StageBar";
 import { GuideNav, type NavSection } from "./GuideNav";
 import { PowerCurve } from "./PowerCurve";
 import { TreeSection } from "./GuideTree";
@@ -129,6 +130,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
   return (
     <div className="page guide-page">
       <GuideNav sections={nav} />
+      <StageBar stages={sortedStages} value={stageKey} onChange={setStageKey} />
       <PageHeader
         kicker={`Guide · ${guide.metadata.dataReleaseId} · PoB ${guide.metadata.pobVersion}`}
         title={`${ascendancy ?? summary.ascendancyId}: ${skill ?? summary.mainSkillId}`}
@@ -265,7 +267,17 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
         <CraftingSection view={view} />
       </section>
       <section id="guide-tree" className="guide-section" tabIndex={-1}>
-        <TreeSection view={view} />
+        <TreeSection
+          view={view}
+          stageIndex={Math.max(
+            0,
+            sortedStages.findIndex((s) => s.key === stageKey),
+          )}
+          onStageChange={(i) => {
+            const key = sortedStages[i]?.key;
+            if (key !== undefined) setStageKey(key);
+          }}
+        />
       </section>
       <section id="guide-playstyle" className="guide-section" tabIndex={-1}>
         <PlaystyleSection view={view} />
