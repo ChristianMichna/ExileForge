@@ -149,7 +149,7 @@ describe("PobSkeleton", () => {
       expect(optimize.mock.calls[0]?.[0].objective.weights).toEqual({ MinionCombinedDPS: 1 });
     });
 
-    it("uses the minion stats in the target tree search and for the floors by metrics (S5)", async () => {
+    it("uses the minion stats in the target tree search (S5)", async () => {
       const { skeleton, optimize } = setup(
         optimized,
         undefined,

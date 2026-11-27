@@ -11,6 +11,7 @@ const GuideStatsConfig = z.object({
         label: z.string().min(1),
         emphasis: z.boolean().optional(),
         onlyWhenReported: z.boolean().optional(),
+        hideWhenReported: z.string().min(1).optional(),
       }),
     )
     .min(1),

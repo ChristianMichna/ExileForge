@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { StageConfig } from "../src/config.js";
 import {
   isMinionSkill,
+  minionMetricFloors,
   minionStatName,
   minionWeights,
   withMinionStats,
@@ -38,6 +39,16 @@ describe("minion stats", () => {
   it("refuses two weights that would land on one stat", () => {
     expect(() => minionWeights(minion, { FullDPS: 1, CombinedDPS: 2 })).toThrow(
       /two objective weights/,
+    );
+  });
+
+  it("maps both sides of a metric floor and refuses a clash", () => {
+    expect(minionMetricFloors(minion, { FullDPS: "Other", Int: "ReqInt" })).toEqual({
+      MinionCombinedDPS: "Other",
+      Int: "ReqInt",
+    });
+    expect(() => minionMetricFloors(minion, { FullDPS: "A", CombinedDPS: "B" })).toThrow(
+      /two metric floors/,
     );
   });
 

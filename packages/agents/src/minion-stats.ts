@@ -46,6 +46,24 @@ export function minionWeights(
   return out;
 }
 
+/** Metric floors (stat held to another measured stat) with the minion stat names on both sides; a clash is an error. */
+export function minionMetricFloors(
+  minion: MinionStatsConfig,
+  floors: Readonly<Record<string, string>>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [stat, other] of Object.entries(floors)) {
+    const target = minionStatName(minion, stat);
+    if (target in out) {
+      throw new Error(
+        `The minion stat map sends two metric floors to ${target}; remove one of them in config/agents/stages.json`,
+      );
+    }
+    out[target] = minionStatName(minion, other);
+  }
+  return out;
+}
+
 /** The stage settings of a minion build: gear objective and damage gate read the minion stats. */
 export function withMinionStats(config: StageConfig, minion: MinionStatsConfig): StageConfig {
   return {

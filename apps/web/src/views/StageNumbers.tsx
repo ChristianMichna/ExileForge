@@ -70,7 +70,11 @@ export function StageNumbers({ stage, view }: { stage: ProgressionStage; view: G
     >
       <StatGrid>
         {GUIDE_STATS.stats
-          .filter((s) => s.onlyWhenReported !== true || isReported(s.stat, found, view))
+          .filter(
+            (s) =>
+              (s.onlyWhenReported !== true || isReported(s.stat, found, view)) &&
+              (s.hideWhenReported === undefined || !isReported(s.hideWhenReported, found, view)),
+          )
           .map((s) => (
             <StatValue
               key={s.stat}

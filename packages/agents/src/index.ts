@@ -1,6 +1,7 @@
 export { StageConfig } from "./config.js";
 export {
   isMinionSkill,
+  minionMetricFloors,
   minionStatName,
   minionWeights,
   withMinionStats,

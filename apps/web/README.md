@@ -6,6 +6,9 @@ Desktop-App (`apps/desktop`, `astrolabe://app/`) und als Vorschau im Browser mit
 - Der Browser-Seite fehlt der Zugriffstoken; `/api/*` beantwortet das App-Protokoll der Desktop-Hülle
   und fügt ihn dort hinzu. Die Seite sieht den Token nie.
 - `src/desktop/bridge.ts` ist eine strukturelle Kopie von `apps/desktop/src/shared/bridge.ts`.
+- **Zahlen je Stufe** (`config/web/guide-stats.json`): `onlyWhenReported` zeigt eine Zeile nur, wenn das
+  gespeicherte Ergebnis den Wert enthält, `hideWhenReported` blendet sie aus, wenn ein anderer Wert da ist.
+  Damit zeigt ein Minion-Build den Minion-Schaden statt des eigenen DPS von 0; gerechnet wird hier nichts.
 - **Verbindungsstatus** (`src/views/ClaudeConnectionStatus.tsx`): Schritt-für-Schritt neben den
   Verbindungsknöpfen. „Verbunden“ heißt nur, dass der Lauf `created` verlassen hat; nach 45 s ohne
   Verbindung nennt die Seite, was zu prüfen ist, und erklärt die Antwort „expected object, received
