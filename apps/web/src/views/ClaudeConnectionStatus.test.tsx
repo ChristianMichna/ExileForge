@@ -123,6 +123,17 @@ describe("ClaudeConnectionStatus", () => {
     expect(screen.getByText("Waiting for the Claude extension")).toBeTruthy();
   });
 
+  it("hides a stale failed check once Claude is connected", () => {
+    render(
+      <ClaudeConnectionStatus
+        run={{ ...EMPTY_RUN, phase: "planning" }}
+        connection="live"
+        mcp={{ kind: "error", message: "The check timed out." }}
+      />,
+    );
+    expect(screen.queryByText("The check timed out.")).toBeNull();
+  });
+
   it("explains the quoted-text mistake in plain words", () => {
     expect(hintForFindings(["expected object, received string"])).toContain("JSON object");
     expect(hintForFindings(["something else"])).toBeUndefined();

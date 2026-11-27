@@ -18,6 +18,15 @@ export type McpReach =
 
 /** How often the page asks while it waits for Claude. */
 export const MCP_POLL_MS = 3000;
+/** A check that takes longer is reported as failed instead of hanging for good. */
+export const MCP_CHECK_TIMEOUT_MS = 5000;
+
+function describeFailure(error: unknown, timedOut: boolean): string {
+  if (timedOut) return "The check timed out.";
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof TypeError) return "Could not reach the local Astrolabe server.";
+  return error instanceof Error ? error.message : "The request failed.";
+}
 
 export async function loadClaudeStatus(signal?: AbortSignal): Promise<string | null> {
   const response = await fetch("/api/claude/status", signal ? { signal } : {});
@@ -47,18 +56,25 @@ export function useMcpReach(poll: boolean, intervalMs: number = MCP_POLL_MS): Mc
     const controller = new AbortController();
     let timer: number | undefined;
     const tick = () => {
-      loadClaudeStatus(controller.signal).then(
+      const request = new AbortController();
+      let timedOut = false;
+      const limit = window.setTimeout(() => {
+        timedOut = true;
+        request.abort();
+      }, MCP_CHECK_TIMEOUT_MS);
+      const stop = () => request.abort();
+      controller.signal.addEventListener("abort", stop, { once: true });
+      loadClaudeStatus(request.signal).then(
         (at) => {
+          window.clearTimeout(limit);
           if (controller.signal.aborted) return;
           setReach(at === null ? { kind: "not_yet" } : { kind: "reached", at });
           if (at === null) timer = window.setTimeout(tick, intervalMs);
         },
         (error: unknown) => {
+          window.clearTimeout(limit);
           if (controller.signal.aborted) return;
-          setReach({
-            kind: "error",
-            message: error instanceof Error ? error.message : "The request failed.",
-          });
+          setReach({ kind: "error", message: describeFailure(error, timedOut) });
           timer = window.setTimeout(tick, intervalMs);
         },
       );

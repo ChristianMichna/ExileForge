@@ -11,8 +11,8 @@ Desktop-App (`apps/desktop`, `astrolabe://app/`) und als Vorschau im Browser mit
   Verbindung nennt die Seite, was zu prüfen ist, und erklärt die Antwort „expected object, received
   string“ in einfachen Worten.
 - **Erweiterung erreicht?** (`src/api/claude-status.ts`): fragt alle 3 s `GET /api/claude/status`, solange
-  der Lauf `created` ist, und hört auf, sobald Claude den MCP-Endpunkt erreicht hat. Ein Fehler der
-  Abfrage steht sichtbar auf der Seite, nie als „noch nicht verbunden“.
+  der Lauf `created` ist, und hört auf, sobald Claude den MCP-Endpunkt erreicht hat. Der Wert gilt seit Serverstart, nicht je Lauf.
+  Jede Abfrage hat 5 s Zeit; Ablauf und Netzfehler stehen sichtbar auf der Seite, nie als „noch nicht verbunden“.
 - **Plan-Seite** (`src/views/PlanWithClaude.tsx`): Planungsformular, Live-Status des Laufs und die
   Prüfung gespeicherter Guides (`GuidePatchCheckPanel`, F-19). Sie zeigt je Guide das Urteil
   (unberührt / neu rechnen / kaputt) mit Zahl entfernter und geänderter Entitäten und geänderten

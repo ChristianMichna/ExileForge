@@ -148,7 +148,7 @@ export function ClaudeConnectionStatus({
           </ul>
         </Callout>
       ) : null}
-      {mcp.kind === "error" ? (
+      {mcp.kind === "error" && !connected ? (
         <Callout tone="danger" title="Could not check whether Claude reached Astrolabe" live>
           {mcp.message}
         </Callout>
