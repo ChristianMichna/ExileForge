@@ -20,6 +20,8 @@ export interface Recording {
   readonly request: { readonly dataReleaseId: string } & Record<string, unknown>;
   /** Accepted answers of the planning side in the order they were accepted. */
   readonly answers: readonly RecordedAnswer[];
+  /** Calc profile each calc id cited by an answer was measured with (see `rebindCalcRefs`). */
+  readonly calcProfiles?: Readonly<Record<string, string>>;
   /** What the player did in the app (variant choice, answers to questions, ...), in order. */
   readonly interventions: readonly Record<string, unknown>[];
 }
@@ -47,7 +49,39 @@ export function buildRecording(run: RunLike): Recording {
     .map((entry) => entry.intervention)
     // pausing is not part of a decision transcript
     .filter((i) => i["kind"] !== "pause" && i["kind"] !== "resume");
-  return { format: RECORDING_FORMAT, version: 1, request: run.request, answers, interventions };
+  const calcProfiles = citedCalcProfiles(run, answers);
+  return {
+    format: RECORDING_FORMAT,
+    version: 1,
+    request: run.request,
+    answers,
+    calcProfiles,
+    interventions,
+  };
+}
+
+/** Profile of every calc id the answers cite, read from the run's target build (S5.target). */
+function citedCalcProfiles(
+  run: RunLike,
+  answers: readonly RecordedAnswer[],
+): Record<string, string> {
+  const target = run.results["S5.target"]?.value;
+  const byId = new Map<string, string>();
+  if (typeof target === "object" && target !== null) {
+    for (const [profile, outcome] of Object.entries(target)) {
+      const id = (outcome as { calcId?: unknown } | null)?.calcId;
+      if (typeof id === "string") byId.set(id, profile);
+    }
+  }
+  const out: Record<string, string> = {};
+  for (const id of calcIdsIn(answers.map((a) => a.value))) {
+    const profile = byId.get(id);
+    if (profile === undefined) {
+      throw new Error(`an answer cites ${id}, which is not a measurement of the target build`);
+    }
+    out[id] = profile;
+  }
+  return out;
 }
 
 export type ReplayStep =
@@ -103,26 +137,40 @@ function replaceCalcIds(value: unknown, map: ReadonlyMap<string, string>): unkno
 /**
  * A calc id names one measurement of one build, so it differs in every run (the tree search and
  * the item choice give another build). A recorded answer that cites measurements is therefore
- * rebound to the ids the task of this run offers in `context.calcs`: the n-th distinct recorded
- * id becomes the n-th offered id. Numbers stay engine numbers; only the reference moves.
+ * rebound: the recording says which calc profile each recorded id was measured with
+ * (`calcProfiles`), and the id becomes the one this run's task offers for that profile in
+ * `context.calcs`. Numbers stay engine numbers; only the reference moves.
  */
 export function rebindCalcRefs(
   value: unknown,
   context: Record<string, unknown> | undefined,
+  calcProfiles: Readonly<Record<string, string>> = {},
 ): unknown {
   const recorded = calcIdsIn(value);
   if (recorded.length === 0) return value;
-  const offered = Array.isArray(context?.["calcs"])
-    ? (context["calcs"] as { calcId?: unknown }[]).flatMap((c) =>
-        typeof c.calcId === "string" ? [c.calcId] : [],
-      )
-    : [];
-  if (offered.length !== recorded.length) {
-    throw new ReplayError(
-      `the answer cites ${recorded.length} measurements but the task offers ${offered.length}`,
-    );
+  const offered = new Map<string, string>();
+  if (Array.isArray(context?.["calcs"])) {
+    for (const entry of context["calcs"] as { profile?: unknown; calcId?: unknown }[]) {
+      if (typeof entry.profile === "string" && typeof entry.calcId === "string") {
+        offered.set(entry.profile, entry.calcId);
+      }
+    }
   }
-  return replaceCalcIds(value, new Map(recorded.map((id, i) => [id, offered[i] as string])));
+  const map = new Map<string, string>();
+  for (const id of recorded) {
+    const profile = calcProfiles[id];
+    if (profile === undefined) {
+      throw new ReplayError(
+        `the recording does not say which calc profile ${id} was measured with`,
+      );
+    }
+    const now = offered.get(profile);
+    if (now === undefined) {
+      throw new ReplayError(`the task offers no measurement for the calc profile ${profile}`);
+    }
+    map.set(id, now);
+  }
+  return replaceCalcIds(value, map);
 }
 
 export class ReplayError extends Error {
@@ -196,7 +244,7 @@ export async function replay(
         log(`${step.task.type} (answer ${answerIndex + 1} of ${recording.answers.length})`);
         const outcome = await port.submit(
           step.task,
-          rebindCalcRefs(recorded.value, step.task.context),
+          rebindCalcRefs(recorded.value, step.task.context, recording.calcProfiles),
         );
         if (outcome.result === "rejected") {
           throw new ReplayError(

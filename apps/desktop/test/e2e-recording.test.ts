@@ -135,11 +135,18 @@ describe("rebindCalcRefs", () => {
     strengths: [[{ type: "calc", ref: { calcId: "calc-old", stat: "CombinedDPS" } }]],
     weaknesses: [[{ type: "calc", ref: { calcId: "calc-old", stat: "TotalEHP" } }]],
   };
+  const offered = {
+    calcs: [
+      { profile: "pinnacle", calcId: "calc-boss" },
+      { profile: "mapping", calcId: "calc-new" },
+    ],
+  };
 
-  it("moves the references to the measurement this run offers", () => {
-    const out = rebindCalcRefs(answer, { calcs: [{ profile: "mapping", calcId: "calc-new" }] });
-    expect(JSON.stringify(out)).not.toContain("calc-old");
-    expect(JSON.stringify(out).match(/calc-new/g)).toHaveLength(2);
+  it("moves the references to the measurement of the same calc profile", () => {
+    const out = JSON.stringify(rebindCalcRefs(answer, offered, { "calc-old": "mapping" }));
+    expect(out).not.toContain("calc-old");
+    expect(out).not.toContain("calc-boss");
+    expect(out.match(/calc-new/g)).toHaveLength(2);
   });
 
   it("leaves answers without references alone", () => {
@@ -147,7 +154,38 @@ describe("rebindCalcRefs", () => {
     expect(rebindCalcRefs(plain, undefined)).toBe(plain);
   });
 
-  it("refuses when the counts differ", () => {
-    expect(() => rebindCalcRefs(answer, { calcs: [] })).toThrow(ReplayError);
+  it("refuses an id whose profile the recording does not name", () => {
+    expect(() => rebindCalcRefs(answer, offered, {})).toThrow(ReplayError);
+  });
+
+  it("refuses when the task offers no measurement for the profile", () => {
+    expect(() => rebindCalcRefs(answer, { calcs: [] }, { "calc-old": "mapping" })).toThrow(
+      ReplayError,
+    );
+  });
+});
+
+describe("buildRecording calc profiles", () => {
+  it("names the profile of each cited measurement", () => {
+    const run: RunLike = {
+      request: { dataReleaseId: "r" },
+      phase: "done",
+      results: {
+        "S5.target": {
+          type: "S5.target",
+          by: "engine",
+          at: "1",
+          value: { mapping: { status: "ok", calcId: "calc-a" } },
+        },
+        "S9.summary": {
+          type: "S9.summary",
+          by: "claude",
+          at: "2",
+          value: { ref: { calcId: "calc-a", stat: "CombinedDPS" } },
+        },
+      },
+      interventions: [],
+    };
+    expect(buildRecording(run).calcProfiles).toEqual({ "calc-a": "mapping" });
   });
 });

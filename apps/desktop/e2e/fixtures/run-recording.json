@@ -1219,5 +1219,8 @@
       }
     }
   ],
+  "calcProfiles": {
+    "calc-d405971d02bea00704ae308e7de1a4189a66d061": "mapping"
+  },
   "interventions": [{ "kind": "chooseVariant", "candidateKey": "cand-1" }]
 }
