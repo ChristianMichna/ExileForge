@@ -88,13 +88,14 @@ export interface ReplayResult {
 export async function replay(
   port: ReplayPort,
   recording: Recording,
-  options: { log?: (line: string) => void; maxWaits?: number } = {},
+  options: { log?: (line: string) => void; timeoutMs?: number } = {},
 ): Promise<ReplayResult> {
   const log = options.log ?? (() => undefined);
-  const maxWaits = options.maxWaits ?? 200;
+  // The engine reports its own long calculations (tree search) as waiting too, so the limit is a time budget.
+  const timeoutMs = options.timeoutMs ?? 4 * 3_600_000;
+  const deadline = Date.now() + timeoutMs;
   let answerIndex = 0;
   let interventionIndex = 0;
-  let waits = 0;
   let step = await port.next();
   for (;;) {
     switch (step.kind) {
@@ -115,11 +116,11 @@ export async function replay(
             interventionIndex += 1;
             log(`player action ${interventionIndex}: ${String(intervention["kind"])}`);
           } catch (error) {
-            if (!(error instanceof ReplayRetry) || ++waits > maxWaits) throw error;
+            if (!(error instanceof ReplayRetry) || Date.now() > deadline) throw error;
           }
-        } else if (++waits > maxWaits) {
+        } else if (Date.now() > deadline) {
           throw new ReplayError(
-            "the run keeps waiting for the player and nothing more is recorded",
+            `the run is still waiting after ${String(timeoutMs / 60_000)} minutes (after ${String(answerIndex)} of ${String(recording.answers.length)} answers) and nothing more is recorded for the player`,
           );
         }
         step = await port.next();

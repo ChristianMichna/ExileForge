@@ -102,12 +102,12 @@ describe("replay", () => {
 
   it("fails when the run keeps waiting and nothing more is recorded", async () => {
     const port: ReplayPort = {
-      next: () => Promise.resolve({ kind: "wait_user" }),
+      next: () => new Promise((r) => setTimeout(() => r({ kind: "wait_user" }), 10)),
       submit: () => Promise.reject(new Error("unused")),
       intervene: () => Promise.resolve(),
     };
     await expect(
-      replay(port, { ...recording, interventions: [] }, { maxWaits: 3 }),
+      replay(port, { ...recording, interventions: [] }, { timeoutMs: 30 }),
     ).rejects.toThrow(/waiting/);
   });
 
@@ -125,6 +125,6 @@ describe("replay", () => {
   it("gives up on a player action that is never accepted", async () => {
     const { port } = fakeApp(["S0.skill", "S1.profile"]);
     port.intervene = () => Promise.reject(new ReplayRetry("never"));
-    await expect(replay(port, recording, { maxWaits: 3 })).rejects.toThrow(/never/);
+    await expect(replay(port, recording, { timeoutMs: 30 })).rejects.toThrow(/never/);
   });
 });

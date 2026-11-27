@@ -356,7 +356,18 @@ async function main(): Promise<void> {
   });
 
   const recordingFile = join(import.meta.dirname, "fixtures", "run-recording.json");
-  if (existsSync(recordingFile)) {
+  // The replay runs the real tree search and takes hours (nightly or by hand: E2E_FULL_RUN=1).
+  if (existsSync(recordingFile) && process.env["E2E_FULL_RUN"] !== "1") {
+    console.log(
+      "::notice::the whole-run replay runs nightly and on request (E2E_FULL_RUN=1), not in this check",
+    );
+    results.push({
+      step: "Replay a whole recorded run S0 to S11 (nightly)",
+      ok: true,
+      seconds: 0,
+      error: "skipped",
+    });
+  } else if (existsSync(recordingFile)) {
     const recording = JSON.parse(readFileSync(recordingFile, "utf8")) as Recording;
     if (recording.request.dataReleaseId !== expectedRelease) {
       throw new Error(

@@ -174,4 +174,5 @@ fehlschlägt. Kein Rückfall auf ein älteres Release, wenn das neueste nachträ
   (Antworten von Claude, Aktionen des Spielers) sind fest. Aufnehmen auf dem PC, auf dem der Lauf fertig wurde:
   `node --experimental-strip-types e2e/record.ts <runId>` oder `--from <run.json>` (liest das Token aus `%APPDATA%\\Astrolabe`), die Datei
   nach `e2e/fixtures/run-recording.json` legen und committen. Ohne die Datei wird der Schritt mit Warnung
-  übersprungen und als „skipped“ im Ergebnis geführt.
+  übersprungen und als „skipped“ im Ergebnis geführt. Die Wiedergabe läuft nachts (Zeitplan in `desktop.yml`) und auf
+  Wunsch („Run workflow“ mit `full-run`), nicht in jedem PR: die Baumsuche (S5) rechnet echt und braucht Stunden.
