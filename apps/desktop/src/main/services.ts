@@ -42,6 +42,10 @@ export interface StartServicesOptions {
   releasesDir?: string;
   /** Folder of example guide files the server imports on start (see `StartOptions.exampleGuidesDir`). */
   exampleGuidesDir?: string;
+  /** Crafting simulator settings; enables craft_simulate. */
+  craftConfigPath?: string;
+  /** Market prices (poe.ninja); enables economy_price and crafting costs. Absent = no prices. */
+  economy?: NonNullable<Parameters<typeof startServer>[0]["economy"]>;
   logger?: Logger;
   /**
    * Where Path of Building and the calc service files are. The real engine starts when PoB is
@@ -153,6 +157,10 @@ export async function startServices(options: StartServicesOptions): Promise<Serv
       ...(options.exampleGuidesDir === undefined
         ? {}
         : { exampleGuidesDir: options.exampleGuidesDir }),
+      ...(options.craftConfigPath === undefined
+        ? {}
+        : { craftConfigPath: options.craftConfigPath }),
+      ...(options.economy === undefined ? {} : { economy: options.economy }),
       allowedOrigins: [],
       tokenFile,
       logger,
