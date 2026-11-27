@@ -60,6 +60,7 @@ function setup(
   const optimize = vi.fn<(input: TreeOptimizeInput) => Promise<never>>(() =>
     Promise.resolve(optimizeResult as never),
   );
+  const optimizeStages = vi.fn(() => Promise.resolve(stagesResult as never));
   const withBuild = vi.fn((_state: unknown, fn: (h: string) => Promise<unknown>) => fn("handle-1"));
   const getResult = vi.fn(() => Promise.resolve({ unsupportedMods: [] as string[] } as never));
   const calculate = vi.fn(() =>
@@ -88,9 +89,9 @@ function setup(
     ...extra,
     logger: createMemoryLogger(),
     optimize,
-    optimizeStages: (() => Promise.resolve(stagesResult as never)) as never,
+    optimizeStages: optimizeStages as never,
   });
-  return { skeleton, optimize, withBuild, calculate, getResult };
+  return { skeleton, optimize, optimizeStages, withBuild, calculate, getResult };
 }
 
 describe("PobSkeleton", () => {
@@ -177,6 +178,56 @@ describe("PobSkeleton", () => {
         passivePoints: 3,
       });
       expect(optimize.mock.calls[0]?.[0].objective.weights).toEqual({ MinionCombinedDPS: 1 });
+    });
+
+    it("uses the minion stats in the progression search (S6)", async () => {
+      const wrapped = {
+        stages: [
+          {
+            key: "late",
+            budget: 2,
+            allocated: ["FixN1", "FixN2"],
+            allocationOrder: ["FixN1", "FixN2"],
+            respecs: [],
+            unspent: 0,
+            metrics: {},
+            calcId: "calc-1",
+            violations: [],
+            feasible: true,
+            stoppedBy: "budget_spent",
+          },
+        ],
+        evaluations: 1,
+        failedEvaluations: [],
+        failedEvaluationCount: 0,
+      };
+      const { skeleton, optimizeStages } = setup(
+        optimized,
+        wrapped,
+        withKind("Minion"),
+        {},
+        {
+          minion,
+        },
+      );
+      const state = BuildState.parse({
+        classId: "FixClassA",
+        level: 20,
+        tree: { allocated: [{ nodeId: "FixN1" }, { nodeId: "FixN2" }] },
+        skills: [],
+        items: [],
+      });
+      await skeleton.optimizeProgression({
+        request: REQUEST,
+        profile,
+        candidate: cand,
+        target: { candidateKey: "a", state, calcs: {}, rationale: [] } as never,
+        stages: [{ key: "late", budget: 2, level: 20 }],
+      });
+      const call = (
+        optimizeStages.mock.calls as unknown as [{ objective: { weights: object } }][]
+      )[0];
+      expect(call?.[0].objective.weights).toEqual({ MinionCombinedDPS: 1 });
     });
 
     it("keeps the configured objective for other skills and without the setting", async () => {
