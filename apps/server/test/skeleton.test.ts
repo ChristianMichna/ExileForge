@@ -249,6 +249,33 @@ describe("PobSkeleton", () => {
         /item slot Nowhere/,
       );
     });
+
+    it("fails visibly for an unknown rarity or a missing objective stat", async () => {
+      const { skeleton: rare } = setup(
+        optimized,
+        undefined,
+        withWeapons,
+        {},
+        { placeholderWeapon: { slot: "Weapon 1", rarity: "mythic" } },
+      );
+      await expect(rare.evaluate({ request: REQUEST, profile, candidate: cand })).rejects.toThrow(
+        /rarity mythic/,
+      );
+      const blind = {
+        calculate: engine({ LowBow: 50 }).calculate,
+        getResult: () => Promise.resolve({ unsupportedMods: [], stats: {} }),
+      };
+      const { skeleton } = setup(
+        optimized,
+        undefined,
+        withWeapons,
+        {},
+        { placeholderWeapon: slotConfig, calc: blind },
+      );
+      await expect(
+        skeleton.evaluate({ request: REQUEST, profile, candidate: cand }),
+      ).rejects.toThrow(/reported no FullDPS/);
+    });
   });
 
   describe("minion builds", () => {
