@@ -10,6 +10,7 @@ import { UserIntervention } from "@astrolabe/contracts/forge";
 import {
   GUIDE_FILE_FORMAT,
   GuideFile,
+  type GuideListItem,
   GuideListView,
   collectCalcIds,
   GuideView,
@@ -63,7 +64,7 @@ export interface AppOptions extends ForgeMcpDeps {
   /** Ids of all stored guides, newest first (see `RunStore.listGuideIds`). */
   listGuideIds?: () => string[];
   /** Where a stored guide comes from (see `RunStore.guideOrigin`); needed to list guides. */
-  guideOrigin?: (guideId: string) => "run" | "imported";
+  guideOrigin?: (guideId: string) => GuideListItem["origin"];
   /** Stores an imported guide file (see `RunStore.importGuide`); enables the import route. */
   importGuide?: (file: GuideFile, importedAt: string) => void;
   /**

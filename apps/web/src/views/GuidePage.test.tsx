@@ -95,6 +95,29 @@ describe("guide list", () => {
     expect(screen.getByText("The stored guide cannot be read.")).toBeTruthy();
   });
 
+  it("marks no file origin on a guide made by a run", async () => {
+    vi.stubGlobal("fetch", () =>
+      json({
+        guides: [
+          {
+            guideId: GUIDE_ID,
+            dataReleaseId: publishedGuide.metadata.dataReleaseId,
+            generatedAt: "2026-01-01T00:00:00Z",
+            ascendancyId: "fixture_asc",
+            ascendancyName: "Fixture Ascendancy",
+            mainSkillId: "Fixture/Gems/Main",
+            current: true,
+            origin: "run",
+          },
+        ],
+      }),
+    );
+    window.location.hash = "#/guide";
+    render(<App />);
+    expect(await screen.findByText("Fixture Ascendancy")).toBeTruthy();
+    expect(screen.queryByText("Imported file")).toBeNull();
+  });
+
   it("shows the server's error", async () => {
     vi.stubGlobal("fetch", () =>
       json(

@@ -93,6 +93,45 @@ describe("RunStore.importGuide", () => {
   });
 });
 
+describe("RunStore.guideOrigin", () => {
+  it("tells a run's guide from an imported one and refuses an unknown id", () => {
+    const store = new RunStore(":memory:");
+    store.importGuide(GuideFile.parse(file), "2026-11-26T12:00:00Z");
+    expect(store.guideOrigin(GUIDE_ID)).toBe("imported");
+    expect(() => store.guideOrigin("00000000-0000-4000-8000-0000000000bb")).toThrow(
+      /No stored guide/,
+    );
+
+    const runGuideId = "00000000-0000-4000-8000-0000000000cc";
+    store.save(
+      RunRecord.parse({
+        runId: "00000000-0000-4000-8000-0000000000dd",
+        pipelineId: "forge",
+        createdAt: "2026-01-01T00:00:00Z",
+        request: guide.request,
+        phase: "done",
+        sessionCode: null,
+        results: {
+          "S11.guide": {
+            type: "S11",
+            by: "server",
+            value: { ...stored, metadata: { ...stored.metadata, guideId: runGuideId } },
+            at: "2026-01-01T00:00:00Z",
+          },
+        },
+        current: null,
+        interventions: [],
+        asks: [],
+        taskCounter: 1,
+        nextSeq: 1,
+        guideId: runGuideId,
+      }),
+      [],
+    );
+    expect(store.guideOrigin(runGuideId)).toBe("run");
+  });
+});
+
 describe("RunStore.importGuide conflicts and rollback", () => {
   it("does not replace the guide of this installation's own run", () => {
     const store = new RunStore(":memory:");

@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { CalcResult } from "@astrolabe/contracts/calc";
 import { RunEvent } from "@astrolabe/contracts/events";
-import { collectCalcIds, type GuideFile } from "@astrolabe/contracts/guide";
+import { collectCalcIds, type GuideFile, type GuideListItem } from "@astrolabe/contracts/guide";
 import { ForgeError } from "../engine/errors.js";
 import { RunRecord } from "../engine/run-record.js";
 import type { Logger } from "../logger.js";
@@ -152,9 +152,14 @@ export class RunStore {
     return ids;
   }
 
-  /** `run` for a guide a run produced here, otherwise `imported` (same precedence as `listGuideIds`). */
-  guideOrigin(guideId: string): "run" | "imported" {
-    return this.runGuideIds().includes(guideId) ? "run" : "imported";
+  /** `run` for a guide a run produced here, `imported` for a stored guide file (same precedence as `listGuideIds`); an unknown id is an error. */
+  guideOrigin(guideId: string): GuideListItem["origin"] {
+    if (this.runGuideIds().includes(guideId)) return "run";
+    const imported = this.db
+      .prepare("SELECT 1 AS found FROM imported_guides WHERE guide_id = ?")
+      .get(guideId);
+    if (imported === undefined) throw new Error(`No stored guide ${guideId}`);
+    return "imported";
   }
 
   private runGuideIds(): string[] {

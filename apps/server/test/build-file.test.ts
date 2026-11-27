@@ -58,9 +58,7 @@ function app(
     defaultPipelineId: "poc",
     accessToken: TOKEN,
     ...(findGuide === undefined ? {} : { findGuide }),
-    ...(listGuideIds === undefined
-      ? {}
-      : { listGuideIds, guideOrigin: (id: string) => store.guideOrigin(id) }),
+    ...(listGuideIds === undefined ? {} : { listGuideIds, guideOrigin: () => "imported" as const }),
   });
 }
 
