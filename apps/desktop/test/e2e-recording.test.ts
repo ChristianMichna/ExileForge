@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildRecording,
+  rebindCalcRefs,
   replay,
   ReplayError,
+  ReplayRetry,
   type ReplayPort,
   type ReplayStep,
   type Recording,
@@ -101,12 +103,89 @@ describe("replay", () => {
 
   it("fails when the run keeps waiting and nothing more is recorded", async () => {
     const port: ReplayPort = {
-      next: () => Promise.resolve({ kind: "wait_user" }),
+      next: () => new Promise((r) => setTimeout(() => r({ kind: "wait_user" }), 10)),
       submit: () => Promise.reject(new Error("unused")),
       intervene: () => Promise.resolve(),
     };
     await expect(
-      replay(port, { ...recording, interventions: [] }, { maxWaits: 3 }),
+      replay(port, { ...recording, interventions: [] }, { timeoutMs: 30 }),
     ).rejects.toThrow(/waiting/);
+  });
+
+  it("tries a player action again when the app is not ready for it yet", async () => {
+    const { port, log } = fakeApp(["S0.skill", "S1.profile"]);
+    const inner = port.intervene;
+    let refused = 2;
+    port.intervene = (i) =>
+      refused-- > 0 ? Promise.reject(new ReplayRetry("not measured yet")) : inner(i);
+    const result = await replay(port, recording);
+    expect(result.interventions).toBe(1);
+    expect(log.filter((l) => l.startsWith("intervene"))).toHaveLength(1);
+  });
+
+  it("gives up on a player action that is never accepted", async () => {
+    const { port } = fakeApp(["S0.skill", "S1.profile"]);
+    port.intervene = () => Promise.reject(new ReplayRetry("never"));
+    await expect(replay(port, recording, { timeoutMs: 30 })).rejects.toThrow(/never/);
+  });
+});
+
+describe("rebindCalcRefs", () => {
+  const answer = {
+    strengths: [[{ type: "calc", ref: { calcId: "calc-old", stat: "CombinedDPS" } }]],
+    weaknesses: [[{ type: "calc", ref: { calcId: "calc-old", stat: "TotalEHP" } }]],
+  };
+  const offered = {
+    calcs: [
+      { profile: "pinnacle", calcId: "calc-boss" },
+      { profile: "mapping", calcId: "calc-new" },
+    ],
+  };
+
+  it("moves the references to the measurement of the same calc profile", () => {
+    const out = JSON.stringify(rebindCalcRefs(answer, offered, { "calc-old": "mapping" }));
+    expect(out).not.toContain("calc-old");
+    expect(out).not.toContain("calc-boss");
+    expect(out.match(/calc-new/g)).toHaveLength(2);
+  });
+
+  it("leaves answers without references alone", () => {
+    const plain = { text: "x" };
+    expect(rebindCalcRefs(plain, undefined)).toBe(plain);
+  });
+
+  it("refuses an id whose profile the recording does not name", () => {
+    expect(() => rebindCalcRefs(answer, offered, {})).toThrow(ReplayError);
+  });
+
+  it("refuses when the task offers no measurement for the profile", () => {
+    expect(() => rebindCalcRefs(answer, { calcs: [] }, { "calc-old": "mapping" })).toThrow(
+      ReplayError,
+    );
+  });
+});
+
+describe("buildRecording calc profiles", () => {
+  it("names the profile of each cited measurement", () => {
+    const run: RunLike = {
+      request: { dataReleaseId: "r" },
+      phase: "done",
+      results: {
+        "S5.target": {
+          type: "S5.target",
+          by: "engine",
+          at: "1",
+          value: { mapping: { status: "ok", calcId: "calc-a" } },
+        },
+        "S9.summary": {
+          type: "S9.summary",
+          by: "claude",
+          at: "2",
+          value: { ref: { calcId: "calc-a", stat: "CombinedDPS" } },
+        },
+      },
+      interventions: [],
+    };
+    expect(buildRecording(run).calcProfiles).toEqual({ "calc-a": "mapping" });
   });
 });
