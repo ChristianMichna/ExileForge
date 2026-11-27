@@ -35,6 +35,7 @@ import {
 import { TargetBuild } from "@astrolabe/contracts/build";
 import type { ProgressionStageTree } from "./ports.js";
 import { stageTableOf } from "./stages/s6-table.js";
+import { isMinionSkill, withMinionStats } from "./minion-stats.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 import { CraftingPlan, GearPlan, ProgressionPlan } from "@astrolabe/contracts/build";
@@ -293,10 +294,16 @@ function planProgression(
 /** S7: the gear of each budget tier (Claude, checked with PoB); prices and upgrade order follow. */
 function planGear(
   ctx: PipelineContext,
-  config: StageConfig,
+  baseConfig: StageConfig,
   chosen: ArchetypeCandidate,
   target: TargetBuild,
 ): PlanStep {
+  // From S7 on, a minion build's gear objective and damage gate read PoB's minion stats.
+  const config =
+    baseConfig.minion !== undefined &&
+    isMinionSkill(ctx.catalog, mainSkillOfRun(ctx), baseConfig.minion)
+      ? withMinionStats(baseConfig, baseConfig.minion)
+      : baseConfig;
   const s7Base = config.s7;
   if (s7Base === undefined) {
     return {

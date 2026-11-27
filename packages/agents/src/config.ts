@@ -14,6 +14,18 @@ export const StageConfig = z
      * changes this file.
      */
     supportGemKinds: z.array(z.string().min(1)).min(1),
+    /**
+     * Builds whose main skill carries `skillTag` (a classification id of the data release) take
+     * their damage from PoB's minion outputs: the stat names in `statMap` are replaced for the
+     * tree and gear objectives and the damage gate. PoB's own DPS stays 0 for such a skill, and a
+     * stat PoB does not calculate is never replaced by an estimate. Absent: no replacement.
+     */
+    minion: z
+      .object({
+        skillTag: z.string().min(1),
+        statMap: z.record(z.string().min(1), z.string().min(1)),
+      })
+      .optional(),
     s1: z.object({
       /** Upper bound per list a profile may contain (keeps tasks small). */
       maxListItems: z.int().positive(),

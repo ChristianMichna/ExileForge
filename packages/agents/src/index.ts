@@ -1,5 +1,12 @@
 export { StageConfig } from "./config.js";
 export {
+  isMinionSkill,
+  minionStatName,
+  minionWeights,
+  withMinionStats,
+  type MinionStatsConfig,
+} from "./minion-stats.js";
+export {
   defineTask,
   type AnyTaskSpec,
   type Pipeline,
