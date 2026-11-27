@@ -45,11 +45,18 @@ let dataSync: DataSyncController | undefined;
 /** Repository root when running unpackaged (dist/main.cjs → apps/desktop → repo). */
 const repoRoot = join(__dirname, "..", "..", "..");
 
+// Electron's own dialog shows nothing in a log; this one leaves a line the self-test looks for.
+process.on("uncaughtException", (error) => {
+  logger.error("uncaught exception in the main process", { error });
+  dialog.showErrorBox("Astrolabe: unexpected error", error.stack ?? error.message);
+});
+
 if (!app.requestSingleInstanceLock()) {
   // A second instance would fight for the port; hand over to the first one.
   app.quit();
 } else {
   app.on("second-instance", () => {
+    // The first instance may be shutting down with its window already closed.
     if (mainWindow === undefined) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
@@ -136,13 +143,12 @@ async function boot(): Promise<void> {
   });
   registerIpc(handlers, status);
 
-  mainWindow = createWindow(config);
+  const win = createWindow(config);
+  mainWindow = win;
   status.subscribe((next) => {
-    if (mainWindow !== undefined && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC.statusChanged, next);
-    }
+    if (!win.isDestroyed()) win.webContents.send(IPC.statusChanged, next);
   });
-  await mainWindow.loadURL(APP_URL);
+  await win.loadURL(APP_URL);
 
   // Server start comes after the window so the person sees progress or the error, not nothing.
   try {
@@ -277,6 +283,9 @@ function createWindow(config: DesktopConfig): BrowserWindow {
     },
   });
   win.once("ready-to-show", () => win.show());
+  win.once("closed", () => {
+    if (mainWindow === win) mainWindow = undefined;
+  });
   return win;
 }
 

@@ -485,9 +485,12 @@ async function main(): Promise<void> {
     const dir = env("E2E_GUIDE_DATA_DIR");
     if (!existsSync(join(dir, "manifest.json"))) throw new Error(`no data release in ${dir}`);
     app = spawn(join(installDir, "Astrolabe.exe"), [`--remote-debugging-port=${DEBUG_PORT}`], {
-      stdio: "ignore",
+      stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, ASTROLABE_DATA_RELEASE: dir },
     });
+    const guideLog = createWriteStream(join(outDir, "app-guide.log"));
+    app.stdout?.pipe(guideLog);
+    app.stderr?.pipe(guideLog);
     await until("the health check", 300_000, async () => {
       const health = (await api(token, "/api/health").catch(() => undefined)) as
         { dataReleaseId?: string } | undefined;
@@ -542,6 +545,35 @@ async function main(): Promise<void> {
       throw new Error(`the .build file looks empty: ${text.slice(0, 300)}`);
     }
     await writeFile(join(outDir, "guide.build"), text);
+  });
+
+  await step("A second start while the first instance shuts down shows no crash", async () => {
+    // Windows asks the window to close (like the installer does before it relaunches the app),
+    // and the app is started again while the first instance still stops its server.
+    const first = app;
+    if (first?.pid === undefined) throw new Error("the app is not running");
+    const gone = new Promise<void>((done) => first.once("exit", () => done()));
+    await browser?.close().catch(() => undefined);
+    browser = undefined;
+    page = undefined;
+    spawnSync("taskkill", ["/PID", String(first.pid)], { stdio: "ignore" });
+    const starts: ChildProcess[] = [];
+    for (const waitMs of [200, 800, 1500, 2500]) {
+      await sleep(waitMs);
+      starts.push(spawn(join(installDir, "Astrolabe.exe"), [], { stdio: "ignore" }));
+    }
+    await Promise.race([gone, sleep(60_000)]);
+    if (first.exitCode === null) throw new Error("the first instance did not quit");
+    await sleep(3000);
+    for (const start of starts) killTree(start);
+    const crashed = ["app.log", "app-guide.log"].filter((name) => {
+      const file = join(outDir, name);
+      return (
+        existsSync(file) &&
+        /uncaught exception|Object has been destroyed/i.test(readFileSync(file, "utf8"))
+      );
+    });
+    if (crashed.length > 0) throw new Error(`the app logged a crash in ${crashed.join(", ")}`);
   });
 
   await shot("03-end");
