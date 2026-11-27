@@ -109,6 +109,25 @@ export function qualityTask(
 ): AnyTaskSpec {
   const questions = rubric.questions.filter((q) => q.section === section);
   const ids = questions.map((q) => q.id);
+  const validParts = (v: { id: string }): ((part: string) => boolean) | undefined => {
+    const wantsSlot = questions.find((q) => q.id === v.id)?.returnTo === "detail:slot";
+    if (section === "progression") {
+      const keys = new Set(draft.progression.stages.map((s) => s.key));
+      return (p) => keys.has(p);
+    }
+    if (section === "crafting") {
+      const keys = new Set(draft.crafting.map((c) => c.key));
+      return (p) => keys.has(p);
+    }
+    if (section === "gear") {
+      const slots = new Set(
+        draft.gear.tiers.flatMap((t) => t.slots.map((s) => `${t.budgetTier}/${s.slot}`)),
+      );
+      const tiers = new Set(draft.gear.tiers.map((t) => t.budgetTier));
+      return (p) => slots.has(p) || (!wantsSlot && tiers.has(p));
+    }
+    return undefined;
+  };
   return defineTask<QualityVerdict>({
     key: qualityKey(section),
     type: qualityKey(section),
@@ -145,6 +164,18 @@ export function qualityTask(
             severity: "error",
             code: "part_missing",
             message: `Name the stage, tier, slot or crafting plan the problem of ${v.id} is in, in part.`,
+            path: `/verdicts/${String(i)}/part`,
+          });
+        }
+      });
+      p.verdicts.forEach((v, i) => {
+        const valid = validParts(v);
+        if (!v.met && v.part !== undefined && valid !== undefined && !valid(v.part)) {
+          out.push({
+            gate: "schema",
+            severity: "error",
+            code: "part_unknown",
+            message: `Part ${v.part} does not exist in the ${section} section. Name a stage key, tier id, "<tier>/<slot>" or crafting plan key exactly as in the content.`,
             path: `/verdicts/${String(i)}/part`,
           });
         }

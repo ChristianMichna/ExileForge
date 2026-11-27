@@ -29,24 +29,37 @@ export type RubricSection = (typeof RUBRIC_SECTIONS)[number];
 
 /** A task type, or `detail:stage|tier|slot|craft` for the detail task of the element that failed. */
 const ReturnTo = z.union([
-  z.string().regex(/^S(?:[0-9]|1[01])(?:\.[a-z][a-z0-9-]*)?$/),
+  z.string().regex(/^S9\.(?:summary|mechanics|playstyle|atlas|variants|faq)$/),
   z.enum(["detail:stage", "detail:tier", "detail:slot", "detail:craft"]),
 ]);
+
+/** The path a detail task writes, so a rule cannot send its finding to a task that cannot fix it. */
+const DETAIL_PATH: Record<string, RegExp> = {
+  "detail:stage": /^\/progression\/stages\/\*\/guide(?:\/|$)/,
+  "detail:tier": /^\/gear\/tiers\/\*\/description(?:\/|$)/,
+  "detail:slot": /^\/gear\/tiers\/\*\/slots\/\*\/guide(?:\/|$)/,
+  "detail:craft": /^\/crafting\/\*\/guide(?:\/|$)/,
+};
 export type ReturnTo = z.infer<typeof ReturnTo>;
 
 const id = z.string().regex(/^[a-z][a-z0-9-]{0,40}$/, { message: "lower case, digits and dashes" });
 
-export const RubricRule = z.object({
-  id,
-  section: z.enum(RUBRIC_SECTIONS),
-  description: z.string().min(1).max(300),
-  /** JSON pointer into the guide draft; `*` matches every element of an array. */
-  path: z.string().regex(/^\/[A-Za-z0-9_/*-]*$/),
-  /** `count`: entries of a list; `words`: words of all text segments below the node. */
-  measure: z.enum(["count", "words"]),
-  min: z.int().positive(),
-  returnTo: ReturnTo,
-});
+export const RubricRule = z
+  .object({
+    id,
+    section: z.enum(RUBRIC_SECTIONS),
+    description: z.string().min(1).max(300),
+    /** JSON pointer into the guide draft; `*` matches every element of an array. */
+    path: z.string().regex(/^\/[A-Za-z0-9_/*-]*$/),
+    /** `count`: entries of a list; `words`: words of all text segments below the node. */
+    measure: z.enum(["count", "words"]),
+    min: z.int().positive(),
+    returnTo: ReturnTo,
+  })
+  .refine((r) => DETAIL_PATH[r.returnTo]?.test(r.path) ?? true, {
+    message: "a detail task can only be asked about the text it writes",
+    path: ["returnTo"],
+  });
 export type RubricRule = z.infer<typeof RubricRule>;
 
 export const RubricQuestion = z.object({
@@ -92,6 +105,10 @@ export function matchPath(root: unknown, pattern: string): Matched[] {
         if (Array.isArray(m.value)) {
           m.value.forEach((v, i) =>
             next.push({ value: v, pointer: `${m.pointer}/${i}`, ancestors }),
+          );
+        } else if (m.value !== undefined) {
+          throw new Error(
+            `Rubric path ${pattern}: * meets something that is not a list at ${m.pointer}.`,
           );
         }
       } else {

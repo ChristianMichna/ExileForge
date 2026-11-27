@@ -295,6 +295,10 @@ export const StageConfig = z
           minStatPrioritiesPerSlot: z.int().nonnegative(),
         }),
       })
+      .refine((s9) => s9.rubric !== undefined || s9.rubricFile !== undefined, {
+        message: "s9 needs the quality rubric (rubricFile): the quality gate must not be off",
+        path: ["rubricFile"],
+      })
       .optional(),
     s2: z.object({
       /** Number of archetype candidates (the plan asks for 3–6). */

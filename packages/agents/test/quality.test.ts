@@ -133,5 +133,22 @@ describe("judged questions", () => {
     expect((await spec.check(verdictFor(true))).map((f) => f.code)).toEqual([]);
     expect((await spec.check(verdictFor(false))).map((f) => f.code)).toEqual(["part_missing"]);
     expect((await spec.check({ verdicts: [] })).map((f) => f.code)).toEqual(["missing_answer"]);
+    expect((await spec.check(verdictFor(false, "no-such-stage"))).map((f) => f.code)).toEqual([
+      "part_unknown",
+    ]);
+  });
+
+  it("refuses a rule that sends a finding to a task that cannot fix it", () => {
+    const rule = rubric.rules.find((r) => r.returnTo === "detail:stage");
+    expect(rule).toBeDefined();
+    const bad = { ...rubric, rules: [{ ...rule, path: "/progression/stages/*/tasks" }] };
+    expect(QualityRubric.safeParse(bad).success).toBe(false);
+    const typo = { ...rubric, rules: [{ ...rule, returnTo: "S9.sumary" }] };
+    expect(QualityRubric.safeParse(typo).success).toBe(false);
+  });
+
+  it("fails loudly when a wildcard meets something that is not a list", () => {
+    expect(() => matchPath({ a: { b: 1 } }, "/a/*/b")).toThrow(/not a list/);
+    expect(matchPath({ a: [{ b: 1 }] }, "/a/*/b")).toHaveLength(1);
   });
 });
