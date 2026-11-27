@@ -36,7 +36,10 @@ export function sectionLabel(key: string): string {
 
 function statusOf(run: RunRecord, section: string, at: string): GuideCommentStatus {
   const stored = run.results[section];
-  if (stored !== undefined && Date.parse(stored.at) > Date.parse(at)) return "applied";
+  // Applied only when the run is done again: validation can still send the section back.
+  if (stored !== undefined && Date.parse(stored.at) > Date.parse(at)) {
+    return run.phase === "done" ? "applied" : "working";
+  }
   if (run.phase === "failed") return "failed";
   return run.current?.key === section ? "working" : "queued";
 }

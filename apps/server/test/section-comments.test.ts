@@ -187,3 +187,31 @@ describe("section comments", () => {
     expect(view.reason).toMatch(/file/);
   });
 });
+
+describe("several comments on one section", () => {
+  it("keeps every comment and starts from the newest text", async () => {
+    const { engine, store, runId } = await finishedRun();
+    const comment = (id: string) =>
+      engine.intervene(runId, { kind: "comment", commentId: id, section: "S9.summary", text: id });
+    await comment("a");
+    let t = task(await engine.next(runId));
+    let out = await engine.submit({ runId, taskId: t.taskId, attempt: 1, payload: { text: "r1" } });
+    expect(out.next.kind).toBe("done");
+    await comment("b");
+    t = task(await engine.next(runId));
+    expect(t.feedback).toEqual([
+      expect.objectContaining({ commentId: "b", previous: { text: "r1" } }),
+    ]);
+    // A second comment while the task is open joins it; the first stays.
+    await comment("c");
+    t = task(await engine.next(runId));
+    expect(t.feedback.map((f) => (f.kind === "comment" ? f.commentId : f.kind))).toEqual([
+      "b",
+      "c",
+    ]);
+    expect(t.feedback[1]).toMatchObject({ previous: { text: "r1" } });
+    out = await engine.submit({ runId, taskId: t.taskId, attempt: 1, payload: { text: "r2" } });
+    expect(out.next.kind).toBe("done");
+    expect(store.findGuide(runId)).toMatchObject({ metadata: { revision: 2 } });
+  });
+});

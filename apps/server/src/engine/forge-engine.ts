@@ -764,7 +764,8 @@ export class ForgeEngine {
       );
     }
     const stored = r.results[comment.section];
-    const earlier = r.interventions.find(
+    // The newest comment on the section carries the text it started from (an older round is stale).
+    const earlier = r.interventions.findLast(
       (e) => e.intervention.kind === "comment" && e.intervention.section === comment.section,
     )?.intervention;
     if (stored === undefined && earlier === undefined) {
@@ -784,8 +785,13 @@ export class ForgeEngine {
       ),
     );
     r.returns = {};
-    r.returned = {};
-    if (r.current?.key === comment.section) r.current = null;
+    // Findings returned to this section belong to the text that is gone; those of others stay.
+    r.returned = Object.fromEntries(
+      Object.entries(r.returned).filter(
+        ([key]) => key !== comment.section && !comment.section.startsWith(`${key}.`),
+      ),
+    );
+    // An open task of the section stays: it receives this comment next to the earlier ones.
     const withPrevious = { ...comment };
     delete withPrevious.previous;
     return previous === undefined ? withPrevious : { ...withPrevious, previous };

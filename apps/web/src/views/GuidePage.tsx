@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Badge, Button, Callout, GuideNotes, Panel, Tabs } from "@astrolabe/ui";
 import type { ProgressionStage } from "@astrolabe/contracts/build";
 import type { GuideListView, GuideView } from "@astrolabe/contracts/guide";
@@ -85,7 +85,13 @@ function GuideList() {
 }
 
 function GuideDetail({ guideId }: { guideId: string }) {
-  const loaded = useLoaded<GuideView>((signal) => loadGuideView(guideId, signal), guideId);
+  // A new revision (comments applied) reads the guide again.
+  const [revisionReads, setRevisionReads] = useState(0);
+  const loaded = useLoaded<GuideView>(
+    (signal) => loadGuideView(guideId, signal),
+    `${guideId}-${String(revisionReads)}`,
+  );
+  const reread = useCallback(() => setRevisionReads((n) => n + 1), []);
   if (loaded.status === "loading") {
     return (
       <div className="page">
@@ -106,7 +112,7 @@ function GuideDetail({ guideId }: { guideId: string }) {
     );
   }
   return (
-    <GuideCommentsProvider guideId={guideId}>
+    <GuideCommentsProvider guideId={guideId} onApplied={reread}>
       <GuideBody view={loaded.value} guideId={guideId} />
     </GuideCommentsProvider>
   );

@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useRef,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { Badge, Button, Callout } from "@astrolabe/ui";
 import {
@@ -30,9 +38,12 @@ const isOpen = (c: GuideComment): boolean => c.status === "queued" || c.status =
 /** Loads the comments of a guide once and keeps them current while Claude works on them. */
 export function GuideCommentsProvider({
   guideId,
+  onApplied,
   children,
 }: {
   guideId: string;
+  /** Called when the last open comment is applied: the guide is a new revision and is read again. */
+  onApplied?: () => void;
   children: ReactNode;
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
@@ -71,6 +82,11 @@ export function GuideCommentsProvider({
   }, [guideId]);
 
   const open = state.status === "ready" && state.view.comments.some(isOpen);
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) onApplied?.();
+    wasOpen.current = open;
+  }, [open, onApplied]);
   useEffect(() => {
     if (!open) return undefined;
     const controller = new AbortController();
