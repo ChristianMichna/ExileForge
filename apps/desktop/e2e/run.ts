@@ -518,6 +518,20 @@ async function main(): Promise<void> {
       await shot("04-guide-error");
       throw new Error(`the guide page shows a problem: ${text.slice(0, 500)}`);
     }
+    // A tree that cannot be drawn shows a message instead of throwing, so look
+    // at the canvas state itself: at least one tree drawn, none failed.
+    const treeState = await until("the passive tree to be drawn", 60_000, async () => {
+      const states = await needPage().$$eval(".ef-tree-canvas", (nodes) =>
+        nodes.map((n) => ({
+          status: n.getAttribute("data-status"),
+          text: n.querySelector(".ef-tree-canvas__status")?.textContent ?? "",
+        })),
+      );
+      const failedTree = states.find((s) => s.status === "error");
+      if (failedTree !== undefined) throw new Error(`the passive tree failed: ${failedTree.text}`);
+      return states.some((s) => s.status === "ready") ? states : undefined;
+    });
+    console.log(`passive tree canvases: ${treeState.length}`);
     await needPage().screenshot({ path: join(outDir, "04-guide.png"), fullPage: true });
   });
 
