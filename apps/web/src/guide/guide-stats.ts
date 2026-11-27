@@ -10,6 +10,8 @@ const GuideStatsConfig = z.object({
         stat: z.string().min(1),
         label: z.string().min(1),
         emphasis: z.boolean().optional(),
+        onlyWhenReported: z.boolean().optional(),
+        hideWhenReported: z.string().min(1).optional(),
       }),
     )
     .min(1),

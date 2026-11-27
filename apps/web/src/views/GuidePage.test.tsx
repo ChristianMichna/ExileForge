@@ -247,6 +247,42 @@ describe("guide page", () => {
     expect(screen.getByText(/did not report SpiritUnreserved/)).toBeTruthy();
   });
 
+  it("shows the minion damage instead of the player's own 0 for a minion build", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const guide = {
+      ...publishedGuide,
+      progression: {
+        stages: [{ ...stage, calcs: { mapping: { status: "ok", calcId: "calc-1" } } }],
+      },
+    };
+    const result = {
+      ...view.results["calc-1"],
+      stats: { CombinedDPS: 0, MinionCombinedDPS: 1234, TotalEHP: 8765 },
+    };
+    vi.stubGlobal("fetch", () => json({ ...view, guide, results: { "calc-1": result } }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("1,234")).toBeTruthy();
+    expect(screen.getByText("Minion damage per second")).toBeTruthy();
+    expect(screen.queryByText("Damage per second")).toBeNull();
+  });
+
+  it("keeps the player's damage row and hides the minion row without minion stats", async () => {
+    const stage = publishedGuide.progression.stages[0];
+    const guide = {
+      ...publishedGuide,
+      progression: {
+        stages: [{ ...stage, calcs: { mapping: { status: "ok", calcId: "calc-1" } } }],
+      },
+    };
+    const result = { ...view.results["calc-1"], stats: { CombinedDPS: 4321, TotalEHP: 8765 } };
+    vi.stubGlobal("fetch", () => json({ ...view, guide, results: { "calc-1": result } }));
+    window.location.hash = `#/guide/${GUIDE_ID}`;
+    render(<App />);
+    expect(await screen.findByText("Damage per second")).toBeTruthy();
+    expect(screen.queryByText("Minion damage per second")).toBeNull();
+  });
+
   it("shows a failed or missing calculation of a stage as an error", async () => {
     const stage = publishedGuide.progression.stages[0];
     const guide = {

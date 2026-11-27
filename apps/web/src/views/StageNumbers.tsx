@@ -51,6 +51,16 @@ function stateOf(
   };
 }
 
+/** Whether the stored result of the stage contains the stat (rows marked `onlyWhenReported`). */
+function isReported(
+  stat: string,
+  found: { profile: string; outcome: CalcOutcome } | undefined,
+  view: GuideView,
+): boolean {
+  if (found === undefined || found.outcome.status === "failed") return false;
+  return view.results[found.outcome.calcId]?.stats[stat] !== undefined;
+}
+
 export function StageNumbers({ stage, view }: { stage: ProgressionStage; view: GuideView }) {
   const found = outcomeOf(stage);
   return (
@@ -59,14 +69,20 @@ export function StageNumbers({ stage, view }: { stage: ProgressionStage; view: G
       kicker={found === undefined ? "No calculation" : `Profile ${found.profile}`}
     >
       <StatGrid>
-        {GUIDE_STATS.stats.map((s) => (
-          <StatValue
-            key={s.stat}
-            label={s.label}
-            {...(s.emphasis === true ? { emphasis: true } : {})}
-            state={stateOf(s.stat, found, view)}
-          />
-        ))}
+        {GUIDE_STATS.stats
+          .filter(
+            (s) =>
+              (s.onlyWhenReported !== true || isReported(s.stat, found, view)) &&
+              (s.hideWhenReported === undefined || !isReported(s.hideWhenReported, found, view)),
+          )
+          .map((s) => (
+            <StatValue
+              key={s.stat}
+              label={s.label}
+              {...(s.emphasis === true ? { emphasis: true } : {})}
+              state={stateOf(s.stat, found, view)}
+            />
+          ))}
         {stage.respecCost === undefined ? null : (
           <StatValue
             label={`Respec · ${priceLabel(stage.respecCost, view)}`}

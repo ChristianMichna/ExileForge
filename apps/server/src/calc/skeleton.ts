@@ -1,4 +1,6 @@
+import { isMinionSkill, minionMetricFloors, minionWeights } from "@astrolabe/agents";
 import type {
+  MinionStatsConfig,
   ProgressionPort,
   ProgressionRequest,
   ProgressionStageTree,
@@ -73,6 +75,8 @@ export interface PobSkeletonOptions {
   catalog: CatalogPort;
   optimizerConfig: OptimizerConfig;
   settings: SkeletonSettings;
+  /** `minion` of config/agents/stages.json: minion builds measure their damage with PoB's minion stats. */
+  minion?: MinionStatsConfig;
   /** Present when S5 is configured. */
   target?: TargetSettings;
   /** Present when S6 is configured. */
@@ -93,6 +97,29 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
   private readonly graphs = new Map<string, TreeGraph>();
 
   constructor(private readonly options: PobSkeletonOptions) {}
+
+  /**
+   * The objective of a build: for a minion skill the stats PoB measures its damage with
+   * (`minion` in config/agents/stages.json), otherwise the configured one.
+   */
+  private objectiveFor<
+    T extends {
+      weights: Record<string, number>;
+      floors: Record<string, number>;
+      floorsFromMetrics?: Record<string, string> | undefined;
+    },
+  >(objective: T, mainSkillId: string): T {
+    const { minion, catalog } = this.options;
+    if (minion === undefined || !isMinionSkill(catalog, mainSkillId, minion)) return objective;
+    return {
+      ...objective,
+      weights: minionWeights(minion, objective.weights),
+      floors: minionWeights(minion, objective.floors),
+      ...(objective.floorsFromMetrics === undefined
+        ? {}
+        : { floorsFromMetrics: minionMetricFloors(minion, objective.floorsFromMetrics) }),
+    };
+  }
 
   async evaluate(input: SkeletonRequest): Promise<ArchetypeEvaluation> {
     const { settings, catalog } = this.options;
@@ -126,7 +153,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       candidateKey: candidate.key,
       classId: candidate.classId,
       budget: settings.passivePoints,
-      objective: settings.objective,
+      objective: this.objectiveFor(settings.objective, profile.mainSkillId),
       calcProfile: settings.calcProfiles[0] as CalcProfileId,
     });
     const skeleton = BuildState.parse({
@@ -158,7 +185,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       candidateKey: input.candidate.key,
       classId: input.candidate.classId,
       budget: input.passivePoints,
-      objective: settings.objective,
+      objective: this.objectiveFor(settings.objective, input.profile.mainSkillId),
       calcProfile: settings.calcProfiles[0] as CalcProfileId,
     };
     const result = await this.optimizeMainTree(start, job, settings);
@@ -179,7 +206,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
             {
               request: input.request,
               profile: input.profile,
-              objective: settings.objective,
+              objective: this.objectiveFor(settings.objective, input.profile.mainSkillId),
               calcProfile: settings.calcProfiles[0] as CalcProfileId,
             },
           );
@@ -223,7 +250,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         graph,
         target: targetNodes,
         stages: input.stages.map((s) => ({ key: s.key, budget: s.budget })),
-        objective: settings.objective,
+        objective: this.objectiveFor(settings.objective, input.profile.mainSkillId),
         evaluator: createPobTreeEvaluator({
           pool: this.options.pool,
           handle,

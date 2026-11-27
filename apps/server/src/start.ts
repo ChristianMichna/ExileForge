@@ -147,6 +147,7 @@ async function startServerOwningPool(
       catalog,
       optimizerConfig: await loadOptimizerConfig(optimizerConfigPath),
       settings: stages.s3,
+      ...(stages.minion === undefined ? {} : { minion: stages.minion }),
       ...(stages.s5 === undefined
         ? {}
         : {
