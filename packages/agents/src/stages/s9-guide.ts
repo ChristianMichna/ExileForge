@@ -17,6 +17,7 @@ import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { defineTask, type AnyTaskSpec, type PipelineContext } from "../pipeline.js";
 import { S9_SECTION, S9_SECTION_FOCUS } from "../prompts.js";
+import { partFindings } from "../quality/rubric.js";
 import { requestContext } from "./context.js";
 
 /** The sections Claude writes, in the order of the guide; the rest of the document is assembled by the app. */
@@ -199,6 +200,12 @@ function layerCheck(payload: unknown, ctx: PipelineContext): Finding[] {
   );
 }
 
+/** A section's answer in the shape the guide draft holds it (the lists of variants and faq are bare). */
+function sectionDraftOf(section: S9Section, payload: unknown): unknown {
+  const p = payload as Record<string, unknown>;
+  return section === "variants" ? p.variants : section === "faq" ? p.faq : payload;
+}
+
 type Depth = NonNullable<StageConfig["s9"]>["depth"];
 
 /** Least amount of prose per section, from config; a shortfall goes back to the same task. */
@@ -268,6 +275,11 @@ export function sectionTask(
       ...(section === "summary" ? await summaryCheck(payload, pctx) : []),
       ...(section === "mechanics" ? layerCheck(payload, pctx) : []),
       ...(config.s9 === undefined ? [] : depthCheck(section, config.s9.depth)(payload)),
+      ...partFindings(
+        config.s9?.rubric,
+        { [section]: sectionDraftOf(section, payload) },
+        `/${section}`,
+      ),
     ],
     allowedTools: ["catalog_search", "catalog_get", "calc_evaluate"],
     entities: (p) => walkSection(p).entities,
