@@ -4,3 +4,4 @@ export * from "./list.js";
 export * from "./view.js";
 export * from "./tree.js";
 export * from "./file.js";
+export * from "./comments.js";

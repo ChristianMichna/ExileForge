@@ -825,3 +825,44 @@ code {
 .guide-section:focus {
   outline: none;
 }
+
+.section-comments {
+  display: grid;
+  gap: var(--ef-space-3);
+  margin-top: var(--ef-space-3);
+}
+
+.section-comments__list {
+  display: grid;
+  gap: var(--ef-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ef-color-text-muted);
+}
+
+.section-comments__form {
+  display: grid;
+  gap: var(--ef-space-3);
+}
+
+.section-comments__form label {
+  display: grid;
+  gap: var(--ef-space-2);
+  color: var(--ef-color-text);
+}
+
+.section-comments__form textarea {
+  padding: var(--ef-space-3);
+  font: inherit;
+  color: var(--ef-color-text-strong);
+  background: var(--ef-color-surface-2);
+  border: var(--ef-hairline) solid var(--ef-color-line);
+  border-radius: 0;
+  resize: vertical;
+}
+
+.section-comments__actions {
+  display: flex;
+  gap: var(--ef-space-3);
+}

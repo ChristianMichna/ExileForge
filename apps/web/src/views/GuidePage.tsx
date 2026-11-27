@@ -24,6 +24,7 @@ import { loadGuideList, loadGuideView } from "../api/guides";
 import { RichTextView, nameOf } from "../guide/RichTextView";
 import { BuildFileExportButton } from "./BuildFileExport";
 import { GuideFileExportButton, GuideImportButton } from "./GuideFile";
+import { CommentsBanner, GuideCommentsProvider, SectionComments } from "./SectionComments";
 import { PageHeader } from "../shell/PageHeader";
 import { useGuideId } from "../shell/route";
 
@@ -104,7 +105,11 @@ function GuideDetail({ guideId }: { guideId: string }) {
       </div>
     );
   }
-  return <GuideBody view={loaded.value} guideId={guideId} />;
+  return (
+    <GuideCommentsProvider guideId={guideId}>
+      <GuideBody view={loaded.value} guideId={guideId} />
+    </GuideCommentsProvider>
+  );
 }
 
 function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
@@ -139,6 +144,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
           </>
         }
       />
+      <CommentsBanner />
       {view.current ? null : (
         <Callout tone="warning" title="Older game data">
           This guide was built with {guide.metadata.dataReleaseId}; the app now runs with{" "}
@@ -201,6 +207,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
           )}
         </Panel>
         <PowerCurve view={view} />
+        <SectionComments sectionKey="S9.summary" label="Overview" />
       </section>
       <section id="guide-mechanics" className="guide-section" tabIndex={-1}>
         <Panel title="How it works" kicker="Mechanics" variant="recessed">
@@ -242,6 +249,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
             </>
           )}
         </Panel>
+        <SectionComments sectionKey="S9.mechanics" label="How it works" />
       </section>
       <section id="guide-stages" className="guide-section" tabIndex={-1}>
         <Tabs
@@ -269,15 +277,19 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
       </section>
       <section id="guide-playstyle" className="guide-section" tabIndex={-1}>
         <PlaystyleSection view={view} />
+        <SectionComments sectionKey="S9.playstyle" label="Playstyle" />
       </section>
       <section id="guide-atlas" className="guide-section" tabIndex={-1}>
         <AtlasSection view={view} />
+        <SectionComments sectionKey="S9.atlas" label="Endgame" />
       </section>
       <section id="guide-variants" className="guide-section" tabIndex={-1}>
         <VariantsSection view={view} />
+        <SectionComments sectionKey="S9.variants" label="Variants" />
       </section>
       <section id="guide-faq" className="guide-section" tabIndex={-1}>
         <FaqSection view={view} />
+        <SectionComments sectionKey="S9.faq" label="Troubleshooting" />
       </section>
     </div>
   );
