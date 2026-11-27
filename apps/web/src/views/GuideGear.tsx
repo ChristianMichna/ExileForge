@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GearPaperDoll } from "./GearPaperDoll";
 import { ItemTooltip, Panel, Tabs } from "@astrolabe/ui";
 import type { ItemModView, ItemView } from "@astrolabe/ui";
 import { Bullets, EntityName } from "./GuideText";
@@ -19,7 +20,7 @@ import type {
 const RARITY_BY_NAME = { normal: "normal", magic: "magic", rare: "rare" } as const;
 
 /** The look of the card; null when the release gives no (known) name for the rarity. */
-function rarityOf(card: GuideItemCard): ItemView["rarity"] | null {
+export function rarityOf(card: GuideItemCard): ItemView["rarity"] | null {
   if (card.kind === "unique") return "unique";
   const key = card.rarityName?.toLowerCase() ?? "";
   return key in RARITY_BY_NAME ? RARITY_BY_NAME[key as keyof typeof RARITY_BY_NAME] : null;
@@ -178,17 +179,27 @@ export function GearSection({ view }: { view: GuideView }) {
                   />
                 </p>
               )}
-              <div className="gear-grid">
-                {view.gear
-                  .filter((g) => g.budgetTier === id)
-                  .map((entry) => (
-                    <Slot key={entry.slot} entry={entry} view={view} />
-                  ))}
-              </div>
+              <TierGear entries={view.gear.filter((g) => g.budgetTier === id)} view={view} />
             </>
           ),
         }))}
       />
     </Panel>
+  );
+}
+
+function TierGear({ entries, view }: { entries: readonly GuideGearEntry[]; view: GuideView }) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const current = entries.find((e) => e.slot === picked) ?? entries[0];
+  return (
+    <>
+      <GearPaperDoll
+        entries={entries}
+        view={view}
+        selected={current?.slot ?? null}
+        onSelect={setPicked}
+      />
+      {current === undefined ? null : <Slot key={current.slot} entry={current} view={view} />}
+    </>
   );
 }
