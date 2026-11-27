@@ -449,7 +449,7 @@ interface Subject {
   stats?: StatMap;
   /**
    * Campaign stages only: the stage measured wearing the first gear tier. Attribute requirements
-   * are checked against it, because the stage itself carries no gear (the gear of the early
+   * are checked against it, because the stage wears at most the placeholder weapon (the gear of the early
    * tiers may grant the attributes the passive tree does not).
    */
   gearedStats?: StatMap;
@@ -894,7 +894,7 @@ async function measuredGates(
       ["G5", g5, cfg.stats.dps, "minDps", "dps_below_minimum"],
     ] as const) {
       if (field === "minEhp" ? !ehpSet : !dpsSet) continue;
-      // A campaign stage carries no gear: its EHP and damage count with the first gear tier worn
+      // A campaign stage carries at most the placeholder weapon: its EHP and damage count with the first gear tier worn
       // (an attack needs its weapon to deal damage at all), and that tier's part fixes a gap.
       // A failed measurement with gear is reported (G3 calc_failed); the ungeared numbers do not stand in.
       if (gearedFailed === true) continue;

@@ -25,11 +25,12 @@
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
-        "FullDPS": 1,
+        "CombinedDPS": 1,
         "TotalEHP": 0.4
       },
       "floors": {}
     },
+    "placeholderWeapon": { "slot": "Weapon 1", "rarity": "normal" },
     "gemLevel": 1
   },
   "s5": {
@@ -37,7 +38,7 @@
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
-        "FullDPS": 1,
+        "CombinedDPS": 1,
         "TotalEHP": 0.4
       },
       "floors": {},
@@ -51,7 +52,7 @@
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
-        "FullDPS": 1,
+        "CombinedDPS": 1,
         "TotalEHP": 0.4
       },
       "floors": {},
@@ -93,7 +94,7 @@
     "calcProfiles": ["mapping", "pinnacle"],
     "objective": {
       "weights": {
-        "FullDPS": 1,
+        "CombinedDPS": 1,
         "TotalEHP": 0.4
       },
       "calcProfile": "mapping"
