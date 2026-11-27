@@ -1,6 +1,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { GUIDE_FILE_FORMAT, collectCalcIds } from "@astrolabe/contracts/guide";
 import { importExampleGuides } from "../src/guides/example-guides.js";
@@ -101,5 +102,20 @@ describe("importExampleGuides", () => {
     expect(outcome.failed).toEqual([]);
     expect(outcome.folderError).toBeDefined();
     expect(logger.entries.some((e) => e.level === "error")).toBe(true);
+  });
+});
+
+describe("the guides shipped in examples/guides", () => {
+  it("are all valid guide files that import into an empty store", async () => {
+    const store = new RunStore(":memory:");
+    const dir = fileURLToPath(new URL("../../../examples/guides", import.meta.url));
+    const outcome = await importExampleGuides(
+      dir,
+      store,
+      createMemoryLogger(),
+      () => new Date("2026-11-27T00:00:00Z"),
+    );
+    expect(outcome.failed).toEqual([]);
+    expect(outcome.imported).toBeGreaterThan(0);
   });
 });
