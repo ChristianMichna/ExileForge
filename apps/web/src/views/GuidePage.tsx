@@ -9,9 +9,11 @@ import { TreeSection } from "./GuideTree";
 import { StageNumbers } from "./StageNumbers";
 import {
   AtlasSection,
+  Bullets,
   EntityName,
   FaqSection,
   PlaystyleSection,
+  Reasons,
   VariantsSection,
 } from "./GuideText";
 import { gemChanges } from "../guide/gem-changes";
@@ -135,6 +137,15 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
         </Callout>
       ) : null}
       <Panel title="Summary" kicker="At a glance">
+        {summary.introduction.length > 0 ? (
+          <GuideNotes>
+            {summary.introduction.map((p, i) => (
+              <p key={i}>
+                <RichTextView text={p} view={view} />
+              </p>
+            ))}
+          </GuideNotes>
+        ) : null}
         <GuideNotes>
           <p>
             <RichTextView text={summary.playstyle} view={view} />
@@ -165,6 +176,12 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
             </ul>
           </div>
         </div>
+        {summary.closing === undefined ? null : (
+          <p>
+            <strong>In short: </strong>
+            <RichTextView text={summary.closing} view={view} />
+          </p>
+        )}
       </Panel>
       <Panel title="How it works" kicker="Mechanics" variant="recessed">
         <GuideNotes>
@@ -182,6 +199,28 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
             </li>
           ))}
         </ul>
+        <Reasons title="How the parts work together" items={mechanics.interactions} view={view} />
+        <Reasons title="Skill setups" items={mechanics.gemSetups} view={view} />
+        {mechanics.defences.length > 0 ? (
+          <>
+            <h3>Defences</h3>
+            <ul>
+              {mechanics.defences.map((d, i) => (
+                <li key={i}>
+                  <RichTextView text={d.explanation} view={view} />
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        {mechanics.resources === undefined ? null : (
+          <>
+            <h3>Resources</h3>
+            <p>
+              <RichTextView text={mechanics.resources} view={view} />
+            </p>
+          </>
+        )}
       </Panel>
       <Tabs
         label="Guide stages"
@@ -285,6 +324,13 @@ function StageView({
         title={stage.label}
         kicker={`${stage.act === undefined ? "" : `Act ${stage.act} · `}Level ${stage.levelRange[0]}–${stage.levelRange[1]}`}
       >
+        {stage.guide === undefined ? null : (
+          <GuideNotes>
+            <p>
+              <RichTextView text={stage.guide.intro} view={view} />
+            </p>
+          </GuideNotes>
+        )}
         <h3>What to do</h3>
         <ul>
           {stage.tasks.map((t, i) => (
@@ -324,6 +370,25 @@ function StageView({
           ))}
         </ul>
         <GemChangeList previous={previous} stage={stage} view={view} />
+        {stage.guide === undefined || stage.guide.gemChanges.length === 0 ? null : (
+          <>
+            <h3>Why these skill changes</h3>
+            <ul>
+              {stage.guide.gemChanges.map((c, i) => (
+                <li key={i}>
+                  <EntityName view={view} entity={c.gem} />
+                  {c.replaces === undefined ? null : (
+                    <>
+                      {" "}
+                      (replaces <EntityName view={view} entity={c.replaces} />)
+                    </>
+                  )}
+                  : <RichTextView text={c.reason} view={view} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <p>
           {state.tree.allocated.length} passive points allocated
           {state.tree.ascendancy.length > 0
@@ -332,6 +397,19 @@ function StageView({
           .
         </p>
       </Panel>
+      {stage.guide === undefined ? null : (
+        <Panel title="Passive tree" kicker="Why these nodes">
+          <Reasons title="Choices" items={stage.guide.treeNotes} view={view} />
+          <Bullets title="Gear at this point" items={stage.guide.gearNotes} view={view} />
+          <Bullets title="Before you move on" items={stage.guide.checklist} view={view} />
+          {stage.guide.nextStep === undefined ? null : (
+            <p>
+              <strong>Next: </strong>
+              <RichTextView text={stage.guide.nextStep} view={view} />
+            </p>
+          )}
+        </Panel>
+      )}
       {stage.rationale.length > 0 ? (
         <Panel title="Why" kicker="Decisions" variant="recessed">
           <ul>

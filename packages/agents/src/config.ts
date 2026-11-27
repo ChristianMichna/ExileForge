@@ -268,6 +268,30 @@ export const StageConfig = z
           .refine((w) => Object.values(w).some((x) => x > 0), { message: "all weights are zero" }),
       })
       .optional(),
+    /**
+     * S9 depth of the guide: the detail pass (one task per stage, tier, slot and crafting plan) and
+     * the least amount of prose the sections must hold. Without this block the guide has only the
+     * short sections. Counts are the product owner's quality bar, not game facts.
+     */
+    s9: z
+      .object({
+        depth: z.object({
+          introductionParagraphs: z.int().nonnegative(),
+          interactions: z.int().nonnegative(),
+          defences: z.int().nonnegative(),
+          gemSetups: z.int().nonnegative(),
+          rotationSteps: z.int().nonnegative(),
+          tips: z.int().nonnegative(),
+          commonMistakes: z.int().nonnegative(),
+          atlasPhases: z.int().nonnegative(),
+          waystoneTips: z.int().nonnegative(),
+          variants: z.int().nonnegative(),
+          faq: z.int().nonnegative(),
+          minTreeNotesPerStage: z.int().nonnegative(),
+          minStatPrioritiesPerSlot: z.int().nonnegative(),
+        }),
+      })
+      .optional(),
     s2: z.object({
       /** Number of archetype candidates (the plan asks for 3–6). */
       candidateCount: z.int().min(1).max(6),
