@@ -1,8 +1,5 @@
-import {
-  ArchetypeCandidate,
-  ArchetypeEvaluation,
-  CandidateComparisonView,
-} from "@astrolabe/contracts/build";
+import type { CandidateComparisonView } from "@astrolabe/contracts/build";
+import { ArchetypeCandidate, ArchetypeEvaluation } from "@astrolabe/contracts/build";
 import { CalcResult } from "@astrolabe/contracts/calc";
 import { CalcId } from "@astrolabe/contracts/common";
 import { collectCalcIds } from "@astrolabe/contracts/guide";
@@ -15,8 +12,10 @@ import type { CalcPort } from "../ports/calc.js";
 import type { CatalogPort } from "../ports/catalog.js";
 
 const CANDIDATE_KEY = /^S2\.candidate-(\d+)$/;
-const S3_KEYS = (key: string): boolean =>
-  key === "S3.evaluations" || key.startsWith("S3.evaluate:");
+/** The forge pipeline stores one S3 result; the PoC pipeline keys it by the measured candidates. */
+const FORGE_S3_KEY = "S3.evaluations";
+const pocS3Key = (candidateKeys: readonly string[]): string =>
+  `S3.evaluate:${candidateKeys.join(",")}`;
 const Selection = z.object({ candidateKey: z.string().min(1) });
 
 function parseStored<T>(schema: z.ZodType<T>, value: unknown, what: string): T {
@@ -47,7 +46,11 @@ export async function buildCandidateView(
     .sort((a, b) => a.index - b.index)
     .map((c) => parseStored(ArchetypeCandidate, c.value, `candidate ${c.key}`));
 
-  const evaluationKey = Object.keys(run.results).find(S3_KEYS);
+  // Only the measurement of exactly these candidates counts; one of an earlier candidate set is
+  // never shown as the current one.
+  const evaluationKey = [FORGE_S3_KEY, pocS3Key(candidates.map((c) => c.key))].find(
+    (key) => run.results[key] !== undefined,
+  );
   const evaluations =
     evaluationKey === undefined
       ? []
@@ -71,6 +74,11 @@ export async function buildCandidateView(
 
   const current = run.request.dataReleaseId === catalog.dataReleaseId;
   const unresolved = new Set<string>();
+  // A stored S4 pick of a candidate that is not listed is a data problem and shown as one; an
+  // intervention of an earlier candidate set (after a rewind) is simply not the current pick.
+  if (selection !== undefined && picked !== undefined && chosenKey === undefined) {
+    unresolved.add(`selection:${picked}`);
+  }
   const names: Record<string, string> = {};
   for (const ref of collectGuideRefs({ candidates, evaluations })) {
     const key = `${ref.kind}:${ref.id}`;
@@ -84,17 +92,28 @@ export async function buildCandidateView(
     collectCalcIds(evaluations).map(async (raw) => {
       const calcId = CalcId.safeParse(raw);
       if (!calcId.success) return { raw, result: undefined };
-      return { raw, result: await calc.getResult(calcId.data) };
+      try {
+        return { raw, result: await calc.getResult(calcId.data) };
+      } catch (error) {
+        throw new ForgeError("calc_unavailable", `Could not read the stored result ${raw}.`, {
+          cause: error,
+        });
+      }
     }),
   );
   const results: Record<string, CalcResult> = {};
   for (const { raw, result } of loaded) {
     const valid = CalcResult.safeParse(result);
-    if (valid.success && valid.data.calcId === raw) results[raw] = valid.data;
+    if (
+      valid.success &&
+      valid.data.calcId === raw &&
+      valid.data.dataReleaseId === run.request.dataReleaseId
+    )
+      results[raw] = valid.data;
     else unresolved.add(`calc:${raw}`);
   }
 
-  return CandidateComparisonView.parse({
+  return {
     runId: run.runId,
     catalogReleaseId: catalog.dataReleaseId,
     current,
@@ -104,5 +123,5 @@ export async function buildCandidateView(
     names,
     results,
     unresolved: [...unresolved],
-  });
+  };
 }

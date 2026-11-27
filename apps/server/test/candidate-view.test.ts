@@ -162,6 +162,74 @@ describe("buildCandidateView", () => {
     expect(view.unresolved).toContain("calc:gone-1");
   });
 
+  it("uses only the measurement of the current candidates (PoC key) and ignores an older one", async () => {
+    const { catalog, calc } = setup();
+    const outcomes = await calc.calculate({ state, profiles: ["default"] });
+    const measured = (key: string) => [
+      { candidateKey: key, skeleton: json(state), calcs: json(outcomes) },
+    ];
+    const view = await buildCandidateView(
+      run({
+        results: {
+          "S2.candidate-1": stored("S2.candidate", candidate("a", "FixClassA", "FixAscA1")),
+          "S3.evaluate:old": stored("S3.evaluate", measured("old")),
+          "S3.evaluate:a": stored("S3.evaluate", measured("a")),
+        },
+      }),
+      catalog,
+      calc,
+    );
+    expect(view.evaluations.map((e) => e.candidateKey)).toEqual(["a"]);
+    const stale = await buildCandidateView(
+      run({
+        results: {
+          "S2.candidate-1": stored("S2.candidate", candidate("a", "FixClassA", "FixAscA1")),
+          "S3.evaluate:old": stored("S3.evaluate", measured("old")),
+        },
+      }),
+      catalog,
+      calc,
+    );
+    expect(stale.evaluations).toEqual([]);
+  });
+
+  it("does not pass on a result of another data release", async () => {
+    const { catalog, calc } = setup();
+    const outcomes = await calc.calculate({ state, profiles: ["default"] });
+    const other = DataReleaseId.parse("poe2-1.0.0+r1");
+    const view = await buildCandidateView(
+      run({
+        request: { ...REQUEST, dataReleaseId: other },
+        results: {
+          "S2.candidate-1": stored("S2.candidate", candidate("a", "FixClassA", "FixAscA1")),
+          "S3.evaluations": stored("S3.evaluate", [
+            { candidateKey: "a", skeleton: json(state), calcs: json(outcomes) },
+          ]),
+        },
+      }),
+      catalog,
+      calc,
+    );
+    expect(view.results).toEqual({});
+    expect(view.unresolved.some((u) => u.startsWith("calc:"))).toBe(true);
+  });
+
+  it("lists a stored pick of an unknown candidate instead of dropping it", async () => {
+    const { catalog, calc } = setup();
+    const view = await buildCandidateView(
+      run({
+        results: {
+          "S2.candidate-1": stored("S2.candidate", candidate("a", "FixClassA", "FixAscA1")),
+          "S4.selection": stored("S4.select", { candidateKey: "zz" }),
+        },
+      }),
+      catalog,
+      calc,
+    );
+    expect(view.chosenKey).toBeUndefined();
+    expect(view.unresolved).toContain("selection:zz");
+  });
+
   it("fails visibly on a stored candidate that is not valid", async () => {
     const { catalog, calc } = setup();
     await expect(
