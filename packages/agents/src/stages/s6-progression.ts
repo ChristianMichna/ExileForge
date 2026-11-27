@@ -84,6 +84,7 @@ export function stagesJob(
           key: s.key,
           budget: s.passivePoints,
           level: s.levelRange[1],
+          ...(s6.respec?.kinds.includes(s.kind) === true ? { allowRespec: true } : {}),
         })),
       });
       return JSON.parse(JSON.stringify(result)) as JsonValue;

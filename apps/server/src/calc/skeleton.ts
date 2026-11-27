@@ -54,6 +54,8 @@ export interface ProgressionSettings {
     floors: Record<string, number>;
     floorsFromMetrics?: Record<string, string>;
   };
+  /** See `s6.respec` in config/agents/stages.json. */
+  respec?: { maxRespecs: number; maxRefund: number; metric: string; minGainRatio: number };
 }
 
 /** Settings of the endgame target tree (config/agents/stages.json → s5, without level and points). */
@@ -353,7 +355,12 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       (this.options.optimizeStages ?? optimizeProgression)({
         graph,
         target: targetNodes,
-        stages: input.stages.map((s) => ({ key: s.key, budget: s.budget })),
+        stages: input.stages.map((s) => ({
+          key: s.key,
+          budget: s.budget,
+          ...(s.allowRespec === true ? { allowRespec: true } : {}),
+        })),
+        ...(settings.respec === undefined ? {} : { respec: settings.respec }),
         objective: this.objectiveFor(settings.objective, input.profile.mainSkillId),
         evaluator: createPobTreeEvaluator({
           pool: this.options.pool,

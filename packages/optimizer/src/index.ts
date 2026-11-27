@@ -13,6 +13,7 @@ export {
   type ProgressionResult,
   type ProgressionStageInput,
   type ProgressionStageResult,
+  type RespecRule,
 } from "./progression.ts";
 export { optimizeTree, type TreeOptimizeInput } from "./tree.ts";
 export type {

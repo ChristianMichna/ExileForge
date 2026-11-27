@@ -162,7 +162,20 @@ async function startServerOwningPool(
       ...(stages.s6 === undefined
         ? {}
         : {
-            progression: { calcProfiles: stages.s6.calcProfiles, objective: stages.s6.objective },
+            progression: {
+              calcProfiles: stages.s6.calcProfiles,
+              objective: stages.s6.objective,
+              ...(stages.s6.respec === undefined
+                ? {}
+                : {
+                    respec: {
+                      maxRespecs: stages.s6.respec.maxRespecs,
+                      maxRefund: stages.s6.respec.maxRefund,
+                      metric: stages.s6.respec.metric,
+                      minGainRatio: stages.s6.respec.minGainRatio,
+                    },
+                  }),
+            },
           }),
       logger: options.logger,
     });

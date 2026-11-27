@@ -44,4 +44,22 @@ describe("guideToMarkdown", () => {
       guideToMarkdown(guide, { entityName: () => undefined, statValue: () => undefined }),
     ).toThrow(/gem:g.*calc:x\/CombinedDPS|calc:x\/CombinedDPS.*gem:g/s);
   });
+
+  it("states per stage whether the tree is respecced", () => {
+    const stage = (key: string, respecs: string[]): unknown => ({
+      key,
+      label: `Stage ${key}`,
+      levelRange: [1, 10],
+      respecs,
+      tasks: [t("Go")],
+      dangers: [],
+    });
+    const withStages = {
+      ...guide,
+      progression: { stages: [stage("a", []), stage("b", ["n1", "n2"])] },
+    } as never as PublishedGuide;
+    const md = guideToMarkdown(withStages, { entityName: (r) => r.id, statValue: () => 1 });
+    expect(md).toContain("**Respec:** none, this stage only adds points to the previous tree.");
+    expect(md).toContain("**Respec:** refund 2 points.");
+  });
 });

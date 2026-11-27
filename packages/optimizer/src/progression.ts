@@ -13,6 +13,23 @@ export interface ProgressionStageInput {
   budget: number;
   /** Replaces the plan's objective for this stage (e.g. more life early on). */
   objective?: Objective;
+  /** May this stage respec? Only used when the input has a `respec` rule. */
+  allowRespec?: boolean;
+}
+
+/**
+ * When a respec is worth it. The default is none: stages extend the previous
+ * one. A stage may only respec when the freely re-picked tree is better by
+ * `minGainRatio` on `metric`, refunds at most `maxRefund` points, and fewer
+ * than `maxRespecs` respecs were used before.
+ */
+export interface RespecRule {
+  maxRespecs: number;
+  maxRefund: number;
+  /** PoB output the gain is measured on, e.g. the one the plan's objective weighs most. */
+  metric: string;
+  /** Relative gain needed, e.g. 0.5 = 50 % more of `metric` than the nested tree. */
+  minGainRatio: number;
 }
 
 export interface ProgressionInput {
@@ -25,6 +42,7 @@ export interface ProgressionInput {
   evaluator: TreeEvaluator;
   config: OptimizerConfig;
   priorityNodeIds?: readonly PassiveNodeId[];
+  respec?: RespecRule;
   signal?: AbortSignal;
 }
 
@@ -35,7 +53,7 @@ export interface ProgressionStageResult {
   allocated: PassiveNodeId[];
   /** Nodes new in this stage, in the order to allocate them. */
   allocationOrder: PassiveNodeId[];
-  /** Always empty: stages are nested, nothing is respecced. */
+  /** Nodes of the previous stage given up here; empty unless the respec rule allowed it. */
   respecs: PassiveNodeId[];
   unspent: number;
   metrics: Metrics;
@@ -55,7 +73,8 @@ export interface ProgressionResult {
 /**
  * Orders the endgame tree into stages: each stage extends the previous one
  * by the nodes of the target tree that PoB measures as most valuable for the
- * stage's objective, so no respec is needed.
+ * stage's objective, so no respec is needed. A `respec` rule lets a stage
+ * re-pick its tree when that gains a lot (see `RespecRule`).
  */
 export async function optimizeProgression(input: ProgressionInput): Promise<ProgressionResult> {
   const { graph, config } = input;
@@ -89,12 +108,27 @@ export async function optimizeProgression(input: ProgressionInput): Promise<Prog
     previous = stage.budget;
   }
 
+  const rule = input.respec;
+  if (
+    rule !== undefined &&
+    (!Number.isInteger(rule.maxRespecs) ||
+      rule.maxRespecs < 0 ||
+      !Number.isInteger(rule.maxRefund) ||
+      rule.maxRefund < 0 ||
+      !(rule.minGainRatio > 0))
+  ) {
+    throw new OptimizerError(
+      "invalid_input",
+      "respec rule: counts must be whole numbers, gain > 0",
+    );
+  }
   const metrics = [
-    ...new Set(
-      [input.objective, ...input.stages.map((s) => s.objective ?? input.objective)].flatMap(
+    ...new Set([
+      ...(rule === undefined ? [] : [rule.metric]),
+      ...[input.objective, ...input.stages.map((s) => s.objective ?? input.objective)].flatMap(
         objectiveMetrics,
       ),
-    ),
+    ]),
   ];
   if (metrics.length === 0) {
     throw new OptimizerError("invalid_input", "The objective has no weights or floors");
@@ -104,6 +138,7 @@ export async function optimizeProgression(input: ProgressionInput): Promise<Prog
 
   const results: ProgressionStageResult[] = [];
   let state: string[] = [];
+  let respecsUsed = 0;
   for (const stage of input.stages) {
     const objective = stage.objective ?? input.objective;
     const [startOutcome] = await evals.evaluate([state]);
@@ -125,8 +160,50 @@ export async function optimizeProgression(input: ProgressionInput): Promise<Prog
     const budget = Math.min(stage.budget, target.length);
     // Nested stages must spend their points, even when the best step is not an improvement.
     const grown = await search.grow(budget, { eligible: targetSet, spendAll: true });
-    const stoppedBy: StopReason = search.order.length === target.length ? "target_complete" : grown;
-    const final = await search.score(search.order);
+    let stoppedBy: StopReason = search.order.length === target.length ? "target_complete" : grown;
+    let order: string[] = [...search.order];
+    let final = await search.score(order);
+    let respecs: string[] = [];
+    if (
+      rule !== undefined &&
+      stage.allowRespec === true &&
+      respecsUsed < rule.maxRespecs &&
+      state.length > 0 &&
+      final !== undefined
+    ) {
+      // What would the best tree of this size be if nothing were kept?
+      const free = new TreeSearch(
+        graph,
+        evals,
+        scorer,
+        config,
+        { blocked: new Set(), locked: new Set(), priority },
+        [],
+      );
+      const freeStop = await free.grow(budget, { eligible: targetSet, spendAll: true });
+      const alt = await free.score(free.order);
+      if (alt !== undefined) {
+        const kept = new Set(free.order);
+        const refunded = state.filter((id) => !kept.has(id));
+        const nestedValue = final.outcome.metrics[rule.metric] ?? 0;
+        const altValue = alt.outcome.metrics[rule.metric] ?? 0;
+        const big =
+          nestedValue > 0 ? altValue / nestedValue - 1 >= rule.minGainRatio : altValue > 0;
+        if (
+          refunded.length > 0 &&
+          refunded.length <= rule.maxRefund &&
+          big &&
+          scorer.violations(alt.outcome.metrics).length <=
+            scorer.violations(final.outcome.metrics).length
+        ) {
+          respecsUsed += 1;
+          respecs = refunded;
+          order = [...free.order];
+          final = alt;
+          stoppedBy = free.order.length === target.length ? "target_complete" : freeStop;
+        }
+      }
+    }
     if (final === undefined) {
       throw new OptimizerError(
         "evaluator_failed",
@@ -137,7 +214,7 @@ export async function optimizeProgression(input: ProgressionInput): Promise<Prog
     if (input.evaluator.confirm !== undefined) {
       let confirmedOutcome;
       try {
-        confirmedOutcome = await input.evaluator.confirm(search.order as PassiveNodeId[], metrics);
+        confirmedOutcome = await input.evaluator.confirm(order as PassiveNodeId[], metrics);
       } catch (cause) {
         throw new OptimizerError("evaluator_failed", `Stage ${stage.key}: confirming failed`, {
           cause,
@@ -156,17 +233,17 @@ export async function optimizeProgression(input: ProgressionInput): Promise<Prog
     results.push({
       key: stage.key,
       budget: stage.budget,
-      allocated: [...search.order] as PassiveNodeId[],
-      allocationOrder: search.order.filter((id) => !before.has(id)) as PassiveNodeId[],
-      respecs: [],
-      unspent: stage.budget - search.order.length,
+      allocated: order as PassiveNodeId[],
+      allocationOrder: order.filter((id) => !before.has(id)) as PassiveNodeId[],
+      respecs: respecs as PassiveNodeId[],
+      unspent: stage.budget - order.length,
       metrics: finalOutcome.metrics,
       calcId: finalOutcome.calcId,
       violations,
       feasible: violations.length === 0,
       stoppedBy,
     });
-    state = [...search.order];
+    state = order;
   }
   return {
     stages: results,

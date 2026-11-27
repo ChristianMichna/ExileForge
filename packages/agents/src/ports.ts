@@ -126,7 +126,7 @@ export interface ProgressionRequest {
   candidate: ArchetypeCandidate;
   target: TargetBuild;
   /** `level` is the stage's character level; each stage is measured at it. */
-  stages: readonly { key: string; budget: number; level: number }[];
+  stages: readonly { key: string; budget: number; level: number; allowRespec?: boolean }[];
 }
 
 /** One stage of the progression: nested tree, allocation order and a measurement per profile. */
