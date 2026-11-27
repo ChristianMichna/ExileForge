@@ -147,6 +147,7 @@ async function startServerOwningPool(
       catalog,
       optimizerConfig: await loadOptimizerConfig(optimizerConfigPath),
       settings: stages.s3,
+      ...(stages.minion === undefined ? {} : { minion: stages.minion }),
       ...(stages.s5 === undefined
         ? {}
         : {
@@ -252,6 +253,7 @@ async function startServerOwningPool(
     ...(sweeper === undefined ? {} : { guideSweep: sweeper }),
     findGuide: (id) => store.findGuide(id),
     listGuideIds: () => store.listGuideIds(),
+    guideOrigin: (id) => store.guideOrigin(id),
     importGuide: (file, at) => store.importGuide(file, at),
     engine,
     catalog,

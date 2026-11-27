@@ -17,6 +17,7 @@ const config: DesktopConfig = {
     allowedSchemes: ["claude:"],
     startSentence: "Start session {code} now.",
   },
+  economy: { enabled: true },
   update: { enabled: true, firstCheckDelaySeconds: 1, checkIntervalHours: 1 },
   dataSync: {
     enabled: true,

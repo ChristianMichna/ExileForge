@@ -21,8 +21,13 @@ export interface AppDirs {
   /** The calc worker's Lua entry point (`calc-lua/worker.lua` packaged). */
   readonly calcWorkerLua: string;
   readonly optimizerConfigPath: string;
-  /** config/crafting/sim.json; without it the server cannot run S8 (crafting). */
+  /** Crafting simulator settings (`config/crafting/sim.json`). */
   readonly craftConfigPath: string;
+  /** Economy settings and item map (`config/economy`). */
+  readonly economyConfigPath: string;
+  readonly economyItemMapPath: string;
+  /** HTTP cache and price books: <userData>/economy/ */
+  readonly economyCacheDir: string;
   /** luajit.exe of the installed app; undefined in development (PoB's own setup decides). */
   readonly luajit: string | undefined;
   /** True for the installed app, which must bring PoB. */
@@ -64,6 +69,9 @@ export function resolveAppDirs(opts: {
       : join(root, "apps", "calc", "lua", "worker.lua"),
     optimizerConfigPath: join(root, "config", "optimizer", "tree.json"),
     craftConfigPath: join(root, "config", "crafting", "sim.json"),
+    economyConfigPath: join(root, "config", "economy", "economy.json"),
+    economyItemMapPath: join(root, "config", "economy", "item-map.json"),
+    economyCacheDir: join(opts.userData, "economy"),
     luajit: opts.packaged
       ? join(root, "pob", "PathOfBuilding-PoE2", "runtime", "luajit.exe")
       : undefined,

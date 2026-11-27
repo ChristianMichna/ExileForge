@@ -33,6 +33,8 @@ export const DesktopConfig = z.object({
     firstCheckDelaySeconds: z.int().nonnegative(),
     checkIntervalHours: z.number().positive().max(MAX_INTERVAL_HOURS),
   }),
+  /** Market prices from poe.ninja for crafting costs and start costs (F-14). */
+  economy: z.object({ enabled: z.boolean() }),
   /** New game patches arrive as data releases from GitHub Releases (F-01). */
   dataSync: z.object({
     enabled: z.boolean(),

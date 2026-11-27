@@ -8,6 +8,7 @@ import { useDesktopStatus } from "../desktop/useDesktopStatus";
 import { useRunEvents } from "../live/useRunEvents";
 import { PageHeader } from "../shell/PageHeader";
 import { GuidePatchCheckPanel } from "./GuidePatchCheck";
+import { useMcpReach } from "../api/claude-status";
 import { ClaudeConnectionStatus } from "./ClaudeConnectionStatus";
 import { RunStatusPanel } from "./RunStatusPanel";
 
@@ -88,6 +89,9 @@ function Planner({
   const [runId, setRunId] = useState<string | undefined>(loadRunId);
   const [created, setCreated] = useState<CreatedRun | undefined>();
   const events = useRunEvents(calcEngine === "none" ? undefined : runId);
+  const mcp = useMcpReach(
+    runId !== undefined && calcEngine !== "none" && events.run.phase === "created",
+  );
 
   const onCreated = (run: CreatedRun) => {
     saveRunId(run.runId);
@@ -123,7 +127,7 @@ function Planner({
       ) : (
         <>
           <ConnectClaude runId={runId} created={created} />
-          <ClaudeConnectionStatus run={events.run} connection={events.connection} />
+          <ClaudeConnectionStatus run={events.run} connection={events.connection} mcp={mcp} />
           <RunStatusPanel state={events} onNewRun={reset} />
         </>
       )}

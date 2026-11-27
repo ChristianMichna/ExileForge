@@ -156,6 +156,16 @@ async function boot(): Promise<void> {
       releasesDir: dirs.downloadedReleasesDir,
       exampleGuidesDir: dirs.exampleGuidesDir,
       craftConfigPath: dirs.craftConfigPath,
+      ...(config.economy.enabled
+        ? {
+            economy: {
+              configPath: dirs.economyConfigPath,
+              itemMapPath: dirs.economyItemMapPath,
+              cacheDir: dirs.economyCacheDir,
+              appVersion: app.getVersion(),
+            },
+          }
+        : {}),
       pob: {
         resourcesRoot: dirs.resourcesRoot,
         pobHome: dirs.pobHome,

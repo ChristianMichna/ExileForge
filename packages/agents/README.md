@@ -28,6 +28,14 @@ mit gleicher Klasse und anderer Ascendancy werden gleich gemessen), und eine
 unvollständige Optimierung wird nur geloggt. Jobs haben noch kein Zeitlimit und
 keinen Abbruch.
 
+## Minion-Builds
+
+Ist die Hauptfertigkeit ein Gem einer Art aus `minion.skillKinds` (`config/agents/stages.json`), liegt ihr
+Schaden in PoBs `Minion…`-Werten; der eigene DPS des Spielers ist dann 0. Die Werte aus `minion.statMap` ersetzen
+dann `FullDPS`/`CombinedDPS` in den Zielen der Baumsuche (S3, S5, S6, im Server), im Gear-Ziel (S7) und im
+Schadens-Gate G5 (`src/minion-stats.ts`). Es gibt keine Ersatzrechnung: Fehlt der Wert in PoB, schlägt die Suche
+bzw. G5 sichtbar fehl. Das Tag `minion` taugt nicht als Kriterium, weil auch Fertigkeiten es tragen, die selbst Schaden machen.
+
 ## Regeln
 
 - Keine Zahlen im Text; Zahlen kommen per `calcRef`.

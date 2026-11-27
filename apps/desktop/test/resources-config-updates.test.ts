@@ -83,6 +83,8 @@ describe("data release lookup", () => {
     expect(d.pobHome).toBe(join("/repo", ".pob"));
     expect(d.calcWorkerLua).toBe(join("/repo", "apps", "calc", "lua", "worker.lua"));
     expect(d.exampleGuidesDir).toBe(join("/repo", "examples", "guides"));
+    expect(d.craftConfigPath).toBe(join("/repo", "config", "crafting", "sim.json"));
+    expect(d.economyConfigPath).toBe(join("/repo", "config", "economy", "economy.json"));
   });
 
   it("finds PoB and the calc worker file in the resources when packaged", () => {

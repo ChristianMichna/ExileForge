@@ -66,7 +66,8 @@ function GuideList() {
                 >
                   <strong>{item.ascendancyName ?? item.ascendancyId}</strong>{" "}
                   {item.mainSkillName ?? item.mainSkillId}{" "}
-                  {item.current ? null : <Badge tone="warning">Older game data</Badge>}
+                  {item.current ? null : <Badge tone="warning">Older game data</Badge>}{" "}
+                  {item.origin === "imported" ? <Badge tone="neutral">Imported file</Badge> : null}
                 </a>
               )}
             </li>

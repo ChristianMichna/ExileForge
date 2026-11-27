@@ -55,6 +55,7 @@ function setup(
     unsupportedMods?: "avoid" | "accept";
     unsupportedMaxRounds?: number;
   } = {},
+  extra: { minion?: { skillKinds: string[]; statMap: Record<string, string> } } = {},
 ) {
   const optimize = vi.fn<(input: TreeOptimizeInput) => Promise<never>>(() =>
     Promise.resolve(optimizeResult as never),
@@ -84,6 +85,7 @@ function setup(
       ...targetExtra,
     },
     progression: { calcProfiles: ["as-saved"], objective: { weights: { FullDPS: 1 }, floors: {} } },
+    ...extra,
     logger: createMemoryLogger(),
     optimize,
     optimizeStages: (() => Promise.resolve(stagesResult as never)) as never,
@@ -115,6 +117,78 @@ describe("PobSkeleton", () => {
     expect(out.skeleton.tree.allocated.map((n) => n.nodeId)).toEqual(["FixN1", "FixN2"]);
     expect(out.calcs).toEqual({ "as-saved": { status: "ok", calcId: "calc-1" } });
     expect(calculate).toHaveBeenCalledOnce();
+  });
+
+  describe("minion builds", () => {
+    const optimized = {
+      allocated: ["FixN1"],
+      feasible: true,
+      violations: [],
+      failedEvaluationCount: 0,
+      failedEvaluations: [],
+      stoppedBy: "budget_spent",
+    };
+    const minion = { skillKinds: ["Minion"], statMap: { FullDPS: "MinionCombinedDPS" } };
+    const withKind = (kind: string) =>
+      Object.assign(Object.create(catalog) as typeof catalog, {
+        get: (ref: { kind: string; id: string }) =>
+          ref.kind === "gem" && ref.id === "FixGemMain"
+            ? { ref, entity: { kind, tags: ["minion"] } }
+            : catalog.get(ref as never),
+      });
+
+    it("optimises a minion skill for PoB's minion damage instead of the player's", async () => {
+      const { skeleton, optimize } = setup(
+        optimized,
+        undefined,
+        withKind("Minion"),
+        {},
+        { minion },
+      );
+      await skeleton.evaluate({ request: REQUEST, profile, candidate: cand });
+      expect(optimize.mock.calls[0]?.[0].objective.weights).toEqual({ MinionCombinedDPS: 1 });
+    });
+
+    it("uses the minion stats in the target tree search (S5)", async () => {
+      const { skeleton, optimize } = setup(
+        optimized,
+        undefined,
+        withKind("Minion"),
+        {},
+        {
+          minion: {
+            skillKinds: ["Minion"],
+            statMap: { FullDPS: "MinionCombinedDPS", CombinedDPS: "MinionCombinedDPS" },
+          },
+        },
+      );
+      const state = BuildState.parse({
+        classId: "FixClassA",
+        level: 20,
+        tree: { allocated: [] },
+        skills: [],
+        items: [],
+      });
+      await skeleton.optimizeTree({
+        request: REQUEST,
+        profile,
+        candidate: cand,
+        state,
+        passivePoints: 3,
+      });
+      expect(optimize.mock.calls[0]?.[0].objective.weights).toEqual({ MinionCombinedDPS: 1 });
+    });
+
+    it("keeps the configured objective for other skills and without the setting", async () => {
+      for (const [tags, extra] of [
+        [["Spell"], { minion }],
+        [["Minion"], {}],
+      ] as const) {
+        const { skeleton, optimize } = setup(optimized, undefined, withKind(tags[0]), {}, extra);
+        await skeleton.evaluate({ request: REQUEST, profile, candidate: cand });
+        expect(optimize.mock.calls[0]?.[0].objective.weights).toEqual({ FullDPS: 1 });
+      }
+    });
   });
 
   describe("optimizeProgression (S6)", () => {

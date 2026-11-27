@@ -82,7 +82,7 @@ export function createUniqueResolver(
 export interface PriceSource {
   price: EconomyPort;
   /** The league's price book for crafting costs, and whether it is older than a failed refresh allows. */
-  book(league: string): Promise<{ book: PriceBook; stale: boolean }>;
+  book(league?: string): Promise<{ book: PriceBook; stale: boolean }>;
 }
 
 /** Builds the market price service from config; prices come only from the provider, never from code. */
@@ -154,13 +154,23 @@ export async function createCraft(
     }
     // Without a usable price book the simulation still runs; its costs are then "uncalibrated".
     let prices: PriceBook | undefined;
-    if (request.league !== undefined && economy !== undefined) {
+    // Without a league in the request the provider's current challenge league is used (the book
+    // names it, so every cost carries the league it was priced in).
+    if (economy !== undefined) {
       try {
         const result = await economy.book(request.league);
-        prices = result.book;
-        if (result.stale) {
+        if (result.stale && request.league === undefined) {
+          // The current league could not be looked up, so the older book may be of a past league.
+          logger.error("craft costs are uncalibrated: the current league could not be confirmed", {
+            league: result.book.league,
+            fetchedAt: result.book.fetchedAt,
+          });
+        } else {
+          prices = result.book;
+        }
+        if (result.stale && prices !== undefined) {
           logger.error("craft cost uses an older price book because the refresh failed", {
-            league: request.league,
+            league: result.book.league,
             fetchedAt: result.book.fetchedAt,
           });
         }

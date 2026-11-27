@@ -1,0 +1,99 @@
+# Fetches the current poe.ninja price book (F-14) with the project's own economy code and
+# attaches it to the pre-release `price-book-latest`. Started by hand, from main only. Used where
+# the machine running the guide generation cannot reach the provider; the book keeps its league and
+# fetch time, so a guide made from it names both. The provider's rules and the rate limits of
+# packages/economy apply: one fetch per run (about 23 requests). Two jobs: the fetch runs the
+# project's code and dependencies with read access only; the publish job has write access and runs
+# nothing but the GitHub CLI.
+name: Price book
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: price-book
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    name: Fetch the price book
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @astrolabe/server... build
+      - name: Download and check the newest data release (the item map needs a catalog)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name' | { grep '^data-poe2-' || true; } | sort -V | tail -n1)
+          test -n "$tag" || { echo "no data release found" >&2; exit 1; }
+          mkdir -p dl catalog
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'catalog-*.tar.gz' --pattern 'catalog-*.tar.gz.sha256' --dir dl
+          shopt -s nullglob
+          archives=(dl/catalog-*.tar.gz)
+          sums=(dl/catalog-*.tar.gz.sha256)
+          if [ "${#archives[@]}" != 1 ] || [ "${#sums[@]}" != 1 ]; then
+            echo "the release must hold exactly one catalog archive and one checksum" >&2
+            exit 1
+          fi
+          expected=$(cut -d' ' -f1 "${sums[0]}")
+          [[ "$expected" =~ ^[0-9a-f]{64}$ ]] || { echo "the checksum file has no SHA-256" >&2; exit 1; }
+          echo "$expected  ${archives[0]}" | sha256sum -c -
+          tar xzf "${archives[0]}" -C catalog
+          test -f catalog/manifest.json
+      - name: Fetch the book through the server
+        run: |
+          set -euo pipefail
+          mkdir -p price-cache
+          node apps/server/dist/main.js --catalog catalog --calc none --db "$RUNNER_TEMP/p.sqlite" \
+            --token-file "$RUNNER_TEMP/token" --port 47615 --economy price-cache > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:47615/ && break; sleep 1; done
+          node tools/fetch-price-book.mjs http://127.0.0.1:47615 "$RUNNER_TEMP/token" config/economy/item-map.json || { cat "$RUNNER_TEMP/server.log"; exit 1; }
+          ls -l price-cache
+          tar czf price-book.tar.gz -C price-cache .
+          sha256sum price-book.tar.gz > price-book.tar.gz.sha256
+      - uses: actions/upload-artifact@v5
+        with:
+          name: price-book
+          path: |
+            price-book.tar.gz
+            price-book.tar.gz.sha256
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    name: Attach to the release price-book-latest
+    needs: fetch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: price-book
+      - run: |
+          set -euo pipefail
+          sha256sum -c price-book.tar.gz.sha256
+          gh release view price-book-latest --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 \
+            || gh release create price-book-latest --repo "$GITHUB_REPOSITORY" --prerelease --title "Price book (latest)" \
+                 --notes "Price book fetched from poe.ninja by .github/workflows/price-book.yml. Unofficial fan project, not affiliated with Grinding Gear Games. The book names its league and fetch time."
+          gh release upload price-book-latest price-book.tar.gz price-book.tar.gz.sha256 --repo "$GITHUB_REPOSITORY" --clobber

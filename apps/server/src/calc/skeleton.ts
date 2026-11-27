@@ -1,4 +1,6 @@
+import { isMinionSkill, minionMetricFloors, minionWeights } from "@astrolabe/agents";
 import type {
+  MinionStatsConfig,
   ProgressionPort,
   ProgressionRequest,
   ProgressionStageTree,
@@ -73,6 +75,8 @@ export interface PobSkeletonOptions {
   catalog: CatalogPort;
   optimizerConfig: OptimizerConfig;
   settings: SkeletonSettings;
+  /** `minion` of config/agents/stages.json: minion builds measure their damage with PoB's minion stats. */
+  minion?: MinionStatsConfig;
   /** Present when S5 is configured. */
   target?: TargetSettings;
   /** Present when S6 is configured. */
@@ -93,6 +97,29 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
   private readonly graphs = new Map<string, TreeGraph>();
 
   constructor(private readonly options: PobSkeletonOptions) {}
+
+  /**
+   * The objective of a build: for a minion skill the stats PoB measures its damage with
+   * (`minion` in config/agents/stages.json), otherwise the configured one.
+   */
+  private objectiveFor<
+    T extends {
+      weights: Record<string, number>;
+      floors: Record<string, number>;
+      floorsFromMetrics?: Record<string, string> | undefined;
+    },
+  >(objective: T, mainSkillId: string): T {
+    const { minion, catalog } = this.options;
+    if (minion === undefined || !isMinionSkill(catalog, mainSkillId, minion)) return objective;
+    return {
+      ...objective,
+      weights: minionWeights(minion, objective.weights),
+      floors: minionWeights(minion, objective.floors),
+      ...(objective.floorsFromMetrics === undefined
+        ? {}
+        : { floorsFromMetrics: minionMetricFloors(minion, objective.floorsFromMetrics) }),
+    };
+  }
 
   async evaluate(input: SkeletonRequest): Promise<ArchetypeEvaluation> {
     const { settings, catalog } = this.options;
@@ -126,7 +153,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       candidateKey: candidate.key,
       classId: candidate.classId,
       budget: settings.passivePoints,
-      objective: settings.objective,
+      objective: this.objectiveFor(settings.objective, profile.mainSkillId),
       calcProfile: settings.calcProfiles[0] as CalcProfileId,
     });
     const skeleton = BuildState.parse({
@@ -158,7 +185,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       candidateKey: input.candidate.key,
       classId: input.candidate.classId,
       budget: input.passivePoints,
-      objective: settings.objective,
+      objective: this.objectiveFor(settings.objective, input.profile.mainSkillId),
       calcProfile: settings.calcProfiles[0] as CalcProfileId,
     };
     const result = await this.optimizeMainTree(start, job, settings);
@@ -179,7 +206,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
             {
               request: input.request,
               profile: input.profile,
-              objective: settings.objective,
+              objective: this.objectiveFor(settings.objective, input.profile.mainSkillId),
               calcProfile: settings.calcProfiles[0] as CalcProfileId,
             },
           );
@@ -223,7 +250,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         graph,
         target: targetNodes,
         stages: input.stages.map((s) => ({ key: s.key, budget: s.budget })),
-        objective: settings.objective,
+        objective: this.objectiveFor(settings.objective, input.profile.mainSkillId),
         evaluator: createPobTreeEvaluator({
           pool: this.options.pool,
           handle,
@@ -409,6 +436,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       ...avoided,
     ];
     const optimize = this.options.optimize ?? optimizeTree;
+    const startedAt = Date.now();
     const result: TreeOptimizeResult = await this.options.pob.withBuild(start, (handle) =>
       optimize({
         graph,
@@ -427,6 +455,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         forbiddenNodeIds: excluded.filter((id) => graph.has(id)),
       }),
     );
+    this.logSearch("main tree", job.candidateKey, result, startedAt, avoided.length);
     if (!result.feasible || result.failedEvaluationCount > 0) {
       this.options.logger.info("tree optimisation is incomplete", {
         candidate: job.candidateKey,
@@ -485,6 +514,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
     // Each round searches without the nodes banned so far; a node is banned when PoB reports its
     // text as a mod it does not calculate. The rounds end when the result has none (or at the cap).
     for (let round = 0; ; round += 1) {
+      const startedAt = Date.now();
       const result: TreeOptimizeResult = await this.options.pob.withBuild(withMainTree, (handle) =>
         optimize({
           graph,
@@ -503,6 +533,7 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
           forbiddenNodeIds: [...banned].filter((id) => graph.has(id)),
         }),
       );
+      this.logSearch("ascendancy", ascendancyId, result, startedAt, round);
       this.checkAscendancyResult(result, ascendancyId);
       if (!avoid) return result.allocated;
       const unsupported = await this.unsupportedTexts(withMainTree, result.allocated, job);
@@ -555,6 +586,30 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
       });
       for (const id of bad) banned.add(id);
     }
+  }
+
+  /** One line per search: how many engine evaluations it took, why it stopped and how long it ran. */
+  private logSearch(
+    search: "main tree" | "ascendancy",
+    key: string,
+    result: TreeOptimizeResult,
+    startedAt: number,
+    /** Ascendancy: the ban round; main tree: how many nodes were banned before this search. */
+    roundOrBanned?: number,
+  ): void {
+    this.options.logger.info("tree search finished", {
+      search,
+      key,
+      ...(roundOrBanned === undefined
+        ? {}
+        : { [search === "main tree" ? "bannedNodes" : "round"]: roundOrBanned }),
+      evaluations: result.evaluations,
+      stoppedBy: result.stoppedBy,
+      refineStoppedBy: result.refineStoppedBy,
+      truncated: result.truncated,
+      failedEvaluations: result.failedEvaluationCount,
+      durationMs: Date.now() - startedAt,
+    });
   }
 
   private checkAscendancyResult(result: TreeOptimizeResult, ascendancyId: string): void {

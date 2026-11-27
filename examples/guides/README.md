@@ -4,6 +4,9 @@ Guide-Dateien (`*.json`, Format `GuideFile` aus `packages/contracts`, siehe `gui
 lokale Server beim Start einspielt, wenn sein Speicher sie noch nicht kennt. Der Installer bringt
 diesen Ordner als `example-guides/` mit, damit die Guide-Seite ohne eigenen Lauf echte Guides zeigt.
 
+- `lightning-arrow.json`: Lightning-Arrow-Build auf Daten-Release poe2-0.5.5.10+r15, vom Server-Thread
+  erzeugt (alle 15 Ergebnisse aus PoB).
+- `boneshatter.json`: Boneshatter-Build auf derselben Daten-Release r15, ebenfalls aus dem Server-Thread.
 - Jede Datei ist ein echter Guide mit den gespeicherten PoB-Ergebnissen, auf die seine Zahlen
   verweisen; nichts davon ist geschätzt oder von Hand gesetzt.
 - Ein Guide zeigt Namen und Baum nur, wenn die Daten-Release der App die seines Laufs ist; sonst

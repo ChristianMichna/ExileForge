@@ -6,10 +6,17 @@ Desktop-App (`apps/desktop`, `astrolabe://app/`) und als Vorschau im Browser mit
 - Der Browser-Seite fehlt der Zugriffstoken; `/api/*` beantwortet das App-Protokoll der Desktop-Hülle
   und fügt ihn dort hinzu. Die Seite sieht den Token nie.
 - `src/desktop/bridge.ts` ist eine strukturelle Kopie von `apps/desktop/src/shared/bridge.ts`.
+- **Zahlen je Stufe** (`config/web/guide-stats.json`): `onlyWhenReported` zeigt eine Zeile nur, wenn das
+  gespeicherte Ergebnis den Wert enthält, `hideWhenReported` blendet sie aus, wenn ein anderer Wert da ist.
+  Damit zeigt ein Minion-Build den Minion-Schaden statt des eigenen DPS von 0; gerechnet wird hier nichts.
 - **Verbindungsstatus** (`src/views/ClaudeConnectionStatus.tsx`): Schritt-für-Schritt neben den
   Verbindungsknöpfen. „Verbunden“ heißt nur, dass der Lauf `created` verlassen hat; nach 45 s ohne
   Verbindung nennt die Seite, was zu prüfen ist, und erklärt die Antwort „expected object, received
   string“ in einfachen Worten.
+- **Guide-Liste**: Guides aus einer Guide-Datei (auch die Beispiel-Guides) tragen die Marke „Imported file“ (`GuideListItem.origin`); ihre Zahlen sind Messungen einer anderen Installation.
+- **Erweiterung erreicht?** (`src/api/claude-status.ts`): fragt alle 3 s `GET /api/claude/status`, solange
+  der Lauf `created` ist, und hört auf, sobald Claude den MCP-Endpunkt erreicht hat. Der Wert gilt seit Serverstart, nicht je Lauf.
+  Jede Abfrage hat 5 s Zeit; Ablauf und Netzfehler stehen sichtbar auf der Seite, nie als „noch nicht verbunden“.
 - **Plan-Seite** (`src/views/PlanWithClaude.tsx`): Planungsformular, Live-Status des Laufs und die
   Prüfung gespeicherter Guides (`GuidePatchCheckPanel`, F-19). Sie zeigt je Guide das Urteil
   (unberührt / neu rechnen / kaputt) mit Zahl entfernter und geänderter Entitäten und geänderten
