@@ -117,4 +117,18 @@ describe("createCraft", () => {
     ).rejects.toMatchObject({ code: "invalid_request" });
     expect(logger.entries.some((e) => e.message.includes("uncalibrated"))).toBe(true);
   });
+
+  it("asks for the provider's current league when the request names none", async () => {
+    const book = vi.fn().mockRejectedValue(new Error("offline"));
+    const craft = await createCraft(
+      join(import.meta.dirname, "../../../config/crafting/sim.json"),
+      fixtureCatalog(),
+      { price: () => Promise.reject(new Error("unused")), book },
+      createMemoryLogger(),
+    );
+    await expect(
+      craft({ dataReleaseId: RELEASE, baseItemId: "NoSuchBase" } as never),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+    expect(book).toHaveBeenCalledWith(undefined);
+  });
 });
