@@ -324,3 +324,16 @@ automatisch nach einem Patch.
   geprüft, Guides mit einem Fehler schon. Beim Beenden stoppt der Server die Prüfung
   nach dem laufenden Guide, bevor er die Datenbank schließt.
 - Die Antwortform ist `GuidePatchStatusView` aus `@astrolabe/contracts` (0.16.0). Eine gespeicherte Zeile, die nicht zum Vertrag passt, erscheint als `internal`-Fehler dieses Guides.
+
+## Abschnitts-Kommentare (F-07)
+
+`GET/POST /api/guides/:guideId/comments` (`GuideCommentsView`, `GuideCommentRequest`). Ein Kommentar
+ist die `UserIntervention` `comment` auf einen S9-Abschnitt (`S9.summary`, `S9.stage-…` usw.):
+Die Engine öffnet den fertigen Lauf wieder, legt den Guide als frühere Revision ab
+(`RunRecord.revisions`), verwirft nur das Ergebnis des Abschnitts samt S10/S11 und gibt den
+Kommentar samt altem Text (`previous`) nur der Aufgabe dieses Abschnitts. Claude schreibt ihn neu,
+Schema, Katalog-IDs, Zahlenlinter und Rubrik prüfen wie beim ersten Mal; nach S10/S11 ist der Guide
+`metadata.revision + 1` unter derselben Guide-ID. Bis dahin liefert `findGuide` die letzte
+Revision. Der Status je Kommentar (`queued`/`working`/`applied`/`failed`) wird aus dem Lauf
+abgeleitet. Importierte Guides haben keinen Lauf und sind nicht kommentierbar. Nicht enthalten:
+Kommentare auf Gear, Tree und Crafting-Pläne (S5 bis S8); die brauchen eigene Neuberechnung.

@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { CalcId } from "@astrolabe/contracts/common";
 import type { RunEvent } from "@astrolabe/contracts/events";
 import { UserIntervention } from "@astrolabe/contracts/forge";
 import {
+  GuideCommentRequest,
   GUIDE_FILE_FORMAT,
   GuideFile,
   type GuideListItem,
@@ -18,6 +19,8 @@ import {
   PublishedGuide,
 } from "@astrolabe/contracts/guide";
 import { guideToBuildFile } from "@astrolabe/exporters";
+import { buildCommentsView } from "../guides/comments.js";
+import type { RunRecord } from "../engine/run-record.js";
 import { buildGuideView } from "../guides/guide-view.js";
 import { buildPassiveTreeData } from "../guides/tree-data.js";
 import { buildFileResolvers } from "../export/build-file-resolvers.js";
@@ -61,6 +64,8 @@ export interface AppOptions extends ForgeMcpDeps {
   guideSweep?: GuideSweeper;
   /** The stored guide with this id (see `RunStore.findGuide`), unvalidated; enables the guide and `.build` routes. */
   findGuide?: (guideId: string) => unknown;
+  /** The run that made a guide (see `RunStore.findRunByGuideId`); enables the comment routes. */
+  findRunByGuide?: (guideId: string) => RunRecord | undefined;
   /** Ids of all stored guides, newest first (see `RunStore.listGuideIds`). */
   listGuideIds?: () => string[];
   /** Where a stored guide comes from (see `RunStore.guideOrigin`); needed to list guides. */
@@ -89,6 +94,8 @@ const BUILD_FILE_NAME_MAX_CHARS = 80;
 export function createApp(options: AppOptions): FastifyInstance {
   const app = Fastify({ logger: false, bodyLimit: BODY_LIMIT_BYTES });
   const { engine, logger } = options;
+  /** The run behind a guide; a guide without one (imported file) cannot be commented on. */
+  const commentRun = (guideId: string): RunRecord | undefined => options.findRunByGuide?.(guideId);
   const expectedToken = digest(options.accessToken);
   const tokenMatches = (header: string | undefined) =>
     header?.startsWith("Bearer ") === true &&
@@ -234,6 +241,28 @@ export function createApp(options: AppOptions): FastifyInstance {
   app.get("/api/tree", () => {
     treeData ??= PassiveTreeData.parse(buildPassiveTreeData(options.catalog));
     return treeData;
+  });
+
+  app.get("/api/guides/:guideId/comments", async (request) => {
+    const { guideId } = GuideParams.parse(request.params);
+    return buildCommentsView(guideId, commentRun(guideId));
+  });
+
+  app.post("/api/guides/:guideId/comments", async (request, reply) => {
+    const { guideId } = GuideParams.parse(request.params);
+    const body = GuideCommentRequest.parse(request.body);
+    const run = commentRun(guideId);
+    if (run === undefined) {
+      throw new ForgeError("invalid_request", buildCommentsView(guideId, undefined).reason ?? "");
+    }
+    await engine.intervene(run.runId, {
+      kind: "comment",
+      commentId: randomUUID(),
+      section: body.section,
+      text: body.text,
+    });
+    // The run has a new open task; the app shows its session code for Claude.
+    return reply.code(201).send(buildCommentsView(guideId, commentRun(guideId)));
   });
 
   app.get("/api/guides/:guideId/view", async (request) => {
