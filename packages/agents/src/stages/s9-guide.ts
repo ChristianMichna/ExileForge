@@ -54,7 +54,7 @@ export const sectionSchemas = {
   faq: FaqDraft,
 } as const satisfies Record<S9Section, z.ZodType>;
 
-const SEGMENT_TYPES = new Set(["text", "calc", "entity"]);
+const SEGMENT_TYPES = new Set(["text", "calc", "entity", "source"]);
 
 function isRichText(v: unknown): v is RichText {
   return (

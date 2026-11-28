@@ -5,3 +5,4 @@ export * from "./view.js";
 export * from "./tree.js";
 export * from "./file.js";
 export * from "./comments.js";
+export * from "./research.js";

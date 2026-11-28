@@ -13,6 +13,8 @@ export const TextSegment = z.discriminatedUnion("type", [
   z.object({ type: z.literal("text"), text: z.string().min(1).max(4000) }),
   z.object({ type: z.literal("calc"), ref: CalcRef }),
   z.object({ type: z.literal("entity"), ref: EntityRef }),
+  /** A citation: the id of a research finding of the same guide (`GuideDocument.research`). */
+  z.object({ type: z.literal("source"), id: z.string().regex(/^[a-z0-9][a-z0-9-]{1,63}$/) }),
 ]);
 export type TextSegment = z.infer<typeof TextSegment>;
 

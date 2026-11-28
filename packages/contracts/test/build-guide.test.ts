@@ -9,6 +9,7 @@ import {
   ItemSpec,
   ProgressionStage,
   PublishedGuide,
+  ResearchFinding,
   RichText,
 } from "../src/index.js";
 import { without } from "./helpers.js";
@@ -336,5 +337,41 @@ describe("GuideDocument", () => {
   ])("rejects a guide without %s", (part) => {
     const g = without(guide, part as keyof typeof guide);
     expect(GuideDocument.safeParse(g).success).toBe(false);
+  });
+});
+
+describe("research findings (ADR-0006)", () => {
+  const finding = {
+    id: "boss-order",
+    section: "playstyle",
+    topic: "Order of the boss phases",
+    claim: [{ type: "text", text: "Fixture claim in the researcher's own words." }],
+    source: {
+      url: "https://example.test/guide",
+      title: "Fixture guide",
+      retrievedAt: "2026-11-28T00:00:00Z",
+    },
+  };
+
+  it("accepts a finding, defaults its entities and lets text cite it", () => {
+    const parsed = ResearchFinding.parse(finding);
+    expect(parsed.entities).toEqual([]);
+    expect(
+      RichText.parse([
+        { type: "text", text: "See" },
+        { type: "source", id: "boss-order" },
+      ]),
+    ).toHaveLength(2);
+  });
+
+  it("rejects links that are not https and findings without a source", () => {
+    expect(() =>
+      ResearchFinding.parse({
+        ...finding,
+        source: { ...finding.source, url: "http://example.test" },
+      }),
+    ).toThrow();
+    expect(() => ResearchFinding.parse(without(finding, "source"))).toThrow();
+    expect(() => RichText.parse([{ type: "source", id: "Not A Slug" }])).toThrow();
   });
 });
