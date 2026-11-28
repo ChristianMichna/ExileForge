@@ -562,6 +562,14 @@ code {
 .guide-unresolved {
   border-bottom: 1px dashed var(--ef-color-warning);
 }
+.guide-sources {
+  display: grid;
+  gap: var(--ef-space-4);
+  padding-left: var(--ef-space-5);
+}
+.guide-source-host {
+  color: var(--ef-color-text-muted);
+}
 
 .gear-grid {
   display: grid;

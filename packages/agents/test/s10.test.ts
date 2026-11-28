@@ -91,6 +91,7 @@ const EDGES: Record<string, string[]> = {
 };
 const ctx = (known: (id: string) => boolean = () => true) =>
   ({
+    result: () => undefined,
     catalog: {
       dataReleaseId: "poe2-1.0.0+r1",
       get: (r: { id: string; kind?: string }) =>
@@ -120,6 +121,21 @@ const codes = async (d: GuideDraft, c = ctx(), cfg?: never) =>
   (await runGates(c, d, cfg)).flatMap((g) => g.findings.map((f) => `${g.gate}:${f.code}`));
 
 describe("S10 gates", () => {
+  it("warns about a section that was written without research, and only warns", async () => {
+    const base = ctx() as never as Record<string, unknown>;
+    const withResearch = {
+      ...base,
+      result: (key: string) =>
+        key === "S9.research-playstyle" ? { webAccess: false, findings: [] } : undefined,
+    } as never as PipelineContext;
+    const gates = await runGates(withResearch, draft());
+    const g7 = gates.find((g) => g.gate === "G7");
+    const found = g7?.findings.find((f) => f.code === "research_unavailable");
+    expect(found?.severity).toBe("warning");
+    expect(found?.message).toContain("playstyle");
+    expect(await codes(draft())).not.toContain("G7:research_unavailable");
+  });
+
   it("collects the references of items, plans and prose", () => {
     const ids = draftEntities(draft()).map((e) => e.ref.id);
     expect(ids).toEqual(expect.arrayContaining(["B", "M", "G"]));

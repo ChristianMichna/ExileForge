@@ -16,6 +16,7 @@ import {
   Bullets,
   EntityName,
   FaqSection,
+  SourcesSection,
   PlaystyleSection,
   Reasons,
   VariantsSection,
@@ -137,6 +138,7 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
     { id: "guide-atlas", label: "Endgame" },
     ...(guide.variants.length > 0 ? [{ id: "guide-variants", label: "Variants" }] : []),
     ...(guide.faq.length > 0 ? [{ id: "guide-faq", label: "Troubleshooting" }] : []),
+    ...(guide.research.length > 0 ? [{ id: "guide-sources", label: "Sources" }] : []),
   ];
   return (
     <div className="page guide-page">
@@ -314,6 +316,11 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
           <FaqSection view={view} />
           <SectionComments sectionKey="S9.faq" label="Troubleshooting" />
         </section>
+        {guide.research.length > 0 ? (
+          <section id="guide-sources" className="guide-section" tabIndex={-1}>
+            <SourcesSection view={view} />
+          </section>
+        ) : null}
       </div>
     </div>
   );

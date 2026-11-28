@@ -13,7 +13,7 @@ import {
 } from "@astrolabe/contracts/build";
 import { Ascendancy, CharacterClass, Gem, PassiveNode } from "@astrolabe/contracts/catalog";
 import type { StatMap } from "@astrolabe/contracts/calc";
-import { GuideDocument } from "@astrolabe/contracts/guide";
+import { GuideDocument, ResearchSection } from "@astrolabe/contracts/guide";
 import type { CalcId, EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
 import { type AnyTaskSpec, defineTask, type PipelineContext, type PlanStep } from "../pipeline.js";
@@ -34,7 +34,7 @@ import {
   withDetails,
 } from "./s9-detail.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
-import { allFindings } from "./s9-research.js";
+import { allFindings, researchAnswer } from "./s9-research.js";
 
 export const S10_REPORT_KEY = "S10.report";
 export const S10_CRITIC_KEY = "S10.critic";
@@ -438,6 +438,25 @@ const finding = (
     ...(path === undefined ? {} : { path }),
     ...(returnTo === undefined ? {} : { returnTo }),
   });
+
+/** A section written without research is shown as such, never as one where nothing was found. */
+function researchFindings(ctx: PipelineContext): Finding[] {
+  return ResearchSection.options.flatMap((section) => {
+    const answer = researchAnswer(ctx, section);
+    return answer !== undefined && !answer.webAccess
+      ? [
+          finding(
+            "G7",
+            "research_unavailable",
+            `The ${section} section was written without research: the client had no web access.`,
+            `/research`,
+            undefined,
+            "warning",
+          ),
+        ]
+      : [];
+  });
+}
 
 type S10Config = NonNullable<StageConfig["s10"]>;
 
@@ -1165,7 +1184,7 @@ export async function runGates(
     G1: g1,
     G2: [...g2, ...(measured?.g2 ?? [])],
     G6: g6,
-    G7: [...g7Counts, ...g7, ...qualityFindings(ctx, draft, rubric)],
+    G7: [...g7Counts, ...g7, ...researchFindings(ctx), ...qualityFindings(ctx, draft, rubric)],
   };
   return (["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"] as const).map((gate) => {
     const findings = [...(found[gate] ?? [])];
