@@ -1027,6 +1027,7 @@ code {
   .gear-cell:not([data-dismissed]):focus-within .gear-cell__hover {
     display: block;
   }
+}
 
 .section-comments {
   display: grid;
