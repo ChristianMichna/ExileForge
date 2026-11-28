@@ -161,10 +161,11 @@ describe("guide page", () => {
     vi.stubGlobal("fetch", () => json(view));
     window.location.hash = `#/guide/${GUIDE_ID}`;
     render(<App />);
-    expect(await screen.findByText("Fixture Unique Name")).toBeTruthy();
-    expect(screen.getByText("Implicit text")).toBeTruthy();
-    expect(screen.getByText("Unique line")).toBeTruthy();
-    expect(screen.getByText(/Unknown modifier \(Fixture\/NoText\)/)).toBeTruthy();
+    // The paper doll holds the card for hovering and the selected slot shows it again below.
+    expect((await screen.findAllByText("Fixture Unique Name")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Implicit text").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Unique line").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Unknown modifier \(Fixture\/NoText\)/).length).toBeGreaterThan(0);
   });
 
   it("shows the crafting flow with uncalibrated numbers as such and measured ones with their source", async () => {
