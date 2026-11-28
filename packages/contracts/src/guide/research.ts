@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { EntityRef } from "../common/ids.js";
 import { IsoDateTime } from "../common/version.js";
-import { RichText } from "../build/text.js";
+import { ResearchFindingId, RichText } from "../build/text.js";
 
 /*
  * Research findings (ADR-0006): what Claude found out about the build from outside the game data
@@ -25,12 +25,12 @@ export const ResearchSection = z.enum([
 ]);
 export type ResearchSection = z.infer<typeof ResearchSection>;
 
-export const ResearchFindingId = z.string().regex(/^[a-z0-9][a-z0-9-]{1,63}$/);
-export type ResearchFindingId = z.infer<typeof ResearchFindingId>;
+/** https, a host without embedded credentials, then an optional path, query or fragment. */
+const HTTPS_LINK = /^https:\/\/[^\s/@?#]+(?:[/?#]\S*)?$/i;
 
 export const ResearchSource = z.object({
   /** https only; the hosts that are allowed are set in config/agents/research.json. */
-  url: z.url().refine((u) => u.startsWith("https://"), { message: "sources must be https links" }),
+  url: z.string().max(2048).regex(HTTPS_LINK, "sources must be https links without credentials"),
   title: z.string().min(1).max(200),
   retrievedAt: IsoDateTime,
 });
@@ -48,3 +48,10 @@ export const ResearchFinding = z.object({
   entities: z.array(EntityRef).default([]),
 });
 export type ResearchFinding = z.infer<typeof ResearchFinding>;
+
+/** The findings of one guide: ids are unique, so a citation always means one finding. */
+export const ResearchFindings = z
+  .array(ResearchFinding)
+  .refine((list) => new Set(list.map((f) => f.id)).size === list.length, {
+    message: "research finding ids are not unique",
+  });

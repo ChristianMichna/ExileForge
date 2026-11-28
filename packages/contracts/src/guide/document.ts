@@ -12,7 +12,7 @@ import { ValidationReport } from "../build/findings.js";
 import { BudgetTierId, BuildRequest, Level3 } from "../build/request.js";
 import { CraftingPlan, GearPlan, ProgressionPlan } from "../build/stages.js";
 import { Rationale, RichText } from "../build/text.js";
-import { ResearchFinding } from "./research.js";
+import { ResearchFindings } from "./research.js";
 
 /** Version of the GuideDocument layout; bump with a migration. */
 export const GUIDE_SCHEMA_VERSION = 1;
@@ -137,7 +137,7 @@ export const GuideDocument = z.object({
   variants: z.array(GuideVariant),
   faq: z.array(GuideFaqEntry),
   /** Research findings the text cites (ADR-0006); empty for guides written without research. */
-  research: z.array(ResearchFinding).default([]),
+  research: ResearchFindings.default([]),
   validation: ValidationReport.optional(),
 });
 export type GuideDocument = z.infer<typeof GuideDocument>;

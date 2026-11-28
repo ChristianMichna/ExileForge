@@ -20,7 +20,14 @@ import { loadDesktopConfig, type DesktopConfig } from "./config.js";
 import { createHandlers } from "./ipc-handlers.js";
 import { startDataSync, type DataSyncController } from "./data-sync.js";
 import { findDataRelease, knownReleaseIds, resolveAppDirs } from "./resources.js";
-import { APP_SCHEME, APP_URL, isAppUrl, isDataSyncUrl, isTrustedSender } from "./security.js";
+import {
+  APP_SCHEME,
+  APP_URL,
+  isAppUrl,
+  isCitationUrl,
+  isDataSyncUrl,
+  isTrustedSender,
+} from "./security.js";
 import { startServices, type Services } from "./services.js";
 import { StatusStore } from "./status.js";
 import { startUpdates, type UpdateController } from "./updater.js";
@@ -55,7 +62,15 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow.focus();
   });
   app.on("web-contents-created", (_event, contents) => {
-    contents.setWindowOpenHandler(() => ({ action: "deny" }));
+    contents.setWindowOpenHandler(({ url }) => {
+      // A citation link in a guide opens in the default browser; no other window may open.
+      if (isCitationUrl(url)) {
+        shell.openExternal(url).catch((error: unknown) => {
+          logger.error("could not open a citation link", { error });
+        });
+      }
+      return { action: "deny" };
+    });
     contents.on("will-navigate", (event, url) => {
       if (!isAppUrl(url)) event.preventDefault();
     });

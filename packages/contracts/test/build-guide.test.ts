@@ -10,6 +10,7 @@ import {
   ProgressionStage,
   PublishedGuide,
   ResearchFinding,
+  ResearchFindings,
   RichText,
 } from "../src/index.js";
 import { without } from "./helpers.js";
@@ -371,7 +372,24 @@ describe("research findings (ADR-0006)", () => {
         source: { ...finding.source, url: "http://example.test" },
       }),
     ).toThrow();
+    expect(() =>
+      ResearchFinding.parse({
+        ...finding,
+        source: { ...finding.source, url: "https://user:pw@example.test/" },
+      }),
+    ).toThrow();
+    expect(() =>
+      ResearchFinding.parse({
+        ...finding,
+        source: { ...finding.source, url: "javascript:alert(1)" },
+      }),
+    ).toThrow();
     expect(() => ResearchFinding.parse(without(finding, "source"))).toThrow();
     expect(() => RichText.parse([{ type: "source", id: "Not A Slug" }])).toThrow();
+  });
+
+  it("keeps the ids of a guide's findings unique", () => {
+    expect(() => ResearchFindings.parse([finding, finding])).toThrow(/not unique/);
+    expect(ResearchFindings.parse([finding])).toHaveLength(1);
   });
 });

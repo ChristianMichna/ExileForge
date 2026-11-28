@@ -10725,7 +10725,8 @@
                 "properties": {
                   "url": {
                     "type": "string",
-                    "format": "uri"
+                    "maxLength": 2048,
+                    "pattern": "^https:\\/\\/[^\\s/@?#]+(?:[/?#]\\S*)?$"
                   },
                   "title": {
                     "type": "string",

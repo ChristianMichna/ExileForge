@@ -44,6 +44,12 @@ describe("S9 sections", () => {
     ]);
   });
 
+  it("reads a citation as rich text and not as a catalog reference", () => {
+    const out = walkSection({ tips: [[text("Do it"), { type: "source", id: "boss-order" }]] });
+    expect(out.texts.map((t) => t.path)).toEqual(["/tips/0"]);
+    expect(out.entities).toEqual([]);
+  });
+
   it("treats the mod ids of the atlas section as catalog mods", () => {
     const out = walkSection({
       strategy: [text("Go")],

@@ -47,6 +47,19 @@ export function isAllowedExternalUrl(url: string, allowedSchemes: readonly strin
   }
 }
 
+/**
+ * Links in guide text (research citations, ADR-0006) open in the player's own browser: https only,
+ * no embedded credentials. Nothing else may open a window.
+ */
+export function isCitationUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.username === "" && parsed.password === "";
+  } catch {
+    return false;
+  }
+}
+
 /** Host of the GitHub API the data release check talks to (see @astrolabe/release-sync). */
 export const GITHUB_API_HOST = "api.github.com";
 

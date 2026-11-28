@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONTENT_SECURITY_POLICY,
   isAllowedExternalUrl,
+  isCitationUrl,
   isAppUrl,
   isTrustedSender,
 } from "../src/main/security.js";
@@ -48,5 +49,16 @@ describe("data sync requests", () => {
     expect(isDataSyncUrl("https://github.com:8443/x", hosts)).toBe(false);
     expect(isDataSyncUrl("https://u:p@github.com/x", hosts)).toBe(false);
     expect(isDataSyncUrl("not a url", hosts)).toBe(false);
+  });
+});
+
+describe("citation links", () => {
+  it("opens https links without credentials and nothing else", () => {
+    expect(isCitationUrl("https://example.test/guide")).toBe(true);
+    expect(isCitationUrl("http://example.test/guide")).toBe(false);
+    expect(isCitationUrl("https://user:pw@example.test/")).toBe(false);
+    expect(isCitationUrl("javascript:alert(1)")).toBe(false);
+    expect(isCitationUrl("file:///etc/passwd")).toBe(false);
+    expect(isCitationUrl("not a url")).toBe(false);
   });
 });
