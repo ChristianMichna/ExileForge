@@ -153,6 +153,7 @@
   "s9": {
     "$comment": "Depth of the guide (product owner, 27.11.2026: at least the detail of Maxroll guides). S9 writes one task per progression stage, gear tier, gear slot and crafting plan on top of the sections; these are the least counts a task's answer must reach before it is accepted. Quality bar of the developers, not game facts.",
     "rubricFile": "guide-rubric.json",
+    "guideSpecFile": "guide-spec.json",
     "depth": {
       "introductionParagraphs": 3,
       "interactions": 3,

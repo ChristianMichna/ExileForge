@@ -303,13 +303,26 @@ async function loadStageConfig(path: string): Promise<StageConfig> {
     throw new Error(`Cannot read stage config ${path}`, { cause: error });
   }
   // The quality rubric is a file of its own next to the stage config; it is read into the config.
-  const s9 = (raw as { s9?: { rubricFile?: unknown; rubric?: unknown } } | null)?.s9;
+  const s9 = (
+    raw as {
+      s9?: { rubricFile?: unknown; rubric?: unknown; guideSpecFile?: unknown; guideSpec?: unknown };
+    } | null
+  )?.s9;
   if (s9 !== undefined && typeof s9.rubricFile === "string") {
     const rubricPath = join(dirname(path), s9.rubricFile);
     try {
       s9.rubric = JSON.parse(await readFile(rubricPath, "utf8"));
     } catch (error) {
       throw new Error(`Cannot read guide rubric ${rubricPath}`, { cause: error });
+    }
+  }
+  // The guide specification is a file of its own too; it is handed to Claude per task.
+  if (s9 !== undefined && typeof s9.guideSpecFile === "string") {
+    const specPath = join(dirname(path), s9.guideSpecFile);
+    try {
+      s9.guideSpec = JSON.parse(await readFile(specPath, "utf8"));
+    } catch (error) {
+      throw new Error(`Cannot read guide specification ${specPath}`, { cause: error });
     }
   }
   const parsed = StageConfig.safeParse(raw);
