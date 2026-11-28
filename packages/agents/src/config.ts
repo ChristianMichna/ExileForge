@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GuideSpec } from "./guide-spec.js";
 import { QualityRubric } from "./quality/rubric.js";
 import { BudgetTierId } from "@astrolabe/contracts/build";
 import { CalcProfileId } from "@astrolabe/contracts/common";
@@ -292,6 +293,9 @@ export const StageConfig = z
         /** File with the quality rubric, next to this config; the loader reads it into `rubric`. */
         rubricFile: z.string().min(1).optional(),
         rubric: QualityRubric.optional(),
+        /** File with the guide specification, next to this config; the loader reads it into `guideSpec`. */
+        guideSpecFile: z.string().min(1).optional(),
+        guideSpec: GuideSpec.optional(),
         depth: z.object({
           introductionParagraphs: z.int().nonnegative(),
           interactions: z.int().nonnegative(),
