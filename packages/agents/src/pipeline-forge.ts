@@ -36,6 +36,7 @@ import { TargetBuild } from "@astrolabe/contracts/build";
 import type { ProgressionStageTree } from "./ports.js";
 import { stageTableOf } from "./stages/s6-table.js";
 import { isMinionSkill, withMinionStats } from "./minion-stats.js";
+import { withGuideSpec } from "./guide-spec.js";
 import { S7_PLAN_KEY, planJob } from "./stages/s7-plan.js";
 import { gearKey, gearTask, resolveS7, tiersOf } from "./stages/s7-gear.js";
 import { CraftingPlan, GearPlan, ProgressionPlan } from "@astrolabe/contracts/build";
@@ -65,6 +66,33 @@ export const FORGE_PIPELINE_ID = "forge";
  * of inventing results.
  */
 export function createForgePipeline(config: StageConfig): Pipeline {
+  const pipeline = createPlainPipeline(config);
+  const spec = config.s9?.guideSpec;
+  if (spec === undefined) return pipeline;
+  // Every task gets the guide specification items that apply to it, and only those.
+  return {
+    ...pipeline,
+    plan: (ctx) => {
+      const step = pipeline.plan(ctx);
+      if (step.kind !== "task") return step;
+      return {
+        ...step,
+        spec: {
+          ...step.spec,
+          instructions: withGuideSpec(
+            step.spec.instructions,
+            step.spec.key,
+            spec,
+            config.s9?.rubric,
+          ),
+          promptVersion: `${step.spec.promptVersion}+${spec.version}`,
+        },
+      };
+    },
+  };
+}
+
+function createPlainPipeline(config: StageConfig): Pipeline {
   const mainSkillOf = (ctx: PipelineContext): string | undefined => {
     if (ctx.run.request.mainSkillId !== undefined) return ctx.run.request.mainSkillId;
     const chosen = ctx.result(S0_SKILL_KEY);
