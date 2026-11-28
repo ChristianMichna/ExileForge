@@ -250,6 +250,15 @@ export function FaqSection({ view }: { view: GuideView }) {
   );
 }
 
+/** Host of a source link; undefined when the browser cannot parse it, so one odd link never breaks the page. */
+function hostOfLink(url: string): string | undefined {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The pages the research behind the guide came from; the numbers match the [n] in the text. */
 export function SourcesSection({ view }: { view: GuideView }) {
   const { research } = view.guide;
@@ -262,7 +271,7 @@ export function SourcesSection({ view }: { view: GuideView }) {
             <a href={f.source.url} target="_blank" rel="noreferrer">
               {f.source.title}
             </a>{" "}
-            <span className="guide-source-host">({new URL(f.source.url).hostname})</span>
+            <span className="guide-source-host">({hostOfLink(f.source.url) ?? f.source.url})</span>
             <p>
               <RichTextView text={f.claim} view={view} />
             </p>

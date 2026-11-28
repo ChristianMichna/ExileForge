@@ -30,6 +30,12 @@ describe("sources of a guide", () => {
     expect(screen.getByText("Fixture claim in the researcher's words.")).toBeTruthy();
   });
 
+  it("still renders when a link cannot be parsed, and shows the raw link instead of a host", () => {
+    const odd = { ...finding, source: { ...finding.source, url: "https://a.1" } };
+    render(<SourcesSection view={viewWith([odd])} />);
+    expect(screen.getByText("(https://a.1)")).toBeTruthy();
+  });
+
   it("shows nothing when the guide was written without research", () => {
     const { container } = render(<SourcesSection view={viewWith([])} />);
     expect(container.textContent).toBe("");
