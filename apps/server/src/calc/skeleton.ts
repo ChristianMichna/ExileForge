@@ -13,6 +13,7 @@ import type {
 import {
   optimizeProgression,
   optimizeTree,
+  type RespecRule,
   TreeGraph,
   createPobTreeEvaluator,
   type CalcRequester as OptimizerPool,
@@ -55,7 +56,7 @@ export interface ProgressionSettings {
     floorsFromMetrics?: Record<string, string>;
   };
   /** See `s6.respec` in config/agents/stages.json. */
-  respec?: { maxRespecs: number; maxRefund: number; metric: string; minGainRatio: number };
+  respec?: RespecRule;
 }
 
 /** Settings of the endgame target tree (config/agents/stages.json → s5, without level and points). */
@@ -358,7 +359,9 @@ export class PobSkeleton implements SkeletonPort, TargetPort, ProgressionPort {
         stages: input.stages.map((s) => ({
           key: s.key,
           budget: s.budget,
-          ...(s.allowRespec === true ? { allowRespec: true } : {}),
+          ...(s.respecMinGainRatio === undefined
+            ? {}
+            : { respecMinGainRatio: s.respecMinGainRatio }),
         })),
         ...(settings.respec === undefined ? {} : { respec: settings.respec }),
         objective: this.objectiveFor(settings.objective, input.profile.mainSkillId),

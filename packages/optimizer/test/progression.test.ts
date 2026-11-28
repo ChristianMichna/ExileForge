@@ -132,21 +132,24 @@ describe("optimizeProgression", () => {
     const trapModel: FakeModel = {
       stats: { a1: { dmg: 5 }, a2: { dmg: 100 }, b1: { dmg: 10 }, b2: { dmg: 0 } },
     };
-    const run = (rule: Parameters<typeof optimizeProgression>[0]["respec"], allow = true) =>
+    const run = (
+      rule: Parameters<typeof optimizeProgression>[0]["respec"],
+      gain: number | undefined = 0.5,
+    ) =>
       optimizeProgression({
         graph: trap,
         target: trapTarget,
         stages: [
-          { key: "early", budget: 1, allowRespec: allow },
-          { key: "mid", budget: 2, allowRespec: allow },
-          { key: "end", budget: 4, allowRespec: allow },
+          { key: "early", budget: 1, ...(gain === undefined ? {} : { respecMinGainRatio: gain }) },
+          { key: "mid", budget: 2, ...(gain === undefined ? {} : { respecMinGainRatio: gain }) },
+          { key: "end", budget: 4, ...(gain === undefined ? {} : { respecMinGainRatio: gain }) },
         ],
         objective: { weights: { Dps: 1 } },
         evaluator: new FakeEvaluator(trapModel),
         config,
         ...(rule === undefined ? {} : { respec: rule }),
       });
-    const rule = { maxRespecs: 1, maxRefund: 2, metric: "Dps", minGainRatio: 0.5 };
+    const rule = { maxRespecs: 1, maxRefund: 2, metric: "Dps" };
 
     it("never respecs without a rule", async () => {
       const result = await run(undefined);
@@ -163,16 +166,14 @@ describe("optimizeProgression", () => {
     });
 
     it("does not respec when the stage may not, the budget is spent or the gain is small", async () => {
-      expect((await run(rule, false)).stages.flatMap((s) => s.respecs)).toEqual([]);
+      expect((await run(rule, undefined)).stages.flatMap((s) => s.respecs)).toEqual([]);
       expect((await run({ ...rule, maxRespecs: 0 })).stages.flatMap((s) => s.respecs)).toEqual([]);
-      expect((await run({ ...rule, minGainRatio: 5 })).stages.flatMap((s) => s.respecs)).toEqual(
-        [],
-      );
+      expect((await run(rule, 5)).stages.flatMap((s) => s.respecs)).toEqual([]);
       expect((await run({ ...rule, maxRefund: 0 })).stages.flatMap((s) => s.respecs)).toEqual([]);
     });
 
     it("rejects a nonsensical rule", async () => {
-      await expect(run({ ...rule, minGainRatio: 0 })).rejects.toThrow(/respec rule/);
+      await expect(run(rule, 0)).rejects.toThrow(/respec rule/);
     });
   });
 });

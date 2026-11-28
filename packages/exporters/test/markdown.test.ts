@@ -56,10 +56,10 @@ describe("guideToMarkdown", () => {
     });
     const withStages = {
       ...guide,
-      progression: { stages: [stage("a", []), stage("b", ["n1", "n2"])] },
+      progression: { stages: [stage("a", []), stage("b", []), stage("c", ["n1", "n2"])] },
     } as never as PublishedGuide;
     const md = guideToMarkdown(withStages, { entityName: (r) => r.id, statValue: () => 1 });
     expect(md).toContain("**Respec:** none, this stage only adds points to the previous tree.");
-    expect(md).toContain("**Respec:** refund 2 points.");
+    expect(md).toContain("**Respec:** refund 2 points, cost not measured.");
   });
 });

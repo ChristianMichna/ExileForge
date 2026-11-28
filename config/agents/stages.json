@@ -59,12 +59,11 @@
       "floorsFromMetrics": {}
     },
     "respec": {
-      "$comment": "Stages extend the previous one; a respec needs a big gain on the metric (minGainRatio 1 = double). Product owner (27.11.2026): few respecs, especially in the campaign, unless the boost clearly speeds it up. maxRespecs 0 until the respec cost can be measured (gate G6 demands it for every respec).",
+      "$comment": "Stages extend the previous one; a respec needs a big gain on the metric (minGainRatio 1 = double; the campaign needs much more than the endgame). Product owner (27.11.2026): few respecs, especially in the campaign, unless the boost clearly speeds it up. maxRespecs 0 until the respec cost can be measured (gate G6 demands it for every respec).",
       "maxRespecs": 0,
       "maxRefund": 8,
       "metric": "CombinedDPS",
-      "minGainRatio": 1,
-      "kinds": ["endgame"]
+      "minGainRatio": { "campaign": 3, "endgame": 1 }
     }
   },
   "s7": {

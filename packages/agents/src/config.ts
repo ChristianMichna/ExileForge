@@ -152,16 +152,25 @@ export const StageConfig = z
         /**
          * Respecs between stages. Absent or `maxRespecs: 0`: the stages only ever
          * extend the previous one. A respec happens only when the freely
-         * re-picked tree gains `minGainRatio` on `metric`.
+         * re-picked tree gains `minGainRatio` (of its kind) on `metric`.
          */
         respec: z
           .object({
             maxRespecs: z.int().nonnegative(),
             maxRefund: z.int().nonnegative(),
             metric: z.string().min(1),
-            minGainRatio: z.number().positive(),
-            /** Stage kinds allowed to respec; the campaign is left out on purpose by default. */
-            kinds: z.array(z.enum(["campaign", "endgame"])).min(1),
+            /**
+             * Relative gain on `metric` (1 = double) a stage of this kind needs to respec;
+             * a kind left out never respecs. Set the campaign's much higher than the endgame's.
+             */
+            minGainRatio: z
+              .object({
+                campaign: z.number().positive().optional(),
+                endgame: z.number().positive().optional(),
+              })
+              .refine((g) => g.campaign !== undefined || g.endgame !== undefined, {
+                message: "needs a gain for at least one stage kind",
+              }),
           })
           .optional(),
       })

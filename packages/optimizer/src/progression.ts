@@ -13,23 +13,25 @@ export interface ProgressionStageInput {
   budget: number;
   /** Replaces the plan's objective for this stage (e.g. more life early on). */
   objective?: Objective;
-  /** May this stage respec? Only used when the input has a `respec` rule. */
-  allowRespec?: boolean;
+  /**
+   * Relative gain on the rule's metric that lets this stage respec (1 = double).
+   * Without it the stage never respecs. Only used when the input has a `respec` rule.
+   */
+  respecMinGainRatio?: number;
 }
 
 /**
  * When a respec is worth it. The default is none: stages extend the previous
  * one. A stage may only respec when the freely re-picked tree is better by
- * `minGainRatio` on `metric`, refunds at most `maxRefund` points, and fewer
- * than `maxRespecs` respecs were used before.
+ * the stage's `respecMinGainRatio` on `metric` and in the objective's total,
+ * adds no floor violation, refunds at most `maxRefund` points, and fewer than
+ * `maxRespecs` respecs were used before.
  */
 export interface RespecRule {
   maxRespecs: number;
   maxRefund: number;
   /** PoB output the gain is measured on, e.g. the one the plan's objective weighs most. */
   metric: string;
-  /** Relative gain needed, e.g. 0.5 = 50 % more of `metric` than the nested tree. */
-  minGainRatio: number;
 }
 
 export interface ProgressionInput {
@@ -115,16 +117,16 @@ export async function optimizeProgression(input: ProgressionInput): Promise<Prog
       rule.maxRespecs < 0 ||
       !Number.isInteger(rule.maxRefund) ||
       rule.maxRefund < 0 ||
-      !(rule.minGainRatio > 0))
+      input.stages.some((s) => s.respecMinGainRatio !== undefined && !(s.respecMinGainRatio > 0)))
   ) {
     throw new OptimizerError(
       "invalid_input",
-      "respec rule: counts must be whole numbers, gain > 0",
+      "respec rule: counts must be whole numbers, stage gains > 0",
     );
   }
   const metrics = [
     ...new Set([
-      ...(rule === undefined ? [] : [rule.metric]),
+      ...(rule === undefined || rule.maxRespecs === 0 ? [] : [rule.metric]),
       ...[input.objective, ...input.stages.map((s) => s.objective ?? input.objective)].flatMap(
         objectiveMetrics,
       ),
@@ -166,7 +168,8 @@ export async function optimizeProgression(input: ProgressionInput): Promise<Prog
     let respecs: string[] = [];
     if (
       rule !== undefined &&
-      stage.allowRespec === true &&
+      stage.respecMinGainRatio !== undefined &&
+      rule.maxRespecs > 0 &&
       respecsUsed < rule.maxRespecs &&
       state.length > 0 &&
       final !== undefined
@@ -185,14 +188,21 @@ export async function optimizeProgression(input: ProgressionInput): Promise<Prog
       if (alt !== undefined) {
         const kept = new Set(free.order);
         const refunded = state.filter((id) => !kept.has(id));
-        const nestedValue = final.outcome.metrics[rule.metric] ?? 0;
-        const altValue = alt.outcome.metrics[rule.metric] ?? 0;
+        const nestedValue = final.outcome.metrics[rule.metric];
+        const altValue = alt.outcome.metrics[rule.metric];
+        if (nestedValue === undefined || altValue === undefined) {
+          throw new OptimizerError(
+            "evaluator_failed",
+            `Stage ${stage.key}: the respec metric ${rule.metric} was not measured`,
+          );
+        }
         const big =
-          nestedValue > 0 ? altValue / nestedValue - 1 >= rule.minGainRatio : altValue > 0;
+          nestedValue > 0 ? altValue / nestedValue - 1 >= stage.respecMinGainRatio : altValue > 0;
         if (
           refunded.length > 0 &&
           refunded.length <= rule.maxRefund &&
           big &&
+          alt.score >= final.score &&
           scorer.violations(alt.outcome.metrics).length <=
             scorer.violations(final.outcome.metrics).length
         ) {

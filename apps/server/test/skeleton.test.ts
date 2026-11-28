@@ -59,7 +59,7 @@ function setup(
     minion?: { skillKinds: string[]; statMap: Record<string, string> };
     placeholderWeapon?: { slot: string; rarity: string };
     calc?: { calculate: unknown; getResult: unknown };
-    respec?: { maxRespecs: number; maxRefund: number; metric: string; minGainRatio: number };
+    respec?: { maxRespecs: number; maxRefund: number; metric: string };
   } = {},
 ) {
   const optimize = vi.fn<(input: TreeOptimizeInput) => Promise<never>>(() =>
@@ -463,7 +463,7 @@ describe("PobSkeleton", () => {
     });
 
     it("hands the respec rule and the stages that may respec to the optimiser", async () => {
-      const respec = { maxRespecs: 1, maxRefund: 4, metric: "CombinedDPS", minGainRatio: 1 };
+      const respec = { maxRespecs: 1, maxRefund: 4, metric: "CombinedDPS" };
       const { skeleton, optimizeStages } = setup(
         {},
         wrap([stage("early", ["FixN1"]), stage("late", ["FixN1", "FixN2"])]),
@@ -473,15 +473,18 @@ describe("PobSkeleton", () => {
       );
       await skeleton.optimizeProgression({
         ...input,
-        stages: [input.stages[0] as never, { ...(input.stages[1] as object), allowRespec: true }],
+        stages: [
+          input.stages[0] as never,
+          { ...(input.stages[1] as object), respecMinGainRatio: 3 },
+        ],
       } as never);
       const call = (
         optimizeStages.mock.calls as unknown as [
-          { respec?: unknown; stages: { key: string; allowRespec?: boolean }[] },
+          { respec?: unknown; stages: { key: string; respecMinGainRatio?: number }[] },
         ][]
       )[0]?.[0];
       expect(call?.respec).toEqual(respec);
-      expect(call?.stages.map((s) => s.allowRespec)).toEqual([undefined, true]);
+      expect(call?.stages.map((s) => s.respecMinGainRatio)).toEqual([undefined, 3]);
     });
 
     it("fails when the last stage does not reach the target tree", async () => {

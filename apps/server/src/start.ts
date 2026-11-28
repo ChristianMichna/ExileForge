@@ -172,7 +172,6 @@ async function startServerOwningPool(
                       maxRespecs: stages.s6.respec.maxRespecs,
                       maxRefund: stages.s6.respec.maxRefund,
                       metric: stages.s6.respec.metric,
-                      minGainRatio: stages.s6.respec.minGainRatio,
                     },
                   }),
             },

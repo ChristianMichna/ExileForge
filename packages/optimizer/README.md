@@ -80,7 +80,7 @@ liefern gleiche Ergebnisse; Zustände werden je Lauf nur einmal berechnet
 - Respecs zwischen Stufen: Standard ist keiner, jede Stufe baut auf der
   vorigen auf. Mit der Regel `respec` (`RespecRule`, Config `s6.respec`) wählt
   eine dafür freigegebene Stufe ihren Baum neu (nur aus Knoten des Ziel-Trees),
-  wenn die Metrik um mindestens `minGainRatio` besser ist, höchstens
+  wenn die Metrik um mindestens `respecMinGainRatio` der Stufe und der Zielwert insgesamt besser ist, keine Floor-Verletzung dazukommt, höchstens
   `maxRefund` Punkte zurückgegeben werden und weniger als `maxRespecs` Respecs
   vorher fielen (Vorgabe Christian 27.11.2026: selten, in der Kampagne nur bei
   großem Gewinn). Die Standardconfig lässt `maxRespecs` bei 0, weil die Kosten
