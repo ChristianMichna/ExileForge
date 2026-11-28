@@ -306,7 +306,10 @@ async function loadStageConfig(path: string): Promise<StageConfig> {
   // The quality rubric is a file of its own next to the stage config; it is read into the config.
   const s9 = (
     raw as {
-      s9?: { rubricFile?: unknown; rubric?: unknown; guideSpecFile?: unknown;
+      s9?: {
+        rubricFile?: unknown;
+        rubric?: unknown;
+        guideSpecFile?: unknown;
         guideSpec?: unknown;
         researchFile?: unknown;
         research?: unknown;
