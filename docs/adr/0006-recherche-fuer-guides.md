@@ -1,6 +1,6 @@
 # ADR-0006: Recherche für Guides ohne Zahlen aus dem Netz
 
-- Status: **Vorschlag** (Entscheidung durch Christian offen)
+- Status: **angenommen** (Christian, 2026-11-28, Entscheidungskarte: Option A, Recherche über Claude Desktop mit Websuche)
 - Datum: 2026-11-28
 - Auslöser: Christians Rückmeldung vom 27.11.2026: Viele Ratschläge im Guide seien generisch; ein
   Guide brauche gründliche Recherche.
@@ -55,8 +55,8 @@ denselben Prüfungen wie jede andere Aufgabe:
 - Eine Allowlist der Quellen (Patchnotes, Wikis, Community-Guides) liegt in `config/`; Foren und
   Videos nur auf ausdrückliche Freigabe.
 
-## Offene Fragen an Christian
+## Festlegungen zu den offenen Fragen (Empfehlungen, in `config/` änderbar)
 
-1. Option A (Recherche über Claude Desktop mit Websuche) in Ordnung?
-2. Pflicht oder optional? Empfehlung: Standard an, mit Schalter für schnelle Läufe.
-3. Quellen: Nur Patchnotes und Wiki, oder auch Community-Guides (nur als Paraphrase mit Link)?
+1. Abruf über Claude Desktop mit Websuche des Nutzers (entschieden).
+2. Recherche ist standardmäßig an, mit Schalter in `config/agents/stages.json` für schnelle Läufe.
+3. Quellen: Patchnotes, Wiki und Community-Guides (nur als Paraphrase mit Link); die Liste der erlaubten Hosts steht in `config/agents/research.json`. Foren und Videos nur nach ausdrücklicher Freigabe.
