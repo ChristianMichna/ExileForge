@@ -249,3 +249,26 @@ export function FaqSection({ view }: { view: GuideView }) {
     </Panel>
   );
 }
+
+/** The pages the research behind the guide came from; the numbers match the [n] in the text. */
+export function SourcesSection({ view }: { view: GuideView }) {
+  const { research } = view.guide;
+  if (research.length === 0) return null;
+  return (
+    <Panel title="Sources" kicker="Research">
+      <ol className="guide-sources">
+        {research.map((f) => (
+          <li key={f.id} id={`source-${f.id}`}>
+            <a href={f.source.url} target="_blank" rel="noreferrer">
+              {f.source.title}
+            </a>{" "}
+            <span className="guide-source-host">({new URL(f.source.url).hostname})</span>
+            <p>
+              <RichTextView text={f.claim} view={view} />
+            </p>
+          </li>
+        ))}
+      </ol>
+    </Panel>
+  );
+}
