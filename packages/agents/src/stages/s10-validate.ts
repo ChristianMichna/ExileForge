@@ -1,3 +1,4 @@
+import { allFindings } from "./s9-research.js";
 import { z } from "zod";
 import {
   type ArchetypeCandidate,
@@ -293,6 +294,7 @@ export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDra
       atlas: part("atlas", sectionSchemas.atlas),
       variants: part("variants", sectionSchemas.variants).variants,
       faq: part("faq", sectionSchemas.faq).faq,
+      research: allFindings(ctx),
     },
     "guide draft",
   );

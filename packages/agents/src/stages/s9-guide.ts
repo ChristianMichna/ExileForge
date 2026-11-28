@@ -1,3 +1,4 @@
+import { researchContext } from "./s9-research.js";
 import { z } from "zod";
 import type {
   ArchetypeCandidate,
@@ -258,6 +259,7 @@ export function sectionTask(
     if (content === undefined) throw new Error(`Section ${s} is missing before ${section}`);
     return { section: s, content };
   });
+  const research = researchContext(ctx, section);
   return defineTask<unknown>({
     key: sectionKey(section),
     type: sectionKey(section),
@@ -268,6 +270,7 @@ export function sectionTask(
       chosen: JSON.parse(JSON.stringify(inputs.chosen)) as JsonValue,
       calcs: citableCalcs(inputs.target),
       ...inputs.plans,
+      ...(research === undefined ? {} : { research }),
       written,
     },
     schema: sectionSchemas[section],

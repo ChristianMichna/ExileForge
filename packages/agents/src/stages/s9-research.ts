@@ -37,6 +37,14 @@ export function researchSections(config: StageConfig): ResearchSection[] {
   return ResearchSection.options.filter((s) => research.sections.includes(s));
 }
 
+/** True when the section gets a research task. */
+export function isResearched(
+  config: StageConfig,
+  section: ResearchSection,
+): section is Exclude<ResearchSection, "progression" | "gear" | "crafting"> {
+  return researchSections(config).includes(section);
+}
+
 /** The accepted answer of a section's research task, if it is done and readable. */
 export function researchAnswer(
   ctx: PipelineContext,

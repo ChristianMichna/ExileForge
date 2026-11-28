@@ -23,7 +23,7 @@ export type ResearchConfig = z.infer<typeof ResearchConfig>;
 
 /** Whether a source link may be used: https and a host on the allowlist (or below one). */
 export function hostAllowed(url: string, allowlist: readonly string[]): boolean {
-  const m = /^https:\/\/([^\s/@?#:]+)(?::\d+)?(?:[/?#]|$)/i.exec(url);
+  const m = /^https:\/\/([^\s/@?#:]+)(?:[/?#]|$)/i.exec(url);
   if (m === null || m[1] === undefined) return false;
   const host = m[1].toLowerCase();
   return allowlist.some((h) => host === h || host.endsWith(`.${h}`));
