@@ -858,14 +858,6 @@ code {
 
 .stage-bar__list {
   display: flex;
-.section-comments {
-  display: grid;
-  gap: var(--ef-space-3);
-  margin-top: var(--ef-space-3);
-}
-
-.section-comments__list {
-  display: grid;
   gap: var(--ef-space-2);
   margin: 0;
   padding: 0;
@@ -903,6 +895,20 @@ code {
   font-family: var(--ef-font-mono);
   font-size: var(--ef-text-xs);
   color: var(--ef-color-text-faint);
+}
+
+.section-comments {
+  display: grid;
+  gap: var(--ef-space-3);
+  margin-top: var(--ef-space-3);
+}
+
+.section-comments__list {
+  display: grid;
+  gap: var(--ef-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
   color: var(--ef-color-text-muted);
 }
 
