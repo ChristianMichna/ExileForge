@@ -13,7 +13,17 @@ import { nameOf } from "../guide/RichTextView";
 
 const SKIPPED_SHOWN = 10;
 
-function TreeBody({ view, data }: { view: GuideView; data: PassiveTreeData }) {
+interface StageProps {
+  readonly stageIndex?: number | undefined;
+  readonly onStageChange?: ((index: number) => void) | undefined;
+}
+
+function TreeBody({
+  view,
+  data,
+  stageIndex,
+  onStageChange,
+}: { view: GuideView; data: PassiveTreeData } & StageProps) {
   const { guide } = view;
   const ascendancyId = guide.summary.ascendancyId;
   const prepared = useMemo(() => {
@@ -53,6 +63,8 @@ function TreeBody({ view, data }: { view: GuideView; data: PassiveTreeData }) {
           view: prepared.ascendancy,
         }}
         timeline={prepared.timeline}
+        {...(stageIndex === undefined ? {} : { stageIndex, initialStage: stageIndex })}
+        {...(onStageChange === undefined ? {} : { onStageChange })}
         provenance={{ kind: "gamedata", dataRelease: data.dataReleaseId }}
         allocationSource={`Allocation: guide ${guide.metadata.guideId}`}
       />
@@ -60,7 +72,7 @@ function TreeBody({ view, data }: { view: GuideView; data: PassiveTreeData }) {
   );
 }
 
-export function TreeSection({ view }: { view: GuideView }) {
+export function TreeSection({ view, stageIndex, onStageChange }: { view: GuideView } & StageProps) {
   if (!view.current) {
     return (
       <Panel title="Passive tree" kicker="By stage">
@@ -71,10 +83,10 @@ export function TreeSection({ view }: { view: GuideView }) {
       </Panel>
     );
   }
-  return <LoadedTree view={view} />;
+  return <LoadedTree view={view} stageIndex={stageIndex} onStageChange={onStageChange} />;
 }
 
-function LoadedTree({ view }: { view: GuideView }) {
+function LoadedTree({ view, stageIndex, onStageChange }: { view: GuideView } & StageProps) {
   const loaded = useLoaded((signal) => loadPassiveTree(signal), view.catalogReleaseId);
   return (
     <Panel title="Passive tree" kicker="By stage">
@@ -84,7 +96,14 @@ function LoadedTree({ view }: { view: GuideView }) {
           {loaded.message}
         </Callout>
       ) : null}
-      {loaded.status === "ready" ? <TreeBody view={view} data={loaded.value} /> : null}
+      {loaded.status === "ready" ? (
+        <TreeBody
+          view={view}
+          data={loaded.value}
+          stageIndex={stageIndex}
+          onStageChange={onStageChange}
+        />
+      ) : null}
     </Panel>
   );
 }

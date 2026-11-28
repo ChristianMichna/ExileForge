@@ -6,6 +6,7 @@ import { CraftingSection } from "./GuideCrafting";
 import { useLoaded } from "../api/use-loaded";
 import { GearSection } from "./GuideGear";
 import { GearMatrix } from "./GearMatrix";
+import { StageBar } from "./StageBar";
 import { GuideNav, type NavSection } from "./GuideNav";
 import { PowerCurve } from "./PowerCurve";
 import { TreeSection } from "./GuideTree";
@@ -140,163 +141,180 @@ function GuideBody({ view, guideId }: { view: GuideView; guideId: string }) {
   return (
     <div className="page guide-page">
       <GuideNav sections={nav} />
-      <PageHeader
-        kicker={`Guide · ${guide.metadata.dataReleaseId} · PoB ${guide.metadata.pobVersion}`}
-        title={`${ascendancy ?? summary.ascendancyId}: ${skill ?? summary.mainSkillId}`}
-        actions={
-          <>
-            <BuildFileExportButton guideId={guideId} />
-            <GuideFileExportButton guideId={guideId} />
-          </>
-        }
-      />
-      <CommentsBanner />
-      {view.current ? null : (
-        <Callout tone="warning" title="Older game data">
-          This guide was built with {guide.metadata.dataReleaseId}; the app now runs with{" "}
-          {view.catalogReleaseId}. Names are not shown until the guide is revalidated, and its
-          numbers keep the release they were calculated with.
-        </Callout>
-      )}
-      {view.unresolved.length > 0 ? (
-        <Callout tone="warning" title="Some names and numbers are missing">
-          The game data this app runs with does not know these entries, so they are shown as ids:{" "}
-          {view.unresolved.join(", ")}
-        </Callout>
-      ) : null}
-      <section id="guide-summary" className="guide-section" tabIndex={-1}>
-        <Panel title="Summary" kicker="At a glance">
-          {summary.introduction.length > 0 ? (
-            <GuideNotes>
-              {summary.introduction.map((p, i) => (
-                <p key={i}>
-                  <RichTextView text={p} view={view} />
-                </p>
-              ))}
-            </GuideNotes>
-          ) : null}
-          <GuideNotes>
-            <p>
-              <RichTextView text={summary.playstyle} view={view} />
-            </p>
-            <p>
-              <RichTextView text={summary.scalingAxes} view={view} />
-            </p>
-          </GuideNotes>
-          <div className="guide-columns">
-            <div>
-              <h3>Strengths</h3>
-              <ul>
-                {summary.strengths.map((t, i) => (
-                  <li key={i}>
-                    <RichTextView text={t} view={view} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3>Weaknesses</h3>
-              <ul>
-                {summary.weaknesses.map((t, i) => (
-                  <li key={i}>
-                    <RichTextView text={t} view={view} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          {summary.closing === undefined ? null : (
-            <p>
-              <strong>In short: </strong>
-              <RichTextView text={summary.closing} view={view} />
-            </p>
-          )}
-        </Panel>
-        <PowerCurve view={view} />
-        <SectionComments sectionKey="S9.summary" label="Overview" />
-      </section>
-      <section id="guide-mechanics" className="guide-section" tabIndex={-1}>
-        <Panel title="How it works" kicker="Mechanics" variant="recessed">
-          <GuideNotes>
-            <p>
-              <RichTextView text={mechanics.explanation} view={view} />
-            </p>
-          </GuideNotes>
-          <ul>
-            {mechanics.decisions.map((d, i) => (
-              <li key={i}>
-                {d.subject === undefined ? null : (
-                  <strong>{nameOf(view, d.subject) ?? d.subject.id}: </strong>
-                )}
-                <RichTextView text={d.reason} view={view} />
-              </li>
-            ))}
-          </ul>
-          <Reasons title="How the parts work together" items={mechanics.interactions} view={view} />
-          <Reasons title="Skill setups" items={mechanics.gemSetups} view={view} />
-          {mechanics.defences.length > 0 ? (
+      <div className="guide-main">
+        <StageBar stages={sortedStages} value={stageKey} onChange={setStageKey} />
+        <PageHeader
+          kicker={`Guide · ${guide.metadata.dataReleaseId} · PoB ${guide.metadata.pobVersion}`}
+          title={`${ascendancy ?? summary.ascendancyId}: ${skill ?? summary.mainSkillId}`}
+          actions={
             <>
-              <h3>Defences</h3>
-              <ul>
-                {mechanics.defences.map((d, i) => (
-                  <li key={i}>
-                    <RichTextView text={d.explanation} view={view} />
-                  </li>
-                ))}
-              </ul>
+              <BuildFileExportButton guideId={guideId} />
+              <GuideFileExportButton guideId={guideId} />
             </>
-          ) : null}
-          {mechanics.resources === undefined ? null : (
-            <>
-              <h3>Resources</h3>
-              <p>
-                <RichTextView text={mechanics.resources} view={view} />
-              </p>
-            </>
-          )}
-        </Panel>
-        <SectionComments sectionKey="S9.mechanics" label="How it works" />
-      </section>
-      <section id="guide-stages" className="guide-section" tabIndex={-1}>
-        <Tabs
-          label="Guide stages"
-          variant="dial"
-          value={stageKey}
-          onChange={setStageKey}
-          items={sortedStages.map((stage, i) => ({
-            id: stage.key,
-            label: stage.label,
-            hint: `Level ${stage.levelRange[0]}–${stage.levelRange[1]}`,
-            content: <StageView stage={stage} previous={sortedStages[i - 1]} view={view} />,
-          }))}
+          }
         />
-      </section>
-      <section id="guide-gear" className="guide-section" tabIndex={-1}>
-        <GearMatrix view={view} />
-        <GearSection view={view} />
-      </section>
-      <section id="guide-crafting" className="guide-section" tabIndex={-1}>
-        <CraftingSection view={view} />
-      </section>
-      <section id="guide-tree" className="guide-section" tabIndex={-1}>
-        <TreeSection view={view} />
-      </section>
-      <section id="guide-playstyle" className="guide-section" tabIndex={-1}>
-        <PlaystyleSection view={view} />
-        <SectionComments sectionKey="S9.playstyle" label="Playstyle" />
-      </section>
-      <section id="guide-atlas" className="guide-section" tabIndex={-1}>
-        <AtlasSection view={view} />
-        <SectionComments sectionKey="S9.atlas" label="Endgame" />
-      </section>
-      <section id="guide-variants" className="guide-section" tabIndex={-1}>
-        <VariantsSection view={view} />
-        <SectionComments sectionKey="S9.variants" label="Variants" />
-      </section>
-      <section id="guide-faq" className="guide-section" tabIndex={-1}>
-        <FaqSection view={view} />
-        <SectionComments sectionKey="S9.faq" label="Troubleshooting" />
-      </section>
+        <CommentsBanner />
+        {view.current ? null : (
+          <Callout tone="warning" title="Older game data">
+            This guide was built with {guide.metadata.dataReleaseId}; the app now runs with{" "}
+            {view.catalogReleaseId}. Names are not shown until the guide is revalidated, and its
+            numbers keep the release they were calculated with.
+          </Callout>
+        )}
+        {view.unresolved.length > 0 ? (
+          <Callout tone="warning" title="Some names and numbers are missing">
+            The game data this app runs with does not know these entries, so they are shown as ids:{" "}
+            {view.unresolved.join(", ")}
+          </Callout>
+        ) : null}
+        <section id="guide-summary" className="guide-section" tabIndex={-1}>
+          <Panel title="Summary" kicker="At a glance">
+            {summary.introduction.length > 0 ? (
+              <GuideNotes>
+                {summary.introduction.map((p, i) => (
+                  <p key={i}>
+                    <RichTextView text={p} view={view} />
+                  </p>
+                ))}
+              </GuideNotes>
+            ) : null}
+            <GuideNotes>
+              <p>
+                <RichTextView text={summary.playstyle} view={view} />
+              </p>
+              <p>
+                <RichTextView text={summary.scalingAxes} view={view} />
+              </p>
+            </GuideNotes>
+            <div className="guide-columns">
+              <div>
+                <h3>Strengths</h3>
+                <ul>
+                  {summary.strengths.map((t, i) => (
+                    <li key={i}>
+                      <RichTextView text={t} view={view} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3>Weaknesses</h3>
+                <ul>
+                  {summary.weaknesses.map((t, i) => (
+                    <li key={i}>
+                      <RichTextView text={t} view={view} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            {summary.closing === undefined ? null : (
+              <p>
+                <strong>In short: </strong>
+                <RichTextView text={summary.closing} view={view} />
+              </p>
+            )}
+          </Panel>
+          <PowerCurve view={view} />
+          <SectionComments sectionKey="S9.summary" label="Overview" />
+        </section>
+        <section id="guide-mechanics" className="guide-section" tabIndex={-1}>
+          <Panel title="How it works" kicker="Mechanics" variant="recessed">
+            <GuideNotes>
+              <p>
+                <RichTextView text={mechanics.explanation} view={view} />
+              </p>
+            </GuideNotes>
+            <ul>
+              {mechanics.decisions.map((d, i) => (
+                <li key={i}>
+                  {d.subject === undefined ? null : (
+                    <strong>{nameOf(view, d.subject) ?? d.subject.id}: </strong>
+                  )}
+                  <RichTextView text={d.reason} view={view} />
+                </li>
+              ))}
+            </ul>
+            <Reasons
+              title="How the parts work together"
+              items={mechanics.interactions}
+              view={view}
+            />
+            <Reasons title="Skill setups" items={mechanics.gemSetups} view={view} />
+            {mechanics.defences.length > 0 ? (
+              <>
+                <h3>Defences</h3>
+                <ul>
+                  {mechanics.defences.map((d, i) => (
+                    <li key={i}>
+                      <RichTextView text={d.explanation} view={view} />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {mechanics.resources === undefined ? null : (
+              <>
+                <h3>Resources</h3>
+                <p>
+                  <RichTextView text={mechanics.resources} view={view} />
+                </p>
+              </>
+            )}
+          </Panel>
+          <SectionComments sectionKey="S9.mechanics" label="How it works" />
+        </section>
+        <section id="guide-stages" className="guide-section" tabIndex={-1}>
+          <Tabs
+            label="Guide stages"
+            variant="dial"
+            value={stageKey}
+            onChange={setStageKey}
+            items={sortedStages.map((stage, i) => ({
+              id: stage.key,
+              label: stage.label,
+              hint: `Level ${stage.levelRange[0]}–${stage.levelRange[1]}`,
+              content: <StageView stage={stage} previous={sortedStages[i - 1]} view={view} />,
+            }))}
+          />
+        </section>
+        <section id="guide-gear" className="guide-section" tabIndex={-1}>
+          <GearMatrix view={view} />
+          <GearSection view={view} />
+        </section>
+        <section id="guide-crafting" className="guide-section" tabIndex={-1}>
+          <CraftingSection view={view} />
+        </section>
+        <section id="guide-tree" className="guide-section" tabIndex={-1}>
+          <TreeSection
+            view={view}
+            stageIndex={Math.max(
+              0,
+              sortedStages.findIndex((s) => s.key === stageKey),
+            )}
+            onStageChange={(i) => {
+              const key = sortedStages[i]?.key;
+              if (key !== undefined) setStageKey(key);
+            }}
+          />
+        </section>
+        <section id="guide-playstyle" className="guide-section" tabIndex={-1}>
+          <PlaystyleSection view={view} />
+          <SectionComments sectionKey="S9.playstyle" label="Playstyle" />
+        </section>
+        <section id="guide-atlas" className="guide-section" tabIndex={-1}>
+          <AtlasSection view={view} />
+          <SectionComments sectionKey="S9.atlas" label="Endgame" />
+        </section>
+        <section id="guide-variants" className="guide-section" tabIndex={-1}>
+          <VariantsSection view={view} />
+          <SectionComments sectionKey="S9.variants" label="Variants" />
+        </section>
+        <section id="guide-faq" className="guide-section" tabIndex={-1}>
+          <FaqSection view={view} />
+          <SectionComments sectionKey="S9.faq" label="Troubleshooting" />
+        </section>
+      </div>
     </div>
   );
 }
