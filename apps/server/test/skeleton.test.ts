@@ -59,6 +59,7 @@ function setup(
     minion?: { skillKinds: string[]; statMap: Record<string, string> };
     placeholderWeapon?: { slot: string; rarity: string };
     calc?: { calculate: unknown; getResult: unknown };
+    respec?: { maxRespecs: number; maxRefund: number; metric: string };
   } = {},
 ) {
   const optimize = vi.fn<(input: TreeOptimizeInput) => Promise<never>>(() =>
@@ -92,7 +93,11 @@ function setup(
       objective: { weights: { FullDPS: 1 }, floors: {} },
       ...targetExtra,
     },
-    progression: { calcProfiles: ["as-saved"], objective: { weights: { FullDPS: 1 }, floors: {} } },
+    progression: {
+      calcProfiles: ["as-saved"],
+      objective: { weights: { FullDPS: 1 }, floors: {} },
+      ...(extra.respec === undefined ? {} : { respec: extra.respec }),
+    },
     ...(extra.minion === undefined ? {} : { minion: extra.minion }),
     logger: createMemoryLogger(),
     optimize,
@@ -455,6 +460,31 @@ describe("PobSkeleton", () => {
       ]);
       expect(calculate).toHaveBeenCalledTimes(2);
       expect(out.map((s) => s.state.level)).toEqual([10, 20]);
+    });
+
+    it("hands the respec rule and the stages that may respec to the optimiser", async () => {
+      const respec = { maxRespecs: 1, maxRefund: 4, metric: "CombinedDPS" };
+      const { skeleton, optimizeStages } = setup(
+        {},
+        wrap([stage("early", ["FixN1"]), stage("late", ["FixN1", "FixN2"])]),
+        undefined,
+        {},
+        { respec },
+      );
+      await skeleton.optimizeProgression({
+        ...input,
+        stages: [
+          input.stages[0] as never,
+          { ...(input.stages[1] as object), respecMinGainRatio: 3 },
+        ],
+      } as never);
+      const call = (
+        optimizeStages.mock.calls as unknown as [
+          { respec?: unknown; stages: { key: string; respecMinGainRatio?: number }[] },
+        ][]
+      )[0]?.[0];
+      expect(call?.respec).toEqual(respec);
+      expect(call?.stages.map((s) => s.respecMinGainRatio)).toEqual([undefined, 3]);
     });
 
     it("fails when the last stage does not reach the target tree", async () => {

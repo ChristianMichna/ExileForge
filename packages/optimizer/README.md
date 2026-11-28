@@ -77,8 +77,15 @@ liefern gleiche Ergebnisse; Zustände werden je Lauf nur einmal berechnet
 - Keine Weapon-Set-Ebene und keine Jewel-Socket-Profile; Ascendancy getrennt.
 - Tausch nur 1:1; Tausch ganzer Ketten und Beam Search fehlen. Das Ergebnis ist
   ein lokales Optimum, kein Beweis des Optimums.
-- Respecs zwischen Stufen (`respecs` ist immer leer); erst nötig, wenn
-  Leveling-Knoten außerhalb des Ziel-Trees gewollt sind.
+- Respecs zwischen Stufen: Standard ist keiner, jede Stufe baut auf der
+  vorigen auf. Mit der Regel `respec` (`RespecRule`, Config `s6.respec`) wählt
+  eine dafür freigegebene Stufe ihren Baum neu (nur aus Knoten des Ziel-Trees),
+  wenn die Metrik um mindestens `respecMinGainRatio` der Stufe und der Zielwert insgesamt besser ist, keine Floor-Verletzung dazukommt, höchstens
+  `maxRefund` Punkte zurückgegeben werden und weniger als `maxRespecs` Respecs
+  vorher fielen (Vorgabe Christian 27.11.2026: selten, in der Kampagne nur bei
+  großem Gewinn). Die Standardconfig lässt `maxRespecs` bei 0, weil die Kosten
+  eines Respecs (`respecCost`, Gate G6) noch keine Datenquelle haben. Leveling-
+  Knoten außerhalb des Ziel-Trees gibt es weiter nicht.
 - Gemessene Werte (Priors) werden nicht nach jeder Vergabe erneuert; nach
   Synergie-Änderungen kann die Reihenfolge der Kandidaten veraltet sein. Die
   Verfeinerung und das Wachstum messen aber immer den echten Zustand.

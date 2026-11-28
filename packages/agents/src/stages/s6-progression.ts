@@ -50,6 +50,12 @@ export const ProgressionNotes = z.object({
 });
 export type ProgressionNotes = z.infer<typeof ProgressionNotes>;
 
+/** The gain a stage of this kind needs to respec, from the config; none means it never does. */
+function respecGain(s6: S6Config, kind: "campaign" | "endgame"): { respecMinGainRatio?: number } {
+  const gain = s6.respec?.minGainRatio[kind];
+  return gain === undefined ? {} : { respecMinGainRatio: gain };
+}
+
 /** S6 part 1: orders the target tree into nested stages (PoB optimiser, background job). */
 export function stagesJob(
   ctx: PipelineContext,
@@ -84,6 +90,7 @@ export function stagesJob(
           key: s.key,
           budget: s.passivePoints,
           level: s.levelRange[1],
+          ...respecGain(s6, s.kind),
         })),
       });
       return JSON.parse(JSON.stringify(result)) as JsonValue;

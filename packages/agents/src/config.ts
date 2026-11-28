@@ -149,6 +149,30 @@ export const StageConfig = z
           /** Metric held to another measured metric, e.g. Int against ReqInt (no numbers typed here). */
           floorsFromMetrics: z.record(z.string().min(1), z.string().min(1)).default({}),
         }),
+        /**
+         * Respecs between stages. Absent or `maxRespecs: 0`: the stages only ever
+         * extend the previous one. A respec happens only when the freely
+         * re-picked tree gains `minGainRatio` (of its kind) on `metric`.
+         */
+        respec: z
+          .object({
+            maxRespecs: z.int().nonnegative(),
+            maxRefund: z.int().nonnegative(),
+            metric: z.string().min(1),
+            /**
+             * Relative gain on `metric` (1 = double) a stage of this kind needs to respec;
+             * a kind left out never respecs. Set the campaign's much higher than the endgame's.
+             */
+            minGainRatio: z
+              .object({
+                campaign: z.number().positive().optional(),
+                endgame: z.number().positive().optional(),
+              })
+              .refine((g) => g.campaign !== undefined || g.endgame !== undefined, {
+                message: "needs a gain for at least one stage kind",
+              }),
+          })
+          .optional(),
       })
       .optional(),
     /**

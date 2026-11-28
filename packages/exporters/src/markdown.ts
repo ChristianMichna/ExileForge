@@ -74,8 +74,17 @@ export function guideToMarkdown(guide: PublishedGuide, resolve: MarkdownResolver
   }
 
   h(2, "Progression");
-  for (const st of guide.progression.stages) {
+  for (const [i, st] of guide.progression.stages.entries()) {
     h(3, `${st.label} (levels ${String(st.levelRange[0])}–${String(st.levelRange[1])})`);
+    out.push(
+      st.respecs.length === 0
+        ? i === 0
+          ? `**Respec:** none.`
+          : `**Respec:** none, this stage only adds points to the previous tree.`
+        : `**Respec:** refund ${String(st.respecs.length)} point${st.respecs.length === 1 ? "" : "s"}${
+            st.respecCost === undefined ? ", cost not measured" : `, cost ${price(st.respecCost)}`
+          }.`,
+    );
     bullets(st.tasks);
     if (st.dangers.length > 0) {
       out.push("**Dangers**");
