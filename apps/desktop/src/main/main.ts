@@ -24,7 +24,7 @@ import {
   APP_SCHEME,
   APP_URL,
   isAppUrl,
-  isCitationUrl,
+  citationUrlToOpen,
   isDataSyncUrl,
   isTrustedSender,
 } from "./security.js";
@@ -33,6 +33,17 @@ import { StatusStore } from "./status.js";
 import { startUpdates, type UpdateController } from "./updater.js";
 
 const logger = createStderrLogger("desktop");
+/** Hosts a citation link may open; empty (nothing opens) until the configuration is loaded. */
+let citationHosts: readonly string[] = [];
+
+/** Host of a link for the log; never the path or query. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "(unparseable)";
+  }
+}
 
 // The window and the userData folder (%APPDATA%\Astrolabe) are named after the app.
 app.setName("Astrolabe");
@@ -64,8 +75,11 @@ if (!app.requestSingleInstanceLock()) {
   app.on("web-contents-created", (_event, contents) => {
     contents.setWindowOpenHandler(({ url }) => {
       // A citation link in a guide opens in the default browser; no other window may open.
-      if (isCitationUrl(url)) {
-        shell.openExternal(url).catch((error: unknown) => {
+      const target = citationUrlToOpen(url, citationHosts);
+      if (target === null) {
+        logger.warn("blocked a link that is not on the citation host list", { host: hostOf(url) });
+      } else {
+        shell.openExternal(target).catch((error: unknown) => {
           logger.error("could not open a citation link", { error });
         });
       }
@@ -104,6 +118,7 @@ async function boot(): Promise<void> {
     userData: app.getPath("userData"),
   });
   const config = await loadDesktopConfig(dirs.desktopConfigPath);
+  citationHosts = config.citations.allowedHosts;
   const status = new StatusStore(
     app.getVersion(),
     {
