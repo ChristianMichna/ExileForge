@@ -897,6 +897,137 @@ code {
   color: var(--ef-color-text-faint);
 }
 
+/* Gear paper doll: framed cells in the arrangement of config/web/gear-layout.json */
+.gear-doll {
+  margin-bottom: var(--ef-space-5);
+}
+
+.gear-doll__body {
+  display: grid;
+  gap: var(--ef-space-2);
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.gear-doll__extras {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--ef-space-2);
+  max-width: 44rem;
+  margin: var(--ef-space-3) auto 0;
+}
+
+.gear-cell {
+  --gear-color: var(--ef-color-line);
+  position: relative;
+  min-height: 3.5rem;
+  display: flex;
+}
+
+.gear-cell[data-rarity="normal"] {
+  --gear-color: var(--ef-color-rarity-normal);
+}
+.gear-cell[data-rarity="magic"] {
+  --gear-color: var(--ef-color-rarity-magic);
+}
+.gear-cell[data-rarity="rare"] {
+  --gear-color: var(--ef-color-rarity-rare);
+}
+.gear-cell[data-rarity="unique"] {
+  --gear-color: var(--ef-color-rarity-unique);
+}
+
+.gear-cell__frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.125rem;
+  min-width: 0;
+  padding: var(--ef-space-2);
+  text-align: left;
+  color: var(--ef-color-text);
+  border: var(--ef-hairline) solid color-mix(in srgb, var(--gear-color) 60%, transparent);
+  background:
+    linear-gradient(
+      to top,
+      color-mix(in srgb, var(--gear-color) 16%, transparent),
+      transparent 70%
+    ),
+    var(--ef-color-inset);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.gear-cell__frame[aria-pressed="true"] {
+  border-color: var(--gear-color);
+  box-shadow: inset 0 0 0 1px var(--gear-color);
+}
+
+.gear-cell__frame:focus-visible {
+  outline: 2px solid var(--ef-color-verdigris);
+  outline-offset: 2px;
+}
+
+.gear-cell__glyph {
+  position: absolute;
+  top: var(--ef-space-2);
+  right: var(--ef-space-2);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--gear-color) 55%, transparent);
+}
+
+.gear-cell__slot {
+  font-family: var(--ef-font-mono);
+  font-size: var(--ef-text-xs);
+  letter-spacing: var(--ef-tracking-caps);
+  text-transform: uppercase;
+  color: var(--ef-color-text-faint);
+}
+
+.gear-cell__name {
+  font-family: var(--ef-font-display);
+  font-size: var(--ef-text-sm);
+  color: var(--gear-color);
+  overflow-wrap: anywhere;
+}
+
+.gear-cell__base {
+  font-size: var(--ef-text-xs);
+  color: var(--ef-color-text-faint);
+}
+
+.gear-cell__hover {
+  display: none;
+  position: absolute;
+  z-index: 40;
+}
+
+.gear-cell__hover--down {
+  top: 0;
+}
+
+.gear-cell__hover--up {
+  bottom: 0;
+}
+
+.gear-cell__hover--right {
+  left: calc(100% + var(--ef-space-2));
+}
+
+.gear-cell__hover--left {
+  right: calc(100% + var(--ef-space-2));
+}
+
+/* Hover cards need a pointer that can hover; on touch the selected slot's panel below is the card. */
+@media (hover: hover) {
+  .gear-cell:not([data-dismissed]):hover .gear-cell__hover,
+  .gear-cell:not([data-dismissed]):focus-within .gear-cell__hover {
+    display: block;
+  }
+
 .section-comments {
   display: grid;
   gap: var(--ef-space-3);
