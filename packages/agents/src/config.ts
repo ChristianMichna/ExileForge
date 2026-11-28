@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GuideSpec } from "./guide-spec.js";
+import { GuideSpec, specRubricGaps } from "./guide-spec.js";
 import { QualityRubric } from "./quality/rubric.js";
 import { BudgetTierId } from "@astrolabe/contracts/build";
 import { CalcProfileId } from "@astrolabe/contracts/common";
@@ -312,6 +312,18 @@ export const StageConfig = z
           minStatPrioritiesPerSlot: z.int().nonnegative(),
         }),
       })
+      .refine(
+        (s9) => {
+          if (s9.rubric === undefined || s9.guideSpec === undefined) return true;
+          const gaps = specRubricGaps(s9.guideSpec, s9.rubric);
+          return gaps.unknown.length === 0 && gaps.unreferenced.length === 0;
+        },
+        {
+          message:
+            "the guide specification and the quality rubric disagree: every rubric rule must be explained by a spec item and every spec item may name only existing rules",
+          path: ["guideSpec"],
+        },
+      )
       .refine((s9) => s9.rubric !== undefined || s9.rubricFile !== undefined, {
         message: "s9 needs the quality rubric (rubricFile): the quality gate must not be off",
         path: ["rubricFile"],

@@ -17,13 +17,13 @@
     {
       "id": "campaign-respecs",
       "title": "Few respecs in the campaign",
-      "appliesTo": ["S6.notes", "S9.stage-*", "S9.playstyle"],
+      "appliesTo": ["S6.notes", "S9.stage-*"],
       "text": "A player should not have to rebuild the passive tree again and again while levelling. Describe each tree change as growth from the previous stage, and when a point has to be moved, say which one and why it cannot wait. Do not propose respecs the plan does not contain."
     },
     {
       "id": "gear-display",
       "title": "Gear is shown as items",
-      "appliesTo": ["S7.*", "S9.tier-*", "S9.slot-*"],
+      "appliesTo": ["S7.*", "S9.slot-*"],
       "text": "The app draws the gear as item cards placed on a character and shows the full item on hover, so every slot names one concrete item (a unique, or a rare with a base and the wanted modifiers). Advice per slot says what to look for in order of priority, where to get it, which alternatives are acceptable and when to upgrade."
     },
     {

@@ -13,6 +13,31 @@ describe("guide specification", () => {
     expect(specRubricGaps(spec, rubric)).toEqual({ unknown: [], unreferenced: [] });
   });
 
+  it("reaches the real task keys: every item matches at least one key of its family", () => {
+    const keys = [
+      "S6.notes",
+      "S7.gear-start",
+      "S8.craft-start-weapon-1",
+      "S9.summary",
+      "S9.mechanics",
+      "S9.playstyle",
+      "S9.atlas",
+      "S9.variants",
+      "S9.faq",
+      "S9.stage-act-1",
+      "S9.tier-start",
+      "S9.slot-start-helmet",
+      "S9.craft-start-weapon-1",
+      "S10.quality-summary",
+    ];
+    for (const item of spec.items) {
+      expect(
+        keys.some((k) => itemsFor(spec, k).includes(item)),
+        item.id,
+      ).toBe(true);
+    }
+  });
+
   it("is registered in the stage config", () => {
     const stages = read("stages.json") as { s9: { guideSpecFile: string } };
     expect(stages.s9.guideSpecFile).toBe("guide-spec.json");
