@@ -4,6 +4,7 @@ import type { PipelineContext } from "../src/pipeline.js";
 import type { StageConfig } from "../src/config.js";
 import {
   S9_SECTIONS,
+  citationCheck,
   citableCalcs,
   sectionTask,
   sectionKey,
@@ -167,6 +168,24 @@ describe("S9 summary check", () => {
     expect(out.entities.map((e) => e.path)).toEqual([
       "/bossMechanics/0/subject",
       "/strengths/0/1/ref",
+    ]);
+  });
+});
+
+describe("S9 citations", () => {
+  const research = { available: true, findings: [{ id: "boss-order" }] } as never;
+  const cite = (id: string) => ({ tips: [[text("Do it"), { type: "source", id }]] });
+
+  it("accepts a citation of a finding the section was given", () => {
+    expect(citationCheck(cite("boss-order"), research)).toEqual([]);
+  });
+
+  it("returns a citation of an unknown finding, or any citation without research", () => {
+    expect(citationCheck(cite("made-up"), research).map((f) => f.code)).toEqual([
+      "citation_unknown",
+    ]);
+    expect(citationCheck(cite("boss-order"), undefined).map((f) => f.code)).toEqual([
+      "citation_unknown",
     ]);
   });
 });

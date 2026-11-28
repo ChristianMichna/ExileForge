@@ -1,9 +1,3 @@
-import {
-  isResearched,
-  researchAnswer,
-  researchSections,
-  researchTask,
-} from "./stages/s9-research.js";
 import { z } from "zod";
 import { type ArchetypeCandidate, SkillProfile } from "@astrolabe/contracts/build";
 import type { JsonValue } from "@astrolabe/contracts/common";
@@ -60,6 +54,12 @@ import { detailItems, detailTask } from "./stages/s9-detail.js";
 import { judgedSections, qualityKey, qualityTask } from "./stages/s10-quality.js";
 import { S9_SECTIONS, sectionKey, sectionTask } from "./stages/s9-guide.js";
 import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
+import {
+  isResearched,
+  researchAnswer,
+  researchSections,
+  researchTask,
+} from "./stages/s9-research.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 

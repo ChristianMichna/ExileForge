@@ -1,4 +1,3 @@
-import { researchContext } from "./s9-research.js";
 import { z } from "zod";
 import type {
   ArchetypeCandidate,
@@ -20,6 +19,7 @@ import { defineTask, type AnyTaskSpec, type PipelineContext } from "../pipeline.
 import { S9_SECTION, S9_SECTION_FOCUS } from "../prompts.js";
 import { partFindings } from "../quality/rubric.js";
 import { requestContext } from "./context.js";
+import { researchContext } from "./s9-research.js";
 
 /** The sections Claude writes, in the order of the guide; the rest of the document is assembled by the app. */
 export const S9_SECTIONS = [
@@ -247,6 +247,37 @@ export function depthCheck(section: S9Section, depth: Depth) {
   };
 }
 
+/** A citation must name a finding that was handed to this section; nothing else may be cited. */
+export function citationCheck(payload: unknown, research: JsonValue | undefined): Finding[] {
+  const known = new Set(
+    research !== null &&
+      typeof research === "object" &&
+      !Array.isArray(research) &&
+      Array.isArray(research.findings)
+      ? research.findings.flatMap((f) =>
+          f !== null && typeof f === "object" && !Array.isArray(f) && typeof f.id === "string"
+            ? [f.id]
+            : [],
+        )
+      : [],
+  );
+  return walkSection(payload).texts.flatMap(({ path, text }) =>
+    text.flatMap((seg, i) =>
+      seg.type === "source" && !known.has(seg.id)
+        ? [
+            {
+              gate: "G7" as const,
+              severity: "error" as const,
+              code: "citation_unknown",
+              message: `The citation ${seg.id} is not one of the findings you were given${known.size === 0 ? " (there are none for this section)" : `: ${[...known].join(", ")}`}.`,
+              path: `${path}/${String(i)}`,
+            },
+          ]
+        : [],
+    ),
+  );
+}
+
 /** One section of the guide (Claude); earlier sections are context for the later ones. */
 export function sectionTask(
   ctx: PipelineContext,
@@ -278,6 +309,7 @@ export function sectionTask(
       ...(section === "summary" ? await summaryCheck(payload, pctx) : []),
       ...(section === "mechanics" ? layerCheck(payload, pctx) : []),
       ...(config.s9 === undefined ? [] : depthCheck(section, config.s9.depth)(payload)),
+      ...citationCheck(payload, research),
       ...partFindings(
         config.s9?.rubric,
         { [section]: sectionDraftOf(section, payload) },

@@ -1,4 +1,3 @@
-import { allFindings } from "./s9-research.js";
 import { z } from "zod";
 import {
   type ArchetypeCandidate,
@@ -35,6 +34,7 @@ import {
   withDetails,
 } from "./s9-detail.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
+import { allFindings } from "./s9-research.js";
 
 export const S10_REPORT_KEY = "S10.report";
 export const S10_CRITIC_KEY = "S10.critic";

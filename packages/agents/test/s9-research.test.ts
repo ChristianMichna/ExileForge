@@ -84,6 +84,15 @@ describe("research check", () => {
     );
   });
 
+  it("returns a topic with a digit", () => {
+    expect(
+      codes({
+        webAccess: true,
+        findings: [{ ...finding("aa"), topic: "Boss with 3 phases" }, finding("bb")],
+      }),
+    ).toEqual(["research_topic_number"]);
+  });
+
   it("returns a finding that belongs to another section", () => {
     expect(
       codes({

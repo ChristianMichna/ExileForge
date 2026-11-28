@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  ResearchFinding,
-  ResearchSection,
-  type ResearchFinding as Finding_,
-} from "@astrolabe/contracts/guide";
+import { ResearchFinding, ResearchSection } from "@astrolabe/contracts/guide";
 import type { ArchetypeCandidate, Finding, RichText } from "@astrolabe/contracts/build";
 import type { EntityRef, JsonValue } from "@astrolabe/contracts/common";
 import type { StageConfig } from "../config.js";
@@ -55,7 +51,7 @@ export function researchAnswer(
 }
 
 /** All findings accepted so far, in guide order. */
-export function allFindings(ctx: PipelineContext): Finding_[] {
+export function allFindings(ctx: PipelineContext): ResearchFinding[] {
   return ResearchSection.options.flatMap((s) => researchAnswer(ctx, s)?.findings ?? []);
 }
 
@@ -103,7 +99,17 @@ export function researchCheck(
             ),
           ];
     }
-    const out: Finding[] = [];
+    const out: Finding[] = answer.findings.flatMap((f, i) =>
+      /\d/.test(f.topic)
+        ? [
+            finding(
+              "research_topic_number",
+              `The topic of ${f.id} contains a digit; name the subject in words (numbers only by reference).`,
+              `/findings/${String(i)}/topic`,
+            ),
+          ]
+        : [],
+    );
     const { min, max } = research.findings;
     if (answer.findings.length < min || answer.findings.length > max) {
       out.push(
