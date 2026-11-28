@@ -122,6 +122,25 @@
       "appliesTo": ["S9.craft-*"],
       "text": "Explain the strategy so a player can follow it, with the tips and the pitfalls of each important step.",
       "rubric": ["craft-overview", "craft-tips", "craft-pitfalls", "craft-followable"]
+    },
+    {
+      "id": "research",
+      "title": "Research findings",
+      "appliesTo": ["S9.research-*"],
+      "text": "Research with the web tools of your own client, never from memory. Each finding is one specific, checkable statement in your own words (no copied passages) with the link and title of the page it comes from, and the catalog entities it is about. Prefer patch notes, the game wiki and community build guides; prefer the newest source and note when sources disagree. Never state a number: describe it, or reference a calculation. If you have no web tools, answer with webAccess false and no findings; do not invent sources."
+    },
+    {
+      "id": "citations",
+      "title": "Cite the research you rely on",
+      "appliesTo": [
+        "S9.summary",
+        "S9.mechanics",
+        "S9.playstyle",
+        "S9.atlas",
+        "S9.variants",
+        "S9.faq"
+      ],
+      "text": "When the task context holds research findings, build on them: where a statement rests on a finding, add a source segment with that finding's id after it. Cite only ids that appear in the context, never one you made up. Where findings disagree with the build's measured values, the calculation wins; say so."
     }
   ]
 }

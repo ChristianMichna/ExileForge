@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GuideSpec, specRubricGaps } from "./guide-spec.js";
+import { ResearchConfig } from "./research-config.js";
 import { QualityRubric } from "./quality/rubric.js";
 import { BudgetTierId } from "@astrolabe/contracts/build";
 import { CalcProfileId } from "@astrolabe/contracts/common";
@@ -296,6 +297,9 @@ export const StageConfig = z
         /** File with the guide specification, next to this config; the loader reads it into `guideSpec`. */
         guideSpecFile: z.string().min(1).optional(),
         guideSpec: GuideSpec.optional(),
+        /** File with the research settings, next to this config; the loader reads it into `research`. */
+        researchFile: z.string().min(1).optional(),
+        research: ResearchConfig.optional(),
         depth: z.object({
           introductionParagraphs: z.int().nonnegative(),
           interactions: z.int().nonnegative(),

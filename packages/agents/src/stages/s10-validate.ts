@@ -34,6 +34,7 @@ import {
   withDetails,
 } from "./s9-detail.js";
 import { type S9Section, sectionKey, sectionSchemas, walkSection } from "./s9-guide.js";
+import { allFindings } from "./s9-research.js";
 
 export const S10_REPORT_KEY = "S10.report";
 export const S10_CRITIC_KEY = "S10.critic";
@@ -293,6 +294,7 @@ export function assembleDraft(ctx: PipelineContext, inputs: S10Inputs): GuideDra
       atlas: part("atlas", sectionSchemas.atlas),
       variants: part("variants", sectionSchemas.variants).variants,
       faq: part("faq", sectionSchemas.faq).faq,
+      research: allFindings(ctx),
     },
     "guide draft",
   );

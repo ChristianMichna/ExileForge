@@ -24,6 +24,7 @@ describe("guide specification", () => {
       "S9.atlas",
       "S9.variants",
       "S9.faq",
+      "S9.research-playstyle",
       "S9.stage-act-1",
       "S9.tier-start",
       "S9.slot-start-helmet",
@@ -45,7 +46,7 @@ describe("guide specification", () => {
 
   it("hands a task only the items that apply to it", () => {
     const ids = (key: string): string[] => itemsFor(spec, key).map((i) => i.id);
-    expect(ids("S9.summary")).toEqual(["depth", "numbers-by-reference", "summary"]);
+    expect(ids("S9.summary")).toEqual(["depth", "numbers-by-reference", "summary", "citations"]);
     expect(ids("S9.slot-start-helmet")).toContain("slot");
     expect(ids("S9.slot-start-helmet")).not.toContain("summary");
     expect(ids("S1.profile")).toEqual([]);

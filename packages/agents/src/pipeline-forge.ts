@@ -54,6 +54,12 @@ import { detailItems, detailTask } from "./stages/s9-detail.js";
 import { judgedSections, qualityKey, qualityTask } from "./stages/s10-quality.js";
 import { S9_SECTIONS, sectionKey, sectionTask } from "./stages/s9-guide.js";
 import { S8_PLAN_KEY, craftPlanJob, craftSlotsOf, craftTask } from "./stages/s8-craft.js";
+import {
+  isResearched,
+  researchAnswer,
+  researchSections,
+  researchTask,
+} from "./stages/s9-research.js";
 
 export const FORGE_PIPELINE_ID = "forge";
 
@@ -110,6 +116,7 @@ function createPlainPipeline(config: StageConfig): Pipeline {
       (config.s7 === undefined ? 0 : (tiersOf(config.s7, ctx.run.request.budget)?.length ?? 0)) +
       craftTaskCount(ctx) +
       S9_SECTIONS.length +
+      researchSections(config).length +
       detailTaskCount(ctx, config) +
       judgedSections(config.s9?.rubric).length +
       1,
@@ -437,6 +444,15 @@ function planGuide(
       gear: JSON.parse(JSON.stringify(gear.data)) as JsonValue,
       crafting: JSON.parse(JSON.stringify(crafting.data)) as JsonValue,
     };
+    // Research comes just before the section it serves, so the writer sees its findings (ADR-0006).
+    const research = config.s9?.research;
+    if (
+      research !== undefined &&
+      isResearched(config, open) &&
+      researchAnswer(ctx, open) === undefined
+    ) {
+      return { kind: "task", spec: researchTask(ctx, config, research, open, { chosen, plans }) };
+    }
     return { kind: "task", spec: sectionTask(ctx, config, open, { chosen, target, plans }) };
   }
   // The detail pass: one small task per stage, gear tier, gear slot and crafting plan.
