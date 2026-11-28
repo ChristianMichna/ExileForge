@@ -10723,7 +10723,7 @@
               "url": {
                 "type": "string",
                 "maxLength": 2048,
-                "pattern": "^https:\\/\\/[^\\s/@?#]+(?:[/?#]\\S*)?$"
+                "pattern": "^https:\\/\\/[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?:[/?#][^\\s\\\\]*)?$"
               },
               "title": {
                 "type": "string",

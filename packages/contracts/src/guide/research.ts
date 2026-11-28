@@ -25,12 +25,27 @@ export const ResearchSection = z.enum([
 ]);
 export type ResearchSection = z.infer<typeof ResearchSection>;
 
-/** https, a host without embedded credentials, then an optional path, query or fragment. */
-const HTTPS_LINK = /^https:\/\/[^\s/@?#]+(?:[/?#]\S*)?$/i;
+/**
+ * https, a plain host name (no credentials, port or brackets), then an optional path, query or
+ * fragment without whitespace, control characters or backslashes. `URL` is not available to this
+ * package; the desktop shell re-checks every link with it before opening, against the host list.
+ */
+const HTTPS_LINK = /^https:\/\/[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?:[/?#][^\s\\]*)?$/i;
+
+/** No C0 or C1 control characters (whitespace is already excluded by the pattern). */
+const hasNoControlCharacters = (value: string): boolean =>
+  [...value].every((c) => {
+    const code = c.codePointAt(0) ?? 0;
+    return code > 0x1f && (code < 0x7f || code > 0x9f);
+  });
 
 export const ResearchSource = z.object({
   /** https only; the hosts that are allowed are set in config/agents/research.json. */
-  url: z.string().max(2048).regex(HTTPS_LINK, "sources must be https links without credentials"),
+  url: z
+    .string()
+    .max(2048)
+    .regex(HTTPS_LINK, "sources must be https links without credentials, port or backslashes")
+    .refine(hasNoControlCharacters, "sources must not contain control characters"),
   title: z.string().min(1).max(200),
   retrievedAt: IsoDateTime,
 });

@@ -384,6 +384,18 @@ describe("research findings (ADR-0006)", () => {
         source: { ...finding.source, url: "javascript:alert(1)" },
       }),
     ).toThrow();
+    for (const url of [
+      "https://example.test\\@evil.example/",
+      "https://example.test:99999/",
+      "https://[::1]/",
+      "https://example.test/a\tb",
+      "https://example.test/a\nb",
+      "https://example.test/a b",
+    ]) {
+      expect(() =>
+        ResearchFinding.parse({ ...finding, source: { ...finding.source, url } }),
+      ).toThrow();
+    }
     expect(() => ResearchFinding.parse(without(finding, "source"))).toThrow();
     expect(() => RichText.parse([{ type: "source", id: "Not A Slug" }])).toThrow();
   });

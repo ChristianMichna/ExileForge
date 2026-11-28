@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONTENT_SECURITY_POLICY,
   isAllowedExternalUrl,
-  isCitationUrl,
+  citationUrlToOpen,
   isAppUrl,
   isTrustedSender,
 } from "../src/main/security.js";
@@ -53,12 +53,37 @@ describe("data sync requests", () => {
 });
 
 describe("citation links", () => {
-  it("opens https links without credentials and nothing else", () => {
-    expect(isCitationUrl("https://example.test/guide")).toBe(true);
-    expect(isCitationUrl("http://example.test/guide")).toBe(false);
-    expect(isCitationUrl("https://user:pw@example.test/")).toBe(false);
-    expect(isCitationUrl("javascript:alert(1)")).toBe(false);
-    expect(isCitationUrl("file:///etc/passwd")).toBe(false);
-    expect(isCitationUrl("not a url")).toBe(false);
+  const hosts = ["maxroll.gg", "pathofexile.com"];
+  it("opens the normalized https link of a listed host and nothing else", () => {
+    expect(citationUrlToOpen("https://maxroll.gg/poe2/guide", hosts)).toBe(
+      "https://maxroll.gg/poe2/guide",
+    );
+    expect(citationUrlToOpen("https://MAXROLL.gg", hosts)).toBe("https://maxroll.gg/");
+    expect(citationUrlToOpen("https://www.pathofexile.com/forum", hosts)).toBe(
+      "https://www.pathofexile.com/forum",
+    );
+    expect(citationUrlToOpen("http://maxroll.gg/x", hosts)).toBeNull();
+    expect(citationUrlToOpen("https://other.example/x", hosts)).toBeNull();
+    expect(citationUrlToOpen("https://notmaxroll.gg/x", hosts)).toBeNull();
+    expect(citationUrlToOpen("https://maxroll.gg.evil.example/x", hosts)).toBeNull();
+    expect(citationUrlToOpen("javascript:alert(1)", hosts)).toBeNull();
+    expect(citationUrlToOpen("file:///etc/passwd", hosts)).toBeNull();
+    expect(citationUrlToOpen("not a url", hosts)).toBeNull();
+  });
+
+  it("rejects credentials, ports, IP addresses and localhost", () => {
+    expect(citationUrlToOpen("https://user:pw@maxroll.gg/", hosts)).toBeNull();
+    expect(citationUrlToOpen("https://maxroll.gg:8443/", hosts)).toBeNull();
+    expect(citationUrlToOpen("https://127.0.0.1/", ["127.0.0.1"])).toBeNull();
+    expect(citationUrlToOpen("https://[::1]/", ["::1"])).toBeNull();
+    expect(citationUrlToOpen("https://localhost/", ["localhost"])).toBeNull();
+  });
+
+  it("rejects spellings that parsers and the OS may read differently", () => {
+    expect(citationUrlToOpen("https://maxroll.gg\\@evil.example/", hosts)).toBeNull();
+    expect(citationUrlToOpen("https://maxroll.gg/\tx", hosts)).toBeNull();
+    expect(citationUrlToOpen("https://maxroll.gg/a\nb", hosts)).toBeNull();
+    expect(citationUrlToOpen(" https://maxroll.gg/", hosts)).toBeNull();
+    expect(citationUrlToOpen(`https://maxroll.gg/${"a".repeat(2100)}`, hosts)).toBeNull();
   });
 });
