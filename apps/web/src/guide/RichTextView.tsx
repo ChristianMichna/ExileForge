@@ -30,6 +30,30 @@ export function RichTextView({ text, view }: { text: RichText; view: GuideView }
             <strong key={i}>{name}</strong>
           );
         }
+        if (segment.type === "source") {
+          const at = view.guide.research.findIndex((f) => f.id === segment.id);
+          const finding = view.guide.research[at];
+          return finding === undefined ? (
+            <span
+              key={i}
+              className="guide-unresolved"
+              title="This source is not listed in the guide"
+            >
+              [{segment.id}]
+            </span>
+          ) : (
+            <sup key={i} className="guide-cite">
+              <a
+                href={finding.source.url}
+                target="_blank"
+                rel="noreferrer"
+                title={finding.source.title}
+              >
+                [{at + 1}]
+              </a>
+            </sup>
+          );
+        }
         const result = view.results[segment.ref.calcId];
         const value = result?.stats[segment.ref.stat];
         if (result === undefined || value === undefined) {

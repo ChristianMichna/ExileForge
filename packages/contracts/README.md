@@ -138,3 +138,5 @@ pnpm --filter @astrolabe/contracts generate   # schemas/ neu erzeugen (nicht von
 
 Fixtures in `test/fixtures/` sind erfunden (`Fixture/…`) und enthalten kein
 Spielwissen.
+
+`ResearchFinding` und `ResearchSection` (seit 0.26.0, `guide/research.ts`, ADR-0006) tragen die Recherche: ein Befund hat eine Id, den Abschnitt, ein Thema, die Aussage als `RichText` (eigene Worte, Zahlen nur als `calc`-Segmente), die Quelle (nur https, Titel, Abrufdatum) und Katalog-Entitäten. `GuideDocument.research` (Standard leer) hält die Befunde eines Guides. Das Textsegment `source` zitiert einen Befund über seine Id; ob die Id existiert und welche Hosts erlaubt sind, prüfen die Gates mit Werten aus `config/`, nicht das Schema.
