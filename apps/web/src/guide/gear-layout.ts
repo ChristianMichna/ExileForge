@@ -9,10 +9,38 @@ const Area = z.object({
   rowSpan: z.number().int().min(1),
 });
 
-const GearLayoutConfig = z.object({
-  columns: z.number().int().min(1),
-  slots: z.record(z.string().min(1), Area),
-  glyphs: z.record(z.string().min(1), z.string().min(1)),
-});
+const GearLayoutConfig = z
+  .object({
+    columns: z.number().int().min(1),
+    slots: z.record(z.string().min(1), Area),
+    glyphs: z.record(z.string().min(1), z.string().min(1)),
+    /** Slots that take the same place because a character wears only one of them (e.g. two-hand vs off-hand). */
+    alternatives: z.array(z.array(z.string().min(1)).min(2)).default([]),
+  })
+  .superRefine((cfg, ctx) => {
+    const seen = new Map<string, string>();
+    const same = (a: string, b: string) =>
+      cfg.alternatives.some((g) => g.includes(a) && g.includes(b));
+    for (const [slot, a] of Object.entries(cfg.slots)) {
+      if (a.col + a.colSpan - 1 > cfg.columns) {
+        ctx.addIssue({ code: "custom", message: `${slot} leaves the ${cfg.columns} columns` });
+      }
+      for (let r = a.row; r < a.row + a.rowSpan; r++) {
+        for (let c = a.col; c < a.col + a.colSpan; c++) {
+          const key = `${c},${r}`;
+          const other = seen.get(key);
+          if (other !== undefined && !same(slot, other)) {
+            ctx.addIssue({ code: "custom", message: `${slot} overlaps ${other}` });
+          }
+          seen.set(key, slot);
+        }
+      }
+    }
+    for (const glyphSlot of Object.keys(cfg.glyphs)) {
+      if (cfg.slots[glyphSlot] === undefined) {
+        ctx.addIssue({ code: "custom", message: `glyph for unknown slot ${glyphSlot}` });
+      }
+    }
+  });
 
 export const GEAR_LAYOUT = GearLayoutConfig.parse(raw);

@@ -1,8 +1,9 @@
+import { useState } from "react";
 import type { CSSProperties } from "react";
 import { ItemTooltip } from "@astrolabe/ui";
 import type { GuideGearEntry, GuideView } from "@astrolabe/contracts/guide";
 import { GEAR_LAYOUT } from "../guide/gear-layout";
-import { rarityOf, toItemView } from "./GuideGear";
+import { rarityOf, toItemView } from "../guide/gear-item";
 
 /*
  * The gear as it sits on a character: one framed cell per slot in the arrangement of
@@ -41,17 +42,30 @@ function Cell({
   const area = GEAR_LAYOUT.slots[entry.slot];
   const rarity = entry.target === null ? "empty" : (rarityOf(entry.target) ?? "normal");
   const glyph = GEAR_LAYOUT.glyphs[entry.slot] ?? "◇";
+  const [dismissed, setDismissed] = useState(false);
+  const tipId = `gear-tip-${entry.budgetTier}-${entry.slot.replace(/\s+/g, "-")}`;
+  const vertical = area !== undefined && area.row > 3 ? "up" : "down";
   const side = area !== undefined && area.col > GEAR_LAYOUT.columns / 2 ? "left" : "right";
   const plan = view.guide.gear.tiers
     .find((t) => t.budgetTier === entry.budgetTier)
     ?.slots.find((s) => s.slot === entry.slot);
   return (
-    <div className="gear-cell" style={cellStyle(entry.slot)} data-rarity={rarity}>
+    <div
+      className="gear-cell"
+      style={cellStyle(entry.slot)}
+      data-rarity={rarity}
+      {...(dismissed ? { "data-dismissed": "" } : {})}
+      onMouseLeave={() => setDismissed(false)}
+      onBlur={() => setDismissed(false)}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setDismissed(true);
+      }}
+    >
       <button
         type="button"
         className="gear-cell__frame"
         aria-pressed={selected}
-        aria-label={`${entry.slot}: ${entry.target?.name ?? entry.target?.baseName ?? "not in the game data"}`}
+        {...(entry.target === null ? {} : { "aria-describedby": tipId })}
         onClick={() => onSelect(entry.slot)}
       >
         <span className="gear-cell__glyph" aria-hidden="true">
@@ -70,11 +84,15 @@ function Cell({
         )}
       </button>
       {entry.target !== null ? (
-        <div className={`gear-cell__hover gear-cell__hover--${side}`} role="tooltip">
+        <div
+          id={tipId}
+          className={`gear-cell__hover gear-cell__hover--${side} gear-cell__hover--${vertical}`}
+          role="tooltip"
+        >
           <ItemTooltip
             item={toItemView(
               entry.target,
-              `${entry.slot}-hover`,
+              `${entry.budgetTier}-${entry.slot}-hover`,
               view.catalogReleaseId,
               plan?.acquisition,
             )}

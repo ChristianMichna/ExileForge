@@ -1002,9 +1002,15 @@ code {
 .gear-cell__hover {
   display: none;
   position: absolute;
-  top: 0;
   z-index: 40;
-  pointer-events: none;
+}
+
+.gear-cell__hover--down {
+  top: 0;
+}
+
+.gear-cell__hover--up {
+  bottom: 0;
 }
 
 .gear-cell__hover--right {
@@ -1015,13 +1021,10 @@ code {
   right: calc(100% + var(--ef-space-2));
 }
 
-.gear-cell:hover .gear-cell__hover,
-.gear-cell:focus-within .gear-cell__hover {
-  display: block;
-}
-
-@media (max-width: 40rem) {
-  .gear-cell__hover {
-    display: none !important;
+/* Hover cards need a pointer that can hover; on touch the selected slot's panel below is the card. */
+@media (hover: hover) {
+  .gear-cell:not([data-dismissed]):hover .gear-cell__hover,
+  .gear-cell:not([data-dismissed]):focus-within .gear-cell__hover {
+    display: block;
   }
 }
