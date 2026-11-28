@@ -99,3 +99,28 @@ export const S10_CRITIC = [
   "Report each problem as an issue with the section it is in and a short plain-text message without digits, and name every section you actually read in `reviewed`. When an issue is in the prose of one progression stage, gear tier or slot, or crafting plan, give its key in `part` (a stage key, a tier id and slot joined by a slash, a tier id, or a crafting plan key from the draft). Do not rewrite anything, do not invent problems, and report no issue when there is none. Measured values are not in the draft; the gates check them, so do not judge numbers.",
   NO_MEMORY_RULES,
 ].join(" ");
+
+export const S9_RESEARCH = [
+  "Research one section of the player's build guide from outside sources: community build guides, patch notes and game databases, with your own web search and page tools.",
+  "Report findings, not prose. Each finding is a short paraphrase in your own words (never copied text) of something that helps a player of this build, with the link of the page it comes from (https), the time you read it and the catalog entities it is about.",
+  "Use only entities you found with catalog_search or catalog_get in this run's data release. Never type a number: reference calculation results or rephrase without the number. If a source disagrees with a measured value in the context, the measurement wins and the finding says what differs.",
+  "Use only the hosts the settings allow. If you have no web access, answer with webAccess false and no findings; never invent a source or a page.",
+].join(" ");
+
+/** What the research of each section should find out; the section texts are written afterwards. */
+export const S9_RESEARCH_FOCUS: Record<
+  "summary" | "mechanics" | "playstyle" | "atlas" | "variants" | "faq",
+  string
+> = {
+  summary:
+    "Why players choose this build, how it feels to play and how it develops from the campaign to the endgame.",
+  mechanics:
+    "How the key skills, items and passives of this build work together and which interactions players rely on or trip over.",
+  playstyle:
+    "How the build is played in practice: rotation, mapping and boss fights, positioning and the mistakes players make.",
+  atlas:
+    "How the endgame is approached with this build: phases, waystone choices and map modifiers players avoid.",
+  variants:
+    "Common variants of this build and what each is for: budgets, modes and playstyle changes.",
+  faq: "Problems players report with this build and the fixes that are given for them.",
+};
